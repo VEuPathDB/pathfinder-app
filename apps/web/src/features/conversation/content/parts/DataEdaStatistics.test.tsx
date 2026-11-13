@@ -15,7 +15,7 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 }));
 
 import type { ReactNode } from "react";
-import type { EdaStatisticsPart } from "@pathfinder/shared";
+import type { EdaStatisticsPart } from "@strategist/shared";
 
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 import { DataEdaStatistics } from "./DataEdaStatistics";

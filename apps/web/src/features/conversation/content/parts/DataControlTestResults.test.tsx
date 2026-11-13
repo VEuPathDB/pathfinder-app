@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { ControlTestResults } from "@pathfinder/shared";
+import type { ControlTestResults } from "@strategist/shared";
 
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 import { DataControlTestResults } from "./DataControlTestResults";

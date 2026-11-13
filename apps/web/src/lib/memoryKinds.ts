@@ -1,4 +1,4 @@
-import type { MemoryItem, MemoryKind, MemoryListResponse } from "@pathfinder/shared";
+import type { MemoryItem, MemoryKind, MemoryListResponse } from "@strategist/shared";
 
 /** How the app names each kind of memory: one of them, and a list of them. */
 export const MEMORY_KIND_LABELS: Record<MemoryKind, { one: string; many: string }> = {

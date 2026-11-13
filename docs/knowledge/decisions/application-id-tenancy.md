@@ -89,6 +89,6 @@ action that names no application; that action does not exist yet, and adding it
 is not the same decision as this one.
 
 There is no applications table, so an application id is whatever
-`PATHFINDER_SERVICE_TOKENS` declares, and revoking one is deleting its token.
+`STRATEGIST_SERVICE_TOKENS` declares, and revoking one is deleting its token.
 There is no per-application budget: the cap is the user's. Both are named in
 the platform assessment as separate work.

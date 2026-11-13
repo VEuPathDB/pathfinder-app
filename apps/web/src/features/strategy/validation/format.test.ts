@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ValidationResult, ValidationResponse } from "@pathfinder/shared";
+import type { ValidationResult, ValidationResponse } from "@strategist/shared";
 import { formatSearchValidationResponse } from "./format";
 
 // ---------------------------------------------------------------------------

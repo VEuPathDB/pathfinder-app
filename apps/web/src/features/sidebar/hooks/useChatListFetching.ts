@@ -3,9 +3,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { listDismissedStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListDismissedStrategies";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import { listDismissedStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListDismissedStrategies";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 
 interface UseChatListFetchingArgs {

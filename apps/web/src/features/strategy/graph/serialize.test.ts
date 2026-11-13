@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { serializeStrategyAst } from "./serialize";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 
 /** Minimal Step with required boolean fields defaulted. */
 function step(partial: Partial<Step> & { id: string; displayName: string }): Step {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
+import { systemConfigQueryOptions } from "@strategist/shared/generated/hooks/useSystemConfig";
 
 /**
  * Reads whether the backend has a model provider, the deployment's site, its

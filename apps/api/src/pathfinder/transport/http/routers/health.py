@@ -43,10 +43,10 @@ async def system_config() -> SystemConfigResponse:
     screen before asking users to log in.
     """
     settings = get_settings()
-    site = get_site(settings.pathfinder_site)
+    site = get_site(settings.strategist_site)
     paid = settings.deployment_providers
     return SystemConfigResponse(
-        chat_provider=settings.pathfinder_chat_provider,
+        chat_provider=settings.strategist_chat_provider,
         llm_configured=bool(paid),
         providers=ProviderStatus(
             openai="openai" in paid,
@@ -54,7 +54,7 @@ async def system_config() -> SystemConfigResponse:
             google="google" in paid,
             ollama="ollama" in paid,
         ),
-        site_id=settings.pathfinder_site,
+        site_id=settings.strategist_site,
         site_sign_in_url=sign_in_url(site),
         site_page_url=pathfinder_page_url(site),
     )

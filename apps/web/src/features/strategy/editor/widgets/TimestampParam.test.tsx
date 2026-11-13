@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { TimestampParam } from "./TimestampParam";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import { WidgetTestForm, getInputByLabel } from "./testUtils";
 
 afterEach(cleanup);

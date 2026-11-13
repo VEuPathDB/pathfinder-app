@@ -1,7 +1,7 @@
 "use client";
 
 import { Code2, MoreVertical, Pencil } from "lucide-react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

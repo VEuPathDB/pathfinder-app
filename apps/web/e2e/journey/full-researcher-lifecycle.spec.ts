@@ -5,7 +5,7 @@
  * mocked.
  */
 
-import type { GeneSet } from "@pathfinder/shared";
+import type { GeneSet } from "@strategist/shared";
 
 import { test, expect } from "../fixtures/a11y";
 import { prompt } from "../fixtures/arcs";

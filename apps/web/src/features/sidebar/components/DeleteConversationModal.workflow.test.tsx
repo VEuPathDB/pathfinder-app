@@ -6,9 +6,9 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactElement } from "react";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
-import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
-import { dismissConversation } from "@pathfinder/shared/generated/hooks/useDismissConversation";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
+import { deleteStrategy } from "@strategist/shared/generated/hooks/useDeleteStrategy";
+import { dismissConversation } from "@strategist/shared/generated/hooks/useDismissConversation";
 
 import { createTestQueryClient } from "@/lib/query/testing";
 import { useSettingsStore } from "@/state/useSettingsStore";
@@ -16,13 +16,13 @@ import { useDeleteWorkflow } from "@/features/sidebar/hooks/useDeleteWorkflow";
 import { DeleteConversationModal } from "./DeleteConversationModal";
 import type { ConversationItem } from "./conversationSidebarTypes";
 
-vi.mock("@pathfinder/shared/generated/hooks/useDeleteStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useDeleteStrategy", () => ({
   deleteStrategy: vi.fn(() => Promise.resolve({})),
 }));
-vi.mock("@pathfinder/shared/generated/hooks/useDismissConversation", () => ({
+vi.mock("@strategist/shared/generated/hooks/useDismissConversation", () => ({
   dismissConversation: vi.fn(() => Promise.resolve()),
 }));
-vi.mock("@pathfinder/shared/generated/hooks/useRestoreStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useRestoreStrategy", () => ({
   restoreStrategy: vi.fn(() => Promise.resolve({})),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));

@@ -1,4 +1,4 @@
-import { edaNewAnalysisSchema } from "@pathfinder/shared/generated/zod/edaNewAnalysisSchema";
+import { edaNewAnalysisSchema } from "@strategist/shared/generated/zod/edaNewAnalysisSchema";
 
 import { filterSummary } from "@/lib/eda/filterSummary";
 

@@ -50,7 +50,7 @@ jobs:
         env:
           API_ENV: test
           API_SECRET_KEY: mcp-nightly-secret-key-0000000000000
-          PATHFINDER_CHAT_PROVIDER: mock
+          STRATEGIST_CHAT_PROVIDER: mock
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
           WDK_MCP_BASE_URL: http://localhost:8100
           WDK_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
@@ -77,11 +77,11 @@ jobs:
         env:
           API_ENV: test
           API_SECRET_KEY: mcp-nightly-secret-key-0000000000000
-          PATHFINDER_CHAT_PROVIDER: mock
+          STRATEGIST_CHAT_PROVIDER: mock
           WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
           WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
           WDK_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
-          PATHFINDER_MCP_URL: http://localhost:8100/mcp
+          STRATEGIST_MCP_URL: http://localhost:8100/mcp
           MCP_ADMISSION_REPORT: mcp-admission-report.json
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
         run: uv run pytest src/pathfinder/tests/integration/mcp -m live_wdk -q

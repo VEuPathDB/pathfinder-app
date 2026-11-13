@@ -1,6 +1,6 @@
 "use client";
 
-import type { StrategyLink } from "@pathfinder/shared";
+import type { StrategyLink } from "@strategist/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 

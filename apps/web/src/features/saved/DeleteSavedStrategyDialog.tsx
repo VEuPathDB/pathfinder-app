@@ -1,6 +1,6 @@
 "use client";
 
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import {
   AlertDialog,

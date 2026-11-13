@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Step } from "@pathfinder/shared";
-import { combineOpEnum, type CombineOp } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
+import { combineOpEnum, type CombineOp } from "@strategist/shared";
 import { getZeroResultSuggestions } from "./zeroResultAdvisor";
 
 // ---------------------------------------------------------------------------

@@ -51,7 +51,7 @@ _PICKED_MODEL = ANTHROPIC_SMALL
 @pytest.fixture(autouse=True)
 def _real_provider(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """The suite-wide provider is the mock one, which belongs to no stage pick."""
-    monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "default")
+    monkeypatch.setenv("STRATEGIST_CHAT_PROVIDER", "default")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key-for-model-resolution")
     get_settings.cache_clear()
     yield

@@ -4,7 +4,7 @@ import {
   type TurnRequestBody,
 } from "@veupathdb/assistant-client";
 
-import type { ThreadMode } from "@pathfinder/shared/generated/types/ThreadMode";
+import type { ThreadMode } from "@strategist/shared/generated/types/ThreadMode";
 import type { PhaseModelMap, PhaseReasoningMap } from "@/state/useSettingsStore";
 
 import { withConsultAnswers } from "../rail/consultActions";

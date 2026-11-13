@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai";
 
-import { DEFAULT_STREAM_NAME } from "@pathfinder/shared";
+import { DEFAULT_STREAM_NAME } from "@strategist/shared";
 
 /** The longest a first message stands in for the title, in code points. */
 const MAX_LENGTH = 60;

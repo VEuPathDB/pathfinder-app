@@ -21,7 +21,7 @@ DEV_LOGIN = "/api/v1/dev/login"
 
 def test_the_spec_never_carries_dev_routes(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "mock")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "mock")
 
     spec = _spec_with_stable_overrides()
 

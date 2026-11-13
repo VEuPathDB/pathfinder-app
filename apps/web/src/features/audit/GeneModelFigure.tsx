@@ -1,5 +1,5 @@
 import { useId } from "react";
-import type { FindingModels } from "@pathfinder/shared/generated/types/FindingModels";
+import type { FindingModels } from "@strategist/shared/generated/types/FindingModels";
 
 import { FIGURE_COLORS, FigureLegend } from "./FigureLegend";
 import type { LegendEntry } from "./FigureLegend";

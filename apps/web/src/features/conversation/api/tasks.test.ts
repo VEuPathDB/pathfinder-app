@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { TaskListItemStatusEnumKey } from "@pathfinder/shared/generated/types/TaskListItem";
+import type { TaskListItemStatusEnumKey } from "@strategist/shared/generated/types/TaskListItem";
 
 import { TASK_STATUSES, taskPollInterval } from "./tasks";
 

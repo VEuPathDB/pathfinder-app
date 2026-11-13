@@ -4,7 +4,7 @@
 import type { UIMessage } from "ai";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { SeparationReport } from "@pathfinder/shared";
+import type { SeparationReport } from "@strategist/shared";
 
 import { qaRecording } from "@/lib/testing/qaRecording";
 import {

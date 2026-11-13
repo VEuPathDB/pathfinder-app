@@ -11,7 +11,7 @@ import {
 import type { ThreadMessageLike } from "@assistant-ui/react";
 import { reduceSnapshot } from "@veupathdb/assistant-client";
 import type { DataPart, TextPart } from "@veupathdb/assistant-client";
-import type { DataPartKind } from "@pathfinder/shared";
+import type { DataPartKind } from "@strategist/shared";
 
 import { useSettingsStore } from "@/state/useSettingsStore";
 

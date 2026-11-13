@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An open tab is told of a new web build
-description: The web image names its build by a hash of the web's sources (PATHFINDER_WEB_BUILD, set in the Dockerfile), serves it at GET /api/v1/web-build and sets it as Next's deploymentId; an open tab compares it with the build it loaded every five minutes and on focus, and shows a banner with a Reload button when they differ. Reloading on its own, comparing with the api's version, and a release version as the build name were rejected.
+description: The web image names its build by a hash of the web's sources (STRATEGIST_WEB_BUILD, set in the Dockerfile), serves it at GET /api/v1/web-build and sets it as Next's deploymentId; an open tab compares it with the build it loaded every five minutes and on focus, and shows a banner with a Reload button when they differ. Reloading on its own, comparing with the api's version, and a release version as the build name were rejected.
 tags: [web, deploy, release]
 generated: { by: claude-code/opus-5.5, at: 2026-11-11T00:00:00Z }
 status: stable
@@ -11,7 +11,7 @@ status: stable
 
 An open tab keeps running the JavaScript it loaded until the page reloads, so a
 tab opened before a deployment keeps the old code. The web image now names its
-build: the builder stage of `apps/web/Dockerfile` sets `PATHFINDER_WEB_BUILD` to
+build: the builder stage of `apps/web/Dockerfile` sets `STRATEGIST_WEB_BUILD` to
 the first 12 characters of a hash over the web's sources, the shared types, the
 spec and the lockfile, for `yarn build` only. `next.config.ts` inlines it with
 `env` and sets it as `deploymentId`. A build without it (`next dev`, a local
@@ -24,7 +24,7 @@ server runs, with `Cache-Control: no-store`. `NewReleaseBanner`, inside
 (`lib/webBuild.ts::aNewerBuildIsServed`), the banner says "Strategist has been
 updated." with a Reload button.
 
-The tab reads its build as `process.env.PATHFINDER_WEB_BUILD`, with a dot.
+The tab reads its build as `process.env.STRATEGIST_WEB_BUILD`, with a dot.
 Next inlines only that form, so an index access would leave the client with no
 build and the banner silent; `typings/process-env.d.ts` types the property so the
 dotted form passes the index-signature rule.

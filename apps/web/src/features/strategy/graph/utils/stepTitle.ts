@@ -1,4 +1,4 @@
-import type { Step, StepKind } from "@pathfinder/shared";
+import type { Step, StepKind } from "@strategist/shared";
 import { isOperatorLabel, operatorLabel } from "@/features/strategy/operators";
 
 /**

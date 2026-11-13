@@ -5,8 +5,8 @@
  */
 
 import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
-import type { MemoryItem, MemoryListResponse } from "@pathfinder/shared";
-import type { Note } from "@pathfinder/shared/generated/types/Note";
+import type { MemoryItem, MemoryListResponse } from "@strategist/shared";
+import type { Note } from "@strategist/shared/generated/types/Note";
 
 import { BASE_PATH } from "@/lib/basePath";
 

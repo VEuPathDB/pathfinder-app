@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { siteShortName, type EdaAnalysisState } from "@pathfinder/shared";
+import { siteShortName, type EdaAnalysisState } from "@strategist/shared";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";

@@ -6,7 +6,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 import { toast } from "sonner";
 
 import {
@@ -24,11 +24,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/conversation",
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock("@pathfinder/shared/generated/hooks/useOpenStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useOpenStrategy", () => ({
   openStrategy: vi.fn(() => Promise.resolve({ conversationId: "conv-9" })),
 }));
 
-import { openStrategy } from "@pathfinder/shared/generated/hooks/useOpenStrategy";
+import { openStrategy } from "@strategist/shared/generated/hooks/useOpenStrategy";
 import { OpenWdkStrategyDialog } from "./OpenWdkStrategyDialog";
 
 const mockOpenStrategy = vi.mocked(openStrategy);

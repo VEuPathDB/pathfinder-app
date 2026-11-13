@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import {
   Sheet,
   SheetContent,

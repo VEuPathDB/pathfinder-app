@@ -1,6 +1,6 @@
 "use client";
 
-import { combineOpEnum, type CombineOp, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type CombineOp, type Step } from "@strategist/shared";
 import type { GraphOperation } from "@/features/strategy/operations";
 import { useApplyOperation } from "./useApplyOperation";
 

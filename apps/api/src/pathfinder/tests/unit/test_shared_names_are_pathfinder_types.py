@@ -1,4 +1,4 @@
-"""Four names in ``@pathfinder/shared`` collide with ``wdk-client`` and mean
+"""Four names in ``@strategist/shared`` collide with ``wdk-client`` and mean
 something else. The browser is a client for Strategist, not for WDK.
 """
 

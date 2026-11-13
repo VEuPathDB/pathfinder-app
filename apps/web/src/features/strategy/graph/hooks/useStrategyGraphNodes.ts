@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { type Node, type Edge, useNodesState, useEdgesState } from "@xyflow/react";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { useStrategyStore } from "@/state/strategy/store";
 import { stepsById } from "@/state/strategy/selectors";
 import { validateStepsForSave } from "@/features/strategy/validation/save";

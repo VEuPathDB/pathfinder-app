@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { TypeAheadParam } from "./TypeAheadParam";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import type { VocabOption } from "@/lib/utils/vocab";
 import { WidgetTestForm } from "./testUtils";
 

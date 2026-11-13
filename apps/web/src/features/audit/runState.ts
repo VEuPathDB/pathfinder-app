@@ -1,6 +1,6 @@
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { StageRecord } from "@pathfinder/shared/generated/types/StageRecord";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { StageRecord } from "@strategist/shared/generated/types/StageRecord";
 
 import { joinWords, plural } from "./format";
 

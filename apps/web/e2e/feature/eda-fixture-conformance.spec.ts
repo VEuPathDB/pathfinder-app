@@ -11,14 +11,14 @@
 
 import { test, expect } from "@playwright/test";
 import type { ZodType } from "zod";
-import { conversationEdaResponseSchema } from "@pathfinder/shared/generated/zod/conversationEdaResponseSchema";
-import { conversationResponseSchema } from "@pathfinder/shared/generated/zod/conversationResponseSchema";
-import { edaAnalysisPatchResponseSchema } from "@pathfinder/shared/generated/zod/edaAnalysisPatchResponseSchema";
-import { edaAnalysisStateSchema } from "@pathfinder/shared/generated/zod/edaAnalysisStateSchema";
-import { edaStudyListResponseSchema } from "@pathfinder/shared/generated/zod/edaStudyListResponseSchema";
-import { edaSubsetPreviewPartSchema } from "@pathfinder/shared/generated/zod/edaSubsetPreviewPartSchema";
-import { edaVizPartSchema } from "@pathfinder/shared/generated/zod/edaVizPartSchema";
-import { edaVizResponseSchema } from "@pathfinder/shared/generated/zod/edaVizResponseSchema";
+import { conversationEdaResponseSchema } from "@strategist/shared/generated/zod/conversationEdaResponseSchema";
+import { conversationResponseSchema } from "@strategist/shared/generated/zod/conversationResponseSchema";
+import { edaAnalysisPatchResponseSchema } from "@strategist/shared/generated/zod/edaAnalysisPatchResponseSchema";
+import { edaAnalysisStateSchema } from "@strategist/shared/generated/zod/edaAnalysisStateSchema";
+import { edaStudyListResponseSchema } from "@strategist/shared/generated/zod/edaStudyListResponseSchema";
+import { edaSubsetPreviewPartSchema } from "@strategist/shared/generated/zod/edaSubsetPreviewPartSchema";
+import { edaVizPartSchema } from "@strategist/shared/generated/zod/edaVizPartSchema";
+import { edaVizResponseSchema } from "@strategist/shared/generated/zod/edaVizResponseSchema";
 
 import {
   analysisState,

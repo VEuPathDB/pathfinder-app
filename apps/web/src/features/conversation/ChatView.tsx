@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { resolveAssistantId } from "@/lib/assistants";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
 import { chatRoot } from "@/lib/routes";

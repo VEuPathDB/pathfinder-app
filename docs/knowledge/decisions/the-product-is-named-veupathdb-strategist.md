@@ -19,19 +19,26 @@ status: stable
 
 ## What keeps the old name, and why
 
-Each of these is read by something that is not in the same release:
+Names that only this repository writes and reads are `strategist`: the shared TypeScript
+package (`@strategist/shared`), the components, the brand files, the browser storage keys
+(moved once on load, so no setting resets), the `STRATEGIST_*` settings no deployment sets,
+the `X-Strategist-Service-Token` header, the dev-login cookie, and `bin/strategist-worker`, the
+command the worker starts from.
+
+Each of these is read by something outside one release, so it keeps `pathfinder` until it
+moves with its reader:
 
 - The Python package `pathfinder`. A saved conversation stores the module path of every
-  type in its checkpoint, and the serializer's allowlist reads it; the worker quadlet runs
-  `python -m pathfinder.jobs.worker`.
-- `assistant_id` and `application_id` (`"pathfinder"`) in stored rows.
-- The `PATHFINDER_*` variables the quadlet env files set.
-- `X-PathFinder-Service-Token`, which service clients send.
-- Browser storage keys, which hold each researcher's settings.
-- `__pathfinder_internal__:`, the prefix cleanup matches in WDK accounts.
+  type in its checkpoint, and the serializer's allowlist reads it.
+- `assistant_id` (`"pathfinder"`) in stored rows, and `application_id`, which is also the key
+  of the MCP service-token secrets puppet writes.
+- `PATHFINDER_WDK_MCP_URL` and `PATHFINDER_RESEARCH_MCP_URL`, which the quadlet env files set.
+- `__pathfinder_internal__:`, the prefix that hides and cleans helper strategies in WDK
+  accounts. A new prefix would show helpers stranded under the old one; it stays.
+- The type of the location message the frame sends, which the site's page listens for.
 - The `PathFinder/` User-Agent, which VEuPathDB operations reads.
 - The `/pathfinder` path, which the site route and the site proxy name.
-- Image, metric, database and repository names.
+- Metric and trace service names, image, database and repository names.
 
 The [rename backlog item](../backlog/the-identifiers-take-the-strategist-name.md) moves each
 one with what reads it.

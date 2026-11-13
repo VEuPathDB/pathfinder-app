@@ -4,9 +4,9 @@
  * else; every count and id is read from the site at run time.
  */
 
-import type { MemoryItem, MemoryListResponse } from "@pathfinder/shared";
-import type { ParamSpecResponse } from "@pathfinder/shared/generated/types/ParamSpecResponse";
-import type { WDKTreeBoxVocabNode } from "@pathfinder/shared/generated/types/WDKTreeBoxVocabNode";
+import type { MemoryItem, MemoryListResponse } from "@strategist/shared";
+import type { ParamSpecResponse } from "@strategist/shared/generated/types/ParamSpecResponse";
+import type { WDKTreeBoxVocabNode } from "@strategist/shared/generated/types/WDKTreeBoxVocabNode";
 
 import { test, expect } from "../fixtures/test";
 import { INJECTION_TEST_MESSAGE, prompt } from "../fixtures/arcs";

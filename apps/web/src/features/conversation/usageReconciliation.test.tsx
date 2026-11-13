@@ -8,7 +8,7 @@ import {
   threadUsage,
   type MessagePart,
 } from "@veupathdb/assistant-client";
-import type { DataLeadUsagePayload, DataSubAgentCallPayload } from "@pathfinder/shared";
+import type { DataLeadUsagePayload, DataSubAgentCallPayload } from "@strategist/shared";
 
 import type { TraceUsageView } from "@/features/conversation/thread/Trace";
 import { formatCost, formatTokens } from "@/features/conversation/usageFormat";

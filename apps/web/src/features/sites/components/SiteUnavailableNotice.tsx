@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 import { AlertTriangle } from "lucide-react";
 
 import { sitesOptions } from "@/lib/api/sites";

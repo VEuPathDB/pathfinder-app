@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 import { HoverActions } from "./HoverActions";
 

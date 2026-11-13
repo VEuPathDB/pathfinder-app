@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
-import type { MemoryEditRequest, MemoryItem } from "@pathfinder/shared";
+import type { MemoryEditRequest, MemoryItem } from "@strategist/shared";
 
 import {
   deleteMemory,

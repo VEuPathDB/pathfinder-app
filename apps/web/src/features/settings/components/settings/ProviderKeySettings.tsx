@@ -7,12 +7,12 @@ import { useState } from "react";
 import {
   getMyProviderKeysQueryKey,
   getMyProviderKeysQueryOptions,
-} from "@pathfinder/shared/generated/hooks/useGetMyProviderKeys";
-import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
-import { putMyProviderKeyMutationOptions } from "@pathfinder/shared/generated/hooks/usePutMyProviderKey";
-import { deleteMyProviderKeyMutationOptions } from "@pathfinder/shared/generated/hooks/useDeleteMyProviderKey";
-import type { KeyableProvider } from "@pathfinder/shared/generated/types/KeyableProvider";
-import type { ProviderKeyView } from "@pathfinder/shared/generated/types/ProviderKeyView";
+} from "@strategist/shared/generated/hooks/useGetMyProviderKeys";
+import { getMyQuotaQueryKey } from "@strategist/shared/generated/hooks/useGetMyQuota";
+import { putMyProviderKeyMutationOptions } from "@strategist/shared/generated/hooks/usePutMyProviderKey";
+import { deleteMyProviderKeyMutationOptions } from "@strategist/shared/generated/hooks/useDeleteMyProviderKey";
+import type { KeyableProvider } from "@strategist/shared/generated/types/KeyableProvider";
+import type { ProviderKeyView } from "@strategist/shared/generated/types/ProviderKeyView";
 import { toUserMessage } from "@/lib/api/errors";
 import { yourDataUrl } from "@/lib/routes";
 

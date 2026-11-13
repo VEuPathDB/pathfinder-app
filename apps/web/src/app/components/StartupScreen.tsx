@@ -1,5 +1,5 @@
 import { AlertTriangle, Loader2 } from "lucide-react";
-import type { SystemReadyResponse } from "@pathfinder/shared/generated/types/SystemReadyResponse";
+import type { SystemReadyResponse } from "@strategist/shared/generated/types/SystemReadyResponse";
 
 /** How long startup may run before the screen offers the user a way out. */
 export const STARTUP_GRACE_MS = 20_000;

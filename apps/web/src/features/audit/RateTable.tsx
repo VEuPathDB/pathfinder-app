@@ -1,8 +1,8 @@
 "use client";
 
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { GenomeRate } from "@pathfinder/shared/generated/types/GenomeRate";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { GenomeRate } from "@strategist/shared/generated/types/GenomeRate";
 
 import { gapText, rangeText, rateText, shareText, unresolvedText } from "./format";
 

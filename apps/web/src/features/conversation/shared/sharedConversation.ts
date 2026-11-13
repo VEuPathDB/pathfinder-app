@@ -2,8 +2,8 @@ import { queryOptions } from "@tanstack/react-query";
 import { reduceSnapshot } from "@veupathdb/assistant-client";
 import type { UIMessage } from "ai";
 import { z } from "zod";
-import { getShared } from "@pathfinder/shared/generated/hooks/useGetShared";
-import { getSharedSnapshot } from "@pathfinder/shared/generated/hooks/useGetSharedSnapshot";
+import { getShared } from "@strategist/shared/generated/hooks/useGetShared";
+import { getSharedSnapshot } from "@strategist/shared/generated/hooks/useGetSharedSnapshot";
 
 import { APIError } from "@/lib/api/http";
 

@@ -8,13 +8,13 @@ describe("the web build", () => {
   });
 
   it("is the build id the image was built with", () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "3f9a1c0be2d4");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "3f9a1c0be2d4");
 
     expect(currentWebBuild()).toBe("3f9a1c0be2d4");
   });
 
   it("is empty for a build that names none", () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "");
 
     expect(currentWebBuild()).toBe("");
   });
@@ -29,6 +29,6 @@ describe("the web build", () => {
   });
 
   it("reads the variable in the dotted form the Next build inlines", () => {
-    expect(currentWebBuild.toString()).toContain("process.env.PATHFINDER_WEB_BUILD");
+    expect(currentWebBuild.toString()).toContain("process.env.STRATEGIST_WEB_BUILD");
   });
 });

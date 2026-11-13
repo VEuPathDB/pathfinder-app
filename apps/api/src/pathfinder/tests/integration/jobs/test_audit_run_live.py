@@ -20,7 +20,7 @@ from pathfinder.persistence.repositories.audit_finding_filter import FindingFilt
 from pathfinder.persistence.repositories.audit_findings import (
     AuditFindingRepository,
 )
-from pathfinder.platform.metrics import PathfinderObserver
+from pathfinder.platform.metrics import StrategistObserver
 from pathfinder.services.audit.job import outcome, start_run
 from pathfinder.services.audit.runs import create_run
 from pathfinder.tests._support.audit import (
@@ -50,7 +50,7 @@ _SETTLED = {"confirmed", "failed", "unreached", "unsampled"}
 
 @pytest.fixture(autouse=True)
 def observed(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    set_observer(PathfinderObserver())
+    set_observer(StrategistObserver())
     try:
         with sealed_provider_keys(monkeypatch):
             yield

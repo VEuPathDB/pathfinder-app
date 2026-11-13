@@ -12,9 +12,9 @@ import {
   useRenameWorkflow,
   type RenameWorkflow,
 } from "@/features/sidebar/hooks/useRenameWorkflow";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { updateStrategy } from "@pathfinder/shared/generated/hooks/useUpdateStrategy";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import { updateStrategy } from "@strategist/shared/generated/hooks/useUpdateStrategy";
 import { duplicateConversation } from "@/lib/api/conversations";
 import { toUserMessage } from "@/lib/api/errors";
 import { chatRoot, chatUrl, conversationIdFromPath } from "@/lib/routes";

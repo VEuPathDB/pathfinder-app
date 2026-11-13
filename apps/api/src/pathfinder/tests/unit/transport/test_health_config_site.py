@@ -26,13 +26,13 @@ async def _config() -> dict[str, Any]:
 async def test_the_config_names_the_deployment_site() -> None:
     body = await _config()
 
-    assert body["siteId"] == get_settings().pathfinder_site
+    assert body["siteId"] == get_settings().strategist_site
 
 
 async def test_the_sign_in_url_is_the_sites_login_page(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(get_settings(), "pathfinder_site", "plasmodb")
+    monkeypatch.setattr(get_settings(), "strategist_site", "plasmodb")
 
     body = await _config()
 
@@ -45,7 +45,7 @@ async def test_the_sign_in_url_is_the_sites_login_page(
 def _development(monkeypatch: pytest.MonkeyPatch, email: str, password: str) -> None:
     settings = get_settings()
     monkeypatch.setattr(settings, "api_env", "development")
-    monkeypatch.setattr(settings, "pathfinder_site", "plasmodb")
+    monkeypatch.setattr(settings, "strategist_site", "plasmodb")
     monkeypatch.setattr(settings, "wdk_dev_email", email)
     monkeypatch.setattr(settings, "wdk_dev_password", SecretStr(password))
 
@@ -75,7 +75,7 @@ async def test_development_without_the_dev_account_signs_in_on_the_site(
 async def test_the_site_page_is_the_websites_pathfinder_page(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(get_settings(), "pathfinder_site", "plasmodb")
+    monkeypatch.setattr(get_settings(), "strategist_site", "plasmodb")
 
     body = await _config()
 

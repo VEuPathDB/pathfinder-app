@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
 import { useSessionStore } from "@/state/useSessionStore";
 import { parseIdsFromText } from "./datasetParamLogic";
 

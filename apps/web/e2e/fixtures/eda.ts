@@ -107,7 +107,7 @@ const EDA: EdaRecording = RECORDED
 
 export const EDA_RECORDING_MISSING = !RECORDED;
 
-const EDA_LIVE = process.env["PATHFINDER_EDA_LIVE"] === "1";
+const EDA_LIVE = process.env["STRATEGIST_EDA_LIVE"] === "1";
 
 export const SITE_ID = EDA.siteId;
 export const DATASET_ID = EDA.datasetId;

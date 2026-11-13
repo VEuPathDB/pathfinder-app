@@ -21,7 +21,7 @@ const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
 import { createTestQueryClient } from "@/lib/query/testing";
-import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
+import { getStepRecordsQueryKey } from "@strategist/shared/generated/hooks/useGetStepRecords";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { useEdaStore } from "@/state/eda";
 import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";

@@ -5,7 +5,7 @@
  * says go, and the count question the recap arc answers.
  */
 
-import type { ConversationResponse } from "@pathfinder/shared";
+import type { ConversationResponse } from "@strategist/shared";
 import { expect, test, type Locator } from "@playwright/test";
 
 import { prompt } from "./arcs";

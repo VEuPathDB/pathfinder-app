@@ -5,7 +5,7 @@
  */
 
 import type { Locator, Page } from "@playwright/test";
-import { siteShortName, type SiteResponse } from "@pathfinder/shared";
+import { siteShortName, type SiteResponse } from "@strategist/shared";
 
 import { BASE_PATH } from "@/lib/basePath";
 

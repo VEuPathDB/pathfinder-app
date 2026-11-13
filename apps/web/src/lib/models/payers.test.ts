@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ModelCatalogEntry } from "@pathfinder/shared";
+import type { ModelCatalogEntry } from "@strategist/shared";
 
 import {
   assistantRoles,

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import type { useStrategyGraph } from "@/features/strategy/graph/hooks/useStrategyGraph";
 
 export type StrategyGraphContextValue = ReturnType<typeof useStrategyGraph> & {

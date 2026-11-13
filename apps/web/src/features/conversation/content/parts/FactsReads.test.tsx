@@ -3,7 +3,7 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
-import type { TurnFacts } from "@pathfinder/shared";
+import type { TurnFacts } from "@strategist/shared";
 
 import { DataFacts } from "./DataFacts";
 import { DataFactsNotices } from "./DataFactsNotices";

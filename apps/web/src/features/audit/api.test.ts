@@ -4,8 +4,8 @@
 import { describe, expect, it } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
-import { listAuditFindingsSuspenseQueryKey } from "@pathfinder/shared/generated/hooks/useListAuditFindingsSuspense";
-import type { AuditRunSummaryPhaseEnumKey } from "@pathfinder/shared/generated/types/AuditRunSummary";
+import { listAuditFindingsSuspenseQueryKey } from "@strategist/shared/generated/hooks/useListAuditFindingsSuspense";
+import type { AuditRunSummaryPhaseEnumKey } from "@strategist/shared/generated/types/AuditRunSummary";
 import { buildUrl } from "@/lib/api/http";
 
 import { SAMPLE_RUN, SAMPLE_RUN_ID } from "./__fixtures__/sampleRun";

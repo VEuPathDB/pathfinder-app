@@ -6,7 +6,7 @@ import { render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
-import type { VariantComparison } from "@pathfinder/shared";
+import type { VariantComparison } from "@strategist/shared";
 
 import { DataVariantComparison } from "./DataVariantComparison";
 import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";

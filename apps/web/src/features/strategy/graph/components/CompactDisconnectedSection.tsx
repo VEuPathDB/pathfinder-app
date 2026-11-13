@@ -1,6 +1,6 @@
 "use client";
 
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";

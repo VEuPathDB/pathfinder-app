@@ -1,9 +1,9 @@
 import {
   taskListItemStatusEnum,
   type TaskListItemStatusEnumKey,
-} from "@pathfinder/shared/generated/types/TaskListItem";
-import { taskListResponseSchema } from "@pathfinder/shared/generated/zod/taskListResponseSchema";
-import type { TaskListResponse } from "@pathfinder/shared/generated/types/TaskListResponse";
+} from "@strategist/shared/generated/types/TaskListItem";
+import { taskListResponseSchema } from "@strategist/shared/generated/zod/taskListResponseSchema";
+import type { TaskListResponse } from "@strategist/shared/generated/types/TaskListResponse";
 import { queryOptions } from "@tanstack/react-query";
 
 import { requestJson } from "@/lib/api/http";

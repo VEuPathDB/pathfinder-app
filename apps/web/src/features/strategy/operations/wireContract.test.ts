@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { Step } from "@pathfinder/shared";
-import { deleteResolutionEnum } from "@pathfinder/shared/generated/types/DeleteResolution";
-import { deleteEdgeResolutionEnum } from "@pathfinder/shared/generated/types/DeleteEdgeResolution";
+import type { Step } from "@strategist/shared";
+import { deleteResolutionEnum } from "@strategist/shared/generated/types/DeleteResolution";
+import { deleteEdgeResolutionEnum } from "@strategist/shared/generated/types/DeleteEdgeResolution";
 import { computeDeleteChoices } from "./deleteResolutions";
 
 /**

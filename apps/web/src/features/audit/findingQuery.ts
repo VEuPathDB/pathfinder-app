@@ -5,8 +5,8 @@ import {
   type FindingViewCertaintyEnumKey,
   type FindingViewCheckEnumKey,
   type FindingViewErrorTypeEnumKey,
-} from "@pathfinder/shared/generated/types/FindingView";
-import type { ListAuditFindingsQueryParams } from "@pathfinder/shared/generated/types/ListAuditFindings";
+} from "@strategist/shared/generated/types/FindingView";
+import type { ListAuditFindingsQueryParams } from "@strategist/shared/generated/types/ListAuditFindings";
 
 export const ORIGINS = ["sample", "unsampled", "target"] as const;
 export type Origin = (typeof ORIGINS)[number];

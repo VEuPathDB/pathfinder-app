@@ -1,4 +1,4 @@
-import type { EdaFilter } from "@pathfinder/shared/generated/types/EdaFilter";
+import type { EdaFilter } from "@strategist/shared/generated/types/EdaFilter";
 
 const SUMMARISED_VALUES = 3;
 

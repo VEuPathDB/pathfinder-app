@@ -7,7 +7,7 @@ import {
   type TaskProgress,
 } from "@veupathdb/assistant-client";
 import { z } from "zod";
-import type { BackgroundTaskStarted } from "@pathfinder/shared";
+import type { BackgroundTaskStarted } from "@strategist/shared";
 
 import { THREAD_BLOCK_GAP } from "@/components/ai-elements/rhythm";
 import { TaskRow, type TaskOutcome } from "@/features/conversation/thread/TaskRow";

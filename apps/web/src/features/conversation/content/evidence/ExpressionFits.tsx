@@ -1,5 +1,5 @@
 import { useId, type ReactElement } from "react";
-import type { EvidenceCard, ExpressionFit } from "@pathfinder/shared";
+import type { EvidenceCard, ExpressionFit } from "@strategist/shared";
 
 const LABEL = "Phyletic pattern, checked on each step's first groups";
 

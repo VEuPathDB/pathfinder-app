@@ -77,7 +77,7 @@ that name findings by their 1-based place. Build it from those values with
 and detail routes answer for the stored sample, with ids and times fixed.
 `tests/integration/http/test_audit_sample_run.py` compares it on every run and
 fails when it is absent. To write it again, run that test with
-`PATHFINDER_WRITE_AUDIT_SAMPLE=1`, then run `yarn prettier --write` on the file
+`STRATEGIST_WRITE_AUDIT_SAMPLE=1`, then run `yarn prettier --write` on the file
 in `apps/web`; the comparison reads the JSON, not its layout. The test maps
 every stored id it reads (`id`, `conversationId`, `findingIds`, `headline` and
 the `finding:<id>` cites) to the finding's place, so the file does not depend

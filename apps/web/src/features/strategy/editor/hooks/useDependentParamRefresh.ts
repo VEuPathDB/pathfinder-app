@@ -2,7 +2,7 @@
 
 import { useRef, useState, startTransition } from "react";
 import { toast } from "sonner";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import { refreshDependentParams } from "@/lib/api/sites";
 import { extractVocabOptions, type VocabOption } from "@/lib/utils/vocab";
 import { extractSpecVocabulary } from "@/features/strategy/editor/components/stepEditorUtils";

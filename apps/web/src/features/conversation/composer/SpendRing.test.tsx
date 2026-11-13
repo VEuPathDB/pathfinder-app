@@ -6,7 +6,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import type { UIMessage } from "ai";
-import type { QuotaResponse } from "@pathfinder/shared/generated/types/QuotaResponse";
+import type { QuotaResponse } from "@strategist/shared/generated/types/QuotaResponse";
 
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";

@@ -1,4 +1,4 @@
-## `@pathfinder/shared` (TypeScript) -- `packages/shared-ts`
+## `@strategist/shared` (TypeScript) -- `packages/shared-ts`
 
 Shared TypeScript types used by the web app and any TS tooling around the API. Most of what this
 package exports is generated from the OpenAPI spec; `types.ts` is the thin hand-written layer on
@@ -42,7 +42,7 @@ app validates every response against them at the network boundary.
 
 ### How the web app imports these
 
-The web app uses TS path mapping (`@pathfinder/shared`) configured in `apps/web/tsconfig.json`.
+The web app uses TS path mapping (`@strategist/shared`) configured in `apps/web/tsconfig.json`.
 Next.js transpiles this package automatically via `transpilePackages` in `next.config.ts`.
 
 ### Common commands

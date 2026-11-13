@@ -278,7 +278,7 @@ if a genuine WDK response model were exposed from `services/`. See
 [WDK-MAP-002](#wdk-map-002---a-parameters-declaration-and-its-value-are-separate-types-and-only-the-value-reaches-the-wire),
 which has the same gap for the same reason.
 
-### WDK-MAP-008 - `Strategy`, `Step`, `Search` and `RecordType` in `@pathfinder/shared` are Strategist types wearing WDK names
+### WDK-MAP-008 - `Strategy`, `Step`, `Search` and `RecordType` in `@strategist/shared` are Strategist types wearing WDK names
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L59-L79
@@ -287,7 +287,7 @@ which has the same gap for the same reason.
 
 Four names collide with `wdk-client` and none of them means the same thing.
 
-| `@pathfinder/shared` | is | `wdk-client`'s type of that name is |
+| `@strategist/shared` | is | `wdk-client`'s type of that name is |
 |---|---|---|
 | `Strategy` | a `ConversationResponse` with its steps inlined | a `StrategyDetails`: `stepTree` plus a `steps` map |
 | `Step` | a `StepResponse`, which may exist only in Strategist | a WDK step, which exists because WDK created it |

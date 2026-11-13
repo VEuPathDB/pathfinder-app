@@ -1,10 +1,10 @@
 "use client";
 
 import { useId } from "react";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { ReviewState } from "@pathfinder/shared/generated/types/ReviewState";
-import type { StageRecord } from "@pathfinder/shared/generated/types/StageRecord";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { ReviewState } from "@strategist/shared/generated/types/ReviewState";
+import type { StageRecord } from "@strategist/shared/generated/types/StageRecord";
 
 import { plural } from "./format";
 import { currentStage, leftLines, leftLineText, stagesOf } from "./runState";

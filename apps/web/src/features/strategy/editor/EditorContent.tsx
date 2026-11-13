@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useStore } from "@tanstack/react-form";
 import { toast } from "sonner";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { isInputStepParam } from "@/features/strategy/parameters/spec";
 import { useStrategyGraphCtx } from "@/features/strategy/graph/StrategyGraphContext";
 import {

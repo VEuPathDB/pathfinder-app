@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { siteShortName } from "@pathfinder/shared";
-import { listAuditRunsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useListAuditRunsSuspense";
-import type { AuditRunSummary } from "@pathfinder/shared/generated/types/AuditRunSummary";
-import type { CheckWords } from "@pathfinder/shared/generated/types/CheckWords";
+import { siteShortName } from "@strategist/shared";
+import { listAuditRunsSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useListAuditRunsSuspense";
+import type { AuditRunSummary } from "@strategist/shared/generated/types/AuditRunSummary";
+import type { CheckWords } from "@strategist/shared/generated/types/CheckWords";
 
 import { auditWordsOptions } from "@/lib/api/audits";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";

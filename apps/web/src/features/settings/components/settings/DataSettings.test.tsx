@@ -2,19 +2,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { toast } from "sonner";
-import { purgeUserDataEndpoint } from "@pathfinder/shared/generated/hooks/usePurgeUserDataEndpoint";
-import type { PurgeCounts } from "@pathfinder/shared/generated/types/PurgeCounts";
+import { purgeUserDataEndpoint } from "@strategist/shared/generated/hooks/usePurgeUserDataEndpoint";
+import type { PurgeCounts } from "@strategist/shared/generated/types/PurgeCounts";
 
 import { DataSettings } from "./DataSettings";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock("@pathfinder/shared/generated/hooks/usePurgeUserDataEndpoint", () => ({
+vi.mock("@strategist/shared/generated/hooks/usePurgeUserDataEndpoint", () => ({
   purgeUserDataEndpoint: vi.fn(),
 }));
-vi.mock("@pathfinder/shared/generated/hooks/useListStrategies", () => ({
+vi.mock("@strategist/shared/generated/hooks/useListStrategies", () => ({
   listStrategies: vi.fn(() => Promise.resolve([])),
 }));
-vi.mock("@pathfinder/shared/generated/hooks/useDeleteStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useDeleteStrategy", () => ({
   deleteStrategy: vi.fn(() => Promise.resolve({})),
 }));
 

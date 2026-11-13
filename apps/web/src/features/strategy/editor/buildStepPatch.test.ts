@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ParamSpec, Step } from "@pathfinder/shared";
-import { updateStepParamsOpSchema } from "@pathfinder/shared/generated/zod/updateStepParamsOpSchema";
+import type { ParamSpec, Step } from "@strategist/shared";
+import { updateStepParamsOpSchema } from "@strategist/shared/generated/zod/updateStepParamsOpSchema";
 import { extractDefaults } from "./hooks/useParamForm";
 import { buildStepPatch } from "./buildStepPatch";
 import type { ParamValueMap } from "@/lib/parameters/paramValue";

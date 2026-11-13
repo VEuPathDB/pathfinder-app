@@ -1,7 +1,7 @@
 "use client";
 
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
 
 import { EChart } from "@/lib/components/charts/EChart";
 import { readChartTokens } from "@/lib/components/charts/chartTheme";

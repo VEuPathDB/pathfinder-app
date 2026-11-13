@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import type { EdaOwnDatasetResponse } from "@pathfinder/shared/generated/types/EdaOwnDatasetResponse";
+import type { EdaOwnDatasetResponse } from "@strategist/shared/generated/types/EdaOwnDatasetResponse";
 
 import { server } from "../../../vitest.msw-setup";
 

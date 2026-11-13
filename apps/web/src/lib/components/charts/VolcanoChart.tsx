@@ -2,7 +2,7 @@
 
 import type { EChartsOption, TooltipComponentFormatterCallbackParams } from "echarts";
 import { format } from "echarts/core";
-import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
+import type { EdaComparison } from "@strategist/shared/generated/types/EdaComparison";
 
 import { EChart } from "./EChart";
 import { readChartTokens } from "./chartTheme";

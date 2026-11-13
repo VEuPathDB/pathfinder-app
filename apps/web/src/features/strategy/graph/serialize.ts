@@ -1,6 +1,6 @@
-import type { CombineOp, StrategyStepNode, StrategyAst } from "@pathfinder/shared";
-import { DEFAULT_STREAM_NAME } from "@pathfinder/shared";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { CombineOp, StrategyStepNode, StrategyAst } from "@strategist/shared";
+import { DEFAULT_STREAM_NAME } from "@strategist/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { walkSubtreeIds } from "@/features/strategy/operations";
 import { statesAllTerm, type ParamValueMap } from "@/lib/parameters/paramValue";
 

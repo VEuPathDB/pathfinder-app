@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import type { ModelCatalogEntry } from "@pathfinder/shared";
+import type { ModelCatalogEntry } from "@strategist/shared";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it, vi } from "vitest";

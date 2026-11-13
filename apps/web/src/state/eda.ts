@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { EdaAnalysisState, EdaEntityCount, EdaViz } from "@pathfinder/shared";
-import type { EdaComputeSummary } from "@pathfinder/shared/generated/types/EdaComputeSummary";
+import type { EdaAnalysisState, EdaEntityCount, EdaViz } from "@strategist/shared";
+import type { EdaComputeSummary } from "@strategist/shared/generated/types/EdaComputeSummary";
 
 import type { VolcanoThresholds } from "@/lib/components/charts/types";
 

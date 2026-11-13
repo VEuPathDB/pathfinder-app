@@ -1,4 +1,4 @@
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 /**
  * Steps not reachable from `rootStepId` via primary/secondary input chains.

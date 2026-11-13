@@ -109,7 +109,7 @@ class _Budget:
 def live_deployment(monkeypatch: pytest.MonkeyPatch) -> Iterator[_Budget]:
     install_catalog_prices()
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", DEPLOYMENT_KEY)
     budget = _Budget()
 

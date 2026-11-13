@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { siteShortName } from "@pathfinder/shared";
-import type { ParameterFact, StepFact, TurnFacts } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
+import type { ParameterFact, StepFact, TurnFacts } from "@strategist/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 import {

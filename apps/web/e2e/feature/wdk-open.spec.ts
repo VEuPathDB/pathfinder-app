@@ -1,7 +1,7 @@
 import type {
   ConversationResponse,
   OpenConversationResponse,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { test, expect } from "../fixtures/test";
 

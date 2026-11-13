@@ -3,8 +3,8 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import type { SiteResponse } from "@pathfinder/shared";
-import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
+import type { SiteResponse } from "@strategist/shared";
+import { systemConfigQueryOptions } from "@strategist/shared/generated/hooks/useSystemConfig";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { createTestWrapper } from "@/lib/query/testing";

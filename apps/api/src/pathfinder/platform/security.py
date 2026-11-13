@@ -40,7 +40,7 @@ _JWT_ALGORITHM = "HS256"
 _JWT_DECODE_OPTIONS: Options = {"require": ["exp", "sub"]}
 
 # The synthetic user of a mock stack, which has no VEuPathDB account to sign in.
-DEV_LOGIN_COOKIE = "pathfinder-dev-login"
+DEV_LOGIN_COOKIE = "strategist-dev-login"
 _DEV_LOGIN_COOKIE_PATH = BASE_PATH
 
 # A request proves who it is with the website's login, a Strategist bearer token,
@@ -166,7 +166,7 @@ async def _identify(
             return Principal(
                 user_id=claims.user_id,
                 application_id=application_id,
-                credential="dev-login" if claims.dev_login else "pathfinder-bearer",
+                credential="dev-login" if claims.dev_login else "strategist-bearer",
             )
         return await _veupathdb_principal(bearer.credentials, application_id)
 

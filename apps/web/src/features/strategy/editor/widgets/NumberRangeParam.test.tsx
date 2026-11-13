@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { useForm } from "@tanstack/react-form";
 import { NumberRangeParam } from "./NumberRangeParam";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import type { ParamWidgetProps } from "./types";
 import { WidgetTestForm, getInputByLabel } from "./testUtils";
 

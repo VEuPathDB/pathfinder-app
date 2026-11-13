@@ -67,7 +67,7 @@ def stubbed_oauth(
     """Publish the test key where the app reads the OAuth signing key."""
     monkeypatch.setenv("VEUPATHDB_OAUTH_URL", OAUTH_URL)
     get_settings.cache_clear()
-    service_url = get_site(get_settings().pathfinder_site).service_url
+    service_url = get_site(get_settings().strategist_site).service_url
     with respx.mock(assert_all_called=False) as router:
         router.get(JWKS_URL).mock(
             return_value=httpx.Response(200, json=jwks_body(signing_key)),

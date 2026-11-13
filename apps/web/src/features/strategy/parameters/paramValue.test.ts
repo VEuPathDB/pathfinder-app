@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 
 import { paramValueToRaw, rawToParamValue } from "./paramValue";
 import type { ParamValue } from "@/lib/parameters/paramValue";

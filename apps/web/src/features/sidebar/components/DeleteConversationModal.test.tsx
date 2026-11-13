@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
 
 import { useSettingsStore } from "@/state/useSettingsStore";
 import { DeleteConversationModal } from "./DeleteConversationModal";

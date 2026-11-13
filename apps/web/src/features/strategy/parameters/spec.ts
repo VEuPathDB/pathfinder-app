@@ -1,4 +1,4 @@
-export type { ParamSpec } from "@pathfinder/shared";
+export type { ParamSpec } from "@strategist/shared";
 
 /** Narrow input for isMultiParam - accepts both full ParamSpec and partial test fixtures. */
 interface MultiParamInput {

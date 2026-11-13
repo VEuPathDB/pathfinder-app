@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 import { toast } from "sonner";
-import { siteShortName } from "@pathfinder/shared";
-import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
-import type { EdaStudySummaryResponse } from "@pathfinder/shared/generated/types/EdaStudySummaryResponse";
+import { siteShortName } from "@strategist/shared";
+import type { EdaStudyListResponse } from "@strategist/shared/generated/types/EdaStudyListResponse";
+import type { EdaStudySummaryResponse } from "@strategist/shared/generated/types/EdaStudySummaryResponse";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

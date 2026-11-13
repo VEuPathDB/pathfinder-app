@@ -1,7 +1,7 @@
 "use client";
 
-import type { RecalledMemory } from "@pathfinder/shared";
-import { recalledMemoriesPayloadSchema } from "@pathfinder/shared/generated/zod/recalledMemoriesPayloadSchema";
+import type { RecalledMemory } from "@strategist/shared";
+import { recalledMemoriesPayloadSchema } from "@strategist/shared/generated/zod/recalledMemoriesPayloadSchema";
 import type { UIMessage } from "ai";
 
 import { Button } from "@/components/ui/button";

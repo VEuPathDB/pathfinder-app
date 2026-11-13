@@ -7,7 +7,7 @@ import {
   stepMachine,
   type StepMachineContext,
 } from "./stepMachine";
-import type { ValidationErrors } from "@pathfinder/shared";
+import type { ValidationErrors } from "@strategist/shared";
 
 function startInState(
   state: "idle" | "valid" | "invalid" | "complete" | "failed",

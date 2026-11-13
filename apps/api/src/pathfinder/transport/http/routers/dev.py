@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/v1/dev", tags=["dev"])
 async def dev_login(session: DBSession, user_id: str | None = None) -> JSONResponse:
     """Create a test user and return a valid auth token.
 
-    Only available when ``PATHFINDER_CHAT_PROVIDER=mock`` in the test profile.
+    Only available when ``STRATEGIST_CHAT_PROVIDER=mock`` in the test profile.
     The session is a synthetic user with no VEuPathDB account, so it acts as
     whatever VEuPathDB token the request carries.
 

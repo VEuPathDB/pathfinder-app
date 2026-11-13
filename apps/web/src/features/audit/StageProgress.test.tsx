@@ -4,8 +4,8 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { RunHalt } from "@pathfinder/shared/generated/types/RunHalt";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { RunHalt } from "@strategist/shared/generated/types/RunHalt";
 
 import { SAMPLE_RUN, SAMPLE_WORDS } from "./__fixtures__/sampleRun";
 import { stagesOf } from "./runState";

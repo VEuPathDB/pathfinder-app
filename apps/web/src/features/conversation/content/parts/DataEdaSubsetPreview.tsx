@@ -1,6 +1,6 @@
 "use client";
 
-import type { EdaDistributionSeries, EdaSubsetPreview } from "@pathfinder/shared";
+import type { EdaDistributionSeries, EdaSubsetPreview } from "@strategist/shared";
 
 import { HistogramChart } from "@/lib/components/charts/HistogramChart";
 import { Figure } from "@/features/conversation/thread/Figure";

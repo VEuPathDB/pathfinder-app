@@ -139,7 +139,7 @@ D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db 
 H=$(mktemp -d); mv .env "$H/api.env"; mv ../../.env "$H/root.env"; mv ../../ollama_models.yaml "$H/"; \
 env WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= WDK_TEST_TOKEN= \
   OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= PATHFINDER_RESEARCH_MCP_URL= \
-  API_ENV=test API_SECRET_KEY=test-secret-key-xxxxx-xxxxx-xxxxx PATHFINDER_CHAT_PROVIDER=mock \
+  API_ENV=test API_SECRET_KEY=test-secret-key-xxxxx-xxxxx-xxxxx STRATEGIST_CHAT_PROVIDER=mock \
   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/$D \
   uv run pytest src/pathfinder/tests; \
 mv "$H/api.env" .env; mv "$H/root.env" ../../.env; mv "$H/ollama_models.yaml" ../../; \
@@ -270,7 +270,7 @@ what each one proves are
 skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` and without
 `WDK_MCP_SERVICE_TOKENS` naming the value the served container carries.
 `test_conformance_ours.py` runs the suite as its own process against
-`PATHFINDER_MCP_URL` (default `http://localhost:8100/mcp`) with the WDK-backed
+`STRATEGIST_MCP_URL` (default `http://localhost:8100/mcp`) with the WDK-backed
 account hook, and reads the admission record; `MCP_ADMISSION_REPORT` names where
 that record is written for a lane to collect. `.github/workflows/mcp-nightly.yml`
 serves the endpoint, runs the lane on a schedule, uploads the record and files

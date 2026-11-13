@@ -1,4 +1,4 @@
-import type { GraphCleared } from "@pathfinder/shared";
+import type { GraphCleared } from "@strategist/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 

@@ -1,4 +1,4 @@
-import { DATA_STATEMENT_VERSION } from "@pathfinder/shared";
+import { DATA_STATEMENT_VERSION } from "@strategist/shared";
 
 export const YOUR_DATA_LAST_UPDATED = new Date(
   `${DATA_STATEMENT_VERSION}T00:00:00Z`,

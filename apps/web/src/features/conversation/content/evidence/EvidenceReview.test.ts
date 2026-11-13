@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SampledGene } from "@pathfinder/shared";
+import type { SampledGene } from "@strategist/shared";
 
 import { sampleCountLine } from "./EvidenceReview";
 

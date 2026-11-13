@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { siteShortName } from "@pathfinder/shared";
-import type { EdaOwnDatasetResponse } from "@pathfinder/shared/generated/types/EdaOwnDatasetResponse";
+import { siteShortName } from "@strategist/shared";
+import type { EdaOwnDatasetResponse } from "@strategist/shared/generated/types/EdaOwnDatasetResponse";
 
 import { Button } from "@/components/ui/button";
 import { ownDatasetsOptions } from "@/features/eda/api";

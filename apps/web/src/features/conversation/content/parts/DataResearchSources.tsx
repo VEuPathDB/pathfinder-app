@@ -1,4 +1,4 @@
-import type { ResearchSourcesPayload } from "@pathfinder/shared";
+import type { ResearchSourcesPayload } from "@strategist/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 

@@ -4,10 +4,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 
 const deleteStrategyMock = vi.hoisted(() => vi.fn());
-vi.mock("@pathfinder/shared/generated/hooks/useDeleteStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useDeleteStrategy", () => ({
   deleteStrategy: deleteStrategyMock,
 }));
 

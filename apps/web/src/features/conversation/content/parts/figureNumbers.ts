@@ -4,10 +4,10 @@ import type {
   EdaStatisticsPart,
   EdaSubsetPreview,
   EdaViz,
-} from "@pathfinder/shared";
-import { edaPcaPartSchema } from "@pathfinder/shared/generated/zod/edaPcaPartSchema";
-import { edaStatisticsPartSchema } from "@pathfinder/shared/generated/zod/edaStatisticsPartSchema";
-import { edaVizPartSchema } from "@pathfinder/shared/generated/zod/edaVizPartSchema";
+} from "@strategist/shared";
+import { edaPcaPartSchema } from "@strategist/shared/generated/zod/edaPcaPartSchema";
+import { edaStatisticsPartSchema } from "@strategist/shared/generated/zod/edaStatisticsPartSchema";
+import { edaVizPartSchema } from "@strategist/shared/generated/zod/edaVizPartSchema";
 
 import { isCurrentWire } from "../currentWire";
 import { statisticExhibitKind } from "./statisticExhibit";

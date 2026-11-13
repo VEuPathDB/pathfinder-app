@@ -100,7 +100,7 @@ async def test_a_title_writes_its_usage_on_the_deployments_row(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     del patch_app_db_engine, db_cleaner
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "mock")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "mock")
     _, user_id = await _seed_thread()
 
     title = await charged_conversation_title(
@@ -207,7 +207,7 @@ def _runtime(user_id: UUID, chunks: list[Any]) -> Runtime[Context]:
 def _on_the_researchers_key(monkeypatch: pytest.MonkeyPatch) -> ProviderKeyring:
     allow_requests_to_the_wire(monkeypatch)
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "default_provider", "openai")
     monkeypatch.setattr(settings, "openai_api_key", "sk-deployment-sentinel-0000")
     return ProviderKeyring(active={"openai": SecretStr("sk-user-sentinel-1111")})

@@ -25,8 +25,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@pathfinder/shared": ["../../packages/shared-ts/src"],
-      "@pathfinder/shared/generated/*": ["../../packages/shared-ts/src/generated/*"]
+      "@strategist/shared": ["../../packages/shared-ts/src"],
+      "@strategist/shared/generated/*": ["../../packages/shared-ts/src/generated/*"]
     },
     "allowImportingTsExtensions": true
   },

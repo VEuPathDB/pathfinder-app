@@ -23,7 +23,7 @@ import {
   editMemory,
   listMemories,
 } from "@/features/settings/api/memories";
-import type { MemoryItem, MemoryListResponse } from "@pathfinder/shared";
+import type { MemoryItem, MemoryListResponse } from "@strategist/shared";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { MemorySettings } from "./MemorySettings";
 

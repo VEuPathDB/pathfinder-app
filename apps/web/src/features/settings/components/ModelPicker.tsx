@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import type { ModelCatalogEntry } from "@pathfinder/shared";
+import type { ModelCatalogEntry } from "@strategist/shared";
 import { ModelCatalogModal } from "@/features/settings/components/ModelCatalogModal";
 
 interface ModelPickerProps {

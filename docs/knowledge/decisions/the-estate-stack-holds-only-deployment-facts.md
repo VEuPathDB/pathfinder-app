@@ -35,7 +35,7 @@ the service names on the stack network, the Crossref mailbox) or differs between
 containers (the catalog refresh and the index sync). A tuning change is a change to a
 default in this repository or its libraries. What every stage runs with and the code
 cannot default is set by the api image itself: `API_ENV=production`, over the
-`development` its `config.toml` holds for a host run; `PATHFINDER_CHAT_PROVIDER=default`,
+`development` its `config.toml` holds for a host run; `STRATEGIST_CHAT_PROVIDER=default`,
 because an empty value fails startup; and `VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX`,
 because the wdk-mcp container otherwise reads the client's own prefix and not
 Strategist's.

@@ -4,19 +4,19 @@ import { withBasePath } from "@/lib/basePath";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils/cn";
 
-interface PathFinderLogoProps {
+interface StrategistLogoProps {
   size: number;
   label?: string;
   priority?: boolean;
   className?: string;
 }
 
-export function PathFinderLogo({
+export function StrategistLogo({
   size,
   label,
   priority = false,
   className,
-}: PathFinderLogoProps) {
+}: StrategistLogoProps) {
   const named = label !== undefined;
   return (
     <span

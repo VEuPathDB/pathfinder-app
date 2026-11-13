@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { cancelConversation } from "@pathfinder/shared/generated/hooks/useCancelConversation";
-import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/InsertSavedRequest";
+import { cancelConversation } from "@strategist/shared/generated/hooks/useCancelConversation";
+import type { InsertSavedRequest } from "@strategist/shared/generated/types/InsertSavedRequest";
 
 import { client } from "./client";
 import { requestJson } from "./http";

@@ -57,7 +57,7 @@ def deployment_judge(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """The judge on the deployment's key, or a skip naming the key to set."""
     if get_settings().openai_api_key in {"", OFFLINE_OPENAI_KEY}:
         pytest.skip(NO_MODEL_KEY_REASON)
-    monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "default")
+    monkeypatch.setenv("STRATEGIST_CHAT_PROVIDER", "default")
     monkeypatch.setenv("INPUT_SCREENING_ENABLED", "true")
     monkeypatch.setattr(pydantic_ai.models, "ALLOW_MODEL_REQUESTS", True)
     _forget_the_judge()

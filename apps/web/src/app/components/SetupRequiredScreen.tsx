@@ -1,6 +1,6 @@
 import { RefreshCw, ServerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
+import { StrategistLogo } from "@/lib/components/StrategistLogo";
 
 interface SetupRequiredScreenProps {
   onRetry: () => void;
@@ -11,7 +11,7 @@ export function SetupRequiredScreen({ onRetry }: SetupRequiredScreenProps) {
     <div className="flex h-full flex-col items-center justify-center bg-background px-6 text-foreground">
       <div className="w-full max-w-md space-y-6 text-center">
         <div className="flex flex-col items-center gap-3">
-          <PathFinderLogo size={48} />
+          <StrategistLogo size={48} />
           <ServerOff className="h-10 w-10 text-muted-foreground" />
         </div>
 
@@ -37,7 +37,7 @@ export function SetupRequiredScreen({ onRetry }: SetupRequiredScreenProps) {
           <p className="mt-2">
             For test harnesses only, set{" "}
             <code className="rounded bg-muted px-1 py-0.5">
-              PATHFINDER_CHAT_PROVIDER=mock
+              STRATEGIST_CHAT_PROVIDER=mock
             </code>{" "}
             in the test profile to run without a real LLM.
           </p>

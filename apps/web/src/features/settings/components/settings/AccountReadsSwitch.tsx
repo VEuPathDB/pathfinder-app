@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AlwaysAccountReads } from "@pathfinder/shared";
+import type { AlwaysAccountReads } from "@strategist/shared";
 
 import {
   ALWAYS_ACCOUNT_READS_KEY,

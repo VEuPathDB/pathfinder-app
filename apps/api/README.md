@@ -178,8 +178,8 @@ Common env vars:
 - `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` if using those providers)
 - `API_SECRET_KEY` (32+ chars; required in every profile)
 - `DATABASE_URL`, or `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD` and `POSTGRES_DB` in its place (one of the two is required; `config.toml` sets no database address)
-- `PATHFINDER_CHAT_PROVIDER=default` for normal runs
-- `PATHFINDER_CHAT_PROVIDER=mock` is allowed only in the dedicated test profile
+- `STRATEGIST_CHAT_PROVIDER=default` for normal runs
+- `STRATEGIST_CHAT_PROVIDER=mock` is allowed only in the dedicated test profile
 - `DEFAULT_PROVIDER` and `DEFAULT_TIER` choose the base model preset when using real providers
 
 ### Run locally (no Docker)

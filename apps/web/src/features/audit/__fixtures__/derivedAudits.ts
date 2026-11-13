@@ -1,5 +1,5 @@
-import { missingGeneAuditSchema } from "@pathfinder/shared/generated/zod/missingGeneAuditSchema";
-import { relativesEvidenceSchema } from "@pathfinder/shared/generated/zod/relativesEvidenceSchema";
+import { missingGeneAuditSchema } from "@strategist/shared/generated/zod/missingGeneAuditSchema";
+import { relativesEvidenceSchema } from "@strategist/shared/generated/zod/relativesEvidenceSchema";
 
 import derived from "./derivedAudits.json";
 

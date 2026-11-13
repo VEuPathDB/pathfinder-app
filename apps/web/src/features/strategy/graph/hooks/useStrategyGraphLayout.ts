@@ -5,7 +5,7 @@ import type { Edge, Node } from "@xyflow/react";
 import { useReactFlow } from "@xyflow/react";
 import { useQuery } from "@tanstack/react-query";
 import { useEventListener } from "usehooks-ts";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import type { StepNodeData } from "@/features/strategy/graph/components/nodes/types";
 import { useStrategyHistory } from "@/state/useStrategySelectors";
 import { useStrategyCacheUtils } from "@/lib/api/strategy";

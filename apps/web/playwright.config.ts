@@ -109,5 +109,5 @@ export default defineConfig<SiteOption>({
 
   // No webServer: both local and CI drive containers the recipe above starts.
   // Port 3000 serves the production build of the `runner` target, and the API
-  // on port 8000 runs with PATHFINDER_CHAT_PROVIDER=mock from the e2e overlay.
+  // on port 8000 runs with STRATEGIST_CHAT_PROVIDER=mock from the e2e overlay.
 });

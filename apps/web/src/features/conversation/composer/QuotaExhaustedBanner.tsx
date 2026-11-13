@@ -4,9 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { CircleAlert } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-import { getMyQuotaQueryOptions } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
-import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
-import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
+import { getMyQuotaQueryOptions } from "@strategist/shared/generated/hooks/useGetMyQuota";
+import { listModelsQueryOptions } from "@strategist/shared/generated/hooks/useListModels";
+import { listTiersQueryOptions } from "@strategist/shared/generated/hooks/useListTiers";
 import { resolveAssistantId } from "@/lib/assistants";
 import { useProviderPayers } from "@/lib/hooks/useProviderPayers";
 import {

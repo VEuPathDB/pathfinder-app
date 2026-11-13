@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import fc from "fast-check";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { useStrategyStore } from "./store";
 
 const MAX_HISTORY = 50;

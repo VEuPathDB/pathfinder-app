@@ -5,7 +5,7 @@
  * (GenesByMolecularWeight, GenesByTextSearch, GO enrichment).
  */
 
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import type { VocabOption } from "@/lib/utils/vocab";
 
 export function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {

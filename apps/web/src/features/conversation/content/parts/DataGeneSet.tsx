@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { siteShortName, type GeneSet, type GeneSetPart } from "@pathfinder/shared";
+import { siteShortName, type GeneSet, type GeneSetPart } from "@strategist/shared";
 import { useState } from "react";
 
 import { Figure } from "@/features/conversation/thread/Figure";

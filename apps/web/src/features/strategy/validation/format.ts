@@ -1,4 +1,4 @@
-import type { ValidationResult, ValidationResponse } from "@pathfinder/shared";
+import type { ValidationResult, ValidationResponse } from "@strategist/shared";
 
 export function formatSearchValidationResponse(
   response: ValidationResponse | null | undefined,

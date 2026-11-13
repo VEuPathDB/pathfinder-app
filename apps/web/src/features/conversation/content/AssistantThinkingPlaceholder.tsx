@@ -2,8 +2,8 @@
 
 import { useAuiState } from "@assistant-ui/react";
 import { runningPhase } from "@veupathdb/assistant-client";
-import type { TurnStatusPayload } from "@pathfinder/shared/generated/types/TurnStatusPayload";
-import { turnStatusPayloadSchema } from "@pathfinder/shared/generated/zod/turnStatusPayloadSchema";
+import type { TurnStatusPayload } from "@strategist/shared/generated/types/TurnStatusPayload";
+import { turnStatusPayloadSchema } from "@strategist/shared/generated/zod/turnStatusPayloadSchema";
 import { useState } from "react";
 
 import { Shimmer } from "@/components/ai-elements/shimmer";

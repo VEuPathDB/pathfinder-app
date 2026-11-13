@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { BuildOfferPayload } from "@pathfinder/shared";
+import type { BuildOfferPayload } from "@strategist/shared";
 
 const state = { message: { isLast: true }, thread: { isRunning: false } };
 

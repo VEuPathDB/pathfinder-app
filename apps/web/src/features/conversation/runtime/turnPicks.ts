@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
-import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
+import { listModelsQueryOptions } from "@strategist/shared/generated/hooks/useListModels";
+import { listTiersQueryOptions } from "@strategist/shared/generated/hooks/useListTiers";
 
 import { providerOf } from "@/lib/models/payers";
 import { isPickableRole } from "@/lib/models/phaseRoles";

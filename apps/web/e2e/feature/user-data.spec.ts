@@ -1,5 +1,5 @@
-import type { ConversationResponse, GeneSet } from "@pathfinder/shared";
-import type { PurgeUserDataResponse } from "@pathfinder/shared/generated/types/PurgeUserDataResponse";
+import type { ConversationResponse, GeneSet } from "@strategist/shared";
+import type { PurgeUserDataResponse } from "@strategist/shared/generated/types/PurgeUserDataResponse";
 
 import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";

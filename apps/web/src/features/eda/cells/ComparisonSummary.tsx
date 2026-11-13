@@ -1,6 +1,6 @@
 "use client";
 
-import type { EdaComputeSummary } from "@pathfinder/shared/generated/types/EdaComputeSummary";
+import type { EdaComputeSummary } from "@strategist/shared/generated/types/EdaComputeSummary";
 
 import { useEdaStore } from "@/state/eda";
 

@@ -1,4 +1,4 @@
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { inferStepKind } from "@/features/strategy/graph";
 import { findParent, walkSubtreeIds } from "./utils";
 import { patchSteps } from "./_patch";

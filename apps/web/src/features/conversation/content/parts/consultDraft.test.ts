@@ -1,4 +1,4 @@
-import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
+import type { ConsultQuestion } from "@strategist/shared/generated/types/ConsultQuestion";
 import { describe, expect, it } from "vitest";
 
 import {

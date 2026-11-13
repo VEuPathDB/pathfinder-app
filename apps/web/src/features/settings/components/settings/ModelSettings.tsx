@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { ModelCatalogEntry, ReasoningEffort } from "@pathfinder/shared";
-import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
-import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
+import type { ModelCatalogEntry, ReasoningEffort } from "@strategist/shared";
+import { listModelsQueryOptions } from "@strategist/shared/generated/hooks/useListModels";
+import { listTiersQueryOptions } from "@strategist/shared/generated/hooks/useListTiers";
 import { useSettingsStore } from "@/state/useSettingsStore";
 import { useActiveAssistantId } from "@/features/settings/useActiveAssistantId";
 import { useProviderPayers } from "@/lib/hooks/useProviderPayers";

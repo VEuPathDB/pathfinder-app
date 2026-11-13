@@ -1,6 +1,6 @@
-import type { PhaseTierConfig } from "@pathfinder/shared/generated/types/PhaseTierConfig";
-import type { TierListResponse } from "@pathfinder/shared/generated/types/TierListResponse";
-import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
+import type { PhaseTierConfig } from "@strategist/shared/generated/types/PhaseTierConfig";
+import type { TierListResponse } from "@strategist/shared/generated/types/TierListResponse";
+import type { TierPreset } from "@strategist/shared/generated/types/TierPreset";
 import { isPickableRole, type PickableRole } from "@/lib/models/phaseRoles";
 import type { PhaseModelMap, PhaseReasoningMap } from "@/state/useSettingsStore";
 

@@ -31,6 +31,7 @@ WORKDIR /app
 
 COPY apps/api/alembic.ini apps/api/
 COPY apps/api/alembic apps/api/alembic
+COPY apps/api/bin apps/api/bin
 
 # The tests carry large VCR cassettes, so the image does not keep them.
 COPY apps/api/src/pathfinder apps/api/src/pathfinder
@@ -46,7 +47,7 @@ COPY ollama_models.yaml* ./
 ENV PYTHONPATH=/app/apps/api/src
 ENV PYTHONUNBUFFERED=1
 ENV API_ENV=production
-ENV PATHFINDER_CHAT_PROVIDER=default
+ENV STRATEGIST_CHAT_PROVIDER=default
 ENV VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:
 WORKDIR /app/apps/api
 

@@ -8,7 +8,7 @@ from collections.abc import Iterator
 import pytest
 from veupathdb import NoObserver, get_observer, set_observer
 
-from pathfinder.platform.metrics import PathfinderObserver, counting_wdk_requests
+from pathfinder.platform.metrics import StrategistObserver, counting_wdk_requests
 
 _ATTRS = {
     "method": "POST",
@@ -22,7 +22,7 @@ _ATTRS = {
 
 @pytest.fixture(autouse=True)
 def observed() -> Iterator[None]:
-    set_observer(PathfinderObserver())
+    set_observer(StrategistObserver())
     try:
         yield
     finally:

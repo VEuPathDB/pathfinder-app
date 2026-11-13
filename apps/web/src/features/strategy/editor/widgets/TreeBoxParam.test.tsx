@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { TreeBoxParam } from "./TreeBoxParam";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import type { VocabNode, VocabOption } from "@/lib/utils/vocab";
 import { WidgetTestForm } from "./testUtils";
 

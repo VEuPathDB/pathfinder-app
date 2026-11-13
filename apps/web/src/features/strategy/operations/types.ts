@@ -1,4 +1,4 @@
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import type {
   DeleteEdgeResolution,
   DeleteResolution,

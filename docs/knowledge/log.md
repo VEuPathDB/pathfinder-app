@@ -2,6 +2,13 @@
 
 ## 2026-11-13
 
+* **Every name only this repository reads says Strategist.** The shared TypeScript package is
+  `@strategist/shared`; the logo components, the brand files, the browser storage keys (moved
+  once on load, so no setting resets), the `STRATEGIST_*` settings, the
+  `X-Strategist-Service-Token` header and the dev-login cookie carry the new name. The worker
+  starts from `bin/strategist-worker`, so the estate names a command instead of a module. See
+  [the backlog item](backlog/the-identifiers-take-the-strategist-name.md) for what moves next.
+
 * **The product is named VEuPathDB Strategist on every screen.** Every string a researcher
   reads, the prompts, the names of the helper strategies written into a WDK account, the export
   header, the OpenAPI title and the docs say VEuPathDB Strategist where the name stands alone

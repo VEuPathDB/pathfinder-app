@@ -7,7 +7,7 @@ import type { ReactElement } from "react";
 
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 
-import type { ScoredComparison } from "@pathfinder/shared";
+import type { ScoredComparison } from "@strategist/shared";
 
 import { DataScoredComparison } from "./DataScoredComparison";
 import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";

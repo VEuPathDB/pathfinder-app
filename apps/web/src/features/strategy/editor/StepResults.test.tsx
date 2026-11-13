@@ -4,12 +4,12 @@ import { act, cleanup, render, screen, waitFor, within } from "@testing-library/
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import type {
   getStepRecords,
   getStepRecordsQueryKey,
-} from "@pathfinder/shared/generated/hooks/useGetStepRecords";
-import type { StepRecordsResponse } from "@pathfinder/shared/generated/types/StepRecordsResponse";
+} from "@strategist/shared/generated/hooks/useGetStepRecords";
+import type { StepRecordsResponse } from "@strategist/shared/generated/types/StepRecordsResponse";
 import { APIError } from "@/lib/api/http";
 import { writeStrategy } from "@/lib/api/strategy";
 
@@ -21,7 +21,7 @@ vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
 const mockGetStepRecords = vi.fn<typeof getStepRecords>();
 vi.mock(
-  "@pathfinder/shared/generated/hooks/useGetStepRecords",
+  "@strategist/shared/generated/hooks/useGetStepRecords",
   async (importOriginal) => ({
     ...(await importOriginal<{
       getStepRecordsQueryKey: typeof getStepRecordsQueryKey;

@@ -18,7 +18,7 @@ every tool source. A deployment that changes model changes one argument, and
 the two boundaries never disagree about what an injection is.
 
 **The suite screens, and it screens with a model that answers in process.**
-Under `PATHFINDER_CHAT_PROVIDER=mock`, which the root `conftest.py` sets for the
+Under `STRATEGIST_CHAT_PROVIDER=mock`, which the root `conftest.py` sets for the
 whole suite, the judge's model is a `FunctionModel` that answers
 `injection=true` for one text, `INJECTION_TEST_MARKER`, and `injection=false`
 for everything else. Every test message and every tool result crosses the

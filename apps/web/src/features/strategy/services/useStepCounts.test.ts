@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import type { StrategyAst } from "@pathfinder/shared";
+import type { StrategyAst } from "@strategist/shared";
 
 const useQueryMock = vi.fn();
 vi.mock("@tanstack/react-query", () => ({

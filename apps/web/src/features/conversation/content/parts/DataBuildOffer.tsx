@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuiState } from "@assistant-ui/react";
-import type { BuildOfferPayload } from "@pathfinder/shared";
+import type { BuildOfferPayload } from "@strategist/shared";
 import { Hammer } from "lucide-react";
 import type { ReactElement } from "react";
 

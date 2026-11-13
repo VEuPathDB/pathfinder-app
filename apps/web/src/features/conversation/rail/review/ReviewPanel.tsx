@@ -1,6 +1,6 @@
 "use client";
 
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { useQuery } from "@tanstack/react-query";
 import { runningPhase } from "@veupathdb/assistant-client";
 import { ListChecks } from "lucide-react";

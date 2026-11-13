@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Bookmark, Copy, MoreVertical, Trash2, Code2 } from "lucide-react";
-import type { Step, StepKind } from "@pathfinder/shared";
+import type { Step, StepKind } from "@strategist/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

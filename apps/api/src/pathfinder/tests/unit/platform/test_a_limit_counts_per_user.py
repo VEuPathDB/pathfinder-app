@@ -46,7 +46,7 @@ def test_a_dev_login_is_counted_as_its_user() -> None:
     user_id = uuid4()
 
     key = rate_limit_key(
-        _request(cookie=f"pathfinder-dev-login={create_dev_login_token(user_id)}")
+        _request(cookie=f"strategist-dev-login={create_dev_login_token(user_id)}")
     )
 
     assert key == f"user:{user_id}"
@@ -62,7 +62,7 @@ def test_a_pathfinder_bearer_is_counted_as_its_user() -> None:
 
 def test_a_forged_dev_login_is_counted_by_the_connection_address() -> None:
     assert (
-        rate_limit_key(_request(cookie="pathfinder-dev-login=not-a-token"))
+        rate_limit_key(_request(cookie="strategist-dev-login=not-a-token"))
         == "address:10.0.0.7"
     )
 

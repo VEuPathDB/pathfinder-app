@@ -3,7 +3,7 @@
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { useStrategyStore } from "./store";
 import { STEP_LIFECYCLE_STATE_NAMES, seedStepMachine } from "./stepMachine";
 import { useStepSnapshot } from "./useStepSnapshot";

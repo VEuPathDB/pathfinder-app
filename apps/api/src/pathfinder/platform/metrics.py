@@ -25,8 +25,8 @@ __all__ = [
     "TOOL_SOURCE_ERRORS",
     "WDK_SEARCH_WAIT",
     "HttpMetricsMiddleware",
-    "PathfinderObserver",
     "RequestTally",
+    "StrategistObserver",
     "counting_wdk_requests",
     "observe_search_wait",
     "serve_metrics",
@@ -122,7 +122,7 @@ def counting_wdk_requests() -> Iterator[RequestTally]:
         _TALLY.reset(token)
 
 
-class PathfinderObserver(OpenTelemetryObserver):
+class StrategistObserver(OpenTelemetryObserver):
     def on_wdk_request(self, seconds: float, attrs: MetricAttrs, /) -> None:
         super().on_wdk_request(seconds, attrs)
         tally = _TALLY.get()

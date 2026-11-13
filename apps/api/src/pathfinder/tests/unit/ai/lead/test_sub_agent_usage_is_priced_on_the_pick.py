@@ -22,7 +22,7 @@ _PICK = ANTHROPIC_SMALL
 
 @pytest.fixture(autouse=True)
 def _cloud(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "default")
 
 
 def _stopped_pass(keyring: ProviderKeyring) -> SubAgentRunUsage:

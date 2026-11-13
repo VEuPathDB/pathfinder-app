@@ -1,6 +1,6 @@
 "use client";
 
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { countNoun } from "@/lib/utils/countNoun";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";

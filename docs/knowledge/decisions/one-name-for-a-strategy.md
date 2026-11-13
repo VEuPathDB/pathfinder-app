@@ -77,7 +77,7 @@ labels; `packages/spec/operations_parity.json` `combine_labels` holds them and
 both suites assert them. A label an earlier release gave ("Minus (reversed)",
 "Colocated") is not a researcher's name either: `retired_combine_labels` holds
 them, and a stored combine that carries one is named by its operator again. The
-web reads the labels from one map, `COMBINE_OP_LABELS` in `@pathfinder/shared`. The site read keeps no name that equals the step's
+web reads the labels from one map, `COMBINE_OP_LABELS` in `@strategist/shared`. The site read keeps no name that equals the step's
 search name.
 
 # What was rejected

@@ -28,7 +28,7 @@ describe("state/useSessionStore", () => {
 
   it("keeps nothing in the browser's storage", () => {
     useSessionStore.getState().setSelectedSite("plasmodb");
-    expect(window.localStorage.getItem("pathfinder-session-20260625")).toBe(null);
+    expect(window.localStorage.getItem("strategist-session-20260625")).toBe(null);
   });
 
   it("setPendingUserSubmission carries the conversation and the text", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { combineOpEnum } from "@pathfinder/shared";
+import { combineOpEnum } from "@strategist/shared";
 
 export function VennIcon({
   operator,

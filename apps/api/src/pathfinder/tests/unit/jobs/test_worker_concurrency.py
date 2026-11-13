@@ -18,7 +18,7 @@ from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.worker import WorkerCannotScreenError, amain
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.config import Settings
-from pathfinder.platform.metrics import PathfinderObserver
+from pathfinder.platform.metrics import StrategistObserver
 from pathfinder.services.search_waits import runs_on_the_deployment_line
 
 _OVERLAP_TIMEOUT_SECONDS = 0.25
@@ -240,7 +240,7 @@ async def test_amain_passes_configured_concurrency() -> None:
 async def test_amain_installs_the_observer_and_the_search_line() -> None:
     run = await _run_amain()
 
-    assert [type(observer) for observer in run.observers] == [PathfinderObserver]
+    assert [type(observer) for observer in run.observers] == [StrategistObserver]
     assert run.search_lines == [
         (
             "postgresql+asyncpg://user@host/db",

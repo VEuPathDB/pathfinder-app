@@ -4,8 +4,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 
-import { DEFAULT_STREAM_NAME, type SiteResponse } from "@pathfinder/shared";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import { DEFAULT_STREAM_NAME, type SiteResponse } from "@strategist/shared";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { createSuspenseWrapper } from "@/lib/query/testing";

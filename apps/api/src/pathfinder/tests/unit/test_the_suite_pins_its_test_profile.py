@@ -6,7 +6,7 @@ import os
 
 
 def test_the_suite_runs_on_the_mock_provider() -> None:
-    assert os.environ["PATHFINDER_CHAT_PROVIDER"] == "mock"
+    assert os.environ["STRATEGIST_CHAT_PROVIDER"] == "mock"
 
 
 def test_the_suite_runs_in_the_test_environment() -> None:

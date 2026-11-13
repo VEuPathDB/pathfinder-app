@@ -45,20 +45,20 @@ describe("the Next config", () => {
   });
 
   it("names each deployment by the build id the image was built with", async () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "77b0e5a91c3f");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "77b0e5a91c3f");
     vi.resetModules();
     const { default: built } = await import("../../next.config");
 
     expect(built.deploymentId).toBe("77b0e5a91c3f");
-    expect(built.env).toEqual({ PATHFINDER_WEB_BUILD: "77b0e5a91c3f" });
+    expect(built.env).toEqual({ STRATEGIST_WEB_BUILD: "77b0e5a91c3f" });
   });
 
   it("names no deployment for a build without a build id", async () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "");
     vi.resetModules();
     const { default: built } = await import("../../next.config");
 
     expect(built.deploymentId).toBeUndefined();
-    expect(built.env).toEqual({ PATHFINDER_WEB_BUILD: "" });
+    expect(built.env).toEqual({ STRATEGIST_WEB_BUILD: "" });
   });
 });

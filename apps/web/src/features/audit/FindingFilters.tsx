@@ -1,13 +1,13 @@
 "use client";
 
 import { useId } from "react";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
 import {
   findingViewCertaintyEnum,
   findingViewCheckEnum,
   findingViewErrorTypeEnum,
-} from "@pathfinder/shared/generated/types/FindingView";
+} from "@strategist/shared/generated/types/FindingView";
 
 import { type FindingFilterState, ORIGINS, oneOf } from "./findingQuery";
 import { CERTAINTY_WORDS, ORIGIN_WORDS } from "./words";

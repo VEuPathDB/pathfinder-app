@@ -5,7 +5,7 @@ import {
   getNextSnapshot,
   type SnapshotFrom,
 } from "xstate";
-import type { ValidationErrors } from "@pathfinder/shared";
+import type { ValidationErrors } from "@strategist/shared";
 
 export interface StepMachineContext {
   estimatedSize: number | null;

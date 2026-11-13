@@ -10,9 +10,9 @@ import {
   type MessagePart,
 } from "@veupathdb/assistant-client";
 import { toTraceParts } from "@veupathdb/assistant-client/ai-sdk";
-import type { DataSubAgentCallPayload } from "@pathfinder/shared";
-import { leadUsagePayloadSchema } from "@pathfinder/shared/generated/zod/leadUsagePayloadSchema";
-import { subAgentCallPayloadSchema } from "@pathfinder/shared/generated/zod/subAgentCallPayloadSchema";
+import type { DataSubAgentCallPayload } from "@strategist/shared";
+import { leadUsagePayloadSchema } from "@strategist/shared/generated/zod/leadUsagePayloadSchema";
+import { subAgentCallPayloadSchema } from "@strategist/shared/generated/zod/subAgentCallPayloadSchema";
 
 import { parseModelString } from "@/lib/models/providerMeta";
 import {

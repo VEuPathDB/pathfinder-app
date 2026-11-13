@@ -5,7 +5,7 @@ import { act, renderHook } from "@testing-library/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import type { ReactNode } from "react";
 import { createElement } from "react";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { useStrategyGraphNodes } from "./useStrategyGraphNodes";
 
 function strategyWith(fold: string): Strategy {

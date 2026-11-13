@@ -34,7 +34,7 @@ services:
     pull_policy: never
     environment:
       API_ENV: test
-      PATHFINDER_CHAT_PROVIDER: mock
+      STRATEGIST_CHAT_PROVIDER: mock
       # The suite carries no API key, so every vector is the deterministic one.
       EMBEDDING_BACKEND: fake
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/pathfinder_test
@@ -55,7 +55,7 @@ services:
     pull_policy: never
     environment:
       API_ENV: test
-      PATHFINDER_CHAT_PROVIDER: mock
+      STRATEGIST_CHAT_PROVIDER: mock
       EMBEDDING_BACKEND: fake
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/pathfinder_test
       VEUPATHDB_SITES_CONFIG: /app/e2e-sites.yaml

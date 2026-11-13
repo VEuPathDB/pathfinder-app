@@ -27,7 +27,7 @@ export default defineConfig({
         find: /^@pathfinder\/shared\/generated\/(.*)$/,
         replacement: `${sharedDir}/generated/$1`,
       },
-      { find: "@pathfinder/shared", replacement: sharedDir },
+      { find: "@strategist/shared", replacement: sharedDir },
       {
         find: "@tanstack/react-query",
         replacement: `${webNodeModules}/@tanstack/react-query`,

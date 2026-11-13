@@ -5,7 +5,7 @@
  */
 
 import type { Locator, Page } from "@playwright/test";
-import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
+import type { EdaStudyListResponse } from "@strategist/shared/generated/types/EdaStudyListResponse";
 
 import { test, expect } from "../fixtures/test";
 import { type ArcName, prompt } from "../fixtures/arcs";

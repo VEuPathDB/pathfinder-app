@@ -49,7 +49,7 @@ vi.mock("@/features/help/DataNotice", () => ({
   DataNotice: () => <div data-testid="data-notice" />,
 }));
 
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";

@@ -1,5 +1,5 @@
-import type { ReasoningEffort } from "@pathfinder/shared";
-import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
+import type { ReasoningEffort } from "@strategist/shared";
+import type { TierPreset } from "@strategist/shared/generated/types/TierPreset";
 import {
   isPickableRole,
   PICKABLE_ROLE_DESCRIPTIONS,

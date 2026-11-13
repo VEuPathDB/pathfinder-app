@@ -30,7 +30,7 @@ RUN_ID = "00000000-0000-4000-8000-000000000001"
 CONVERSATION_ID = "00000000-0000-4000-8000-000000000002"
 AT = "2026-10-22T00:00:00Z"
 SAMPLE_ROUTE = "/api/v1/dev/audits/sample"
-WRITE_FIXTURE = "PATHFINDER_WRITE_AUDIT_SAMPLE"
+WRITE_FIXTURE = "STRATEGIST_WRITE_AUDIT_SAMPLE"
 
 
 class ReviewStoreRefusedError(Exception):
@@ -171,7 +171,7 @@ async def test_the_sample_route_refuses_outside_mock_mode(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     user = (await seed_thread()).user_id
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "openai")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "openai")
 
     with pytest.raises(ForbiddenError, match="Only available in mock mode"):
         await dev.store_sample_audit_run(user)

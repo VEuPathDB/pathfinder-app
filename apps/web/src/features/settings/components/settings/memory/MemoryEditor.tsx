@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { MemoryEditRequest, MemoryItem } from "@pathfinder/shared";
+import type { MemoryEditRequest, MemoryItem } from "@strategist/shared";
 
 import { Input } from "@/components/ui/input";
 

@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { authStatusResponseSchema } from "@pathfinder/shared/generated/zod/authStatusResponseSchema";
+import { authStatusResponseSchema } from "@strategist/shared/generated/zod/authStatusResponseSchema";
 
 import { AppError } from "@/lib/errors/AppError";
 import { requestJson } from "./http";

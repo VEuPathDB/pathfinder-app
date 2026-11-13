@@ -1,10 +1,10 @@
 /**
  * @vitest-environment jsdom
  */
-import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
+import { listModelsQueryOptions } from "@strategist/shared/generated/hooks/useListModels";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ModelListResponse } from "@pathfinder/shared/generated/types/ModelListResponse";
+import type { ModelListResponse } from "@strategist/shared/generated/types/ModelListResponse";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -102,7 +102,7 @@ beforeEach(() => {
 describe("the phase picks a turn carries", () => {
   it("sends no stored pick of a model the catalog no longer lists", async () => {
     window.localStorage.setItem(
-      "pathfinder-settings-20260625",
+      "strategist-settings-20260625",
       JSON.stringify({
         state: {
           phaseModels: { lead: RETIRED, frame: DEFAULT_MODEL.id },
@@ -142,7 +142,7 @@ describe("the phase picks a turn carries", () => {
 
   it("sends no stored pick for the repair role", async () => {
     window.localStorage.setItem(
-      "pathfinder-settings-20260625",
+      "strategist-settings-20260625",
       JSON.stringify({
         state: {
           phaseModels: { lead: OPENAI_FLAGSHIP.id, execution: ANTHROPIC_SMALL.id },
@@ -170,7 +170,7 @@ describe("the phase picks a turn carries", () => {
 
   it("gives a tier saved before the explore pick existed that tier's explore model", async () => {
     window.localStorage.setItem(
-      "pathfinder-settings-20260625",
+      "strategist-settings-20260625",
       JSON.stringify({
         state: {
           phaseModels: {

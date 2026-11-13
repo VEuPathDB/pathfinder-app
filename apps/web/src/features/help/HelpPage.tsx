@@ -1,4 +1,4 @@
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import { yourDataUrl } from "@/lib/routes";
 

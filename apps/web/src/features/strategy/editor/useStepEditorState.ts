@@ -1,6 +1,6 @@
 "use client";
 
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { useStepMetadata } from "./hooks/useStepMetadata";
 import { useStepRecordType } from "./hooks/useStepRecordType";
 import { useStepSearch } from "./hooks/useStepSearch";

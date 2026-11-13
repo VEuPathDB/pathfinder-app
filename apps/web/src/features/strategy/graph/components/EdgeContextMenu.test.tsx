@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Edge } from "@xyflow/react";
-import { combineOpEnum, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type Step } from "@strategist/shared";
 import { EdgeContextMenu } from "./EdgeContextMenu";
 
 const COMBINE_STEP: Step = {

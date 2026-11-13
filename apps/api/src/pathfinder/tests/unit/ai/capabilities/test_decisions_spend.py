@@ -43,7 +43,7 @@ def _wire() -> DecisionsWire:
 def _prices(monkeypatch: pytest.MonkeyPatch) -> None:
     install_catalog_prices()
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", DEPLOYMENT_KEY)
 
 
@@ -144,7 +144,7 @@ async def test_a_refused_decision_leaves_the_catalog_its_own_result() -> None:
 async def test_a_mock_deployment_asks_no_decision(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "mock")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "mock")
     wire = _wire()
     install_decisions_transport()
     try:

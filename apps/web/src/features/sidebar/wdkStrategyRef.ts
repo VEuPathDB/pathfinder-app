@@ -1,4 +1,4 @@
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 
 /** The strategy id inside a VEuPathDB workspace link, or at the end of one. */
 const STRATEGY_IN_URL = /\/strategies\/(\d+)(?:[/?#]|$)/;

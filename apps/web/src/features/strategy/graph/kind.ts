@@ -1,4 +1,4 @@
-import type { StepKind } from "@pathfinder/shared";
+import type { StepKind } from "@strategist/shared";
 
 type StepLike = {
   kind?: StepKind | string | null;

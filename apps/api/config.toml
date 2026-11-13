@@ -4,7 +4,7 @@ api_port = 8000
 api_debug = false
 api_docs_enabled = true
 
-pathfinder_site = "veupathdb"
+strategist_site = "veupathdb"
 
 log_level = "INFO"
 log_format = "json"

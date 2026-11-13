@@ -1,5 +1,5 @@
 export function currentWebBuild(): string {
-  return process.env.PATHFINDER_WEB_BUILD ?? "";
+  return process.env.STRATEGIST_WEB_BUILD ?? "";
 }
 
 export function aNewerBuildIsServed({

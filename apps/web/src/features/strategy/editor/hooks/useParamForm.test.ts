@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createElement, type ReactElement } from "react";
 import { render, renderHook } from "@testing-library/react";
 import { useStore } from "@tanstack/react-form";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import { extractDefaults, useParamForm, type ParamForm } from "./useParamForm";
 import type { StepParameters } from "@/lib/types/stepParameters";
 

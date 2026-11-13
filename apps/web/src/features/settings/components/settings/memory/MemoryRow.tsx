@@ -1,7 +1,7 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import type { MemoryItem } from "@pathfinder/shared";
+import type { MemoryItem } from "@strategist/shared";
 
 import { cn } from "@/lib/utils/cn";
 

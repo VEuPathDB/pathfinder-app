@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { ZeroResultHoverCard } from "./ZeroResultHoverCard";
 
 function makeStep(overrides: Partial<Step> = {}): Step {

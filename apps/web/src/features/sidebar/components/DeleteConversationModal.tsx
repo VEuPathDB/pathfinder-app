@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import {
   Dialog,

@@ -1,7 +1,7 @@
 "use client";
 
-import type { EdaViz } from "@pathfinder/shared";
-import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
+import type { EdaViz } from "@strategist/shared";
+import type { EdaComparison } from "@strategist/shared/generated/types/EdaComparison";
 
 import type { VolcanoThresholds } from "@/lib/components/charts/types";
 import { VolcanoChart } from "@/lib/components/charts/VolcanoChart";

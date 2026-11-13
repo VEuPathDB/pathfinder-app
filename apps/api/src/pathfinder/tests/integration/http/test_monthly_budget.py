@@ -76,7 +76,7 @@ async def test_a_user_with_no_override_is_held_to_the_configured_default(
     limit = await effective_monthly_limit_usd(db_session, user.id)
 
     assert limit == Decimal(
-        str(get_settings().pathfinder_user_monthly_cost_limit_usd),
+        str(get_settings().strategist_user_monthly_cost_limit_usd),
     )
 
 
@@ -193,7 +193,7 @@ async def test_a_provider_nobody_pays_for_is_refused(
 ) -> None:
     del patch_app_db_engine, db_cleaner
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", "sk-deployment")
     monkeypatch.setattr(settings, "anthropic_api_key", "")
     user = await make_user(db_session)

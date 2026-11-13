@@ -24,7 +24,7 @@ type Login = tuple[str, str, str, str]
 @pytest.fixture(autouse=True)
 def _development_account(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_site", "plasmodb")
+    monkeypatch.setattr(settings, "strategist_site", "plasmodb")
     monkeypatch.setattr(settings, "wdk_dev_email", "dev@example.org")
     monkeypatch.setattr(settings, "wdk_dev_password", SecretStr("dev-password"))
 

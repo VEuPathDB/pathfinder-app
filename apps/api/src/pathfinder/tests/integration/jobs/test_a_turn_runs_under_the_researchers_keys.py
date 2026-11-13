@@ -100,7 +100,7 @@ async def test_a_key_refused_inside_the_turn_is_marked_after_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     allow_requests_to_the_wire(monkeypatch)
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "default")
     user_id = await _keyed_user(session_maker, refused=False)
     wire = ProviderWire(refuse=True)
 
@@ -155,7 +155,7 @@ async def test_an_audit_turn_needs_a_payer_only_for_the_auditor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "default_tier", "custom")
     monkeypatch.setattr(
         registry,

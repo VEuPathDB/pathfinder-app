@@ -44,7 +44,7 @@ async def _unanswered(request: DecisionRequest) -> DecisionResponse | None:
 
 @pytest.fixture
 def _unanswered_service(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "default")
     use_decisions_transport(_unanswered)
     yield
     use_decisions_transport(post_decision)

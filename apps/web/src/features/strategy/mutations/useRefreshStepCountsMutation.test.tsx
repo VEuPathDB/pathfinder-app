@@ -3,17 +3,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { ConversationResponse, Strategy } from "@pathfinder/shared";
+import type { ConversationResponse, Strategy } from "@strategist/shared";
 
 const refreshStepCounts = vi.hoisted(() => vi.fn());
-vi.mock("@pathfinder/shared/generated/hooks/useRefreshStepCounts", () => ({
+vi.mock("@strategist/shared/generated/hooks/useRefreshStepCounts", () => ({
   refreshStepCounts: (...args: unknown[]) => refreshStepCounts(...args),
 }));
 
 const toastError = vi.hoisted(() => vi.fn());
 vi.mock("sonner", () => ({ toast: { error: toastError } }));
 
-import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
+import { getStepRecordsQueryKey } from "@strategist/shared/generated/hooks/useGetStepRecords";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { useRefreshStepCountsMutation } from "./useRefreshStepCountsMutation";
 

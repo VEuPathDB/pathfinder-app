@@ -4,7 +4,7 @@
  */
 
 import type { Request } from "@playwright/test";
-import { type ConversationResponse, siteShortName } from "@pathfinder/shared";
+import { type ConversationResponse, siteShortName } from "@strategist/shared";
 
 import { test, expect } from "../fixtures/test";
 import type { ApiClient } from "../fixtures/api-client";

@@ -85,7 +85,7 @@ def dev_hosted_plasmodb(monkeypatch: pytest.MonkeyPatch) -> None:
 def other_application(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     """Register a second calling application and return its id."""
     monkeypatch.setenv(
-        "PATHFINDER_SERVICE_TOKENS",
+        "STRATEGIST_SERVICE_TOKENS",
         f"{OTHER_APPLICATION_ID}:{OTHER_APPLICATION_SECRET}",
     )
     get_settings.cache_clear()

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { applyOperation } from "./apply";
 
 const strategy = (steps: Step[]): Strategy => ({

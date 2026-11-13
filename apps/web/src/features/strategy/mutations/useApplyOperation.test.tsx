@@ -5,14 +5,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useQuery } from "@tanstack/react-query";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 
 const applyOperationEndpointMock = vi.hoisted(() => vi.fn());
-vi.mock("@pathfinder/shared/generated/hooks/useApplyOperationEndpoint", () => ({
+vi.mock("@strategist/shared/generated/hooks/useApplyOperationEndpoint", () => ({
   applyOperationEndpoint: applyOperationEndpointMock,
 }));
 const getStrategyMock = vi.hoisted(() => vi.fn());
-vi.mock("@pathfinder/shared/generated/hooks/useGetStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useGetStrategy", () => ({
   getStrategy: getStrategyMock,
 }));
 vi.mock("sonner", () => ({
@@ -20,8 +20,8 @@ vi.mock("sonner", () => ({
 }));
 
 import { toast } from "sonner";
-import { applyOperationEndpointMutationRequestSchema } from "@pathfinder/shared/generated/zod/applyOperationEndpointSchema";
-import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
+import { applyOperationEndpointMutationRequestSchema } from "@strategist/shared/generated/zod/applyOperationEndpointSchema";
+import { getStepRecordsQueryKey } from "@strategist/shared/generated/hooks/useGetStepRecords";
 import { APIError } from "@/lib/api/http";
 import { strategyQueryOptions } from "@/lib/api/strategy";
 import { useStrategyStore } from "@/state/strategy/store";

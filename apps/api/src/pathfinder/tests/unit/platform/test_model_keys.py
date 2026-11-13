@@ -64,7 +64,7 @@ def _wire(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def _deployment_holds_every_key(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     for name in ("openai_api_key", "anthropic_api_key", "gemini_api_key"):
         monkeypatch.setattr(settings, name, _DEPLOYMENT_KEY)
 
@@ -171,7 +171,7 @@ def test_a_provider_nobody_holds_a_key_for_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", _DEPLOYMENT_KEY)
     monkeypatch.setattr(settings, "gemini_api_key", "")
 

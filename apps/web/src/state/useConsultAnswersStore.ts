@@ -3,7 +3,7 @@
  * answer. Memory-only: the turn's request body reads them here.
  */
 
-import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
+import type { UserQuestionAnswer } from "@strategist/shared/generated/types/UserQuestionAnswer";
 
 import { createStore } from "./middleware";
 

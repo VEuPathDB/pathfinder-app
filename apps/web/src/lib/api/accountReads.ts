@@ -1,6 +1,6 @@
-import type { AccountReads, AlwaysAccountReads } from "@pathfinder/shared";
-import { accountReadsSchema } from "@pathfinder/shared/generated/zod/accountReadsSchema";
-import { alwaysAccountReadsSchema } from "@pathfinder/shared/generated/zod/alwaysAccountReadsSchema";
+import type { AccountReads, AlwaysAccountReads } from "@strategist/shared";
+import { accountReadsSchema } from "@strategist/shared/generated/zod/accountReadsSchema";
+import { alwaysAccountReadsSchema } from "@strategist/shared/generated/zod/alwaysAccountReadsSchema";
 
 import { requestJson } from "@/lib/api/http";
 

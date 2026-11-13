@@ -11,21 +11,21 @@ import {
 import { useAISDKRuntime } from "@assistant-ui/react-ai-sdk";
 import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { Strategy } from "@pathfinder/shared";
-import { graphClearedSchema } from "@pathfinder/shared/generated/zod/graphClearedSchema";
-import { graphSnapshotSchema } from "@pathfinder/shared/generated/zod/graphSnapshotSchema";
-import { strategyMetaSchema } from "@pathfinder/shared/generated/zod/strategyMetaSchema";
-import { turnUsageSchema } from "@pathfinder/shared/generated/zod/turnUsageSchema";
-import { turnWithdrawnPayloadSchema } from "@pathfinder/shared/generated/zod/turnWithdrawnPayloadSchema";
+import type { Strategy } from "@strategist/shared";
+import { graphClearedSchema } from "@strategist/shared/generated/zod/graphClearedSchema";
+import { graphSnapshotSchema } from "@strategist/shared/generated/zod/graphSnapshotSchema";
+import { strategyMetaSchema } from "@strategist/shared/generated/zod/strategyMetaSchema";
+import { turnUsageSchema } from "@strategist/shared/generated/zod/turnUsageSchema";
+import { turnWithdrawnPayloadSchema } from "@strategist/shared/generated/zod/turnWithdrawnPayloadSchema";
 
 import { resumeDurableThread } from "@veupathdb/assistant-client/ai-sdk";
 
 import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
 import { buildUrl, getAuthHeaders } from "@/lib/api/http";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
 import { refetchStrategy, strategyQueryOptions } from "@/lib/api/strategy";
-import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
-import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
+import { getMyQuotaQueryKey } from "@strategist/shared/generated/hooks/useGetMyQuota";
+import { listScratchpadNotesQueryOptions } from "@strategist/shared/generated/hooks/useListScratchpadNotes";
 import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { useRightRailStore } from "@/state/useRightRailStore";

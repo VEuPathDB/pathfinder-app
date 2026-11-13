@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DATA_STATEMENT_VERSION } from "@pathfinder/shared";
+import { DATA_STATEMENT_VERSION } from "@strategist/shared";
 
 import { YOUR_DATA_IN_BRIEF, YOUR_DATA_LAST_UPDATED } from "./yourDataBrief";
 

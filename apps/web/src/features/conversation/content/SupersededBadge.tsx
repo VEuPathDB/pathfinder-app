@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuiState } from "@assistant-ui/react";
-import { strategyRevisionPayloadSchema } from "@pathfinder/shared/generated/zod/strategyRevisionPayloadSchema";
+import { strategyRevisionPayloadSchema } from "@strategist/shared/generated/zod/strategyRevisionPayloadSchema";
 import type { ReactElement } from "react";
 
 import type { StructuralPart } from "../parts";

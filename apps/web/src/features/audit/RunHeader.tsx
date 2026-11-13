@@ -2,10 +2,10 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import { siteShortName } from "@pathfinder/shared";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { GenomeView } from "@pathfinder/shared/generated/types/GenomeView";
+import { siteShortName } from "@strategist/shared";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { GenomeView } from "@strategist/shared/generated/types/GenomeView";
 
 import { Badge } from "@/components/ui/badge";
 import { chatUrl } from "@/lib/routes";

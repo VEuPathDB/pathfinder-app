@@ -9,7 +9,7 @@ import {
   type EdgeTypes,
   type NodeTypes,
 } from "@xyflow/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { StepNode } from "@/features/strategy/graph/components/nodes/StepNode";
 import { CanvasControls } from "@/features/strategy/graph/components/CanvasControls";
 import { OrphanNotice } from "@/features/strategy/graph/components/OrphanNotice";

@@ -179,7 +179,7 @@ async def preload_study_index() -> SyncReport | None:
         return None
     researcher = veupathdb_auth_token_ctx.set(None)
     try:
-        return await _sync_from_first_answering_site(settings.pathfinder_site)
+        return await _sync_from_first_answering_site(settings.strategist_site)
     finally:
         veupathdb_auth_token_ctx.reset(researcher)
 

@@ -1,4 +1,4 @@
-import type { StrategyMeta } from "@pathfinder/shared";
+import type { StrategyMeta } from "@strategist/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 

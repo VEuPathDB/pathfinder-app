@@ -12,7 +12,7 @@ services:
       API_ENV: ${API_ENV:-development}
       API_SECRET_KEY: ${API_SECRET_KEY:-pathfinder-dev-secret-key-change-me-1234567890}
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/pathfinder}
-      PATHFINDER_CHAT_PROVIDER: ${PATHFINDER_CHAT_PROVIDER:?Set PATHFINDER_CHAT_PROVIDER=default for normal development. Mock mode is test-only.}
+      STRATEGIST_CHAT_PROVIDER: ${STRATEGIST_CHAT_PROVIDER:?Set STRATEGIST_CHAT_PROVIDER=default for normal development. Mock mode is test-only.}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -34,7 +34,7 @@ services:
       API_ENV: ${API_ENV:-development}
       API_SECRET_KEY: ${API_SECRET_KEY:-pathfinder-dev-secret-key-change-me-1234567890}
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@db:5432/pathfinder}
-      PATHFINDER_CHAT_PROVIDER: ${PATHFINDER_CHAT_PROVIDER:?Set PATHFINDER_CHAT_PROVIDER=default for normal development. Mock mode is test-only.}
+      STRATEGIST_CHAT_PROVIDER: ${STRATEGIST_CHAT_PROVIDER:?Set STRATEGIST_CHAT_PROVIDER=default for normal development. Mock mode is test-only.}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
     extra_hosts:
       - host.docker.internal:host-gateway

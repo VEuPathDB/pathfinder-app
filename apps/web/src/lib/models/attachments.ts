@@ -1,4 +1,4 @@
-import type { ModelCatalogEntry } from "@pathfinder/shared";
+import type { ModelCatalogEntry } from "@strategist/shared";
 
 // The api holds the same caps and kinds (ai/conversation/attachments.py) and
 // refuses a message that breaks them; the composer says so before it is sent.

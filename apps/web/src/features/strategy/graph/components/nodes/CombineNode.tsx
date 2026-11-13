@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position } from "@xyflow/react";
-import type { CombineOp } from "@pathfinder/shared";
+import type { CombineOp } from "@strategist/shared";
 import { operatorLabel } from "@/features/strategy/operators";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { NodeShell } from "./NodeShell";

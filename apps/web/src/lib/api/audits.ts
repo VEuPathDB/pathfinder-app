@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import { auditWordsSchema } from "@pathfinder/shared/generated/zod/auditWordsSchema";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import { auditWordsSchema } from "@strategist/shared/generated/zod/auditWordsSchema";
 
 import { requestJson } from "./http";
 

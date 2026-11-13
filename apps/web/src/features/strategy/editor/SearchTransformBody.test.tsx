@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SearchTransformBody } from "./SearchTransformBody";
 import type { StepEditorState } from "./useStepEditorState";
-import type { ParamSpec, Step } from "@pathfinder/shared";
+import type { ParamSpec, Step } from "@strategist/shared";
 
 afterEach(cleanup);
 

@@ -5,8 +5,8 @@ import { Copy, Eye, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { copySharedConversation } from "@pathfinder/shared/generated/hooks/useCopySharedConversation";
-import type { SharedConversation } from "@pathfinder/shared/generated/types/SharedConversation";
+import { copySharedConversation } from "@strategist/shared/generated/hooks/useCopySharedConversation";
+import type { SharedConversation } from "@strategist/shared/generated/types/SharedConversation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

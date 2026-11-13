@@ -1,6 +1,6 @@
-import type { ConfirmationEvidence } from "@pathfinder/shared/generated/types/ConfirmationEvidence";
-import type { PseudogeneCallAudit } from "@pathfinder/shared/generated/types/PseudogeneCallAudit";
-import type { SelenoproteinEndAudit } from "@pathfinder/shared/generated/types/SelenoproteinEndAudit";
+import type { ConfirmationEvidence } from "@strategist/shared/generated/types/ConfirmationEvidence";
+import type { PseudogeneCallAudit } from "@strategist/shared/generated/types/PseudogeneCallAudit";
+import type { SelenoproteinEndAudit } from "@strategist/shared/generated/types/SelenoproteinEndAudit";
 
 import { joinWords } from "./format";
 

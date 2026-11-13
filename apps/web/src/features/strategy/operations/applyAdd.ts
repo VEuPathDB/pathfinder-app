@@ -1,4 +1,4 @@
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { findParent } from "./utils";
 import { patchSteps } from "./_patch";
 import { operatorLabel } from "@/features/strategy/operators";

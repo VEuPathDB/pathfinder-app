@@ -100,7 +100,7 @@ reviews:
     - path: "apps/web/src/features/**"
       instructions: |
         Features are isolated modules. They must NOT import from other features.
-        Allowed imports: own tree, @/lib/, @/state/, @pathfinder/shared, third-party.
+        Allowed imports: own tree, @/lib/, @/state/, @strategist/shared, third-party.
         Forbidden: @/app/, other @/features/* directories.
         Flag any cross-feature import.
 
@@ -119,7 +119,7 @@ reviews:
         TypeScript codebase rules:
         - No `as any`, `// @ts-ignore`, `// @ts-expect-error`, or `eslint-disable`.
         - No `import X as Y` unless resolving a genuine name conflict.
-        - Domain types come from @pathfinder/shared — no local redefinitions.
+        - Domain types come from @strategist/shared — no local redefinitions.
         - Components never call fetch directly — use lib/api/.
 
     # Tests

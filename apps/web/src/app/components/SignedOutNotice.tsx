@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import { useSitePages } from "@/app/hooks/useSitePages";
 import { withBasePath } from "@/lib/basePath";
-import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
+import { StrategistLogo } from "@/lib/components/StrategistLogo";
 import { yourDataUrl } from "@/lib/routes";
 import { goToSiteSignIn, signInHref } from "@/lib/siteSignIn";
 
@@ -32,7 +32,7 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
     <div data-testid="signed-out-notice" className="overflow-hidden rounded-xl">
       <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-4 pt-6">
         <div className="flex items-center gap-3">
-          <PathFinderLogo size={36} />
+          <StrategistLogo size={36} />
           <div>
             <div className="text-[0.6875rem] font-medium uppercase tracking-wider text-muted-foreground">
               VEuPathDB

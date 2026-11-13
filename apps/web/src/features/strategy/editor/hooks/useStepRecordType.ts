@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import type { RecordType } from "@pathfinder/shared";
+import type { RecordType } from "@strategist/shared";
 import { recordTypesOptions } from "@/lib/api/sites";
 import { normalizeRecordType } from "@/lib/utils/normalizeRecordType";
 

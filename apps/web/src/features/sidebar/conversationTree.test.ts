@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
 
 import { toTreeRoots } from "./conversationTree";
 

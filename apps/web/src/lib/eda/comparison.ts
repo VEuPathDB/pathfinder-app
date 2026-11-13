@@ -1,4 +1,4 @@
-import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
+import type { EdaComparison } from "@strategist/shared/generated/types/EdaComparison";
 
 /** The two groups one compute compares, in words. */
 export function comparisonLine(comparison: EdaComparison): string {

@@ -1,6 +1,6 @@
 import { makeStep, makeStrategy } from "@/lib/types/fixtures";
 import { describe, expect, it } from "vitest";
-import { combineOpEnum, type Step, type Strategy } from "@pathfinder/shared";
+import { combineOpEnum, type Step, type Strategy } from "@strategist/shared";
 
 import { applyOperation } from "./apply";
 

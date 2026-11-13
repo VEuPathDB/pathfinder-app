@@ -1,5 +1,5 @@
-import type { Strategy } from "@pathfinder/shared";
-import { conversationResponseSchema } from "@pathfinder/shared/generated/zod/conversationResponseSchema";
+import type { Strategy } from "@strategist/shared";
+import { conversationResponseSchema } from "@strategist/shared/generated/zod/conversationResponseSchema";
 
 import { toStrategy } from "@/lib/api/strategy";
 

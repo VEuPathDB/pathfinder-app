@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { GeneSet, VdiPublicationStatus, VdiVisibility } from "@pathfinder/shared";
+import type { GeneSet, VdiPublicationStatus, VdiVisibility } from "@strategist/shared";
 import { ExternalLink, Share2 } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";

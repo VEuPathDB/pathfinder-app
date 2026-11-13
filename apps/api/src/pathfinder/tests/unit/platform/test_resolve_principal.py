@@ -29,7 +29,7 @@ def _bearer(token: str) -> HTTPAuthorizationCredentials:
 
 @pytest.fixture
 def service_tokens(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("PATHFINDER_SERVICE_TOKENS", f"analytics:{SERVICE_SECRET}")
+    monkeypatch.setenv("STRATEGIST_SERVICE_TOKENS", f"analytics:{SERVICE_SECRET}")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -55,7 +55,7 @@ async def test_a_pathfinder_bearer_wins_over_the_site_login() -> None:
     )
 
     assert principal.user_id == bearer_user
-    assert principal.credential == "pathfinder-bearer"
+    assert principal.credential == "strategist-bearer"
 
 
 async def test_a_dev_login_cookie_names_the_dev_login_credential() -> None:

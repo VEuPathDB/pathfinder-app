@@ -1,4 +1,4 @@
-import type { Step, Strategy, StrategyStepNode } from "@pathfinder/shared";
+import type { Step, Strategy, StrategyStepNode } from "@strategist/shared";
 import { patchSteps } from "./_patch";
 import type { GraphOperation } from "@/lib/types/graphOperation";
 import type { ApplyResult } from "./types";

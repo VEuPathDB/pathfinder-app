@@ -3,8 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { Patch } from "immer";
-import type { ConversationResponse, Strategy } from "@pathfinder/shared";
-import { applyOperationEndpoint } from "@pathfinder/shared/generated/hooks/useApplyOperationEndpoint";
+import type { ConversationResponse, Strategy } from "@strategist/shared";
+import { applyOperationEndpoint } from "@strategist/shared/generated/hooks/useApplyOperationEndpoint";
 import {
   refetchStrategy,
   strategyQueryKey,

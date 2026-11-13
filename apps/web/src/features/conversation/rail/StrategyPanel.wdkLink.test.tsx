@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),

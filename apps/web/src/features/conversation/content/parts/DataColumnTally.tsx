@@ -1,6 +1,6 @@
 "use client";
 
-import { siteShortName, type ColumnTally } from "@pathfinder/shared";
+import { siteShortName, type ColumnTally } from "@strategist/shared";
 
 import { ExhibitTable } from "@/features/conversation/thread/ExhibitTable";
 import { Figure } from "@/features/conversation/thread/Figure";

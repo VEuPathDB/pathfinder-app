@@ -1,4 +1,4 @@
-import type { KnownDataPartKind } from "@pathfinder/shared";
+import type { KnownDataPartKind } from "@strategist/shared";
 
 import { auditDataPartComponents } from "./auditDataParts";
 import { coreDataPartComponents } from "./coreDataParts";

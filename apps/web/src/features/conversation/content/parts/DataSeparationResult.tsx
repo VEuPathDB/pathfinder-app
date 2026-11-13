@@ -6,9 +6,9 @@ import {
   type ControlSetEvidence,
   type SeparationOffer,
   type SeparationReport,
-} from "@pathfinder/shared";
-import type { StructureNode } from "@pathfinder/shared/generated/types/StructureNode";
-import type { SkippedCriterionReasonEnumKey } from "@pathfinder/shared/generated/types/SkippedCriterion";
+} from "@strategist/shared";
+import type { StructureNode } from "@strategist/shared/generated/types/StructureNode";
+import type { SkippedCriterionReasonEnumKey } from "@strategist/shared/generated/types/SkippedCriterion";
 
 import { ExhibitTable } from "@/features/conversation/thread/ExhibitTable";
 import { Figure } from "@/features/conversation/thread/Figure";

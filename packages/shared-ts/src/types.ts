@@ -1,5 +1,5 @@
 /**
- * The public type surface of @pathfinder/shared: names re-exported from the
+ * The public type surface of @strategist/shared: names re-exported from the
  * Kubb-generated OpenAPI types, plus the few concepts OpenAPI does not model
  * (the site catalog, the data-part kind map, UI-only unions).
  */

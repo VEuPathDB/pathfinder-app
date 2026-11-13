@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import type { MemoryItem } from "@pathfinder/shared";
+import type { MemoryItem } from "@strategist/shared";
 import { MemoryRow } from "./MemoryRow";
 
 afterEach(() => {

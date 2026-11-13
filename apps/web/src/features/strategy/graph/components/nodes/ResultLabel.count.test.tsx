@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { ResultLabel } from "./ResultLabel";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";
 

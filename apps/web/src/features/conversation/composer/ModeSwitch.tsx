@@ -4,7 +4,7 @@ import { useAuiState } from "@assistant-ui/react";
 import {
   threadModeEnum,
   type ThreadMode,
-} from "@pathfinder/shared/generated/types/ThreadMode";
+} from "@strategist/shared/generated/types/ThreadMode";
 
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { THREAD_MODE_DESCRIPTIONS, THREAD_MODE_LABELS } from "@/lib/threadModes";

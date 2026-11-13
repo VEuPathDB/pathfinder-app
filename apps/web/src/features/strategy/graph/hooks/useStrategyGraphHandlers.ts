@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { computeOrthologInsert } from "@/features/strategy/graph/utils/orthologInsert";
 import { useDeleteOperation } from "@/features/strategy/graph/hooks/useDeleteOperation";
 import {

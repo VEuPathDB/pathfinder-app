@@ -8,7 +8,7 @@ import type {
   EdaSubsetPreview,
   ResearchSourcesPayload,
   TurnFacts,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { cn } from "@/lib/utils/cn";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { EdaAnalysisState } from "@pathfinder/shared";
+import type { EdaAnalysisState } from "@strategist/shared";
 
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/features/conversation/thread/Figure";

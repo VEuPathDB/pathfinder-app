@@ -5,11 +5,11 @@
  */
 
 import type { Locator, Page } from "@playwright/test";
-import { siteShortName, type GeneSet } from "@pathfinder/shared";
-import type { ModelListResponse } from "@pathfinder/shared/generated/types/ModelListResponse";
-import type { PurgeUserDataResponse } from "@pathfinder/shared/generated/types/PurgeUserDataResponse";
-import type { QuotaResponse } from "@pathfinder/shared/generated/types/QuotaResponse";
-import type { TierListResponse } from "@pathfinder/shared/generated/types/TierListResponse";
+import { siteShortName, type GeneSet } from "@strategist/shared";
+import type { ModelListResponse } from "@strategist/shared/generated/types/ModelListResponse";
+import type { PurgeUserDataResponse } from "@strategist/shared/generated/types/PurgeUserDataResponse";
+import type { QuotaResponse } from "@strategist/shared/generated/types/QuotaResponse";
+import type { TierListResponse } from "@strategist/shared/generated/types/TierListResponse";
 
 import {
   formatCost,

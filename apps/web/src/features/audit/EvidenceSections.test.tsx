@@ -3,8 +3,8 @@
  */
 import { cleanup, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { EvidenceViewKindEnumKey } from "@pathfinder/shared/generated/types/EvidenceView";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
+import type { EvidenceViewKindEnumKey } from "@strategist/shared/generated/types/EvidenceView";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
 
 import { SAMPLE_WORDS, sampleDetail } from "./__fixtures__/sampleRun";
 import { ConfirmationSection } from "./ConfirmationSection";

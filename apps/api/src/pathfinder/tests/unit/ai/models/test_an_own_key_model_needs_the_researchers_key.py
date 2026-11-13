@@ -44,7 +44,7 @@ _OWN_ANTHROPIC = ProviderKeyring(active={"anthropic": SecretStr(_USER_KEY)})
 def _deployment_holds_an_anthropic_key(monkeypatch: pytest.MonkeyPatch) -> None:
     allow_requests_to_the_wire(monkeypatch)
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "default_provider", "openai")
     monkeypatch.setattr(settings, "openai_api_key", _DEPLOYMENT_KEY)
     monkeypatch.setattr(settings, "anthropic_api_key", _DEPLOYMENT_KEY)

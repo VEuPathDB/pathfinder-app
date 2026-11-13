@@ -10,7 +10,7 @@ const mockSystemReady = vi.hoisted(() => vi.fn());
 const reloadPage = vi.hoisted(() => vi.fn());
 vi.mock("./reloadPage", () => ({ reloadPage }));
 
-vi.mock("@pathfinder/shared/generated/hooks/useSystemReady", () => ({
+vi.mock("@strategist/shared/generated/hooks/useSystemReady", () => ({
   systemReady: mockSystemReady,
   systemReadyQueryKey: () => [{ url: "/health/system" }] as const,
   systemReadyQueryOptions: () => ({
@@ -167,7 +167,7 @@ describe("SystemReadyGate", () => {
 
   it("tells a ready app's tab that a newer build is served", async () => {
     mockSystemReady.mockResolvedValue(READY);
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "3f9a1c0be2d4");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "3f9a1c0be2d4");
     vi.stubGlobal(
       "fetch",
       vi.fn((input: string) =>

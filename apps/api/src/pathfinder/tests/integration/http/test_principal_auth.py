@@ -95,7 +95,7 @@ def signing_key() -> ec.EllipticCurvePrivateKey:
 @pytest.fixture
 def oauth_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("VEUPATHDB_OAUTH_URL", OAUTH_URL)
-    monkeypatch.setenv("PATHFINDER_SERVICE_TOKENS", f"analytics:{SERVICE_SECRET}")
+    monkeypatch.setenv("STRATEGIST_SERVICE_TOKENS", f"analytics:{SERVICE_SECRET}")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -143,7 +143,7 @@ def stub_oauth_and_wdk(
     respx_mock.get(JWKS_URL).mock(
         return_value=httpx.Response(200, json=jwks_body(private_key)),
     )
-    service_url = get_site(get_settings().pathfinder_site).service_url
+    service_url = get_site(get_settings().strategist_site).service_url
     respx_mock.get(service_url.replace("/service", "/app")).mock(
         return_value=httpx.Response(200, text="ok"),
     )
@@ -341,7 +341,7 @@ async def test_a_pathfinder_bearer_token_is_read_before_any_veupathdb_meaning(
         )
 
     assert response.status_code == _OK, response.text
-    assert response.json()["credential"] == "pathfinder-bearer"
+    assert response.json()["credential"] == "strategist-bearer"
     assert response.json()["userId"] == str(user.id)
     assert jwks.call_count == 0
 

@@ -22,7 +22,7 @@ def make_settings(**overrides: object) -> Settings:
         "api_env": "test",
         "api_secret_key": "pathfinder-test-secret-key-1234567890",
         "database_url": "postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",
-        "pathfinder_chat_provider": "mock",
+        "strategist_chat_provider": "mock",
         "openai_api_key": "sk-test",
         "anthropic_api_key": "",
         "gemini_api_key": "",
@@ -66,18 +66,18 @@ def test_input_screening_can_be_disabled_via_env(
 def test_mock_provider_is_rejected_outside_development() -> None:
     with pytest.raises(
         ValueError,
-        match="PATHFINDER_CHAT_PROVIDER=mock is only allowed",
+        match="STRATEGIST_CHAT_PROVIDER=mock is only allowed",
     ):
-        make_settings(api_env="production", pathfinder_chat_provider="mock")
+        make_settings(api_env="production", strategist_chat_provider="mock")
 
 
 def test_the_mock_provider_is_read_without_case_or_spaces() -> None:
-    assert make_settings(pathfinder_chat_provider=" Mock ").mock_provider is True
+    assert make_settings(strategist_chat_provider=" Mock ").mock_provider is True
 
 
 def test_every_mode_requires_the_openai_key() -> None:
     with pytest.raises(ValueError, match="OPENAI_API_KEY is not set"):
-        make_settings(pathfinder_chat_provider="default", openai_api_key="")
+        make_settings(strategist_chat_provider="default", openai_api_key="")
 
 
 def test_partial_langfuse_configuration_is_rejected() -> None:
@@ -111,7 +111,7 @@ def test_placeholder_secret_rejected_in_production() -> None:
     ):
         make_settings(
             api_env="production",
-            pathfinder_chat_provider="default",
+            strategist_chat_provider="default",
             anthropic_api_key="real-anthropic-key",
             api_secret_key="placeholder-secret-key-1234567890ab",
         )
@@ -126,7 +126,7 @@ def test_empty_env_value_is_ignored_for_complex_settings(
         api_env="test",
         api_secret_key="pathfinder-test-secret-key-1234567890",
         database_url="postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",
-        pathfinder_chat_provider="mock",
+        strategist_chat_provider="mock",
         openai_api_key="sk-test",
         anthropic_api_key="",
         gemini_api_key="",
@@ -139,12 +139,12 @@ def test_empty_env_value_is_ignored_for_complex_settings(
     assert settings.cors_origins == []
 
 
-def test_pathfinder_chat_provider_must_be_explicit() -> None:
+def test_strategist_chat_provider_must_be_explicit() -> None:
     with pytest.raises(
         ValueError,
-        match="PATHFINDER_CHAT_PROVIDER must be set explicitly",
+        match="STRATEGIST_CHAT_PROVIDER must be set explicitly",
     ):
-        make_settings(pathfinder_chat_provider="")
+        make_settings(strategist_chat_provider="")
 
 
 def test_worker_concurrency_defaults_to_four() -> None:
@@ -208,22 +208,22 @@ def test_a_metrics_port_outside_tcp_is_refused() -> None:
 
 
 def test_service_tokens_are_unset_by_default() -> None:
-    assert make_settings().pathfinder_service_tokens == ""
+    assert make_settings().strategist_service_tokens == ""
 
 
 def test_a_service_token_without_a_separator_is_rejected_at_load() -> None:
     with pytest.raises(ValueError, match="application_id:secret"):
-        make_settings(pathfinder_service_tokens="analytics-secret-0123456789abcdef")
+        make_settings(strategist_service_tokens="analytics-secret-0123456789abcdef")
 
 
 def test_a_short_service_token_secret_is_rejected_at_load() -> None:
     with pytest.raises(ValueError, match="at least 32 characters"):
-        make_settings(pathfinder_service_tokens="analytics:too-short")
+        make_settings(strategist_service_tokens="analytics:too-short")
 
 
 def test_a_valid_service_token_setting_loads() -> None:
     settings = make_settings(
-        pathfinder_service_tokens="analytics:analytics-secret-0123456789abcdef",
+        strategist_service_tokens="analytics:analytics-secret-0123456789abcdef",
     )
 
     assert "analytics-secret" not in repr(settings)
@@ -231,7 +231,7 @@ def test_a_valid_service_token_setting_loads() -> None:
 
 def test_the_service_token_registry_is_parsed_once() -> None:
     settings = make_settings(
-        pathfinder_service_tokens="analytics:analytics-secret-0123456789abcdef",
+        strategist_service_tokens="analytics:analytics-secret-0123456789abcdef",
     )
 
     assert settings.service_tokens is settings.service_tokens
@@ -266,7 +266,7 @@ def test_the_mcp_service_token_registry_is_its_own() -> None:
 
 def test_the_service_token_registry_stays_out_of_the_serialized_settings() -> None:
     settings = make_settings(
-        pathfinder_service_tokens="analytics:analytics-secret-0123456789abcdef",
+        strategist_service_tokens="analytics:analytics-secret-0123456789abcdef",
     )
 
     assert "service_tokens" not in settings.model_dump()
@@ -310,7 +310,7 @@ def test_a_blank_toml_value_leaves_the_field_default_standing(
 ) -> None:
     """A blank TOML entry is no entry, the way a blank variable is."""
     config = tmp_path / "config.toml"
-    config.write_text('pathfinder_site = ""\nlog_level = "DEBUG"\napi_port = 9001\n')
+    config.write_text('strategist_site = ""\nlog_level = "DEBUG"\napi_port = 9001\n')
 
     values = TomlConfigSettingsSource(Settings, config)()
 
@@ -320,15 +320,15 @@ def test_a_blank_toml_value_leaves_the_field_default_standing(
 def test_a_site_the_sites_file_does_not_list_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("PATHFINDER_SITE", "nosuchdb")
+    monkeypatch.setenv("STRATEGIST_SITE", "nosuchdb")
 
-    with pytest.raises(ValueError, match="PATHFINDER_SITE"):
+    with pytest.raises(ValueError, match="STRATEGIST_SITE"):
         make_settings()
 
 
 def test_the_deployment_pays_for_each_provider_it_holds_a_key_for() -> None:
     settings = make_settings(
-        pathfinder_chat_provider="default",
+        strategist_chat_provider="default",
         anthropic_api_key="deployment-anthropic",
         ollama_base_url="http://ollama:11434/v1",
     )
@@ -402,7 +402,7 @@ def test_the_development_account_email_never_prints() -> None:
 def _deployed(api_env: str, **overrides: object) -> Settings:
     return make_settings(
         api_env=api_env,
-        pathfinder_chat_provider="default",
+        strategist_chat_provider="default",
         anthropic_api_key="real-anthropic-key",
         **overrides,
     )
@@ -478,7 +478,7 @@ def test_the_bundled_config_lets_the_postgres_settings_give_the_address(
         {
             "api_env": "test",
             "api_secret_key": "pathfinder-test-secret-key-1234567890",
-            "pathfinder_chat_provider": "mock",
+            "strategist_chat_provider": "mock",
         }
     )
 

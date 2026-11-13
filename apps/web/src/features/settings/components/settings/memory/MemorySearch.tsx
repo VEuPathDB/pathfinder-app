@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 import { Search } from "lucide-react";
 
-import type { MemoryItem } from "@pathfinder/shared";
+import type { MemoryItem } from "@strategist/shared";
 
 import { searchMemories } from "@/features/settings/api/memories";
 import { Input } from "@/components/ui/input";

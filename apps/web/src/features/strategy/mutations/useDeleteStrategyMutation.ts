@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
+import { deleteStrategy } from "@strategist/shared/generated/hooks/useDeleteStrategy";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { chatRoot } from "@/lib/routes";

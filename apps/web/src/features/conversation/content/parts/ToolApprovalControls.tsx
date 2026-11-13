@@ -9,11 +9,11 @@ import {
 } from "ai";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
-import type { AuditStartCard } from "@pathfinder/shared/generated/types/AuditStartCard";
-import { auditStartCardSchema } from "@pathfinder/shared/generated/zod/auditStartCardSchema";
-import { deleteCascadePayloadSchema } from "@pathfinder/shared/generated/zod/deleteCascadePayloadSchema";
-import { toolApprovalPayloadSchema } from "@pathfinder/shared/generated/zod/toolApprovalPayloadSchema";
-import { toolSummaryPayloadSchema } from "@pathfinder/shared/generated/zod/toolSummaryPayloadSchema";
+import type { AuditStartCard } from "@strategist/shared/generated/types/AuditStartCard";
+import { auditStartCardSchema } from "@strategist/shared/generated/zod/auditStartCardSchema";
+import { deleteCascadePayloadSchema } from "@strategist/shared/generated/zod/deleteCascadePayloadSchema";
+import { toolApprovalPayloadSchema } from "@strategist/shared/generated/zod/toolApprovalPayloadSchema";
+import { toolSummaryPayloadSchema } from "@strategist/shared/generated/zod/toolSummaryPayloadSchema";
 
 import { recordProductEvent } from "@/lib/api/productEvents";
 import {

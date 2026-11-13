@@ -4,7 +4,7 @@ import { type UseQueryResult, useQuery } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { strategyQueryOptions } from "@/lib/api/strategy";
 import { conversationIdFromPath } from "@/lib/routes";
 

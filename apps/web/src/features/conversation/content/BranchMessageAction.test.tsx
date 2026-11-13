@@ -16,7 +16,7 @@ vi.mock("@assistant-ui/react", () => ({
     select({ message: { id: "msg-7" } }),
 }));
 
-vi.mock("@pathfinder/shared/generated/hooks/useForkStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useForkStrategy", () => ({
   forkStrategy: vi.fn(() => Promise.resolve({ id: "fork-9" })),
 }));
 
@@ -28,8 +28,8 @@ const toastMock = vi.hoisted(() => ({
 
 vi.mock("sonner", () => ({ toast: toastMock }));
 
-import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import { forkStrategy } from "@strategist/shared/generated/hooks/useForkStrategy";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
 import { APIError } from "@/lib/api/http";
 import { chatUrl } from "@/lib/routes";
 

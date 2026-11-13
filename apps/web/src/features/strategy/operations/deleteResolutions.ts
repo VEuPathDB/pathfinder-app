@@ -1,4 +1,4 @@
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { inferStepKind } from "@/features/strategy/graph";
 import { findParent, walkSubtreeIds } from "./utils";
 import type { DeleteResolution } from "@/lib/types/graphOperation";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { GeneEvidence } from "@pathfinder/shared/generated/types/GeneEvidence";
+import type { GeneEvidence } from "@strategist/shared/generated/types/GeneEvidence";
 
 import {
   organelleConfirmation,

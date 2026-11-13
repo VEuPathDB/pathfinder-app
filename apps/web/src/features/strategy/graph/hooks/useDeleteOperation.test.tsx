@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 
 const pushStrategyMock = vi.hoisted(() => vi.fn());
-vi.mock("@pathfinder/shared/generated/hooks/usePushStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/usePushStrategy", () => ({
   pushStrategy: pushStrategyMock,
 }));
 vi.mock("sonner", () => ({

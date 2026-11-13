@@ -8,7 +8,7 @@
  *   2. No `as any` in production code - files in src/ (excluding .test. files
  *      and __fixtures__/) must not contain `as any`.
  *
- *   3. Features may only import from: @/lib/, @/state/, @pathfinder/shared,
+ *   3. Features may only import from: @/lib/, @/state/, @strategist/shared,
  *      third-party packages, and their own feature directory.
  *
  *   4. src/lib/ is pure: it may not import @/features/, @/state/ or @/app/.
@@ -88,7 +88,7 @@ function extractImports(source) {
 const ALLOWED_PREFIXES = [
   "@/lib/",
   "@/state/",
-  "@pathfinder/shared",
+  "@strategist/shared",
   "@veupathdb/assistant-client",
   // Vendored shadcn / AI Elements primitives — installed via shadcn CLI,
   // treated as third-party. Lives under src/components/{ui,ai-elements}/.
@@ -104,7 +104,7 @@ const ALLOWED_PREFIXES = [
  *     cross-feature separately for @/features/ imports)
  *   - @/lib/...
  *   - @/state/...
- *   - @pathfinder/shared (or @pathfinder/shared/...)
+ *   - @strategist/shared (or @strategist/shared/...)
  *   - Own feature: @/features/<self>/...
  *   - Third-party packages (no @ prefix other than scoped npm, and not @/)
  */
@@ -194,7 +194,7 @@ export function checkSource(source, srcRelPath) {
         add(
           3,
           lineNum,
-          `Disallowed import source: "${specifier}" (features may only import from @/lib/, @/state/, @pathfinder/shared, own feature, or third-party)`,
+          `Disallowed import source: "${specifier}" (features may only import from @/lib/, @/state/, @strategist/shared, own feature, or third-party)`,
         );
       }
     }

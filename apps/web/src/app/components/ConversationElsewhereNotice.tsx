@@ -1,7 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { chatUrl } from "@/lib/routes";

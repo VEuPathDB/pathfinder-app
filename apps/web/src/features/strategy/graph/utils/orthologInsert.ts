@@ -1,4 +1,4 @@
-import type { Search, Step } from "@pathfinder/shared";
+import type { Search, Step } from "@strategist/shared";
 import { resolveRecordType } from "@/features/strategy/graph";
 
 type OrthologInsertResult = {

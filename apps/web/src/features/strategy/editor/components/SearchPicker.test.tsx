@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { RecordType, Search } from "@pathfinder/shared";
+import type { RecordType, Search } from "@strategist/shared";
 import { SearchPicker } from "./SearchPicker";
 
 afterEach(cleanup);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { toWireOperation } from "./toWire";
 import type { GraphOperation } from "@/lib/types/graphOperation";
 

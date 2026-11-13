@@ -6,7 +6,7 @@ import type {
   ControlSetSummary,
   ControlTestResults,
   TestedParameter,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { CountOfIds } from "@/features/conversation/thread/CountOfIds";
 import {

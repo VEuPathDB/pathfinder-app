@@ -7,7 +7,7 @@ import type {
   SampledGene,
   SiteCheck,
   VerificationReview,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import {
   ExhibitTable,

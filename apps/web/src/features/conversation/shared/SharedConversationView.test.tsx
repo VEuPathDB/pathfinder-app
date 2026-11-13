@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import type { SharedConversation } from "@pathfinder/shared/generated/types/SharedConversation";
+import type { SharedConversation } from "@strategist/shared/generated/types/SharedConversation";
 
 const pushMock = vi.hoisted(() => vi.fn());
 

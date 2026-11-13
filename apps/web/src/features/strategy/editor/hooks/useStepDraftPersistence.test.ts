@@ -18,9 +18,9 @@ afterEach(() => {
 });
 
 describe("stepDraftKey", () => {
-  it("formats key as pathfinder.editor.draft.{strategyId}.{stepId}", () => {
+  it("formats key as strategist.editor.draft.{strategyId}.{stepId}", () => {
     expect(stepDraftKey("strat-1", "step-7")).toBe(
-      "pathfinder.editor.draft.strat-1.step-7",
+      "strategist.editor.draft.strat-1.step-7",
     );
   });
 });

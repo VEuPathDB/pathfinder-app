@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import type { ColumnTally } from "@pathfinder/shared";
+import type { ColumnTally } from "@strategist/shared";
 
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 import { DataColumnTally } from "./DataColumnTally";

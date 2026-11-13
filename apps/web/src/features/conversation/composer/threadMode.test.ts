@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { ConversationResponse } from "@pathfinder/shared";
+import type { ConversationResponse } from "@strategist/shared";
 
 import { strategyQueryOptions, toStrategy } from "@/lib/api/strategy";
 import { createTestQueryClient } from "@/lib/query/testing";

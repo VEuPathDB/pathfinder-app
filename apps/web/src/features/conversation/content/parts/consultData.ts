@@ -1,9 +1,9 @@
-import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
-import type { Proposal } from "@pathfinder/shared/generated/types/Proposal";
-import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
-import { consultQuestionSchema } from "@pathfinder/shared/generated/zod/consultQuestionSchema";
-import { proposalSchema } from "@pathfinder/shared/generated/zod/proposalSchema";
-import { userQuestionAnswerSchema } from "@pathfinder/shared/generated/zod/userQuestionAnswerSchema";
+import type { ConsultQuestion } from "@strategist/shared/generated/types/ConsultQuestion";
+import type { Proposal } from "@strategist/shared/generated/types/Proposal";
+import type { UserQuestionAnswer } from "@strategist/shared/generated/types/UserQuestionAnswer";
+import { consultQuestionSchema } from "@strategist/shared/generated/zod/consultQuestionSchema";
+import { proposalSchema } from "@strategist/shared/generated/zod/proposalSchema";
+import { userQuestionAnswerSchema } from "@strategist/shared/generated/zod/userQuestionAnswerSchema";
 import {
   getToolName,
   isStaticToolUIPart,

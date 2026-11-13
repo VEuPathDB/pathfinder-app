@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
-import type { Strategy } from "@pathfinder/shared";
-import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
+import type { Strategy } from "@strategist/shared";
+import { getStepRecordsQueryKey } from "@strategist/shared/generated/hooks/useGetStepRecords";
 import { refetchStrategy, strategyQueryKey, writeStrategy } from "./strategy";
 
 const STRATEGY: Strategy = {

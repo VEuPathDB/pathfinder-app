@@ -2,7 +2,7 @@
 import { makeStrategy } from "@/lib/types/fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { useStrategyGraphHandlers } from "./useStrategyGraphHandlers";
 
 vi.mock("@/features/strategy/mutations", () => ({

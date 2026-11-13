@@ -1,6 +1,6 @@
 "use client";
 
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
 
 import {
   chatToConversationItem,

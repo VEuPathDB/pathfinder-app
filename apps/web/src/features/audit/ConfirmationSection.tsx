@@ -1,11 +1,11 @@
 "use client";
 
 import { useId } from "react";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { ConfirmationEvidence } from "@pathfinder/shared/generated/types/ConfirmationEvidence";
-import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
-import type { Fact } from "@pathfinder/shared/generated/types/Fact";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { ConfirmationEvidence } from "@strategist/shared/generated/types/ConfirmationEvidence";
+import type { EvidenceView } from "@strategist/shared/generated/types/EvidenceView";
+import type { Fact } from "@strategist/shared/generated/types/Fact";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
 
 import { BreakStrip } from "./BreakStrip";
 import { GeneModelFigure } from "./GeneModelFigure";

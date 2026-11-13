@@ -13,10 +13,10 @@ and dark, and in place.
 
 | File | Use |
 |---|---|
-| `pathfinder-mark-light.svg` | The logo on white and light surfaces. |
-| `pathfinder-mark-dark.svg` | The logo on navy and dark surfaces. |
-| `pathfinder-mark-light-animated.svg` | The logo with the loop turning, for the agent's working state. |
-| `pathfinder-mark-dark-animated.svg` | The animated logo for dark surfaces. |
+| `strategist-mark-light.svg` | The logo on white and light surfaces. |
+| `strategist-mark-dark.svg` | The logo on navy and dark surfaces. |
+| `strategist-mark-light-animated.svg` | The logo with the loop turning, for the agent's working state. |
+| `strategist-mark-dark-animated.svg` | The animated logo for dark surfaces. |
 | `favicon.svg` | The small-size cut, for 31 px and under. Follows the browser's light or dark setting. |
 | `favicon-dark.svg` | The small-size cut in its dark colours only. |
 | `favicon.ico` | 16, 32 and 48 px in one file. |
@@ -24,8 +24,8 @@ and dark, and in place.
 | `app-icon.svg` | The logo on a navy rounded square. |
 | `app-icon-small.svg` | The app icon built from the small-size cut, for 48 px and under. |
 | `social-card.svg` | 1200 by 630 link preview. |
-| `pathfinder-lockup-light.svg` | Optional: the logo with the name beside it. |
-| `pathfinder-lockup-dark.svg` | Optional: the same, for dark surfaces. |
+| `strategist-lockup-light.svg` | Optional: the logo with the name beside it. |
+| `strategist-lockup-dark.svg` | Optional: the same, for dark surfaces. |
 | `png/` | PNG exports of the above. |
 
 ## Rules

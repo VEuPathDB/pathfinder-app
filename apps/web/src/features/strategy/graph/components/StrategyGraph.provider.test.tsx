@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
-import type { Strategy } from "@pathfinder/shared";
-import { computeStepCounts } from "@pathfinder/shared/generated/hooks/useComputeStepCounts";
+import type { Strategy } from "@strategist/shared";
+import { computeStepCounts } from "@strategist/shared/generated/hooks/useComputeStepCounts";
 import { createTestWrapper } from "@/lib/query/testing";
 import { APPLY_OPERATION_MUTATION_KEY } from "@/features/strategy/mutations/useApplyOperation";
 import { StrategyGraph } from "./StrategyGraph";
@@ -69,11 +69,11 @@ vi.mock("@/lib/api/sites", () => ({
   }),
 }));
 
-vi.mock("@pathfinder/shared/generated/hooks/useComputeStepCounts", () => ({
+vi.mock("@strategist/shared/generated/hooks/useComputeStepCounts", () => ({
   computeStepCounts: vi.fn(async () => ({ counts: {} })),
 }));
 
-vi.mock("@pathfinder/shared/generated/hooks/usePushStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/usePushStrategy", () => ({
   pushStrategy: vi.fn(),
 }));
 

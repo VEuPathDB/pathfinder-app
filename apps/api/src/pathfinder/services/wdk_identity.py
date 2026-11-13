@@ -183,7 +183,7 @@ async def resolve_veupathdb_bearer(token: str) -> VEuPathDBBearer:
     if claims.is_guest:
         return VEuPathDBBearer(rejection="A guest VEuPathDB token cannot sign in")
 
-    user_id = await resolve_veupathdb_user_id(token, settings.pathfinder_site)
+    user_id = await resolve_veupathdb_user_id(token, settings.strategist_site)
     if user_id is None:
         return VEuPathDBBearer(rejection="VEuPathDB session expired or invalid")
     return VEuPathDBBearer(user_id=user_id)

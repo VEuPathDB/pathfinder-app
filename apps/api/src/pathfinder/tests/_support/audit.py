@@ -30,7 +30,7 @@ from veupathdb_mcp.audit import (
 from pathfinder.persistence.models import AuditRunRecord, User
 from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.metrics import PathfinderObserver
+from pathfinder.platform.metrics import StrategistObserver
 from pathfinder.services.audit.progress import StageLane
 from pathfinder.services.audit.runs import RunOwner
 from pathfinder.services.audit.units import (
@@ -326,7 +326,7 @@ class RecordedLane:
 @contextmanager
 def observed_requests() -> Iterator[None]:
     previous = get_observer()
-    set_observer(PathfinderObserver())
+    set_observer(StrategistObserver())
     try:
         yield
     finally:

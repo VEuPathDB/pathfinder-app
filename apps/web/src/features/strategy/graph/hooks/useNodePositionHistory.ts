@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import type { Node } from "@xyflow/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 type NodeData = {
   step?: Step;

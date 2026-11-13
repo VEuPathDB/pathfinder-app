@@ -1,10 +1,10 @@
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
-import type { Fact } from "@pathfinder/shared/generated/types/Fact";
-import type { GeneEvidence } from "@pathfinder/shared/generated/types/GeneEvidence";
-import type { GeneTranscript } from "@pathfinder/shared/generated/types/GeneTranscript";
-import type { PhenotypeScreen } from "@pathfinder/shared/generated/types/PhenotypeScreen";
-import type { SeqEdit } from "@pathfinder/shared/generated/types/SeqEdit";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { EvidenceView } from "@strategist/shared/generated/types/EvidenceView";
+import type { Fact } from "@strategist/shared/generated/types/Fact";
+import type { GeneEvidence } from "@strategist/shared/generated/types/GeneEvidence";
+import type { GeneTranscript } from "@strategist/shared/generated/types/GeneTranscript";
+import type { PhenotypeScreen } from "@strategist/shared/generated/types/PhenotypeScreen";
+import type { SeqEdit } from "@strategist/shared/generated/types/SeqEdit";
 
 import { joinWords, plural } from "./format";
 import { ProteinFigure } from "./ProteinFigure";

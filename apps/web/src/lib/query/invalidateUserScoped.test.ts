@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
-import { listDismissedStrategiesQueryKey } from "@pathfinder/shared/generated/hooks/useListDismissedStrategies";
-import { listStrategiesQueryKey } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { listModelsQueryKey } from "@pathfinder/shared/generated/hooks/useListModels";
+import { getMyQuotaQueryKey } from "@strategist/shared/generated/hooks/useGetMyQuota";
+import { listDismissedStrategiesQueryKey } from "@strategist/shared/generated/hooks/useListDismissedStrategies";
+import { listStrategiesQueryKey } from "@strategist/shared/generated/hooks/useListStrategies";
+import { listModelsQueryKey } from "@strategist/shared/generated/hooks/useListModels";
 
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";

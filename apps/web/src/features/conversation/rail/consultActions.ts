@@ -1,7 +1,7 @@
 "use client";
 
-import type { UserQuestionAnswersPayload } from "@pathfinder/shared";
-import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
+import type { UserQuestionAnswersPayload } from "@strategist/shared";
+import type { UserQuestionAnswer } from "@strategist/shared/generated/types/UserQuestionAnswer";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
 
 import { recordProductEvent } from "@/lib/api/productEvents";

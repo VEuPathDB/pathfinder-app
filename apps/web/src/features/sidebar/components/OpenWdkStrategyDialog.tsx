@@ -10,11 +10,11 @@ import {
 } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { siteShortName, type SiteResponse } from "@pathfinder/shared";
-import { openStrategy } from "@pathfinder/shared/generated/hooks/useOpenStrategy";
-import { listAccountStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListAccountStrategies";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import type { WdkStrategyListItem } from "@pathfinder/shared/generated/types/WdkStrategyListItem";
+import { siteShortName, type SiteResponse } from "@strategist/shared";
+import { openStrategy } from "@strategist/shared/generated/hooks/useOpenStrategy";
+import { listAccountStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListAccountStrategies";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import type { WdkStrategyListItem } from "@strategist/shared/generated/types/WdkStrategyListItem";
 
 import { Button } from "@/components/ui/button";
 import {

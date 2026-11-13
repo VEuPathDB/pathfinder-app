@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { combineOpEnum, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type Step } from "@strategist/shared";
 import { useStrategyStore } from "@/state/strategy/store";
 import { CombineNode } from "./CombineNode";
 import type { StepNodeProps } from "./types";

@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
+import type { SystemConfigResponse } from "@strategist/shared/generated/types/SystemConfigResponse";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
 import { availableSiteId } from "../fixtures/available-site";

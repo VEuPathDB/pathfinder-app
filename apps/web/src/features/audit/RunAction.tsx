@@ -3,9 +3,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { listAuditFindingsSuspenseQueryKey } from "@pathfinder/shared/generated/hooks/useListAuditFindingsSuspense";
-import { startAuditRun } from "@pathfinder/shared/generated/hooks/useStartAuditRun";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
+import { listAuditFindingsSuspenseQueryKey } from "@strategist/shared/generated/hooks/useListAuditFindingsSuspense";
+import { startAuditRun } from "@strategist/shared/generated/hooks/useStartAuditRun";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
 
 import { Button } from "@/components/ui/button";
 import { toUserMessage } from "@/lib/api/errors";

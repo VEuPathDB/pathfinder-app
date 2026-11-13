@@ -6,7 +6,7 @@ import type {
   ComparisonFact,
   ListedRecord,
   MembershipFact,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { RecordLink, Titled } from "./FactsRecords";
 

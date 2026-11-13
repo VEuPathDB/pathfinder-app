@@ -7,7 +7,7 @@
 import * as fs from "node:fs";
 
 import { type Download, type Locator, type Page, expect } from "@playwright/test";
-import type { GeneSet } from "@pathfinder/shared";
+import type { GeneSet } from "@strategist/shared";
 
 import type { ApiClient } from "./api-client";
 import { prompt } from "./arcs";

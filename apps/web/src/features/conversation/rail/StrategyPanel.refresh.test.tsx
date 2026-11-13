@@ -9,10 +9,10 @@ import {
   within,
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 
 const refreshStepCounts = vi.hoisted(() => vi.fn());
-vi.mock("@pathfinder/shared/generated/hooks/useRefreshStepCounts", () => ({
+vi.mock("@strategist/shared/generated/hooks/useRefreshStepCounts", () => ({
   refreshStepCounts: (...args: unknown[]) => refreshStepCounts(...args),
 }));
 

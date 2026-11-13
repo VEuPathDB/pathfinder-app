@@ -1,6 +1,6 @@
 "use client";
 
-import type { SampledGene } from "@pathfinder/shared";
+import type { SampledGene } from "@strategist/shared";
 import { motion } from "motion/react";
 import { useState } from "react";
 

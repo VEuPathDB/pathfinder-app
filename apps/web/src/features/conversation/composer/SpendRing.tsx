@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { threadUsage } from "@veupathdb/assistant-client";
 import { motion } from "motion/react";
-import { getMyQuotaQueryOptions } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
+import { getMyQuotaQueryOptions } from "@strategist/shared/generated/hooks/useGetMyQuota";
 
 import {
   Tooltip,

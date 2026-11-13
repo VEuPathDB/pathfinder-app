@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EvidenceCard, Strategy } from "@pathfinder/shared";
+import type { EvidenceCard, Strategy } from "@strategist/shared";
 
 import { phaseLabel } from "@/lib/models/phaseRoles";
 

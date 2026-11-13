@@ -1,4 +1,4 @@
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 
 /**
  * Whether the api reports this site's catalog as not loaded. A site the list

@@ -1,7 +1,7 @@
-import type { ConfirmationEvidence } from "@pathfinder/shared/generated/types/ConfirmationEvidence";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { GeneEvidence } from "@pathfinder/shared/generated/types/GeneEvidence";
-import type { GeneTranscript } from "@pathfinder/shared/generated/types/GeneTranscript";
+import type { ConfirmationEvidence } from "@strategist/shared/generated/types/ConfirmationEvidence";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { GeneEvidence } from "@strategist/shared/generated/types/GeneEvidence";
+import type { GeneTranscript } from "@strategist/shared/generated/types/GeneTranscript";
 
 export type ProteinMarkKind = "missing" | "extra" | "stop" | "peptide" | "structure";
 

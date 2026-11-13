@@ -35,7 +35,7 @@ describe("NewReleaseBanner", () => {
   });
 
   it("offers a reload when the server runs a newer build", async () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "3f9a1c0be2d4");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "3f9a1c0be2d4");
     const requested: string[] = [];
     vi.stubGlobal("fetch", serving("77b0e5a91c3f", requested));
 
@@ -49,7 +49,7 @@ describe("NewReleaseBanner", () => {
   });
 
   it("shows nothing while the tab runs the served build", async () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "3f9a1c0be2d4");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "3f9a1c0be2d4");
     const requested: string[] = [];
     vi.stubGlobal("fetch", serving("3f9a1c0be2d4", requested));
 
@@ -62,7 +62,7 @@ describe("NewReleaseBanner", () => {
   });
 
   it("asks nothing in a build that names no build id", async () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "");
     const requested: string[] = [];
     vi.stubGlobal("fetch", serving("77b0e5a91c3f", requested));
 

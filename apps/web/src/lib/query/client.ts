@@ -4,7 +4,7 @@ import { siteUnavailableRefusal, wdkAuthRefusal } from "@/lib/api/errors";
 import { APIError } from "@/lib/api/http";
 import { AppError } from "@/lib/errors/AppError";
 import { QUERY_STALE_TIME_MS } from "@/lib/query/staleTime";
-import { listModelsQueryKey } from "@pathfinder/shared/generated/hooks/useListModels";
+import { listModelsQueryKey } from "@strategist/shared/generated/hooks/useListModels";
 
 /** What a query tells the global error handler about its own error. */
 type AppQueryMeta = {

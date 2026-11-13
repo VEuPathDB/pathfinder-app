@@ -127,7 +127,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     default_tier: TierName = "default"
 
     # VEuPathDB
-    pathfinder_site: str = "veupathdb"
+    strategist_site: str = "veupathdb"
     wdk_dev_email: str = Field(default="", repr=False)
     wdk_dev_password: SecretStr = SecretStr("")
     # The client's default names no product. Every helper strategy already in a
@@ -183,7 +183,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         ),
     )
     # Application identities, as "app_id:secret[,app_id:secret...]".
-    pathfinder_service_tokens: str = Field(default="", repr=False)
+    strategist_service_tokens: str = Field(default="", repr=False)
 
     # The two MCP endpoints this deployment's assistants call. An empty URL
     # admits nobody.
@@ -192,7 +192,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     research_mcp_service_tokens: str = Field(default="", repr=False)
 
     # Conversation provider. "mock" gives deterministic offline runs.
-    pathfinder_chat_provider: str = ""
+    strategist_chat_provider: str = ""
 
     lead_turn_token_limit: int = Field(
         default=600_000,
@@ -259,7 +259,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     max_request_body_bytes: int = Field(default=64 * 1024 * 1024, gt=0)
 
     # Default monthly usage quota in USD. The `users` row can override it.
-    pathfinder_user_monthly_cost_limit_usd: float = 20.0
+    strategist_user_monthly_cost_limit_usd: float = 20.0
 
     @computed
     def is_development(self) -> bool:
@@ -291,7 +291,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     @property
     def mock_provider(self) -> bool:
-        return self.pathfinder_chat_provider.strip().lower() == "mock"
+        return self.strategist_chat_provider.strip().lower() == "mock"
 
     @property
     def deployment_providers(self) -> frozenset[ModelProvider]:
@@ -350,27 +350,27 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             raise ValueError(msg)
 
     def _validate_chat_provider(self) -> None:
-        provider = self.pathfinder_chat_provider.strip().lower()
+        provider = self.strategist_chat_provider.strip().lower()
         if not provider:
             msg = (
-                "PATHFINDER_CHAT_PROVIDER must be set explicitly to "
+                "STRATEGIST_CHAT_PROVIDER must be set explicitly to "
                 "'default' or 'mock'."
             )
             raise ValueError(msg)
         if provider not in _ALLOWED_CHAT_PROVIDERS:
             allowed = ", ".join(sorted(_ALLOWED_CHAT_PROVIDERS))
-            msg = f"PATHFINDER_CHAT_PROVIDER must be one of: {allowed}."
+            msg = f"STRATEGIST_CHAT_PROVIDER must be one of: {allowed}."
             raise ValueError(msg)
-        self.pathfinder_chat_provider = provider
+        self.strategist_chat_provider = provider
 
         if provider == "mock" and self.api_env != "test":
-            msg = "PATHFINDER_CHAT_PROVIDER=mock is only allowed when API_ENV=test."
+            msg = "STRATEGIST_CHAT_PROVIDER=mock is only allowed when API_ENV=test."
             raise ValueError(msg)
 
     @cached_property
     def service_tokens(self) -> ServiceTokenRegistry:
         """The application identities, parsed once per settings instance."""
-        return ServiceTokenRegistry.parse(self.pathfinder_service_tokens)
+        return ServiceTokenRegistry.parse(self.strategist_service_tokens)
 
     @cached_property
     def research_mcp_tokens(self) -> ServiceTokenRegistry:
@@ -399,8 +399,8 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             msg = "VEUPATHDB_SITES_CONFIG must name the sites file this process serves."
             raise ValueError(msg)
         sites = load_sites_config(self.veupathdb_sites_config).sites
-        if self.pathfinder_site not in sites:
-            msg = f"PATHFINDER_SITE={self.pathfinder_site} is not in the sites file."
+        if self.strategist_site not in sites:
+            msg = f"STRATEGIST_SITE={self.strategist_site} is not in the sites file."
             raise ValueError(msg)
         return self
 

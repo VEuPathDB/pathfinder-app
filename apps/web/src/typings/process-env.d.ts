@@ -1,5 +1,5 @@
 declare namespace NodeJS {
   interface ProcessEnv {
-    readonly PATHFINDER_WEB_BUILD?: string;
+    readonly STRATEGIST_WEB_BUILD?: string;
   }
 }

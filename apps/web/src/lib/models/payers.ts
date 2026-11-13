@@ -1,5 +1,5 @@
-import type { ModelCatalogEntry } from "@pathfinder/shared";
-import type { PaidBy } from "@pathfinder/shared/generated/types/PaidBy";
+import type { ModelCatalogEntry } from "@strategist/shared";
+import type { PaidBy } from "@strategist/shared/generated/types/PaidBy";
 
 /**
  * Who pays for each provider, as `GET /api/v1/me/provider-keys` reports it.

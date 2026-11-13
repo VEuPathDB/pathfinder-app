@@ -4,7 +4,7 @@ import type {
   ControlTestResults,
   ScoredComparison,
   VariantComparison,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { EDA_BOXPLOT_FIXTURE, EDA_CONTINGENCY_FIXTURE } from "./edaPartFixtures";
 import { tableNumberFor, tablePartFor } from "./tableNumbers";

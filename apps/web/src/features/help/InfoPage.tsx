@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { MARK_LEFT_INSET } from "@/lib/brand";
-import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
+import { StrategistLogo } from "@/lib/components/StrategistLogo";
 
 const LOGO_SIZE = 168;
 
@@ -27,7 +27,7 @@ export function InfoPage({
           Back to Strategist
         </Link>
         <div className="mt-8" style={{ marginLeft: -LOGO_SIZE * MARK_LEFT_INSET }}>
-          <PathFinderLogo size={LOGO_SIZE} label="VEuPathDB Strategist" />
+          <StrategistLogo size={LOGO_SIZE} label="VEuPathDB Strategist" />
         </div>
         <h1 className="mt-6 text-3xl font-semibold tracking-tight">{title}</h1>
         {lead}

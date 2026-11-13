@@ -11,28 +11,31 @@ import type { StateCreator } from "zustand";
 import type {} from "@redux-devtools/extension";
 
 const PERSIST_STORAGE_EPOCH = "20260625";
-const LOCAL_BROWSER_RESET_MARKER = "pf-local-reset-20260625";
+const OLD_NAME = "pathfinder";
+const NEW_NAME = "strategist";
+const CURRENT_KEY = new RegExp(
+  `^${OLD_NAME}(-.+-${PERSIST_STORAGE_EPOCH}|\\.editor\\.draft\\..+)$`,
+);
 
-function clearOldPathfinderLocalStorage(): void {
+function moveStorageToTheNewName(): void {
   if (typeof window === "undefined") return;
   try {
-    if (window.localStorage.getItem(LOCAL_BROWSER_RESET_MARKER) === "1") return;
-    const staleKeys: string[] = [];
-    for (let i = 0; i < window.localStorage.length; i += 1) {
-      const key = window.localStorage.key(i);
-      if (
-        key != null &&
-        (key.startsWith("pathfinder-") || key.startsWith("pathfinder:"))
-      ) {
-        staleKeys.push(key);
+    const store = window.localStorage;
+    const oldKeys: string[] = [];
+    for (let i = 0; i < store.length; i += 1) {
+      const key = store.key(i);
+      if (key?.startsWith(OLD_NAME) === true) oldKeys.push(key);
+    }
+    for (const key of oldKeys) {
+      const value = store.getItem(key);
+      const renamed = NEW_NAME + key.slice(OLD_NAME.length);
+      if (value !== null && CURRENT_KEY.test(key) && store.getItem(renamed) === null) {
+        store.setItem(renamed, value);
       }
+      store.removeItem(key);
     }
-    for (const key of staleKeys) {
-      window.localStorage.removeItem(key);
-    }
-    window.localStorage.setItem(LOCAL_BROWSER_RESET_MARKER, "1");
   } catch {
-    // Storage may be unavailable in SSR or hardened browser contexts.
+    return;
   }
 }
 
@@ -68,7 +71,7 @@ export function createPersistedStore<T>(
   },
 ) {
   const storageName = `${storage.name}-${PERSIST_STORAGE_EPOCH}`;
-  clearOldPathfinderLocalStorage();
+  moveStorageToTheNewName();
   return create<T>()(
     subscribeWithSelector(
       devtools(persist(initializer, { ...storage, name: storageName }), { name }),

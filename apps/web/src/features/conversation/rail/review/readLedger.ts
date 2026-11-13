@@ -1,13 +1,13 @@
-import type { BuildSection } from "@pathfinder/shared/generated/types/BuildSection";
-import type { ConstraintSection } from "@pathfinder/shared/generated/types/ConstraintSection";
-import type { FrameSection } from "@pathfinder/shared/generated/types/FrameSection";
-import type { UserIntent } from "@pathfinder/shared/generated/types/UserIntent";
-import type { VerificationSection } from "@pathfinder/shared/generated/types/VerificationSection";
-import { buildSectionSchema } from "@pathfinder/shared/generated/zod/buildSectionSchema";
-import { constraintSectionSchema } from "@pathfinder/shared/generated/zod/constraintSectionSchema";
-import { frameSectionSchema } from "@pathfinder/shared/generated/zod/frameSectionSchema";
-import { userIntentSchema } from "@pathfinder/shared/generated/zod/userIntentSchema";
-import { verificationSectionSchema } from "@pathfinder/shared/generated/zod/verificationSectionSchema";
+import type { BuildSection } from "@strategist/shared/generated/types/BuildSection";
+import type { ConstraintSection } from "@strategist/shared/generated/types/ConstraintSection";
+import type { FrameSection } from "@strategist/shared/generated/types/FrameSection";
+import type { UserIntent } from "@strategist/shared/generated/types/UserIntent";
+import type { VerificationSection } from "@strategist/shared/generated/types/VerificationSection";
+import { buildSectionSchema } from "@strategist/shared/generated/zod/buildSectionSchema";
+import { constraintSectionSchema } from "@strategist/shared/generated/zod/constraintSectionSchema";
+import { frameSectionSchema } from "@strategist/shared/generated/zod/frameSectionSchema";
+import { userIntentSchema } from "@strategist/shared/generated/zod/userIntentSchema";
+import { verificationSectionSchema } from "@strategist/shared/generated/zod/verificationSectionSchema";
 import type { UIMessage } from "ai";
 import { z } from "zod";
 

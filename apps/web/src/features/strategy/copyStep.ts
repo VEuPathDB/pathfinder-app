@@ -1,4 +1,4 @@
-import type { StepKind } from "@pathfinder/shared";
+import type { StepKind } from "@strategist/shared";
 
 /**
  * A strategy is one tree, so a copy of a step joins the tree through an

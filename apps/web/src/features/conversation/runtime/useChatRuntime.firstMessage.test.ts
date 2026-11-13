@@ -6,7 +6,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
 
 import { createTestQueryClient } from "@/lib/query/testing";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";

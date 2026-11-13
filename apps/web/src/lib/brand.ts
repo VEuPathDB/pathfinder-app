@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { withBasePath } from "@/lib/basePath";
 
 export const BRAND = {
-  markLight: "/brand/pathfinder-mark-light.svg",
-  markDark: "/brand/pathfinder-mark-dark.svg",
+  markLight: "/brand/strategist-mark-light.svg",
+  markDark: "/brand/strategist-mark-dark.svg",
   favicon: "/brand/favicon.svg",
   faviconIco: "/brand/favicon.ico",
   appleTouchIcon: "/brand/apple-touch-icon.png",

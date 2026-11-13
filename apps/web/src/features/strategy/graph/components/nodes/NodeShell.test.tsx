@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";
 

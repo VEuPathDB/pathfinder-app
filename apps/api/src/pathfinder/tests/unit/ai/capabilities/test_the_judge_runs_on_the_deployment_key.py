@@ -24,7 +24,7 @@ _DEPLOYMENT_KEY = "sk-deployment-sentinel-9876543210"
 def _cloud(monkeypatch: pytest.MonkeyPatch) -> None:
     allow_requests_to_the_wire(monkeypatch)
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", _DEPLOYMENT_KEY)
 
 

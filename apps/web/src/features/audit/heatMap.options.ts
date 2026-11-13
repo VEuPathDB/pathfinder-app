@@ -1,8 +1,8 @@
 import type { EChartsOption, TooltipComponentFormatterCallbackParams } from "echarts";
 import { format } from "echarts/core";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { GenomeRate } from "@pathfinder/shared/generated/types/GenomeRate";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { GenomeRate } from "@strategist/shared/generated/types/GenomeRate";
 
 import type { ChartTokens } from "@/lib/components/charts/chartTheme";
 import { UNRESOLVED_SERIES_COLOR } from "@/lib/components/charts/unresolved";

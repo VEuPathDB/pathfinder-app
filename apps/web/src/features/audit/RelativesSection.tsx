@@ -2,10 +2,10 @@
 
 import { useId } from "react";
 import type { ReactNode } from "react";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
-import type { Fact } from "@pathfinder/shared/generated/types/Fact";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { EvidenceView } from "@strategist/shared/generated/types/EvidenceView";
+import type { Fact } from "@strategist/shared/generated/types/Fact";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
 
 import { EvidenceNote } from "./EvidenceNote";
 import { FactList } from "./FactList";

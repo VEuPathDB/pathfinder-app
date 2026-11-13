@@ -8,7 +8,7 @@
  */
 
 import type { APIRequestContext } from "@playwright/test";
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 
 import { test, expect } from "../../fixtures/test";
 import {

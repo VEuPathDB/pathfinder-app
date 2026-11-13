@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: The identifiers take the Strategist name
-description: The screen says VEuPathDB Strategist; the package, stored ids, env variables, wire names, storage keys, URL path and deployment names still say pathfinder. Move each with what reads it, so no saved conversation, worker, client or setting breaks.
+description: The screen and every name this repository alone reads say Strategist; the package, stored ids, two quadlet-set variables, the User-Agent, the URL path and the deployment names still say pathfinder. Each moves with what reads it, so no saved conversation, worker, client or setting breaks.
 tags: [rename, release, deploy, persistence, frontend]
 generated: { by: claude-code/opus-5.5, at: 2026-11-13T00:00:00Z }
 status: proposed
@@ -9,43 +9,40 @@ status: proposed
 
 # The identifiers take the Strategist name
 
-The [naming decision](../decisions/the-product-is-named-veupathdb-strategist.md) changed every
-string a researcher reads. Each identifier below breaks something if it changes alone.
+The [naming decision](../decisions/the-product-is-named-veupathdb-strategist.md) lists what
+already moved. What is left, in order:
 
-## In this repository, with a migration
+## 1. The estate starts the worker by its command
 
-1. **The Python package** `pathfinder` to `strategist`, with every import, `pyproject.toml`
-   section (import-linter, vulture, coverage, ruff), the uvicorn command, alembic and the
-   scripts. Saved checkpoints hold module paths, so a migration rewrites them in
-   `checkpoints`, `checkpoint_blobs` and `checkpoint_writes`, tested on a copy of a dev
-   database dump before it runs anywhere.
-2. **`assistant_id` and `application_id`** to `strategist`, with a data migration of every
-   table that holds them.
-3. **`@pathfinder/shared`** and the TypeScript names (`PathFinderLogo`, `PathFinderMark`,
-   `PathfinderObserver`), and the brand file names.
-4. **Browser storage keys**: read the old key once and write the new one, so no setting
-   resets.
-5. **`__pathfinder_internal__:`**: cleanup matches both prefixes until no account holds the
-   old one.
-6. **`X-PathFinder-Service-Token`**: accept both headers for one release, tell each service
-   client, then drop the old one.
-7. **The README screenshot** (`assets/pathfinder.png`) shows an old screen with the old name;
-   take a new one from the running app.
+A pull request to `VEuPathDB/webservices-quadlets` (merged by the systems team) sets
+`Exec=bin/strategist-worker` in `pathfinder-worker@.container`, adds
+`STRATEGIST_WDK_MCP_URL` and `STRATEGIST_RESEARCH_MCP_URL` beside the `PATHFINDER_` pair in
+`00-pathfinder_defaults.env` and the worker's `Environment=` lines, and renames the commented
+service-token target to `STRATEGIST_SERVICE_TOKENS`. It merges only after QA runs 0.9.1a2 or
+later, the first image that holds `bin/strategist-worker`.
 
-## With the estate, on the same day
+## 2. The package and the stored ids (after step 1)
 
-8. **The worker command** in `webservices-quadlets` (`python -m pathfinder.jobs.worker`) and
-   the `PATHFINDER_*` variables the env files set. A pull request there, merged by the
-   systems team, lands with the release that renames the package. Dev runs `:latest` and QA a
-   pinned tag, so the dev and QA quadlets name the module through a per-stage variable for
-   the release between.
-9. **The URL path** `/pathfinder` to `/strategist`: `BASE_PATH` here, the route and
-   controller in web-monorepo (`PathfinderController`, `pathfinderUrl`), and a
-   `set_strategist_proxy` in the sites' `Containers.pm`, which the systems team owns.
-10. **The User-Agent**: tell VEuPathDB operations before `PathFinder/` becomes `Strategist/`.
+- **The Python package** `pathfinder` to `strategist`: every import, the `pyproject.toml`
+  sections (import-linter, vulture, coverage, ruff), the uvicorn command, alembic, the scripts
+  and `bin/strategist-worker`. Saved checkpoints hold module paths, so a migration rewrites
+  them in `checkpoints`, `checkpoint_blobs` and `checkpoint_writes`, tested on a copy of a dev
+  database dump first.
+- **`assistant_id`** to `strategist`, with a data migration of every table that holds it.
+- **The two MCP URL settings** read `STRATEGIST_*`; a later quadlet change drops the
+  `PATHFINDER_` pair.
+- **The README screenshot** (`assets/pathfinder.png`) shows an old screen with the old name;
+  take a new one from the running app.
 
-## Owned by others, optional
+## 3. With other teams
 
-11. Image names (`veupathdb/pathfinder-api`, `pathfinder-web`), tagger keys, the Jenkins
-    job, the repository name, the database name and the `pathfinder_*` metrics. No researcher
-    sees them; rename only with their owners.
+- **`application_id`**: the systems team rewrites the `pathfinder:` entries of the
+  `*_MCP_SERVICE_TOKENS` secrets as `strategist:`, and the app reads the new key the same day.
+- **The URL path** `/pathfinder` to `/strategist`: `BASE_PATH` here, the route, controller and
+  location message type in web-monorepo, and a `set_strategist_proxy` in the sites'
+  `Containers.pm`, owned by the systems team. The old path redirects for one release.
+- **The User-Agent** becomes `Strategist/` after VEuPathDB operations is told.
+- **Metric and trace names** (`pathfinder_*`, `pathfinder-api`) change after the owners of any
+  dashboard or alert are told.
+- **Image names, tagger keys, the Jenkins job, the repository, the database and the env-file
+  names**: optional; no researcher sees them.

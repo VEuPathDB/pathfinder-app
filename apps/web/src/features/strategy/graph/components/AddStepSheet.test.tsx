@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { RecordType, Search } from "@pathfinder/shared";
+import type { RecordType, Search } from "@strategist/shared";
 import type * as SitesApi from "@/lib/api/sites";
 import { createTestWrapper } from "@/lib/query/testing";
 

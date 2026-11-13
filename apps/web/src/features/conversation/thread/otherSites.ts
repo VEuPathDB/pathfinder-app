@@ -1,4 +1,4 @@
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 import { z } from "zod";
 
 import { siteAppUrl } from "@/lib/sites/siteAppUrl";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 
 import { CompactDisconnectedSection } from "@/features/strategy/graph/components/CompactDisconnectedSection";
 import { CompactTreeRow } from "@/features/strategy/graph/components/CompactTree";

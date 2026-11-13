@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuiState } from "@assistant-ui/react";
-import { turnRoutePayloadSchema } from "@pathfinder/shared/generated/zod/turnRoutePayloadSchema";
+import { turnRoutePayloadSchema } from "@strategist/shared/generated/zod/turnRoutePayloadSchema";
 import type { ReactElement } from "react";
 
 import type { StructuralPart } from "../parts";

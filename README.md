@@ -1,9 +1,9 @@
 <div align="center">
   <h1>
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/brand/pathfinder-mark-dark.svg" />
+      <source media="(prefers-color-scheme: dark)" srcset="assets/brand/strategist-mark-dark.svg" />
       <img
-        src="assets/brand/pathfinder-mark-light.svg"
+        src="assets/brand/strategist-mark-light.svg"
         alt="VEuPathDB Strategist"
         height="32"
         style="vertical-align: middle; margin-right: 8px;"
@@ -51,7 +51,7 @@ This repo is organized as:
   - Chat UI with strategy graph visualization, step editing, and result panes.
   - An evidence card under each check: every control id the tests filed, each step's count on the site, and the step link where the site runs its own analyses.
   - Proxies API routes via Next rewrites (see `apps/web/next.config.ts`).
-- **`packages/shared-ts/`**: shared TypeScript types (`@pathfinder/shared`) plus the Kubb-generated `src/generated/{types,zod,hooks}`.
+- **`packages/shared-ts/`**: shared TypeScript types (`@strategist/shared`) plus the Kubb-generated `src/generated/{types,zod,hooks}`.
   - The web app imports types via TS path mapping to `packages/shared-ts/src` (see `apps/web/tsconfig.json`).
 - **`packages/spec/`**: OpenAPI spec (`packages/spec/openapi.json` and `.yaml`)
 - **`assets/brand/`**: the Strategist logo in every form (marks, favicons, app icons, a link preview), with its rules and a guide page. The web app and the API documentation take their logo from here.
@@ -149,7 +149,7 @@ The base profile is intentionally fail-closed. Strategist will not boot until yo
 - `API_SECRET_KEY`
 - `DATABASE_URL`
 - `NEXT_PUBLIC_API_URL`
-- `PATHFINDER_CHAT_PROVIDER=default`
+- `STRATEGIST_CHAT_PROVIDER=default`
 - a real model backend (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OLLAMA_BASE_URL`)
 
 Those two files are the only env templates. A direct app run copies one of
@@ -236,7 +236,7 @@ From repo root:
 ```bash
 cat > .env.test <<'EOF'
 API_ENV=test
-PATHFINDER_CHAT_PROVIDER=mock
+STRATEGIST_CHAT_PROVIDER=mock
 NEXT_PUBLIC_API_URL=http://api:8000
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
 DEFAULT_PROVIDER=anthropic
@@ -250,7 +250,7 @@ This profile builds `api`, `web` and `worker` only. The `wdk-mcp` image builds
 from [ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp) at the release its
 compose build context names.
 
-This is the only Docker profile that enables `PATHFINDER_CHAT_PROVIDER=mock`.
+This is the only Docker profile that enables `STRATEGIST_CHAT_PROVIDER=mock`.
 The e2e overlay builds the web container's `runner` target, so port 3000 serves
 the production build here as it does in CI: no development overlay over the
 controls a spec clicks, and no per-route compile to grow the server's heap.

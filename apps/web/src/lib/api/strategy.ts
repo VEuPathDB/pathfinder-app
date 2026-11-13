@@ -7,9 +7,9 @@ import {
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
-import type { ConversationResponse, Strategy } from "@pathfinder/shared";
-import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
-import { getStrategy } from "@pathfinder/shared/generated/hooks/useGetStrategy";
+import type { ConversationResponse, Strategy } from "@strategist/shared";
+import { getStepRecordsQueryKey } from "@strategist/shared/generated/hooks/useGetStepRecords";
+import { getStrategy } from "@strategist/shared/generated/hooks/useGetStrategy";
 
 import { APIError } from "./http";
 

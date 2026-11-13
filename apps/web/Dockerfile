@@ -53,7 +53,7 @@ ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # The build id is a hash of the web's sources, so an open tab can tell a new deployment.
-RUN PATHFINDER_WEB_BUILD="$(find src public package.json next.config.ts ../../packages/shared-ts/src ../../packages/spec ../../yarn.lock -type f | sort | xargs sha256sum | sha256sum | cut -c1-12)" yarn build
+RUN STRATEGIST_WEB_BUILD="$(find src public package.json next.config.ts ../../packages/shared-ts/src ../../packages/spec ../../yarn.lock -type f | sort | xargs sha256sum | sha256sum | cut -c1-12)" yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner

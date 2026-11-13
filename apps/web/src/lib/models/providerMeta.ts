@@ -5,7 +5,7 @@
  * human-readable provider names.
  */
 
-import type { ModelProvider } from "@pathfinder/shared";
+import type { ModelProvider } from "@strategist/shared";
 
 export interface ParsedModel {
   provider: ModelProvider | null;

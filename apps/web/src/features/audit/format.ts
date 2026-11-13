@@ -1,9 +1,9 @@
-import type { AuditRunSummary } from "@pathfinder/shared/generated/types/AuditRunSummary";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { GenomeView } from "@pathfinder/shared/generated/types/GenomeView";
-import type { RateBounds } from "@pathfinder/shared/generated/types/RateBounds";
-import type { Unresolved } from "@pathfinder/shared/generated/types/Unresolved";
-import type { UnresolvedWords } from "@pathfinder/shared/generated/types/UnresolvedWords";
+import type { AuditRunSummary } from "@strategist/shared/generated/types/AuditRunSummary";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { GenomeView } from "@strategist/shared/generated/types/GenomeView";
+import type { RateBounds } from "@strategist/shared/generated/types/RateBounds";
+import type { Unresolved } from "@strategist/shared/generated/types/Unresolved";
+import type { UnresolvedWords } from "@strategist/shared/generated/types/UnresolvedWords";
 
 const DAY = new Intl.DateTimeFormat("en-US", {
   year: "numeric",

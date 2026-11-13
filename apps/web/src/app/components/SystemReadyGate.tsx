@@ -3,8 +3,8 @@
 import { usePrefetchQuery, useQuery } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { useInterval } from "usehooks-ts";
-import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
-import { systemReadyQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemReady";
+import { listModelsQueryOptions } from "@strategist/shared/generated/hooks/useListModels";
+import { systemReadyQueryOptions } from "@strategist/shared/generated/hooks/useSystemReady";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { BusyWorkerBanner } from "./BusyWorkerBanner";

@@ -4,8 +4,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import type { SiteResponse } from "@pathfinder/shared";
-import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
+import type { SiteResponse } from "@strategist/shared";
+import { systemConfigQueryOptions } from "@strategist/shared/generated/hooks/useSystemConfig";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/audits" }));
 

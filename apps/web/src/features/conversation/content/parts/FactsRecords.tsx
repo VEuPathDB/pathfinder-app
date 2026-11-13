@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type { ListedFact, SourceFact } from "@pathfinder/shared";
+import type { ListedFact, SourceFact } from "@strategist/shared";
 
 import { ExhibitTable } from "@/features/conversation/thread/ExhibitTable";
 

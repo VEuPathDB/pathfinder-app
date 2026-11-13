@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Search, Step } from "@pathfinder/shared";
+import type { Search, Step } from "@strategist/shared";
 import { recordTypesOptions, searchesOptions } from "@/lib/api/sites";
 import {
   Sheet,

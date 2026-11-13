@@ -14,7 +14,7 @@ import {
   triStateColor,
 } from "./phyleticProfileLogic";
 import { PhyleticProfileParam } from "./PhyleticProfileParam";
-import type { WDKVocabTerm } from "@pathfinder/shared";
+import type { WDKVocabTerm } from "@strategist/shared";
 
 import type { ParamSpec } from "@/features/strategy/parameters/spec";
 import type { ParamForm } from "../hooks/useParamForm";

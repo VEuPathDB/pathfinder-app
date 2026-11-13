@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { StringParam } from "./StringParam";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import type { ParamWidgetProps } from "./types";
 import { WidgetTestForm, WidgetTestFormWithValidation } from "./testUtils";
 

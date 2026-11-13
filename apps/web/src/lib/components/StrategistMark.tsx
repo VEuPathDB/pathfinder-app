@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { healthCheckQueryOptions } from "@pathfinder/shared/generated/hooks/useHealthCheck";
+import { healthCheckQueryOptions } from "@strategist/shared/generated/hooks/useHealthCheck";
 
 import {
   Tooltip,
@@ -7,9 +7,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
+import { StrategistLogo } from "@/lib/components/StrategistLogo";
 
-export function PathFinderMark() {
+export function StrategistMark() {
   const { data } = useQuery(healthCheckQueryOptions());
   const name = data === undefined ? "Strategist" : `Strategist v${data.version}`;
   return (
@@ -22,7 +22,7 @@ export function PathFinderMark() {
             tabIndex={0}
             className="flex size-9 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <PathFinderLogo size={22} />
+            <StrategistLogo size={22} />
           </span>
         </TooltipTrigger>
         <TooltipContent side="left">{name}</TooltipContent>

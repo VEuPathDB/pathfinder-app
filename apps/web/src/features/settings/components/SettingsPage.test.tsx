@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState, type ReactElement } from "react";
-import { healthCheckQueryKey } from "@pathfinder/shared/generated/hooks/useHealthCheck";
+import { healthCheckQueryKey } from "@strategist/shared/generated/hooks/useHealthCheck";
 
 import { createTestWrapper } from "@/lib/query/testing";
 import type { SettingsTab } from "@/state/useSettingsModalStore";

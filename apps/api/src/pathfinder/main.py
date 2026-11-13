@@ -61,7 +61,7 @@ from pathfinder.platform.langfuse.client import shutdown_langfuse
 from pathfinder.platform.log_ids import accepted_request_id
 from pathfinder.platform.metrics import (
     HttpMetricsMiddleware,
-    PathfinderObserver,
+    StrategistObserver,
     serve_metrics,
 )
 from pathfinder.platform.migrations import init_db
@@ -237,7 +237,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     setup_observability(service_name="pathfinder-api", engine=get_engine())
     metrics_server = serve_metrics(settings.metrics_port, settings.metrics_addr)
-    set_observer(PathfinderObserver())
+    set_observer(StrategistObserver())
     _install_the_wdk_lines(settings)
 
     from assistant_core.platform.spawn import spawn  # noqa: PLC0415

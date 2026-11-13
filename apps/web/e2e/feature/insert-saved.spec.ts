@@ -5,8 +5,8 @@
  */
 
 import type { Page } from "@playwright/test";
-import type { ConversationResponse } from "@pathfinder/shared";
-import type { InsertSavedResponse } from "@pathfinder/shared/generated/types/InsertSavedResponse";
+import type { ConversationResponse } from "@strategist/shared";
+import type { InsertSavedResponse } from "@strategist/shared/generated/types/InsertSavedResponse";
 
 import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";

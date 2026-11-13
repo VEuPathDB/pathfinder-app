@@ -2,7 +2,7 @@
 
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
-import type { ParamSpec, Search } from "@pathfinder/shared";
+import type { ParamSpec, Search } from "@strategist/shared";
 import { getParamSpecs } from "@/lib/api/sites";
 import { normalizeRecordType } from "@/lib/utils/normalizeRecordType";
 import { buildContextValues } from "@/lib/utils/buildContextValues";

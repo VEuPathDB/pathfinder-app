@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 
 import { readWdkStrategyEntry } from "./wdkStrategyRef";
 

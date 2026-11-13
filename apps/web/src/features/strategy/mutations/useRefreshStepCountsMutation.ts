@@ -2,8 +2,8 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ConversationResponse } from "@pathfinder/shared";
-import { refreshStepCounts } from "@pathfinder/shared/generated/hooks/useRefreshStepCounts";
+import type { ConversationResponse } from "@strategist/shared";
+import { refreshStepCounts } from "@strategist/shared/generated/hooks/useRefreshStepCounts";
 
 import { toStrategy, writeStrategy } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";

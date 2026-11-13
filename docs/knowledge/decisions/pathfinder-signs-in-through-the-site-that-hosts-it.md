@@ -44,7 +44,7 @@ token for a few minutes. `resolve_principal` serves the request as that user
 (`veupathdb-cookie`) and refuses one with no registered website login (401).
 `GET /api/v1/veupathdb/auth/status` answers `signedIn` alone and writes no
 cookie. A bearer token carries its own identity, and the mock stack's
-`pathfinder-dev-login` cookie names a synthetic user only for a token the
+`strategist-dev-login` cookie names a synthetic user only for a token the
 mock-only `POST /api/v1/dev/login` minted.
 
 **Signing in and out is the website's.** Strategist has no password form, no
@@ -56,7 +56,7 @@ route when that route is mounted) and its `pageUrl` (its `/app/pathfinder`), and
 `apps/web/src/app/hooks/useSitePages.ts` takes the pages of the site whose
 `siteOrigin` is the page's origin, which the browser decides, because Apache proxies with `ProxyPreserveHost Off` and the server sees one Host
 for every website. On a host no site names, such as local development, the
-deployment's site applies: `GET /health/config` reports `PATHFINDER_SITE`
+deployment's site applies: `GET /health/config` reports `STRATEGIST_SITE`
 (default `veupathdb`; startup refuses a site the sites file does not list) and
 that site's `siteSignInUrl` and `sitePageUrl`. A signed-out Strategist shows one notice
 (`apps/web/src/app/components/SignedOutNotice.tsx`) whose link opens that page
@@ -67,7 +67,7 @@ the next Strategist request is refused and the notice returns.
 **One layout, inside the website's page.** The web app has no top bar and no
 embedded variant, since the website's header names the product. The rail
 (`apps/web/src/app/components/AppNavRail.tsx`) carries the sections, help and settings, and the Strategist mark sits at the bottom of
-the conversation's right rail (`apps/web/src/lib/components/PathFinderMark.tsx`). When the parent window has the same origin, a
+the conversation's right rail (`apps/web/src/lib/components/StrategistMark.tsx`). When the parent window has the same origin, a
 route change posts `{ type: "pathfinder:location", path }` to it
 (`apps/web/src/lib/frameBridge.ts`), so the website page keeps its address bar
 on the Strategist page. A Strategist page opened in a tab of its own on the

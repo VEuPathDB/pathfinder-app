@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, renderHook } from "@testing-library/react";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
 
 const pushMock = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({

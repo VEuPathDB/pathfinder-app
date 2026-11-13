@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 
-import type { PrivacySettings as PrivacySettingsValue } from "@pathfinder/shared";
+import type { PrivacySettings as PrivacySettingsValue } from "@strategist/shared";
 
 import {
   PRIVACY_QUERY_KEY,

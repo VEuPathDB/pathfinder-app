@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 
 import { resolveWidgetKind } from "./registry";
 

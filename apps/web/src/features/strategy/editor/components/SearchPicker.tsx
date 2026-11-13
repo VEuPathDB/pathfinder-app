@@ -1,6 +1,6 @@
 "use client";
 
-import type { RecordType, Search } from "@pathfinder/shared";
+import type { RecordType, Search } from "@strategist/shared";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { searchGroupName } from "@/features/strategy/services/searchGroups";
 

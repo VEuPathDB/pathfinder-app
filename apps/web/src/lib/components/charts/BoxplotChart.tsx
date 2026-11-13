@@ -2,7 +2,7 @@
 
 import type { EChartsOption, TooltipComponentFormatterCallbackParams } from "echarts";
 import { format } from "echarts/core";
-import type { EdaBoxplotBox } from "@pathfinder/shared/generated/types/EdaBoxplotBox";
+import type { EdaBoxplotBox } from "@strategist/shared/generated/types/EdaBoxplotBox";
 
 import { EChart } from "./EChart";
 import { readChartTokens } from "./chartTheme";

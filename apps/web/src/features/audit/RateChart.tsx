@@ -1,7 +1,7 @@
 "use client";
 
-import type { CheckWords } from "@pathfinder/shared/generated/types/CheckWords";
-import type { GenomeRate } from "@pathfinder/shared/generated/types/GenomeRate";
+import type { CheckWords } from "@strategist/shared/generated/types/CheckWords";
+import type { GenomeRate } from "@strategist/shared/generated/types/GenomeRate";
 
 import { EChart } from "@/lib/components/charts/EChart";
 import { readChartTokens } from "@/lib/components/charts/chartTheme";

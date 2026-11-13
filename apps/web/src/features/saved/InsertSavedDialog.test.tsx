@@ -6,9 +6,9 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import { getStepRecordsQueryKey } from "@strategist/shared/generated/hooks/useGetStepRecords";
 
 import { InsertSavedDialog } from "./InsertSavedDialog";
 import { client } from "@/lib/api/client";

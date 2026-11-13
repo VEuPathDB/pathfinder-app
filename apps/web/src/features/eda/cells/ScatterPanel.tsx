@@ -1,6 +1,6 @@
 "use client";
 
-import type { EdaViz } from "@pathfinder/shared";
+import type { EdaViz } from "@strategist/shared";
 
 import { ScatterChart } from "@/lib/components/charts/ScatterChart";
 import type { EdaScatterSeries } from "@/lib/components/charts/types";

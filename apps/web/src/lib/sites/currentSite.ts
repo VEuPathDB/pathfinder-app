@@ -1,4 +1,4 @@
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 
 import { hostingSite } from "./hostingSite";
 

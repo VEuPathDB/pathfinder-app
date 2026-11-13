@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { strategyQueryOptions } from "@/lib/api/strategy";
-import type { ThreadMode } from "@pathfinder/shared/generated/types/ThreadMode";
+import type { ThreadMode } from "@strategist/shared/generated/types/ThreadMode";
 import { useConversationDetail } from "@/state/useConversationExists";
 import { useThreadModeStore } from "@/state/useThreadModeStore";
 

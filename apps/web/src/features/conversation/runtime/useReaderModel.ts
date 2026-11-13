@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { ModelCatalogEntry } from "@pathfinder/shared";
-import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
+import type { ModelCatalogEntry } from "@strategist/shared";
+import { listModelsQueryOptions } from "@strategist/shared/generated/hooks/useListModels";
 
 import { readerModel } from "@/lib/models/attachments";
 import { useSettingsStore } from "@/state/useSettingsStore";

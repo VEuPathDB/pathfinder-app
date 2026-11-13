@@ -1,4 +1,4 @@
-import type { Fact } from "@pathfinder/shared/generated/types/Fact";
+import type { Fact } from "@strategist/shared/generated/types/Fact";
 
 export function FactList({ facts }: { facts: readonly Fact[] }) {
   return (

@@ -14,7 +14,7 @@ os.environ.setdefault(
 )
 os.environ.setdefault("OPENAI_API_KEY", "docs-build-placeholder")
 os.environ.setdefault("API_SECRET_KEY", "docs-build-secret-key-0000000000000000")
-os.environ.setdefault("PATHFINDER_CHAT_PROVIDER", "default")
+os.environ.setdefault("STRATEGIST_CHAT_PROVIDER", "default")
 
 # -- Project information -----------------------------------------------------
 
@@ -95,8 +95,8 @@ html_theme_options = {
         "color-announcement-background": "#1e3a5f",
         "color-announcement-text": "#e2e8f0",
     },
-    "light_logo": "pathfinder-mark-light.svg",
-    "dark_logo": "pathfinder-mark-dark.svg",
+    "light_logo": "strategist-mark-light.svg",
+    "dark_logo": "strategist-mark-dark.svg",
     "sidebar_hide_name": False,
     "navigation_with_keys": True,
     "top_of_page_buttons": ["view", "edit"],

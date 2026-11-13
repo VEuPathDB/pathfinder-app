@@ -1,6 +1,6 @@
 import type { APIRequestContext, APIResponse, BrowserContext } from "@playwright/test";
 import { request } from "@playwright/test";
-import { DATA_STATEMENT_VERSION } from "@pathfinder/shared";
+import { DATA_STATEMENT_VERSION } from "@strategist/shared";
 
 /** The header the api's CSRF check requires on every cookie-authenticated write. */
 export const CSRF_HEADERS = { "X-Requested-With": "XMLHttpRequest" } as const;

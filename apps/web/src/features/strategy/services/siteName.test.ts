@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 describe("siteShortName", () => {
   // A link reads "Open in PlasmoDB". The long form carries the organism in

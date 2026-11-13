@@ -1,9 +1,9 @@
-import { auditRunViewSchema } from "@pathfinder/shared/generated/zod/auditRunViewSchema";
-import { auditWordsSchema } from "@pathfinder/shared/generated/zod/auditWordsSchema";
-import { findingDetailSchema } from "@pathfinder/shared/generated/zod/findingDetailSchema";
-import { findingPageSchema } from "@pathfinder/shared/generated/zod/findingPageSchema";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { FindingViewCheckEnumKey } from "@pathfinder/shared/generated/types/FindingView";
+import { auditRunViewSchema } from "@strategist/shared/generated/zod/auditRunViewSchema";
+import { auditWordsSchema } from "@strategist/shared/generated/zod/auditWordsSchema";
+import { findingDetailSchema } from "@strategist/shared/generated/zod/findingDetailSchema";
+import { findingPageSchema } from "@strategist/shared/generated/zod/findingPageSchema";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { FindingViewCheckEnumKey } from "@strategist/shared/generated/types/FindingView";
 
 import served from "../../../../../../packages/spec/audit_words.json";
 import recorded from "./sampleRun.json";

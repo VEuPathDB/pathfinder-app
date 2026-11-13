@@ -6,7 +6,7 @@
 
 import type { Locator, Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
-import type { ModelListResponse } from "@pathfinder/shared/generated/types/ModelListResponse";
+import type { ModelListResponse } from "@strategist/shared/generated/types/ModelListResponse";
 
 import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
 import { attachLabel, readerModel } from "@/lib/models/attachments";

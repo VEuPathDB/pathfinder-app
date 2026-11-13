@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
+import type { TierPreset } from "@strategist/shared/generated/types/TierPreset";
 import { picksFilledFromTier } from "./tierFill";
 import { DEFAULT_MODEL, OPENAI_FLAGSHIP, OPENAI_SMALL } from "./__fixtures__/models";
 

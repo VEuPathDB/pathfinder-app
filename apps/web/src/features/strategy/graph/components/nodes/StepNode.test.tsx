@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Node, NodeProps } from "@xyflow/react";
-import { combineOpEnum, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type Step } from "@strategist/shared";
 import { useStrategyStore } from "@/state/strategy/store";
 import { StepNode } from "./StepNode";
 import type { StepNodeData } from "./types";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import { extractVocabTree, type VocabOption } from "@/lib/utils/vocab";
 import { extractSpecVocabulary } from "./stepEditorUtils";
 import { resolveWidgetKind } from "../widgets/registry";

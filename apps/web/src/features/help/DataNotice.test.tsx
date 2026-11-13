@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-import { DATA_STATEMENT_VERSION, type PrivacySettings } from "@pathfinder/shared";
+import { DATA_STATEMENT_VERSION, type PrivacySettings } from "@strategist/shared";
 
 vi.mock("@/lib/api/privacy", () => ({
   PRIVACY_QUERY_KEY: ["me", "privacy"],

@@ -135,7 +135,7 @@ async def test_a_model_only_a_researchers_key_runs_is_served_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "anthropic_api_key", "sk-ant-deployment")
     _serve(
         monkeypatch,

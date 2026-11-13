@@ -79,7 +79,7 @@ hooks, services and utilities. Cross-feature imports go through `lib/` or `state
 `scripts/check-boundaries.mjs` fails a build that breaks the rule.
 
 **Generated types, not hand-written ones**: request and response types come from
-`@pathfinder/shared`, whose `src/generated/{types,zod,hooks}` is produced by Kubb from
+`@strategist/shared`, whose `src/generated/{types,zod,hooks}` is produced by Kubb from
 `packages/spec/openapi.json`. A type the backend changed is a compile error here, not a runtime
 surprise. Do not hand-edit anything under `generated/`.
 
@@ -112,7 +112,7 @@ live in `components/ui/` (shadcn, the `components.json` target). Per-site themin
 
 **Real API + test-only mock LLM for E2E**: Playwright tests call live VEuPathDB APIs for gene
 searches, strategy builds and catalog browsing. Only the LLM chat call is mocked, and only through the
-dedicated test profile (`PATHFINDER_CHAT_PROVIDER=mock`). Worker isolation uses
+dedicated test profile (`STRATEGIST_CHAT_PROVIDER=mock`). Worker isolation uses
 `/dev/login?user_id=worker-{N}` so parallel workers do not interfere. VEuPathDB refuses guest
 service calls, so every worker also carries the registered account's token in its
 `Authorization` cookie: the shell exports `WDK_TEST_TOKEN`, or exports `WDK_TEST_EMAIL` and

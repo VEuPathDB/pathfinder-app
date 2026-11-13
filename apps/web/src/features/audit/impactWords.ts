@@ -1,5 +1,5 @@
-import type { GenomeUse } from "@pathfinder/shared/generated/types/GenomeUse";
-import type { Weighing } from "@pathfinder/shared/generated/types/Weighing";
+import type { GenomeUse } from "@strategist/shared/generated/types/GenomeUse";
+import type { Weighing } from "@strategist/shared/generated/types/Weighing";
 
 import { USE_WORDS } from "./words";
 

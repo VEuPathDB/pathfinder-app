@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import type { AuditStartCard } from "@pathfinder/shared/generated/types/AuditStartCard";
+import type { AuditStartCard } from "@strategist/shared/generated/types/AuditStartCard";
 import type { UIMessage } from "ai";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

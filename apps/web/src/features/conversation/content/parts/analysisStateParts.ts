@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import type { EdaAnalysisState } from "@pathfinder/shared";
+import type { EdaAnalysisState } from "@strategist/shared";
 
 const PART_TYPE = "data-eda.analysis-state";
 

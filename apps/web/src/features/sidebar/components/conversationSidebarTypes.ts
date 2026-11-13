@@ -1,4 +1,4 @@
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
 
 import { resolveAssistantId } from "@/lib/assistants";
 import { provisionalName } from "@/lib/conversations/provisionalName";

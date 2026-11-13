@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import type { Strategy } from "@pathfinder/shared";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import type { Strategy } from "@strategist/shared";
 
 const pushMock = vi.fn();
 vi.mock("next/navigation", () => ({

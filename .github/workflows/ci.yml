@@ -180,7 +180,7 @@ jobs:
           API_ENV: test
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder
           API_SECRET_KEY: spec-generation-secret-key-0000000000
-          PATHFINDER_CHAT_PROVIDER: default
+          STRATEGIST_CHAT_PROVIDER: default
           ANTHROPIC_API_KEY: spec-generation-placeholder
           OPENAI_API_KEY: spec-generation-placeholder
           VEUPATHDB_SITES_CONFIG: ${{ github.workspace }}/deploy/sites/qa.yml
@@ -232,7 +232,7 @@ jobs:
           API_ENV: test
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
-          PATHFINDER_CHAT_PROVIDER: mock
+          STRATEGIST_CHAT_PROVIDER: mock
           TEST_TIER: ${{ github.event_name == 'push' && 'src/pathfinder/tests/unit' || 'src/pathfinder/tests' }}
         run: uv run pytest "$TEST_TIER" -m "not live_model and not live_wdk" --cov=src --cov-report=xml --cov-fail-under=40
 
@@ -440,7 +440,7 @@ jobs:
         run: |
           cat > .env.test <<'EOF'
           API_ENV=test
-          PATHFINDER_CHAT_PROVIDER=mock
+          STRATEGIST_CHAT_PROVIDER=mock
           NEXT_PUBLIC_API_URL=http://api:8000
           DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
           DEFAULT_PROVIDER=anthropic

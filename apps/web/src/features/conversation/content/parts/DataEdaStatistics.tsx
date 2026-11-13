@@ -1,10 +1,10 @@
 "use client";
 
-import type { EdaStatisticsPart } from "@pathfinder/shared";
-import type { EdaCountTable } from "@pathfinder/shared/generated/types/EdaCountTable";
-import type { EdaStatisticRow } from "@pathfinder/shared/generated/types/EdaStatisticRow";
-import type { EdaTrend } from "@pathfinder/shared/generated/types/EdaTrend";
-import { edaStatisticsPartSchema } from "@pathfinder/shared/generated/zod/edaStatisticsPartSchema";
+import type { EdaStatisticsPart } from "@strategist/shared";
+import type { EdaCountTable } from "@strategist/shared/generated/types/EdaCountTable";
+import type { EdaStatisticRow } from "@strategist/shared/generated/types/EdaStatisticRow";
+import type { EdaTrend } from "@strategist/shared/generated/types/EdaTrend";
+import { edaStatisticsPartSchema } from "@strategist/shared/generated/zod/edaStatisticsPartSchema";
 
 import { ExhibitTable } from "@/features/conversation/thread/ExhibitTable";
 import { Figure } from "@/features/conversation/thread/Figure";

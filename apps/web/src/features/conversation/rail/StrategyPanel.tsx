@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Bookmark, Check, CircleAlert, RefreshCw, Workflow } from "lucide-react";
 
-import { siteShortName, type EvidenceCard, type Strategy } from "@pathfinder/shared";
+import { siteShortName, type EvidenceCard, type Strategy } from "@strategist/shared";
 import { Button } from "@/components/ui/button";
 import { CompactStrategyView } from "@/features/strategy/graph/components/CompactStrategyView";
 import { InsertSavedDialog } from "@/features/saved/InsertSavedDialog";

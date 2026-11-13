@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Search, Step } from "@pathfinder/shared";
+import type { Search, Step } from "@strategist/shared";
 import { computeOrthologInsert } from "@/features/strategy/graph/utils/orthologInsert";
 
 function step(partial: Partial<Step> & { id: string }): Step {

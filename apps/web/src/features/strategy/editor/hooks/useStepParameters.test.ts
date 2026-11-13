@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import { hiddenParamDefaults } from "./useStepParameters";
 
 function spec(over: Partial<ParamSpec> & { name: string }): ParamSpec {

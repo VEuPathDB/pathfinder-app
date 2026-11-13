@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { reasonDetail, stepReason, stepSubtitle, stepTitle } from "./stepTitle";
 
 const WDK_DEFAULT = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass";

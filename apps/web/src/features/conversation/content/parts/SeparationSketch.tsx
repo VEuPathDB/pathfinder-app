@@ -3,7 +3,7 @@
 import type { ReactElement } from "react";
 import { taskLifecycle, type TaskProgress } from "@veupathdb/assistant-client";
 import { z } from "zod";
-import { COMBINE_OP_LABELS } from "@pathfinder/shared";
+import { COMBINE_OP_LABELS } from "@strategist/shared";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 

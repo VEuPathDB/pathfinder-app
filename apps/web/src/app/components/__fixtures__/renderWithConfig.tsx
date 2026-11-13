@@ -1,7 +1,7 @@
 import { render, type RenderResult } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
-import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
+import { systemConfigQueryOptions } from "@strategist/shared/generated/hooks/useSystemConfig";
+import type { SystemConfigResponse } from "@strategist/shared/generated/types/SystemConfigResponse";
 
 import { createTestWrapper } from "@/lib/query/testing";
 

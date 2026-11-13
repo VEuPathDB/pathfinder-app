@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildStrategyTree, type TreeNode } from "./compactLayout";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 function makeStep(
   overrides: Partial<Step> & { id: string; displayName: string },

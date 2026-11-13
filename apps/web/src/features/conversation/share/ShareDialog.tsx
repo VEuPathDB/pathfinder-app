@@ -3,12 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { toast } from "sonner";
-import { deleteShare } from "@pathfinder/shared/generated/hooks/useDeleteShare";
-import { getShareQueryOptions } from "@pathfinder/shared/generated/hooks/useGetShare";
-import { postSharePassword } from "@pathfinder/shared/generated/hooks/usePostSharePassword";
-import { putShare } from "@pathfinder/shared/generated/hooks/usePutShare";
-import type { ShareChange } from "@pathfinder/shared/generated/types/ShareChange";
-import type { ShareSettings } from "@pathfinder/shared/generated/types/ShareSettings";
+import { deleteShare } from "@strategist/shared/generated/hooks/useDeleteShare";
+import { getShareQueryOptions } from "@strategist/shared/generated/hooks/useGetShare";
+import { postSharePassword } from "@strategist/shared/generated/hooks/usePostSharePassword";
+import { putShare } from "@strategist/shared/generated/hooks/usePutShare";
+import type { ShareChange } from "@strategist/shared/generated/types/ShareChange";
+import type { ShareSettings } from "@strategist/shared/generated/types/ShareSettings";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";

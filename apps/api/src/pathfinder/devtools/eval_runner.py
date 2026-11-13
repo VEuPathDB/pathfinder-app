@@ -590,7 +590,7 @@ async def run_corpus(
     )
     return EvalRunSummary(
         harness=HARNESS,
-        provider=get_settings().pathfinder_chat_provider,
+        provider=get_settings().strategist_chat_provider,
         assistant_id=cases[0].assistant_id if cases else "",
         ran_at=datetime.datetime.now(tz=datetime.UTC).isoformat(timespec="seconds"),
         cases=sorted(results, key=lambda result: result.name),

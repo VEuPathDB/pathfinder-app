@@ -4,8 +4,8 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import type { AuditRunSummary } from "@pathfinder/shared/generated/types/AuditRunSummary";
-import { listAuditRunsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useListAuditRunsSuspense";
+import type { AuditRunSummary } from "@strategist/shared/generated/types/AuditRunSummary";
+import { listAuditRunsSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useListAuditRunsSuspense";
 
 import { auditWordsOptions } from "@/lib/api/audits";
 import { createTestWrapper } from "@/lib/query/testing";

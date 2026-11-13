@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useInterval, useTimeout } from "usehooks-ts";
-import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
+import { StrategistLogo } from "@/lib/components/StrategistLogo";
 
 const COUNTDOWN_SECONDS = 3;
 
@@ -21,7 +21,7 @@ export default function NotFound() {
 
   return (
     <div className="flex h-full min-h-screen flex-col items-center justify-center bg-background px-6 text-center text-foreground">
-      <PathFinderLogo size={64} label="VEuPathDB Strategist" priority />
+      <StrategistLogo size={64} label="VEuPathDB Strategist" priority />
       <h1 className="mt-6 text-2xl font-semibold tracking-tight sm:text-3xl">
         VEuPathDB Strategist
       </h1>

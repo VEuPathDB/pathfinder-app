@@ -1,5 +1,5 @@
 import type { Connection } from "@xyflow/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { inferStepKind } from "@/features/strategy/graph";
 import { resolveRecordType } from "@/features/strategy/graph";
 

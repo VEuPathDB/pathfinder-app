@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RateBounds } from "@pathfinder/shared/generated/types/RateBounds";
+import type { RateBounds } from "@strategist/shared/generated/types/RateBounds";
 
 import served from "../../../../../packages/spec/audit_words.json";
 

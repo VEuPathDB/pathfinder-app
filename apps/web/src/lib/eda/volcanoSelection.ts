@@ -1,4 +1,4 @@
-import type { EdaViz } from "@pathfinder/shared";
+import type { EdaViz } from "@strategist/shared";
 
 import type {
   VolcanoPointInput,

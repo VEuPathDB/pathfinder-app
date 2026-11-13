@@ -3,7 +3,7 @@
 import { ArrowLeftRight } from "lucide-react";
 import { useRef } from "react";
 import { useDebounceCallback } from "usehooks-ts";
-import { combineOpEnum, type CombineOp } from "@pathfinder/shared";
+import { combineOpEnum, type CombineOp } from "@strategist/shared";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { operatorLabel } from "@/features/strategy/operators";

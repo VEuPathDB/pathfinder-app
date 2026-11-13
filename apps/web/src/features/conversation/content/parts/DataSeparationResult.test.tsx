@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import type { SeparationReport } from "@pathfinder/shared";
+import type { SeparationReport } from "@strategist/shared";
 
 import { qaRecording } from "@/lib/testing/qaRecording";
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";

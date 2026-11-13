@@ -1,4 +1,4 @@
-import type { FilterTermClause } from "@pathfinder/shared/generated/types/FilterTermClause";
+import type { FilterTermClause } from "@strategist/shared/generated/types/FilterTermClause";
 import type { ParamSpec } from "@/features/strategy/parameters/spec";
 import {
   decodeRange,

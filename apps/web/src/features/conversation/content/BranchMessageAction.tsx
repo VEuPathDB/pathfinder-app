@@ -10,8 +10,8 @@ import { MessageAction } from "@/components/ai-elements/message";
 import { toUserMessage } from "@/lib/api/errors";
 import { chatUrl, conversationIdFromPath } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
-import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { forkStrategy } from "@strategist/shared/generated/hooks/useForkStrategy";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
 
 export function BranchMessageAction() {
   const router = useRouter();

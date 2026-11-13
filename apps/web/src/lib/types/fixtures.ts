@@ -1,4 +1,4 @@
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 
 /**
  * Complete, type-checked fixtures for the shared domain types.

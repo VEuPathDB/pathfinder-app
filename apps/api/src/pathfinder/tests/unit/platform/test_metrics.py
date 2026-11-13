@@ -12,7 +12,7 @@ from prometheus_client import REGISTRY
 from pathfinder.main import create_app
 from pathfinder.platform.metrics import (
     HttpMetricsMiddleware,
-    PathfinderObserver,
+    StrategistObserver,
     serve_metrics,
 )
 from pathfinder.platform.route_templates import install_route_templates
@@ -166,7 +166,7 @@ def test_a_search_wait_is_counted_under_bounded_labels(
 ) -> None:
     before = _sample(_WAITS, labels)
 
-    PathfinderObserver().on_wdk_search_wait(0.5, attrs)
+    StrategistObserver().on_wdk_search_wait(0.5, attrs)
 
     assert _sample(_WAITS, labels) == before + 1
 

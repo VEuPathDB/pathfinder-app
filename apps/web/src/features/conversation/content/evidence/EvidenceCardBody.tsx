@@ -8,7 +8,7 @@ import {
   type ControlTestEvidence,
   type CriterionCitations,
   type EvidenceCard,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { CountOfIds } from "@/features/conversation/thread/CountOfIds";
 import {

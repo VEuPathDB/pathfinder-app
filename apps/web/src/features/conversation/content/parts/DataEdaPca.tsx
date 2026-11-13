@@ -1,7 +1,7 @@
 "use client";
 
-import type { EdaPcaPart } from "@pathfinder/shared";
-import { edaPcaPartSchema } from "@pathfinder/shared/generated/zod/edaPcaPartSchema";
+import type { EdaPcaPart } from "@strategist/shared";
+import { edaPcaPartSchema } from "@strategist/shared/generated/zod/edaPcaPartSchema";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 import { ScatterChart } from "@/lib/components/charts/ScatterChart";

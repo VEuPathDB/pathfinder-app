@@ -1,4 +1,4 @@
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 export interface GraphIndex {
   byId: Map<string, Step>;

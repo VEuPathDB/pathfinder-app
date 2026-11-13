@@ -8,7 +8,7 @@ afterEach(() => {
 
 describe("GET /api/v1/web-build", () => {
   it("answers the build this server runs, never from a cache", async () => {
-    vi.stubEnv("PATHFINDER_WEB_BUILD", "77b0e5a91c3f");
+    vi.stubEnv("STRATEGIST_WEB_BUILD", "77b0e5a91c3f");
     const { GET } = await import("./route");
 
     const response = GET();

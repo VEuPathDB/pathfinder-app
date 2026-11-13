@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import type { RecalledMemoriesPayload, RecalledMemory } from "@pathfinder/shared";
-import { recalledMemoriesPayloadSchema } from "@pathfinder/shared/generated/zod/recalledMemoriesPayloadSchema";
+import type { RecalledMemoriesPayload, RecalledMemory } from "@strategist/shared";
+import { recalledMemoriesPayloadSchema } from "@strategist/shared/generated/zod/recalledMemoriesPayloadSchema";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 import { MEMORY_KIND_LABELS } from "@/lib/memoryKinds";

@@ -1,8 +1,8 @@
-import type { FindingModels } from "@pathfinder/shared/generated/types/FindingModels";
-import type { KeptIntron } from "@pathfinder/shared/generated/types/KeptIntron";
-import type { ModelSpans } from "@pathfinder/shared/generated/types/ModelSpans";
-import type { ProposedModel } from "@pathfinder/shared/generated/types/ProposedModel";
-import type { Span } from "@pathfinder/shared/generated/types/Span";
+import type { FindingModels } from "@strategist/shared/generated/types/FindingModels";
+import type { KeptIntron } from "@strategist/shared/generated/types/KeptIntron";
+import type { ModelSpans } from "@strategist/shared/generated/types/ModelSpans";
+import type { ProposedModel } from "@strategist/shared/generated/types/ProposedModel";
+import type { Span } from "@strategist/shared/generated/types/Span";
 
 import { percent } from "./format";
 import { boxText } from "./geneModelWords";

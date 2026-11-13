@@ -1,5 +1,5 @@
 import { type Page, expect } from "@playwright/test";
-import type { SiteResponse } from "@pathfinder/shared";
+import type { SiteResponse } from "@strategist/shared";
 
 import { BASE_PATH } from "@/lib/basePath";
 

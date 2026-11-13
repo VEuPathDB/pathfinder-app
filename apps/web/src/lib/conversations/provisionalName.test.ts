@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_STREAM_NAME } from "@pathfinder/shared";
+import { DEFAULT_STREAM_NAME } from "@strategist/shared";
 
 import { firstUserMessageText, provisionalName } from "./provisionalName";
 

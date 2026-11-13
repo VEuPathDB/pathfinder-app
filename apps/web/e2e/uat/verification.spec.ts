@@ -5,7 +5,7 @@
  */
 
 import type { Locator, Page } from "@playwright/test";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";

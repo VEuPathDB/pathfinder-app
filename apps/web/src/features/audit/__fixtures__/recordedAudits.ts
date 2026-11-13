@@ -1,4 +1,4 @@
-import { selenoproteinEndAuditSchema } from "@pathfinder/shared/generated/zod/selenoproteinEndAuditSchema";
+import { selenoproteinEndAuditSchema } from "@strategist/shared/generated/zod/selenoproteinEndAuditSchema";
 
 import recorded from "./recordedAudits.json";
 

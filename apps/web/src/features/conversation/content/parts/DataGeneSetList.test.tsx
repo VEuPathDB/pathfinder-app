@@ -4,7 +4,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { ListedGeneSet, ListedGeneSets } from "@pathfinder/shared";
+import type { ListedGeneSet, ListedGeneSets } from "@strategist/shared";
 
 import { DataGeneSetList } from "./DataGeneSetList";
 

@@ -5,11 +5,11 @@ import type {
   MemoryListResponse,
   MemorySearchResponse,
   MemorySetting,
-} from "@pathfinder/shared";
-import { memoryItemSchema } from "@pathfinder/shared/generated/zod/memoryItemSchema";
-import { memoryListResponseSchema } from "@pathfinder/shared/generated/zod/memoryListResponseSchema";
-import { memorySearchResponseSchema } from "@pathfinder/shared/generated/zod/memorySearchResponseSchema";
-import { memorySettingSchema } from "@pathfinder/shared/generated/zod/memorySettingSchema";
+} from "@strategist/shared";
+import { memoryItemSchema } from "@strategist/shared/generated/zod/memoryItemSchema";
+import { memoryListResponseSchema } from "@strategist/shared/generated/zod/memoryListResponseSchema";
+import { memorySearchResponseSchema } from "@strategist/shared/generated/zod/memorySearchResponseSchema";
+import { memorySettingSchema } from "@strategist/shared/generated/zod/memorySettingSchema";
 
 import { requestJson, requestVoid } from "@/lib/api/http";
 

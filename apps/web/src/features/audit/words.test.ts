@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { auditRunSummaryPhaseEnum } from "@pathfinder/shared/generated/types/AuditRunSummary";
-import { findingViewCertaintyEnum } from "@pathfinder/shared/generated/types/FindingView";
-import { genomeUseSourceEnum } from "@pathfinder/shared/generated/types/GenomeUse";
+import { auditRunSummaryPhaseEnum } from "@strategist/shared/generated/types/AuditRunSummary";
+import { findingViewCertaintyEnum } from "@strategist/shared/generated/types/FindingView";
+import { genomeUseSourceEnum } from "@strategist/shared/generated/types/GenomeUse";
 import {
   genomeViewRoleEnum,
   genomeViewStatusEnum,
-} from "@pathfinder/shared/generated/types/GenomeView";
-import { importanceSourceEnum } from "@pathfinder/shared/generated/types/Importance";
-import { stageRecordNameEnum } from "@pathfinder/shared/generated/types/StageRecord";
+} from "@strategist/shared/generated/types/GenomeView";
+import { importanceSourceEnum } from "@strategist/shared/generated/types/Importance";
+import { stageRecordNameEnum } from "@strategist/shared/generated/types/StageRecord";
 
 import * as words from "./words";
 

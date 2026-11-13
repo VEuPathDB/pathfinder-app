@@ -1,4 +1,4 @@
-import type { ColocationParams, Step } from "@pathfinder/shared";
+import type { ColocationParams, Step } from "@strategist/shared";
 import { isInputStepParam, type ParamSpec } from "@/features/strategy/parameters/spec";
 import {
   paramValueToRaw,

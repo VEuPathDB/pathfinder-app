@@ -3,8 +3,8 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import type { GeneEvidence } from "@pathfinder/shared/generated/types/GeneEvidence";
-import type { GeneEvidencePayload } from "@pathfinder/shared/generated/types/GeneEvidencePayload";
+import type { GeneEvidence } from "@strategist/shared/generated/types/GeneEvidence";
+import type { GeneEvidencePayload } from "@strategist/shared/generated/types/GeneEvidencePayload";
 
 import { geneEvidenceOf } from "./__fixtures__/sampleConfirmations";
 import { SAMPLE_WORDS, sampleDetail } from "./__fixtures__/sampleRun";

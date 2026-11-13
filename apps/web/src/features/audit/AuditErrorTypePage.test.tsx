@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { listAuditFindingsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useListAuditFindingsSuspense";
+import { listAuditFindingsSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useListAuditFindingsSuspense";
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({

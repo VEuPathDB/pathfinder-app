@@ -5,17 +5,17 @@ import type {
   Search,
   SiteResponse,
   ValidationResponse,
-} from "@pathfinder/shared";
-import { paramSpecResponseSchema } from "@pathfinder/shared/generated/zod/paramSpecResponseSchema";
-import { recordTypeResponseSchema } from "@pathfinder/shared/generated/zod/recordTypeResponseSchema";
-import { searchResponseSchema } from "@pathfinder/shared/generated/zod/searchResponseSchema";
-import { siteResponseSchema } from "@pathfinder/shared/generated/zod/siteResponseSchema";
-import { validationResponseSchema } from "@pathfinder/shared/generated/zod/validationResponseSchema";
+} from "@strategist/shared";
+import { paramSpecResponseSchema } from "@strategist/shared/generated/zod/paramSpecResponseSchema";
+import { recordTypeResponseSchema } from "@strategist/shared/generated/zod/recordTypeResponseSchema";
+import { searchResponseSchema } from "@strategist/shared/generated/zod/searchResponseSchema";
+import { siteResponseSchema } from "@strategist/shared/generated/zod/siteResponseSchema";
+import { validationResponseSchema } from "@strategist/shared/generated/zod/validationResponseSchema";
 import { z } from "zod";
 
-import type { DependentParamsRequest } from "@pathfinder/shared/generated/types/DependentParamsRequest";
-import type { ParamSpecsRequest } from "@pathfinder/shared/generated/types/ParamSpecsRequest";
-import type { SearchValidationRequest } from "@pathfinder/shared/generated/types/SearchValidationRequest";
+import type { DependentParamsRequest } from "@strategist/shared/generated/types/DependentParamsRequest";
+import type { ParamSpecsRequest } from "@strategist/shared/generated/types/ParamSpecsRequest";
+import type { SearchValidationRequest } from "@strategist/shared/generated/types/SearchValidationRequest";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import { requestJson } from "./http";
 

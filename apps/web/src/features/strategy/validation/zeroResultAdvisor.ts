@@ -1,6 +1,6 @@
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { inferStepKind } from "@/features/strategy/graph";
-import { combineOpEnum } from "@pathfinder/shared";
+import { combineOpEnum } from "@strategist/shared";
 import { operatorLabel } from "@/features/strategy/operators";
 
 export function getZeroResultSuggestions(step: Step): string[] {

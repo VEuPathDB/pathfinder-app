@@ -2,11 +2,11 @@
 
 import { Download, FileText, Upload } from "lucide-react";
 
-import { exportGeneSetEndpoint } from "@pathfinder/shared/generated/hooks/useExportGeneSetEndpoint";
-import { getStrategyAst } from "@pathfinder/shared/generated/hooks/useGetStrategyAst";
-import { importGeneSet } from "@pathfinder/shared/generated/hooks/useImportGeneSet";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { updateStrategy } from "@pathfinder/shared/generated/hooks/useUpdateStrategy";
+import { exportGeneSetEndpoint } from "@strategist/shared/generated/hooks/useExportGeneSetEndpoint";
+import { getStrategyAst } from "@strategist/shared/generated/hooks/useGetStrategyAst";
+import { importGeneSet } from "@strategist/shared/generated/hooks/useImportGeneSet";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import { updateStrategy } from "@strategist/shared/generated/hooks/useUpdateStrategy";
 import { listGeneSets } from "@/lib/api/geneSets";
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { toStrategy, writeStrategy } from "@/lib/api/strategy";

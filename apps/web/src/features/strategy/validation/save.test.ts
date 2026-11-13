@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ValidationResponse, Step, Strategy } from "@pathfinder/shared";
+import type { ValidationResponse, Step, Strategy } from "@strategist/shared";
 import { validateStepsForSave } from "./save";
 
 // ---------------------------------------------------------------------------

@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { ChevronDown, ExternalLink } from "lucide-react";
-import { siteShortName, type Step } from "@pathfinder/shared";
+import { siteShortName, type Step } from "@strategist/shared";
 import {
   getStepRecords,
   getStepRecordsQueryKey,
-} from "@pathfinder/shared/generated/hooks/useGetStepRecords";
-import type { StepRecord } from "@pathfinder/shared/generated/types/StepRecord";
+} from "@strategist/shared/generated/hooks/useGetStepRecords";
+import type { StepRecord } from "@strategist/shared/generated/types/StepRecord";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,

@@ -2,9 +2,9 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { ErrorTypeView } from "@pathfinder/shared/generated/types/ErrorTypeView";
-import type { FindingLine } from "@pathfinder/shared/generated/types/FindingLine";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { ErrorTypeView } from "@strategist/shared/generated/types/ErrorTypeView";
+import type { FindingLine } from "@strategist/shared/generated/types/FindingLine";
 
 import { auditErrorTypeUrl, auditFindingUrl } from "@/lib/routes";
 

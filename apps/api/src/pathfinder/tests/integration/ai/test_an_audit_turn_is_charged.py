@@ -28,7 +28,7 @@ _COST = Decimal("0.0125")
 @pytest.fixture
 def cloud_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "openai", raising=False)
+    monkeypatch.setattr(settings, "strategist_chat_provider", "openai", raising=False)
     monkeypatch.setattr(settings, "default_provider", "openai", raising=False)
     monkeypatch.setattr(settings, "default_tier", "balanced", raising=False)
 

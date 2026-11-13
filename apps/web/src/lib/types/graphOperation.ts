@@ -3,7 +3,7 @@ import type {
   ColocationParams,
   Step,
   StrategyStepNode,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 import type { ParamValueMap } from "@/lib/parameters/paramValue";
 
 type AttachPoint =

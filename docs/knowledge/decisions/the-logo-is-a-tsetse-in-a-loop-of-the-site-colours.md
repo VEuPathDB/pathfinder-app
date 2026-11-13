@@ -26,7 +26,7 @@ so no part of the ring disappears into the background.
 
 **One source.** `assets/brand/` holds every file and the rules. The web app serves
 copies from `apps/web/public/brand/` and names them only in
-`apps/web/src/lib/brand.ts`; `PathFinderLogo` is the one component that draws the
+`apps/web/src/lib/brand.ts`; `StrategistLogo` is the one component that draws the
 mark, and it switches the light and dark files with the app theme.
 `brand.test.ts` fails when a served copy differs from the kit. The API
 documentation reads the marks and the favicon from the kit.

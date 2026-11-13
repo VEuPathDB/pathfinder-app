@@ -22,7 +22,7 @@ import pathfinder.jobs.app
 from pathfinder import main
 from pathfinder.jobs import logging_filters
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.metrics import PathfinderObserver
+from pathfinder.platform.metrics import StrategistObserver
 from pathfinder.platform.readiness import (
     SubsystemStatus,
     get_readiness,
@@ -169,7 +169,7 @@ async def test_the_lifespan_installs_the_observer_and_the_search_line(
     async with main.lifespan(app):
         pass
 
-    assert [type(observer) for observer in installed] == [PathfinderObserver]
+    assert [type(observer) for observer in installed] == [StrategistObserver]
     assert strategy_lines == [
         (
             get_settings().database_url,

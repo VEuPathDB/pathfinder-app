@@ -1,5 +1,5 @@
-import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
-import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
+import type { ConsultQuestion } from "@strategist/shared/generated/types/ConsultQuestion";
+import type { UserQuestionAnswer } from "@strategist/shared/generated/types/UserQuestionAnswer";
 
 export interface AnswerState {
   labels: string[];

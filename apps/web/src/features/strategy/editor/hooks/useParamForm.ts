@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { useForm } from "@tanstack/react-form";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import { isInputStepParam, isMultiParam } from "@/features/strategy/parameters/spec";
 import { paramValueToRaw } from "@/features/strategy/parameters/paramValue";

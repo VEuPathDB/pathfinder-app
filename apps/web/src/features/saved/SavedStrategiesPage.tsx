@@ -1,6 +1,6 @@
 "use client";
 
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -12,11 +12,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { insertSavedStrategy } from "@/lib/api/conversations";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
-import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
-import { getSavedStrategyConsumerCountsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetSavedStrategyConsumerCountsSuspense";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import { beginStrategy } from "@strategist/shared/generated/hooks/useBeginStrategy";
+import { deleteStrategy } from "@strategist/shared/generated/hooks/useDeleteStrategy";
+import { getSavedStrategyConsumerCountsSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useGetSavedStrategyConsumerCountsSuspense";
 import { toUserMessage } from "@/lib/api/errors";
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";

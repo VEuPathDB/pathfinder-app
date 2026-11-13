@@ -11,9 +11,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { listDismissedStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListDismissedStrategies";
-import { updateStrategy } from "@pathfinder/shared/generated/hooks/useUpdateStrategy";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import { listDismissedStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListDismissedStrategies";
+import { updateStrategy } from "@strategist/shared/generated/hooks/useUpdateStrategy";
 import { toUserMessage } from "@/lib/api/errors";
 
 interface UseRenameWorkflowArgs {

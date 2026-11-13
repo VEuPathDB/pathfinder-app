@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { computeDeleteChoices, isAmbiguousDelete } from "./deleteResolutions";
 
 const step = (

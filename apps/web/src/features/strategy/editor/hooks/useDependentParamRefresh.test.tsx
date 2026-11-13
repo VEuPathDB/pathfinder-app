@@ -3,7 +3,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 
 const refreshDependentParamsMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/sites", () => ({

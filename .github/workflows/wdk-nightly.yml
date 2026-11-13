@@ -36,7 +36,7 @@ jobs:
         env:
           API_ENV: test
           API_SECRET_KEY: wdk-nightly-secret-key-000000000000
-          PATHFINDER_CHAT_PROVIDER: mock
+          STRATEGIST_CHAT_PROVIDER: mock
           WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
           WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
           WDK_LIVE_SUMMARY: wdk-live-summary.json

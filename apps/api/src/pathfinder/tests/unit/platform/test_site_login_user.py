@@ -81,7 +81,7 @@ async def test_a_registered_token_names_the_user_its_account_maps_to(
     site_user = await site_login_user()
 
     assert site_user == SITE_USER
-    assert resolved == [(SITE_TOKEN, get_settings().pathfinder_site)]
+    assert resolved == [(SITE_TOKEN, get_settings().strategist_site)]
 
 
 async def test_a_bearer_request_reads_no_site_login(

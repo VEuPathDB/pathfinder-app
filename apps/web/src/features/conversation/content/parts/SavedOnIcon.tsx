@@ -1,4 +1,4 @@
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import { SiteIcon } from "@/lib/components/SiteIcon";
 

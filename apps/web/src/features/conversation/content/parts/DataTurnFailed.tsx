@@ -1,4 +1,4 @@
-import type { TurnFailedPayload } from "@pathfinder/shared/generated/types/TurnFailedPayload";
+import type { TurnFailedPayload } from "@strategist/shared/generated/types/TurnFailedPayload";
 
 import { FailureNotice } from "../FailureNotice";
 

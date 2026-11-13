@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
-import type { StrategyAst } from "@pathfinder/shared";
+import type { StrategyAst } from "@strategist/shared";
 
 type StepCountsResponse = { counts?: Record<string, number | null> };
 

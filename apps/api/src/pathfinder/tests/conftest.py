@@ -19,7 +19,7 @@ os.environ.setdefault(
 # The test profile wins over the host environment: a sourced dev env file
 # names a real provider, and a test must run on the scripted one.
 os.environ["API_ENV"] = "test"
-os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
+os.environ["STRATEGIST_CHAT_PROVIDER"] = "mock"
 os.environ["INPUT_SCREENING_ENABLED"] = "true"
 
 os.environ.setdefault("API_SECRET_KEY", "test-secret-key-test-secret-key-test")

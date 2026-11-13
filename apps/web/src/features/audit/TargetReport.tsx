@@ -1,8 +1,8 @@
 "use client";
 
 import { useId } from "react";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { TargetReport as TargetReportView } from "@pathfinder/shared/generated/types/TargetReport";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { TargetReport as TargetReportView } from "@strategist/shared/generated/types/TargetReport";
 
 import { plural, unresolvedText } from "./format";
 

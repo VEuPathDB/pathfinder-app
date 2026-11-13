@@ -1,12 +1,12 @@
-import type { AuditRunSummaryPhaseEnumKey } from "@pathfinder/shared/generated/types/AuditRunSummary";
-import type { FindingViewCertaintyEnumKey } from "@pathfinder/shared/generated/types/FindingView";
-import type { GenomeUseSourceEnumKey } from "@pathfinder/shared/generated/types/GenomeUse";
+import type { AuditRunSummaryPhaseEnumKey } from "@strategist/shared/generated/types/AuditRunSummary";
+import type { FindingViewCertaintyEnumKey } from "@strategist/shared/generated/types/FindingView";
+import type { GenomeUseSourceEnumKey } from "@strategist/shared/generated/types/GenomeUse";
 import type {
   GenomeViewRoleEnumKey,
   GenomeViewStatusEnumKey,
-} from "@pathfinder/shared/generated/types/GenomeView";
-import type { ImportanceSourceEnumKey } from "@pathfinder/shared/generated/types/Importance";
-import type { StageRecordNameEnumKey } from "@pathfinder/shared/generated/types/StageRecord";
+} from "@strategist/shared/generated/types/GenomeView";
+import type { ImportanceSourceEnumKey } from "@strategist/shared/generated/types/Importance";
+import type { StageRecordNameEnumKey } from "@strategist/shared/generated/types/StageRecord";
 
 import type { Origin } from "./findingQuery";
 

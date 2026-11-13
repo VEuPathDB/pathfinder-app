@@ -11,12 +11,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { listDismissedStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListDismissedStrategies";
-import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
-import { dismissConversation } from "@pathfinder/shared/generated/hooks/useDismissConversation";
-import { restoreStrategy } from "@pathfinder/shared/generated/hooks/useRestoreStrategy";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
+import { listDismissedStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListDismissedStrategies";
+import { deleteStrategy } from "@strategist/shared/generated/hooks/useDeleteStrategy";
+import { dismissConversation } from "@strategist/shared/generated/hooks/useDismissConversation";
+import { restoreStrategy } from "@strategist/shared/generated/hooks/useRestoreStrategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { chatRoot } from "@/lib/routes";
 

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { siteShortName } from "@pathfinder/shared";
-import { getAuditFindingSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetAuditFindingSuspense";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { EvidenceViewKindEnumKey } from "@pathfinder/shared/generated/types/EvidenceView";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
+import { siteShortName } from "@strategist/shared";
+import { getAuditFindingSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useGetAuditFindingSuspense";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { EvidenceViewKindEnumKey } from "@strategist/shared/generated/types/EvidenceView";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
 
 import { auditWordsOptions } from "@/lib/api/audits";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";

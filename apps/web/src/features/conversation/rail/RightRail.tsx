@@ -1,6 +1,6 @@
 "use client";
 
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useState } from "react";
 

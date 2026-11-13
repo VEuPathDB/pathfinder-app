@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { siteShortName, type Strategy } from "@pathfinder/shared";
+import { siteShortName, type Strategy } from "@strategist/shared";
 
 import { Button } from "@/components/ui/button";
 import { patchConversationEda } from "@/features/eda/api";

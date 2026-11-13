@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { useStepDraftChanges } from "./useStepDraftChanges";
 
 const single = (value: string) => ({ type: "single-pick-vocabulary" as const, value });

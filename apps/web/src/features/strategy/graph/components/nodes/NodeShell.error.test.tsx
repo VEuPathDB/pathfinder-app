@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 import { useStrategyStore } from "@/state/strategy/store";
 import { NodeShell } from "./NodeShell";

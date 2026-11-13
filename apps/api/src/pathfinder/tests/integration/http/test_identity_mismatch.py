@@ -77,7 +77,7 @@ def another_veupathdb_account(
         router.get(JWKS_URL).mock(
             return_value=httpx.Response(200, json=jwks_body(signing_key)),
         )
-        for site_id in (get_settings().pathfinder_site, SITE_ID):
+        for site_id in (get_settings().strategist_site, SITE_ID):
             service_url = get_site(site_id).service_url
             router.get(service_url.replace("/service", "/app")).mock(
                 return_value=httpx.Response(200, text="ok"),

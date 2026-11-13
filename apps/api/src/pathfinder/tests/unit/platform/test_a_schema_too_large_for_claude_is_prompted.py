@@ -50,7 +50,7 @@ class _Reading(BaseModel):
 def _wire(monkeypatch: pytest.MonkeyPatch) -> None:
     allow_requests_to_the_wire(monkeypatch)
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "anthropic_api_key", "sk-ant-test-0000")
 
 

@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { listAuditFindingsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useListAuditFindingsSuspense";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { FindingView } from "@pathfinder/shared/generated/types/FindingView";
+import { listAuditFindingsSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useListAuditFindingsSuspense";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { FindingView } from "@strategist/shared/generated/types/FindingView";
 
 import { Button } from "@/components/ui/button";
 import { auditFindingUrl } from "@/lib/routes";

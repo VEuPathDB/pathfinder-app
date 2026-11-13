@@ -1,9 +1,9 @@
 "use client";
 
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { useIsMutating } from "@tanstack/react-query";
 import { useStrategyStore } from "@/state/strategy/store";
-import { computeStepCounts } from "@pathfinder/shared/generated/hooks/useComputeStepCounts";
+import { computeStepCounts } from "@strategist/shared/generated/hooks/useComputeStepCounts";
 import { APPLY_OPERATION_MUTATION_KEY } from "@/features/strategy/mutations/useApplyOperation";
 import { countsWanted } from "@/features/strategy/services/countsWanted";
 import { useStepCounts } from "@/features/strategy/services/useStepCounts";

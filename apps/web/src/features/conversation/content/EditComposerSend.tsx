@@ -6,9 +6,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
-import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
-import { revertToMessage } from "@pathfinder/shared/generated/hooks/useRevertToMessage";
+import { forkStrategy } from "@strategist/shared/generated/hooks/useForkStrategy";
+import { listScratchpadNotesQueryOptions } from "@strategist/shared/generated/hooks/useListScratchpadNotes";
+import { revertToMessage } from "@strategist/shared/generated/hooks/useRevertToMessage";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { refetchStrategy } from "@/lib/api/strategy";

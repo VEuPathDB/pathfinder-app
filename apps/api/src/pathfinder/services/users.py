@@ -28,5 +28,5 @@ async def effective_monthly_limit_usd(session: AsyncSession, user_id: UUID) -> D
         select(User.monthly_cost_limit_usd).where(User.id == user_id)
     )
     if override is None:
-        return Decimal(str(get_settings().pathfinder_user_monthly_cost_limit_usd))
+        return Decimal(str(get_settings().strategist_user_monthly_cost_limit_usd))
     return Decimal(str(override))

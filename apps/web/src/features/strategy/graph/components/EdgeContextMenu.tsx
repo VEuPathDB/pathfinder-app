@@ -2,7 +2,7 @@
 
 import type { Edge } from "@xyflow/react";
 import { Trash2 } from "lucide-react";
-import type { CombineOp, Step } from "@pathfinder/shared";
+import type { CombineOp, Step } from "@strategist/shared";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { VennIcon } from "@/features/strategy/graph/components/VennIcon";

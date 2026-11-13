@@ -1,5 +1,5 @@
-import type { ReasoningEffort } from "@pathfinder/shared";
-import { reasoningEffortSchema } from "@pathfinder/shared/generated/zod/reasoningEffortSchema";
+import type { ReasoningEffort } from "@strategist/shared";
+import { reasoningEffortSchema } from "@strategist/shared/generated/zod/reasoningEffortSchema";
 import { z } from "zod";
 import { pickableOnly, type PickableRole } from "@/lib/models/phaseRoles";
 import {
@@ -105,7 +105,7 @@ export const useSettingsStore = createPersistedStore<SettingsState>(
     resetToDefaults: () => set({ ...DEFAULTS, phaseModels: {}, phaseReasoning: {} }),
   }),
   {
-    name: "pathfinder-settings",
+    name: "strategist-settings",
     partialize: (s) => storedSettings.parse(s),
     merge: (stored, current) => ({
       ...current,

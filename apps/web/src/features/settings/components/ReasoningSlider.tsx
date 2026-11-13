@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReasoningEffort } from "@pathfinder/shared";
+import type { ReasoningEffort } from "@strategist/shared";
 import { Slider } from "@/components/ui/slider";
 
 const EFFORTS: { value: ReasoningEffort; label: string }[] = [

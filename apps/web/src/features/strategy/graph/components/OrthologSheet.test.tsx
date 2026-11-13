@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { Search } from "@pathfinder/shared";
+import type { Search } from "@strategist/shared";
 import type * as SitesApi from "@/lib/api/sites";
 import { createTestWrapper } from "@/lib/query/testing";
 

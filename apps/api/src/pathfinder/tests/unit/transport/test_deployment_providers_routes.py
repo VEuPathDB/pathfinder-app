@@ -16,7 +16,7 @@ from pathfinder.transport.http.routers.models import router as models_router
 @pytest.fixture
 def _anthropic_only(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "strategist_chat_provider", "default")
     monkeypatch.setattr(settings, "openai_api_key", "")
     monkeypatch.setattr(settings, "anthropic_api_key", "deployment-anthropic")
     monkeypatch.setattr(settings, "gemini_api_key", "")

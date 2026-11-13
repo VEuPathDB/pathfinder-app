@@ -4,7 +4,7 @@ import type {
   EdaStatisticsPart,
   EdaSubsetPreview,
   EdaViz,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 export const EDA_ANALYSIS_STATE_FIXTURE: EdaAnalysisState = {
   siteId: "plasmodb",

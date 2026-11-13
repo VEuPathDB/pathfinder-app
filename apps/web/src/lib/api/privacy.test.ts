@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DATA_STATEMENT_VERSION } from "@pathfinder/shared";
+import { DATA_STATEMENT_VERSION } from "@strategist/shared";
 
 import {
   continuePastDataNotice,

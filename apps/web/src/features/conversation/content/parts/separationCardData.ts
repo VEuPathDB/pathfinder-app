@@ -1,5 +1,5 @@
-import type { SeparationOffer } from "@pathfinder/shared";
-import { separationReportSchema } from "@pathfinder/shared/generated/zod/separationReportSchema";
+import type { SeparationOffer } from "@strategist/shared";
+import { separationReportSchema } from "@strategist/shared/generated/zod/separationReportSchema";
 import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import { z } from "zod";
 

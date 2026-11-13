@@ -1,4 +1,4 @@
-import type { RecordType, Search } from "@pathfinder/shared";
+import type { RecordType, Search } from "@strategist/shared";
 
 /** Names the group a search option falls in: its record type's display name. */
 export function searchGroupName(

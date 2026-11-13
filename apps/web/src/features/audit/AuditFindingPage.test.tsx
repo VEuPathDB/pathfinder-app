@@ -3,11 +3,11 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import { getAuditFindingSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetAuditFindingSuspense";
-import type { ConfirmationEvidence } from "@pathfinder/shared/generated/types/ConfirmationEvidence";
-import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { RelativesEvidence } from "@pathfinder/shared/generated/types/RelativesEvidence";
+import { getAuditFindingSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useGetAuditFindingSuspense";
+import type { ConfirmationEvidence } from "@strategist/shared/generated/types/ConfirmationEvidence";
+import type { EvidenceView } from "@strategist/shared/generated/types/EvidenceView";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { RelativesEvidence } from "@strategist/shared/generated/types/RelativesEvidence";
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams("origin=target"),

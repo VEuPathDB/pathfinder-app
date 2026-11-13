@@ -3,8 +3,8 @@
 import { useAuiState } from "@assistant-ui/react";
 import { HelpCircle } from "lucide-react";
 
-import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
-import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
+import type { ConsultQuestion } from "@strategist/shared/generated/types/ConsultQuestion";
+import type { UserQuestionAnswer } from "@strategist/shared/generated/types/UserQuestionAnswer";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { isOpenCard } from "./cardAnswers";

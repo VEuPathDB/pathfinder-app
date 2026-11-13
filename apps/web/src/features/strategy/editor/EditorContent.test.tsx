@@ -4,15 +4,15 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import type {
   getStepRecords,
   getStepRecordsQueryKey,
-} from "@pathfinder/shared/generated/hooks/useGetStepRecords";
+} from "@strategist/shared/generated/hooks/useGetStepRecords";
 
 const mockGetStepRecords = vi.fn<typeof getStepRecords>();
 vi.mock(
-  "@pathfinder/shared/generated/hooks/useGetStepRecords",
+  "@strategist/shared/generated/hooks/useGetStepRecords",
   async (importOriginal) => ({
     ...(await importOriginal<{
       getStepRecordsQueryKey: typeof getStepRecordsQueryKey;

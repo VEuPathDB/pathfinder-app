@@ -1,4 +1,4 @@
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 
 const EMPTY_STEPS_BY_ID: Record<string, Step> = Object.freeze({});
 

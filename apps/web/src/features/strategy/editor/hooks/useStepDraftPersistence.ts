@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 export type StepDraftValues = Record<string, unknown>;
 
 export function stepDraftKey(strategyId: string, stepId: string): string {
-  return `pathfinder.editor.draft.${strategyId}.${stepId}`;
+  return `strategist.editor.draft.${strategyId}.${stepId}`;
 }
 
 function readStorage(key: string): StepDraftValues | null {

@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { MiniMap } from "@xyflow/react";
-import type { StepKind } from "@pathfinder/shared";
+import type { StepKind } from "@strategist/shared";
 import { useCanvasIdle } from "@/features/strategy/graph/hooks/useCanvasIdle";
 import { hslFromTriple } from "@/lib/color/hsl";
 

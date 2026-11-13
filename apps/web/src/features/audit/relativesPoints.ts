@@ -1,6 +1,6 @@
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { Relative } from "@pathfinder/shared/generated/types/Relative";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { Relative } from "@strategist/shared/generated/types/Relative";
 
 export interface RelativesPoints {
   relatives: Relative[];

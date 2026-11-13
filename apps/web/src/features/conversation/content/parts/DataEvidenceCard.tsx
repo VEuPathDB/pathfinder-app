@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type { ControlSetEvidence, EvidenceCard } from "@pathfinder/shared";
+import type { ControlSetEvidence, EvidenceCard } from "@strategist/shared";
 
 import { EvidenceCardBody } from "@/features/conversation/content/evidence/EvidenceCardBody";
 import { sampleCountLine } from "@/features/conversation/content/evidence/EvidenceReview";

@@ -1,4 +1,4 @@
-import type { EvidenceCard } from "@pathfinder/shared";
+import type { EvidenceCard } from "@strategist/shared";
 
 /** A card as `data-evidence-card` carries it: a two-kind control test on the
  * root step of a one-step plasmodb strategy that the site now counts higher. */

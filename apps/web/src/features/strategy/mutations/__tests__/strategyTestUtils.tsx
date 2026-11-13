@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { strategyQueryKey } from "@/lib/api/strategy";
 
 export function makeQueryHarness(initial: Strategy | null = null) {

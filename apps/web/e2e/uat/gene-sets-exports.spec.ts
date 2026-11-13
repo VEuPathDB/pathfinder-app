@@ -9,7 +9,7 @@ import {
   type GeneSet,
   type VdiPublicationStatus,
   siteShortName,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";

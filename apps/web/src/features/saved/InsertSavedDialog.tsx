@@ -15,13 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { insertSavedStrategy } from "@/lib/api/conversations";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
 import { refetchStrategy } from "@/lib/api/strategy";
-import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/InsertSavedRequest";
+import type { InsertSavedRequest } from "@strategist/shared/generated/types/InsertSavedRequest";
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { cn } from "@/lib/utils/cn";
-import { COMBINE_OP_LABELS } from "@pathfinder/shared";
+import { COMBINE_OP_LABELS } from "@strategist/shared";
 
 type Operator = NonNullable<InsertSavedRequest["operator"]>;
 

@@ -1,5 +1,5 @@
 import type { Patch } from "immer";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import type { GraphOperation } from "@/lib/types/graphOperation";
 import type {
   StepLifecycleSeed,

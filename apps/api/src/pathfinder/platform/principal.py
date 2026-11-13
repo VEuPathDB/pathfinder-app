@@ -10,12 +10,12 @@ from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 
 CredentialKind = Literal[
     "veupathdb-cookie",
-    "pathfinder-bearer",
+    "strategist-bearer",
     "veupathdb-bearer",
     "dev-login",
 ]
 
-SERVICE_AUTH_HEADER = "X-PathFinder-Service-Token"
+SERVICE_AUTH_HEADER = "X-Strategist-Service-Token"
 
 
 class Principal(CamelModel):

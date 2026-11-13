@@ -1,6 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
 import { MarkerType, Position } from "@xyflow/react";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { walkSubtreeIds } from "@/features/strategy/operations";
 import { hslFromTriple } from "@/lib/color/hsl";
 import { inferStepKind } from "./kind";

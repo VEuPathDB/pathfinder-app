@@ -9,7 +9,7 @@ fails this test loudly.
 
 Re-record with::
 
-    PATHFINDER_RECORD_GOLDEN=1 uv run pytest \\
+    STRATEGIST_RECORD_GOLDEN=1 uv run pytest \\
         src/pathfinder/tests/integration/chat/test_chat_sse_golden.py -v
 """
 
@@ -89,7 +89,7 @@ def _diff_message(
         f"--- expected ({_FIXTURE_PATH}) ---\n{expected_json}\n"
         f"--- actual ---\n{actual_json}\n"
         "\nIf the change is intentional, re-record the fixture:\n"
-        "  PATHFINDER_RECORD_GOLDEN=1 uv run pytest "
+        "  STRATEGIST_RECORD_GOLDEN=1 uv run pytest "
         "src/pathfinder/tests/integration/chat/test_chat_sse_golden.py -v"
     )
 
@@ -112,14 +112,14 @@ async def test_chat_sse_golden_snapshot_simple_turn(
     )
     chunks = [redact(chunk) for chunk in raw_chunks]
 
-    if os.environ.get("PATHFINDER_RECORD_GOLDEN") == "1":
+    if os.environ.get("STRATEGIST_RECORD_GOLDEN") == "1":
         _save_fixture(chunks)
         return
 
     if not _FIXTURE_PATH.is_file():
         msg = (
             f"golden fixture missing at {_FIXTURE_PATH}. "
-            "Re-record with: PATHFINDER_RECORD_GOLDEN=1 uv run pytest "
+            "Re-record with: STRATEGIST_RECORD_GOLDEN=1 uv run pytest "
             "src/pathfinder/tests/integration/chat/test_chat_sse_golden.py -v"
         )
         raise AssertionError(msg)

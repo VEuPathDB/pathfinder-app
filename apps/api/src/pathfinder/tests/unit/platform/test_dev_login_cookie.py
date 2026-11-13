@@ -17,7 +17,7 @@ _SCOPE = {"httponly": True, "path": "/pathfinder", "samesite": "lax"}
 @pytest.fixture
 def _development(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("API_ENV", "development")
-    monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "default")
+    monkeypatch.setenv("STRATEGIST_CHAT_PROVIDER", "default")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-unit-test-only")
     get_settings.cache_clear()
     yield
@@ -45,7 +45,7 @@ def test_a_dev_login_is_secure_outside_development() -> None:
     set_dev_login_cookie(response, "dev-token")
 
     assert _written(response) == (
-        "pathfinder-dev-login",
+        "strategist-dev-login",
         "dev-token",
         {**_SCOPE, "secure": True},
     )
@@ -57,4 +57,4 @@ def test_a_dev_login_is_not_secure_in_development() -> None:
 
     set_dev_login_cookie(response, "dev-token")
 
-    assert _written(response) == ("pathfinder-dev-login", "dev-token", _SCOPE)
+    assert _written(response) == ("strategist-dev-login", "dev-token", _SCOPE)

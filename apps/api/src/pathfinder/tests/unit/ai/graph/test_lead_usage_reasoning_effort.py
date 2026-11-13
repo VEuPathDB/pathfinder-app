@@ -53,7 +53,7 @@ class _Collector:
 @pytest.fixture
 def _cloud_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "openai", raising=False)
+    monkeypatch.setattr(settings, "strategist_chat_provider", "openai", raising=False)
     monkeypatch.setattr(settings, "openai_api_key", "deployment-openai")
     monkeypatch.setattr(settings, "default_provider", "openai", raising=False)
     monkeypatch.setattr(settings, "default_tier", "quality", raising=False)
@@ -113,7 +113,7 @@ def test_a_request_model_wins_over_the_tier() -> None:
 
 def test_the_mock_provider_states_no_effort(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        get_settings(), "pathfinder_chat_provider", "mock", raising=False
+        get_settings(), "strategist_chat_provider", "mock", raising=False
     )
 
     resolved = resolve_lead_model_context(build_lead_agent())

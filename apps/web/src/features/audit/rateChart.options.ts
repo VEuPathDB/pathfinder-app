@@ -1,7 +1,7 @@
 import type { EChartsOption, TooltipComponentFormatterCallbackParams } from "echarts";
 import { format } from "echarts/core";
-import type { CheckWords } from "@pathfinder/shared/generated/types/CheckWords";
-import type { GenomeRate } from "@pathfinder/shared/generated/types/GenomeRate";
+import type { CheckWords } from "@strategist/shared/generated/types/CheckWords";
+import type { GenomeRate } from "@strategist/shared/generated/types/GenomeRate";
 
 import type { ChartTokens } from "@/lib/components/charts/chartTheme";
 import { UNRESOLVED_SERIES_COLOR } from "@/lib/components/charts/unresolved";

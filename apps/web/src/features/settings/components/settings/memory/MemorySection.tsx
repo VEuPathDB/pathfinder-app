@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-import type { MemoryItem } from "@pathfinder/shared";
+import type { MemoryItem } from "@strategist/shared";
 
 import { MemoryRow } from "./MemoryRow";
 

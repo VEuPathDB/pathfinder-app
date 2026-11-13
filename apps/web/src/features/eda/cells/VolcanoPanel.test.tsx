@@ -3,7 +3,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { EdaViz } from "@pathfinder/shared";
+import type { EdaViz } from "@strategist/shared";
 
 vi.mock("@/lib/components/charts/echartsRegistry", () => ({
   initChart: () => ({

@@ -43,7 +43,7 @@ from pathfinder.jobs.logging_filters import install_procrastinate_redaction
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.config import Settings, get_settings
 from pathfinder.platform.langfuse.client import shutdown_langfuse
-from pathfinder.platform.metrics import PathfinderObserver, serve_metrics
+from pathfinder.platform.metrics import StrategistObserver, serve_metrics
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability
 from pathfinder.platform.tool_sources import admitted_tool_sources
@@ -160,7 +160,7 @@ async def amain() -> None:
     register_durable_jobs(procrastinate_app)
     settings = get_settings()
     serve_metrics(settings.metrics_port, settings.metrics_addr)
-    set_observer(PathfinderObserver())
+    set_observer(StrategistObserver())
     install_search_line(
         settings.database_url,
         runs_on_the_deployment_line,

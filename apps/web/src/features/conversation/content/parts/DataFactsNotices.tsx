@@ -2,7 +2,7 @@
 
 import { CircleAlert } from "lucide-react";
 import type { ReactElement } from "react";
-import type { TurnFacts } from "@pathfinder/shared";
+import type { TurnFacts } from "@strategist/shared";
 
 export function DataFactsNotices({ data }: { data: TurnFacts }): ReactElement | null {
   const lines = [

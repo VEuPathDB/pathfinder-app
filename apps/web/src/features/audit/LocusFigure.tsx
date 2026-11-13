@@ -1,5 +1,5 @@
 import { useId } from "react";
-import type { MissingGeneAudit } from "@pathfinder/shared/generated/types/MissingGeneAudit";
+import type { MissingGeneAudit } from "@strategist/shared/generated/types/MissingGeneAudit";
 
 import { FIGURE_COLORS, FigureLegend } from "./FigureLegend";
 import { baseText } from "./geneModelWords";

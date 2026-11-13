@@ -65,7 +65,7 @@ async def test_dev_login_scopes_its_cookie_to_the_base_path(
         response = await client.post("/api/v1/dev/login")
 
     written = response.headers.get_list("set-cookie")
-    assert [entry.split("=", 1)[0] for entry in written] == ["pathfinder-dev-login"]
+    assert [entry.split("=", 1)[0] for entry in written] == ["strategist-dev-login"]
     assert _scope(written[0]) == _DEV_LOGIN_SCOPE
 
 
@@ -117,7 +117,7 @@ def _naming(cookie: str) -> set[Path]:
 
 
 def test_only_the_security_module_names_the_dev_login_cookie() -> None:
-    assert _naming("pathfinder-dev-login") == {Path("platform/security.py")}
+    assert _naming("strategist-dev-login") == {Path("platform/security.py")}
 
 
 def test_no_module_names_a_pathfinder_session_cookie() -> None:
@@ -126,7 +126,7 @@ def test_no_module_names_a_pathfinder_session_cookie() -> None:
 
 @pytest.fixture
 def _real_provider(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "default")
+    monkeypatch.setenv("STRATEGIST_CHAT_PROVIDER", "default")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-unit-test-only")
     get_settings.cache_clear()
     reset_readiness()
@@ -155,7 +155,7 @@ async def _status(cookies: dict[str, str]) -> httpx.Response:
 
 
 def _dev_login() -> dict[str, str]:
-    return {"pathfinder-dev-login": create_dev_login_token(uuid4())}
+    return {"strategist-dev-login": create_dev_login_token(uuid4())}
 
 
 _SIGNED_OUT = {"signedIn": False}
@@ -207,7 +207,7 @@ async def test_a_registered_login_is_signed_in_and_sets_no_cookie(
 async def test_a_mock_provider_reads_a_dev_login_cookie_as_signed_in(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "mock")
+    monkeypatch.setenv("STRATEGIST_CHAT_PROVIDER", "mock")
     get_settings.cache_clear()
     try:
         response = await _status(_dev_login())

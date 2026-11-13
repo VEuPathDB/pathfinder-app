@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { useStrategyStore } from "./store";
 
 function step(partial: Partial<Step> & { id: string; displayName: string }): Step {

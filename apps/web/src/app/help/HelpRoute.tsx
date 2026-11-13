@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
+import { systemConfigQueryOptions } from "@strategist/shared/generated/hooks/useSystemConfig";
 
 import { usePageOrigin } from "@/app/hooks/usePageOrigin";
 import { HelpPage } from "@/features/help/HelpPage";

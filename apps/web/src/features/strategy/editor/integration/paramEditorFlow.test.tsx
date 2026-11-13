@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useStore } from "@tanstack/react-form";
-import type { ParamSpec } from "@pathfinder/shared";
+import type { ParamSpec } from "@strategist/shared";
 import { useParamForm, type ParamForm } from "../hooks/useParamForm";
 import { StringParam } from "../widgets/StringParam";
 import { CheckboxParam } from "../widgets/CheckboxParam";

@@ -1,4 +1,4 @@
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 /** One typed WDK parameter value, as the wire declares it. */
 export type ParamValue = NonNullable<Step["parameters"]>[string];

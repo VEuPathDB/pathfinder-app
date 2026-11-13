@@ -1,6 +1,6 @@
 import type { UIMessage } from "ai";
 import { readSubAgentStep } from "@veupathdb/assistant-client";
-import { toolSummaryPayloadSchema } from "@pathfinder/shared/generated/zod/toolSummaryPayloadSchema";
+import { toolSummaryPayloadSchema } from "@strategist/shared/generated/zod/toolSummaryPayloadSchema";
 
 import { tablePartFor } from "../content/parts/tableNumbers";
 import { exhibitAnchorId, exhibitLabel } from "./exhibits";

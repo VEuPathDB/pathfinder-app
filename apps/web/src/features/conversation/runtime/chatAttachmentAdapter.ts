@@ -4,7 +4,7 @@ import type {
   PendingAttachment,
   ThreadUserMessagePart,
 } from "@assistant-ui/react";
-import type { ModelCatalogEntry } from "@pathfinder/shared";
+import type { ModelCatalogEntry } from "@strategist/shared";
 
 import { acceptFor, attachmentKind, fileRefusal } from "@/lib/models/attachments";
 import { parseGeneCsv } from "@/lib/utils/parseGeneCsv";

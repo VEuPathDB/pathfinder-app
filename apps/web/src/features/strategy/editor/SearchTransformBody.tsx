@@ -1,6 +1,6 @@
 "use client";
 
-import type { Step, ParamSpec } from "@pathfinder/shared";
+import type { Step, ParamSpec } from "@strategist/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isHiddenParam, isAdvancedParam } from "./widgets/registry";
 import { SearchPicker } from "./components/SearchPicker";

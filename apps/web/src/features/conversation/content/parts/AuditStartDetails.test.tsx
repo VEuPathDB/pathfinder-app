@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import type { AuditStartCard } from "@pathfinder/shared/generated/types/AuditStartCard";
+import type { AuditStartCard } from "@strategist/shared/generated/types/AuditStartCard";
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 

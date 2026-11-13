@@ -4,9 +4,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { client } from "@/lib/api/client";
-import type { SaveSubstrategyRequest } from "@pathfinder/shared/generated/types/SaveSubstrategyRequest";
-import { openStrategy } from "@pathfinder/shared/generated/hooks/useOpenStrategy";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import type { SaveSubstrategyRequest } from "@strategist/shared/generated/types/SaveSubstrategyRequest";
+import { openStrategy } from "@strategist/shared/generated/hooks/useOpenStrategy";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
 import { toUserMessage } from "@/lib/api/errors";
 
 export interface SaveSubstrategyVars {

@@ -1,7 +1,7 @@
 "use client";
 
-import { combineOpEnum } from "@pathfinder/shared";
-import type { ColocationParams } from "@pathfinder/shared";
+import { combineOpEnum } from "@strategist/shared";
+import type { ColocationParams } from "@strategist/shared";
 import { VennPicker } from "./components/VennPicker";
 import { ColocationEditor, resolveParams } from "./components/ColocationEditor";
 

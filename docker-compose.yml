@@ -14,7 +14,7 @@ services:
       API_ENV: ${API_ENV:-production}
       API_SECRET_KEY: ${API_SECRET_KEY:-}
       DATABASE_URL: ${DATABASE_URL:-}
-      PATHFINDER_CHAT_PROVIDER: ${PATHFINDER_CHAT_PROVIDER:?Set PATHFINDER_CHAT_PROVIDER=default for real providers or use the test overlay for mock mode}
+      STRATEGIST_CHAT_PROVIDER: ${STRATEGIST_CHAT_PROVIDER:?Set STRATEGIST_CHAT_PROVIDER=default for real providers or use the test overlay for mock mode}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY; the Decisions API runs on it}
       DECISIONS_TIMEOUT_SECONDS: ${DECISIONS_TIMEOUT_SECONDS:-15}
       DECISIONS_VOCAB_MIN_CONFIDENCE: ${DECISIONS_VOCAB_MIN_CONFIDENCE:-0.5}
@@ -26,7 +26,7 @@ services:
       DEFAULT_TIER: ${DEFAULT_TIER:-balanced}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-/app/config/sites/qa.yml}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
-      PATHFINDER_SITE: ${PATHFINDER_SITE:-}
+      STRATEGIST_SITE: ${STRATEGIST_SITE:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
       # Accounted megabytes of per-site catalogs and semantic indexes one
@@ -86,7 +86,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    command: .venv/bin/python -m pathfinder.jobs.worker
+    command: bin/strategist-worker
     # The worker shares the API image but serves only its metrics, so the api
     # health check does not apply.
     # restart covers the boot window before the API applies the DB schema, and
@@ -104,7 +104,7 @@ services:
       API_ENV: ${API_ENV:-production}
       API_SECRET_KEY: ${API_SECRET_KEY:-}
       DATABASE_URL: ${DATABASE_URL:-}
-      PATHFINDER_CHAT_PROVIDER: ${PATHFINDER_CHAT_PROVIDER:?Set PATHFINDER_CHAT_PROVIDER=default for real providers or use the test overlay for mock mode}
+      STRATEGIST_CHAT_PROVIDER: ${STRATEGIST_CHAT_PROVIDER:?Set STRATEGIST_CHAT_PROVIDER=default for real providers or use the test overlay for mock mode}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY; the Decisions API runs on it}
       DECISIONS_TIMEOUT_SECONDS: ${DECISIONS_TIMEOUT_SECONDS:-15}
       DECISIONS_VOCAB_MIN_CONFIDENCE: ${DECISIONS_VOCAB_MIN_CONFIDENCE:-0.5}
@@ -120,7 +120,7 @@ services:
       MEMORY_ON_BY_DEFAULT: ${MEMORY_ON_BY_DEFAULT:-false}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-/app/config/sites/qa.yml}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
-      PATHFINDER_SITE: ${PATHFINDER_SITE:-}
+      STRATEGIST_SITE: ${STRATEGIST_SITE:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
       # Accounted megabytes of per-site catalogs and semantic indexes one

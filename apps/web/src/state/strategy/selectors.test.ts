@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 import { stepsById } from "./selectors";
 
 // The WeakMap cache keys on the steps ARRAY identity: the same array must not

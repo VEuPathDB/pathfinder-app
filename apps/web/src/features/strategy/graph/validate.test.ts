@@ -6,7 +6,7 @@ import {
   resolveRecordType,
   validateStrategySteps,
 } from "./validate";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 function step(partial: Partial<Step> & { id: string; displayName: string }): Step {
   return { isFiltered: false, ...partial };

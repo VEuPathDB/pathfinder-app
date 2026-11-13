@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { EdaViz } from "@pathfinder/shared";
+import type { EdaViz } from "@strategist/shared";
 
 import { Spinner } from "@/components/ui/spinner";
 import { edaViz } from "@/features/eda/api";

@@ -33194,7 +33194,7 @@
       "APIKeyCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "pathfinder-dev-login"
+        "name": "strategist-dev-login"
       },
       "HTTPBearer": {
         "type": "http",
@@ -33203,7 +33203,7 @@
       "APIKeyHeader": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-PathFinder-Service-Token"
+        "name": "X-Strategist-Service-Token"
       }
     }
   },

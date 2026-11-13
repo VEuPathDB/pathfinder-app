@@ -1,6 +1,6 @@
 "use client";
 
-import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
+import type { ConsultQuestion } from "@strategist/shared/generated/types/ConsultQuestion";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronLeft, ChevronRight, HelpCircle, Sparkles } from "lucide-react";
 

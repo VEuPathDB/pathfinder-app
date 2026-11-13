@@ -1,6 +1,6 @@
 "use client";
 
-import { replyLinksSchema } from "@pathfinder/shared/generated/zod/replyLinksSchema";
+import { replyLinksSchema } from "@strategist/shared/generated/zod/replyLinksSchema";
 import { createContext, use, type ComponentProps, type ReactElement } from "react";
 
 import type { StructuralPart } from "../parts";

@@ -1,4 +1,4 @@
-import type { EdaEntityCount } from "@pathfinder/shared";
+import type { EdaEntityCount } from "@strategist/shared";
 
 /** One entity clause, in the one format the trace and the figures share. The
  * display name is kept exactly as the wire gives it. */

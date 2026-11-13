@@ -1,6 +1,6 @@
 "use client";
 
-import type { TaskListItem } from "@pathfinder/shared/generated/types/TaskListItem";
+import type { TaskListItem } from "@strategist/shared/generated/types/TaskListItem";
 import { motion } from "motion/react";
 
 import { useEntrance } from "@/lib/motion";

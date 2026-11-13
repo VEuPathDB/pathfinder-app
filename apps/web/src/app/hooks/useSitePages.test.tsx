@@ -3,9 +3,9 @@
  */
 import { describe, expect, it } from "vitest";
 import { renderHook } from "@testing-library/react";
-import type { SiteResponse } from "@pathfinder/shared";
-import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
-import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
+import type { SiteResponse } from "@strategist/shared";
+import { systemConfigQueryOptions } from "@strategist/shared/generated/hooks/useSystemConfig";
+import type { SystemConfigResponse } from "@strategist/shared/generated/types/SystemConfigResponse";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { createTestWrapper } from "@/lib/query/testing";

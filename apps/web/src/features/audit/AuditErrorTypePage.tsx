@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { ErrorTypeView } from "@pathfinder/shared/generated/types/ErrorTypeView";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { ErrorTypeView } from "@strategist/shared/generated/types/ErrorTypeView";
 
 import { auditWordsOptions } from "@/lib/api/audits";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";

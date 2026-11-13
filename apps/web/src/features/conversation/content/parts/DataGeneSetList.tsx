@@ -2,7 +2,7 @@ import {
   siteShortName,
   type ListedGeneSet,
   type ListedGeneSets,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 

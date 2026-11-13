@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The MCP server verifies with the client library's bearer verifier, and publishes RFC 9728
-description: veupathdb-wdk-mcp reuses the client library's ES512 verifier for the VEuPathDB token, names the OAuth subject as the caller, names three credential modes on the wire, keeps its service secrets in a registry separate from the API's, and builds its protected-resource document and 401 challenge from the mcp SDK. A second JWKS client, reusing PATHFINDER_SERVICE_TOKENS, accepting a deployment credential from a caller, and hand-rolling the RFC 9728 document were all rejected.
+description: veupathdb-wdk-mcp reuses the client library's ES512 verifier for the VEuPathDB token, names the OAuth subject as the caller, names three credential modes on the wire, keeps its service secrets in a registry separate from the API's, and builds its protected-resource document and 401 challenge from the mcp SDK. A second JWKS client, reusing STRATEGIST_SERVICE_TOKENS, accepting a deployment credential from a caller, and hand-rolling the RFC 9728 document were all rejected.
 tags: [security, auth, veupathdb, oauth, mcp, transport]
 generated: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
@@ -52,7 +52,7 @@ identity provider rather than blaming the credential.
 table on every admission, which a second deployment of the server cannot do,
 and the id was only ever stringified into `client_id`.
 
-**Reusing `PATHFINDER_SERVICE_TOKENS` for the MCP server's service mode.** A
+**Reusing `STRATEGIST_SERVICE_TOKENS` for the MCP server's service mode.** A
 secret a caller sends to an MCP server would then also authenticate to the
 application's own API as that application. The MCP server therefore reads a
 separate `WDK_MCP_SERVICE_TOKENS`, parsed by the same registry type.

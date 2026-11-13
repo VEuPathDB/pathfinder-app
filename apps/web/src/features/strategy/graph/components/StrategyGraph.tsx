@@ -3,7 +3,7 @@
 import { ReactFlowProvider } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useState } from "react";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { Editor } from "@/features/strategy/editor/Editor";
 import {
   CanvasTopbar,

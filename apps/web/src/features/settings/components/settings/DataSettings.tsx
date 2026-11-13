@@ -3,12 +3,12 @@
 /** The four tiers of data clearing a user can ask for, widest last. */
 import { useState } from "react";
 import { toast } from "sonner";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 import { requestVoid } from "@/lib/api/http";
-import { listStrategies } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
-import { purgeUserDataEndpoint } from "@pathfinder/shared/generated/hooks/usePurgeUserDataEndpoint";
-import type { PurgeCounts } from "@pathfinder/shared/generated/types/PurgeCounts";
+import { listStrategies } from "@strategist/shared/generated/hooks/useListStrategies";
+import { deleteStrategy } from "@strategist/shared/generated/hooks/useDeleteStrategy";
+import { purgeUserDataEndpoint } from "@strategist/shared/generated/hooks/usePurgeUserDataEndpoint";
+import type { PurgeCounts } from "@strategist/shared/generated/types/PurgeCounts";
 import { useAsyncAction } from "@/features/settings/asyncAction";
 import { Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";

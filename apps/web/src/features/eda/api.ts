@@ -1,18 +1,18 @@
 "use client";
 
 import { queryOptions } from "@tanstack/react-query";
-import type { ConversationEdaResponse } from "@pathfinder/shared/generated/types/ConversationEdaResponse";
-import type { EdaAnalysisPatchResponse } from "@pathfinder/shared/generated/types/EdaAnalysisPatchResponse";
-import type { EdaOwnDatasetListResponse } from "@pathfinder/shared/generated/types/EdaOwnDatasetListResponse";
-import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
-import type { EdaVizRequest } from "@pathfinder/shared/generated/types/EdaVizRequest";
-import type { EdaVizResponse } from "@pathfinder/shared/generated/types/EdaVizResponse";
-import type { PatchConversationEdaMutationRequest } from "@pathfinder/shared/generated/types/PatchConversationEda";
-import { conversationEdaResponseSchema } from "@pathfinder/shared/generated/zod/conversationEdaResponseSchema";
-import { edaAnalysisPatchResponseSchema } from "@pathfinder/shared/generated/zod/edaAnalysisPatchResponseSchema";
-import { edaOwnDatasetListResponseSchema } from "@pathfinder/shared/generated/zod/edaOwnDatasetListResponseSchema";
-import { edaStudyListResponseSchema } from "@pathfinder/shared/generated/zod/edaStudyListResponseSchema";
-import { edaVizResponseSchema } from "@pathfinder/shared/generated/zod/edaVizResponseSchema";
+import type { ConversationEdaResponse } from "@strategist/shared/generated/types/ConversationEdaResponse";
+import type { EdaAnalysisPatchResponse } from "@strategist/shared/generated/types/EdaAnalysisPatchResponse";
+import type { EdaOwnDatasetListResponse } from "@strategist/shared/generated/types/EdaOwnDatasetListResponse";
+import type { EdaStudyListResponse } from "@strategist/shared/generated/types/EdaStudyListResponse";
+import type { EdaVizRequest } from "@strategist/shared/generated/types/EdaVizRequest";
+import type { EdaVizResponse } from "@strategist/shared/generated/types/EdaVizResponse";
+import type { PatchConversationEdaMutationRequest } from "@strategist/shared/generated/types/PatchConversationEda";
+import { conversationEdaResponseSchema } from "@strategist/shared/generated/zod/conversationEdaResponseSchema";
+import { edaAnalysisPatchResponseSchema } from "@strategist/shared/generated/zod/edaAnalysisPatchResponseSchema";
+import { edaOwnDatasetListResponseSchema } from "@strategist/shared/generated/zod/edaOwnDatasetListResponseSchema";
+import { edaStudyListResponseSchema } from "@strategist/shared/generated/zod/edaStudyListResponseSchema";
+import { edaVizResponseSchema } from "@strategist/shared/generated/zod/edaVizResponseSchema";
 
 import { requestJson } from "@/lib/api/http";
 

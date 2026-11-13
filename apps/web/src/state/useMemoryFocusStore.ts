@@ -3,7 +3,7 @@
  * modal opens on it and drops it when it closes.
  */
 
-import type { MemoryKind } from "@pathfinder/shared";
+import type { MemoryKind } from "@strategist/shared";
 
 import { createStore } from "./middleware";
 

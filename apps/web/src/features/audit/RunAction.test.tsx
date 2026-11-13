@@ -5,10 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
-import { startAuditRun } from "@pathfinder/shared/generated/hooks/useStartAuditRun";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
+import { startAuditRun } from "@strategist/shared/generated/hooks/useStartAuditRun";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
 
-vi.mock("@pathfinder/shared/generated/hooks/useStartAuditRun", () => ({
+vi.mock("@strategist/shared/generated/hooks/useStartAuditRun", () => ({
   startAuditRun: vi.fn(),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));

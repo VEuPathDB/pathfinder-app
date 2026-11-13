@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { combineOpEnum } from "@pathfinder/shared";
+import { combineOpEnum } from "@strategist/shared";
 import {
   OFFERED_OPERATORS,
   RETIRED_OPERATOR_LABELS,

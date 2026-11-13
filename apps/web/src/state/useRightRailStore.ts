@@ -148,7 +148,7 @@ export const useRightRailStore = createPersistedStore<RightRailState>(
     },
   }),
   {
-    name: "pathfinder-right-rail",
+    name: "strategist-right-rail",
     partialize: (s) => ({
       openPanel: s.openPanel,
       lastSeen: s.lastSeen,
@@ -191,7 +191,7 @@ export const useLeftSidebarStore = createPersistedStore<LeftSidebarState>(
     setWidth: (width) => set({ width }),
   }),
   {
-    name: "pathfinder-left-sidebar",
+    name: "strategist-left-sidebar",
     partialize: (s) => ({ collapsed: s.collapsed }),
   },
 );

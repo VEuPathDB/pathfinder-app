@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyOperationEndpointMutationRequestSchema } from "@pathfinder/shared/generated/zod/applyOperationEndpointSchema";
+import { applyOperationEndpointMutationRequestSchema } from "@strategist/shared/generated/zod/applyOperationEndpointSchema";
 import { APIError } from "./http";
 import {
   notOnSiteRefusal,

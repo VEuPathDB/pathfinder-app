@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { edaAnalysisStateSchema } from "@pathfinder/shared/generated/zod/edaAnalysisStateSchema";
-import { edaSubsetPreviewPartSchema } from "@pathfinder/shared/generated/zod/edaSubsetPreviewPartSchema";
-import { edaVizPartSchema } from "@pathfinder/shared/generated/zod/edaVizPartSchema";
+import { edaAnalysisStateSchema } from "@strategist/shared/generated/zod/edaAnalysisStateSchema";
+import { edaSubsetPreviewPartSchema } from "@strategist/shared/generated/zod/edaSubsetPreviewPartSchema";
+import { edaVizPartSchema } from "@strategist/shared/generated/zod/edaVizPartSchema";
 
 import { dataPartComponents } from "./contentComponents";
 import { edaDataPartComponents } from "./edaDataParts";

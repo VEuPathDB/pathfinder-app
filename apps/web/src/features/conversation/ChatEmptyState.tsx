@@ -4,7 +4,7 @@ import { AuiIf, ThreadPrimitive } from "@assistant-ui/react";
 import { motion } from "motion/react";
 import { Settings2, X } from "lucide-react";
 
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@strategist/shared";
 
 import suggestedQuestions from "@/features/conversation/data/suggestedQuestions.json";
 import {

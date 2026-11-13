@@ -170,7 +170,7 @@ protocol's own text, reasoning and tool parts, Strategist emits typed
      - Tokens and cost for the turn and for the Lead
 
 The union of kinds the frontend knows is ``DataPartKind`` in
-``@pathfinder/shared``. An unknown kind reaches the fallback renderer rather
+``@strategist/shared``. An unknown kind reaches the fallback renderer rather
 than breaking the thread.
 
 Cross-thread Memory

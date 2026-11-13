@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/react/shallow";
-import type { ValidationErrors, Step } from "@pathfinder/shared";
+import type { ValidationErrors, Step } from "@strategist/shared";
 import { useStrategyStore } from "./store";
 import {
   STEP_LIFECYCLE_STATE_NAMES,

@@ -3,7 +3,7 @@ import {
   combineOpEnum,
   type CombineOp,
   type Step,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 import { DEFAULT_COLOCATION } from "./editor/schema/colocationSchema";
 
 /** The labels an earlier release gave, which a stored combine may still carry. */

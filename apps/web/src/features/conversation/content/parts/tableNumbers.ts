@@ -5,8 +5,8 @@ import type {
   EdaStatisticsPart,
   ScoredComparison,
   VariantComparison,
-} from "@pathfinder/shared";
-import { edaStatisticsPartSchema } from "@pathfinder/shared/generated/zod/edaStatisticsPartSchema";
+} from "@strategist/shared";
+import { edaStatisticsPartSchema } from "@strategist/shared/generated/zod/edaStatisticsPartSchema";
 
 import { isCurrentWire } from "../currentWire";
 import { statisticExhibitKind } from "./statisticExhibit";

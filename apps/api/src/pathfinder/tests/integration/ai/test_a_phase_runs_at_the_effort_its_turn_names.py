@@ -69,7 +69,7 @@ def _deps(phase_reasoning: dict[str, ReasoningEffort]) -> LeadDeps:
 @pytest.fixture(autouse=True)
 def _real_provider(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """The mock provider skips the settings path these tests read."""
-    monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "default")
+    monkeypatch.setenv("STRATEGIST_CHAT_PROVIDER", "default")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key-for-model-translation")
     get_settings.cache_clear()
     yield

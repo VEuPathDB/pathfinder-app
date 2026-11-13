@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import type { AuditStartCard } from "@pathfinder/shared/generated/types/AuditStartCard";
+import type { AuditStartCard } from "@strategist/shared/generated/types/AuditStartCard";
 
 const NUMBER = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 

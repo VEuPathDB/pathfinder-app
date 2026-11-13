@@ -5,7 +5,7 @@
  * Falls back to null for unknown providers.
  */
 
-import type { ModelProvider } from "@pathfinder/shared";
+import type { ModelProvider } from "@strategist/shared";
 
 function OpenAILogo({ size, className }: { size: number; className?: string }) {
   return (

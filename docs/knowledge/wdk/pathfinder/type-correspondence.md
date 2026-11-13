@@ -23,7 +23,7 @@ absence in the tables below carries one of two words:
   the drift risk it is.
 
 A cell naming a type that is *not* the corresponding type - `Strategy` in
-`@pathfinder/shared` is not a WDK strategy - says so in the cell. Sharing a name
+`@strategist/shared` is not a WDK strategy - says so in the cell. Sharing a name
 is exactly how the wrong type gets used.
 
 # Two splits Strategist makes that upstream does not
@@ -51,7 +51,7 @@ by flattening the tree into parent pointers everywhere except the WDK boundary
 
 # The structural concepts
 
-| Concept | WDK Java | `wdk-client` | Strategist Pydantic | `@pathfinder/shared` |
+| Concept | WDK Java | `wdk-client` | Strategist Pydantic | `@strategist/shared` |
 |---|---|---|---|---|
 | strategy | [`Strategy`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Strategy.java#L39-L47) | [`StrategyDetails`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L120-L124) extending [`StrategySummary`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L103-L119) | `WDKStrategyDetails` / `WDKStrategySummary` | **none, deliberately.** `Strategy` in `types.ts` is a conversation, not a WDK strategy - see below |
 | step tree | **no dedicated class.** In memory it is `TreeNode<Step>` from fgputil, built in [`Strategy`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Strategy.java#L310-L335); the JSON is written by [`StepFormatter.formatAsStepTree`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepFormatter.java#L129-L140) | [`StepTree`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L145-L150) | `WDKStepTree` | **none, deliberately.** Flattened to `StepResponse.primaryInputStepId` / `secondaryInputStepId` |
@@ -68,7 +68,7 @@ by flattening the tree into parent pointers everywhere except the WDK boundary
 
 Two rows repay a second look.
 
-**`Search` and `RecordType` in `@pathfinder/shared` are listing entries, not
+**`Search` and `RecordType` in `@strategist/shared` are listing entries, not
 documents.** `SearchResponse` is `{name, displayName, description, recordType}`
 and `RecordTypeResponse` is that minus `recordType`. Neither can express what
 WDK's `Question` carries - `paramNames`, `groups`, `allowedPrimaryInputRecordClassNames`,
@@ -96,7 +96,7 @@ and nothing else (WDK-PARAM-001 in
 [`ParamFormatterFactory`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatterFactory.java#L18-L55)
 dispatches on to produce that `type` string.
 
-| `type` | WDK Java | `wdk-client` | Strategist spec / value | `@pathfinder/shared` value |
+| `type` | WDK Java | `wdk-client` | Strategist spec / value | `@strategist/shared` value |
 |---|---|---|---|---|
 | `string` | [`StringParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/StringParam.java#L171-L203) | [`StringParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L66-L71) | `WDKStringParam` / `StringValue` | `StringValue` |
 | `number` | [`NumberParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/NumberParam.java#L32-L40) | [`NumberParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L188-L193) | `WDKNumberParam` / `NumberValue` | `NumberValue` |

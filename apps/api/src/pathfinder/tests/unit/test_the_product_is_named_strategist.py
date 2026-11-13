@@ -11,7 +11,7 @@ _APP = Path(__file__).resolve().parents[2]
 
 _RETIRED = re.compile(r"\bPath[Ff]inder\b")
 
-_WIRE_NAMES = frozenset({SERVICE_AUTH_HEADER, VEUPATHDB_USER_AGENT})
+_WIRE_NAMES = frozenset({VEUPATHDB_USER_AGENT})
 
 
 def _application_files(pattern: str) -> list[Path]:
@@ -50,6 +50,9 @@ def test_no_prompt_names_the_retired_product() -> None:
     assert found == []
 
 
-def test_the_wire_names_are_still_the_ones_clients_send() -> None:
-    assert SERVICE_AUTH_HEADER == "X-PathFinder-Service-Token"
+def test_a_service_client_names_itself_under_the_new_product() -> None:
+    assert SERVICE_AUTH_HEADER == "X-Strategist-Service-Token"
+
+
+def test_the_sites_still_see_the_user_agent_their_operators_know() -> None:
     assert VEUPATHDB_USER_AGENT.startswith("PathFinder/")

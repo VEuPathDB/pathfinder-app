@@ -3,7 +3,7 @@
  */
 import { deflateSync, inflateSync } from "node:zlib";
 import { afterEach, describe, it, expect, vi } from "vitest";
-import type { ModelCatalogEntry } from "@pathfinder/shared";
+import type { ModelCatalogEntry } from "@strategist/shared";
 
 import { ChatAttachmentAdapter } from "./chatAttachmentAdapter";
 

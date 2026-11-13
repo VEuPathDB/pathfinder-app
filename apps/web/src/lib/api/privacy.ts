@@ -3,7 +3,7 @@ import {
   type DataNoticeContinue,
   type PrivacySettings,
   type PrivacyUpdate,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { buildUrl, getAuthHeaders } from "@/lib/api/http";
 

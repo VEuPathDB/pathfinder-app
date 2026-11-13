@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, it, expect } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 
-import type { RecalledMemoriesPayload, RecalledMemory } from "@pathfinder/shared";
+import type { RecalledMemoriesPayload, RecalledMemory } from "@strategist/shared";
 
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { useSessionStore } from "@/state/useSessionStore";

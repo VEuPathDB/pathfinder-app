@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Check, ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
-import type { EdaViz } from "@pathfinder/shared";
-import { edaVizPartSchema } from "@pathfinder/shared/generated/zod/edaVizPartSchema";
+import type { EdaViz } from "@strategist/shared";
+import { edaVizPartSchema } from "@strategist/shared/generated/zod/edaVizPartSchema";
 
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/features/conversation/thread/Figure";

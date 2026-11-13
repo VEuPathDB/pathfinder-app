@@ -16,11 +16,11 @@ import {
   type MemoryListResponse,
   type SiteResponse,
   siteShortName,
-} from "@pathfinder/shared";
-import type { ReadinessResponse } from "@pathfinder/shared/generated/types/ReadinessResponse";
-import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
-import type { TaskListResponse } from "@pathfinder/shared/generated/types/TaskListResponse";
-import type { WdkStrategyListItem } from "@pathfinder/shared/generated/types/WdkStrategyListItem";
+} from "@strategist/shared";
+import type { ReadinessResponse } from "@strategist/shared/generated/types/ReadinessResponse";
+import type { SystemConfigResponse } from "@strategist/shared/generated/types/SystemConfigResponse";
+import type { TaskListResponse } from "@strategist/shared/generated/types/TaskListResponse";
+import type { WdkStrategyListItem } from "@strategist/shared/generated/types/WdkStrategyListItem";
 import * as fs from "node:fs";
 import * as path from "node:path";
 

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { ModelCatalogEntry, ModelProvider } from "@pathfinder/shared";
-import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
+import type { ModelCatalogEntry, ModelProvider } from "@strategist/shared";
+import { listModelsQueryOptions } from "@strategist/shared/generated/hooks/useListModels";
 import { Modal } from "@/lib/components/Modal";
 import { ProviderIcon } from "@/lib/components/ProviderIcon";
 import { formatCompactClean, formatPrice } from "@/features/settings/format";

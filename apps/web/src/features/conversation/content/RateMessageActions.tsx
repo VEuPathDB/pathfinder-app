@@ -8,10 +8,10 @@ import { toast } from "sonner";
 import { MessageAction } from "@/components/ai-elements/message";
 import { toUserMessage } from "@/lib/api/errors";
 import { isServerMessageId } from "@/lib/conversations/messageIds";
-import { clearMessageRating } from "@pathfinder/shared/generated/hooks/useClearMessageRating";
-import { listMessageRatingsQueryOptions } from "@pathfinder/shared/generated/hooks/useListMessageRatings";
-import { rateMessage } from "@pathfinder/shared/generated/hooks/useRateMessage";
-import type { Rating } from "@pathfinder/shared/generated/types/Rating";
+import { clearMessageRating } from "@strategist/shared/generated/hooks/useClearMessageRating";
+import { listMessageRatingsQueryOptions } from "@strategist/shared/generated/hooks/useListMessageRatings";
+import { rateMessage } from "@strategist/shared/generated/hooks/useRateMessage";
+import type { Rating } from "@strategist/shared/generated/types/Rating";
 
 import { useConversationId } from "../useConversationId";
 

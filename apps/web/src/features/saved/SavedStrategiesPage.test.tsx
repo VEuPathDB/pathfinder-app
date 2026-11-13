@@ -6,22 +6,22 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
-import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
-import { getSavedStrategyConsumerCountsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetSavedStrategyConsumerCountsSuspense";
-import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import type { ConversationResponse } from "@strategist/shared/generated/types/ConversationResponse";
+import { getSavedStrategyConsumerCountsSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useGetSavedStrategyConsumerCountsSuspense";
+import { listStrategiesQueryOptions } from "@strategist/shared/generated/hooks/useListStrategies";
 
 import { SavedStrategiesPage } from "./SavedStrategiesPage";
-import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
-import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
+import { deleteStrategy } from "@strategist/shared/generated/hooks/useDeleteStrategy";
+import { beginStrategy } from "@strategist/shared/generated/hooks/useBeginStrategy";
 import { insertSavedStrategy } from "@/lib/api/conversations";
 import { toast } from "sonner";
 import { chatRoot, chatUrl } from "@/lib/routes";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
-vi.mock("@pathfinder/shared/generated/hooks/useDeleteStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useDeleteStrategy", () => ({
   deleteStrategy: vi.fn(() => Promise.resolve({})),
 }));
-vi.mock("@pathfinder/shared/generated/hooks/useBeginStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useBeginStrategy", () => ({
   beginStrategy: vi.fn(() => Promise.resolve({})),
 }));
 vi.mock("@/lib/api/conversations", () => ({

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import { cn } from "@/lib/utils/cn";
 import { useEntrance } from "@/lib/motion";
 import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";

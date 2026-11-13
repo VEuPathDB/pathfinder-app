@@ -22,13 +22,13 @@ async def site_login(destination: str = "") -> RedirectResponse:
     settings = get_settings()
     try:
         token = await password_login(
-            settings.pathfinder_site,
+            settings.strategist_site,
             settings.wdk_dev_email,
             settings.wdk_dev_password.get_secret_value(),
         )
     except httpx.HTTPError as e:
         raise SiteUnavailableError(
-            settings.pathfinder_site, site_failure_reason(e)
+            settings.strategist_site, site_failure_reason(e)
         ) from e
     if not token:
         raise UnauthorizedError(detail="The development account did not sign in")

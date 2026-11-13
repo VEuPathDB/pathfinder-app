@@ -1,4 +1,4 @@
-import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
+import type { EdaComparison } from "@strategist/shared/generated/types/EdaComparison";
 
 import type { ChartTokens } from "./chartTheme";
 import { higherIn } from "@/lib/eda/comparison";

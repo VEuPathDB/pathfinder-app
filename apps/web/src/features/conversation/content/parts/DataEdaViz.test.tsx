@@ -21,7 +21,7 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 }));
 
 import type { ReactElement, ReactNode } from "react";
-import type { EdaViz } from "@pathfinder/shared";
+import type { EdaViz } from "@strategist/shared";
 
 import { useEdaStore } from "@/state/eda";
 import {

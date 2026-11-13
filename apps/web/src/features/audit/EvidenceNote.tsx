@@ -1,5 +1,5 @@
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { EvidenceView } from "@strategist/shared/generated/types/EvidenceView";
 
 export function EvidenceNote({
   evidence,

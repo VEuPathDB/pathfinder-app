@@ -42,7 +42,7 @@ FABLE = "anthropic:claude-fable-5-1"
 def _cloud_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     allow_requests_to_the_wire(monkeypatch)
     settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "openai", raising=False)
+    monkeypatch.setattr(settings, "strategist_chat_provider", "openai", raising=False)
     monkeypatch.setattr(settings, "openai_api_key", "deployment-openai")
     monkeypatch.setattr(settings, "default_provider", "openai", raising=False)
 
@@ -185,7 +185,7 @@ def test_the_mock_deployment_runs_the_mock_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        get_settings(), "pathfinder_chat_provider", "mock", raising=False
+        get_settings(), "strategist_chat_provider", "mock", raising=False
     )
 
     resolved = resolve_explore_model_context(

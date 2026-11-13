@@ -192,7 +192,7 @@ class TestTheOtherCeilingsHold:
 def _real_provider(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """These tests exercise the real model-translation path; the suite-wide
     default provider is ``mock``, which short-circuits the override."""
-    monkeypatch.setenv("PATHFINDER_CHAT_PROVIDER", "default")
+    monkeypatch.setenv("STRATEGIST_CHAT_PROVIDER", "default")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key-for-model-translation")
     get_settings.cache_clear()
     yield

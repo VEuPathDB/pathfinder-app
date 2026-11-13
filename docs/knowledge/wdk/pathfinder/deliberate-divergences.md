@@ -156,7 +156,7 @@ particular deserves a decision or a test of its own.
 
 Rule: [WDK-MAP-006](rules/pathfinder-mapping.md).
 
-# 6. `@pathfinder/shared` has no WDK type in it
+# 6. `@strategist/shared` has no WDK type in it
 
 **WDK.** `wdk-client` exports `StrategyDetails`, `Step`, `SearchConfig`,
 [`Answer`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L361-L376)
@@ -164,7 +164,7 @@ and
 [`Reporter`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L45-L52),
 because it is a client for WDK.
 
-**Strategist.** None of those has a counterpart in `@pathfinder/shared`. The
+**Strategist.** None of those has a counterpart in `@strategist/shared`. The
 browser sees `StepResponse`, `ConversationResponse` and `RecordsResponse` -
 Strategist's own shapes - plus eight WDK-*shaped* value types that are owned by
 `domain/` and carry no I/O. The full cell-by-cell account is in

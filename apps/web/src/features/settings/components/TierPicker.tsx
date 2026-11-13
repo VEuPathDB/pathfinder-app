@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
+import type { TierPreset } from "@strategist/shared/generated/types/TierPreset";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils/cn";
 

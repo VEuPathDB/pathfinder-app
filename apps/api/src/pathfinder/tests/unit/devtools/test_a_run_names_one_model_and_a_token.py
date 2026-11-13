@@ -110,7 +110,7 @@ def test_outside_a_pinned_run_every_role_resolves_as_before() -> None:
 async def test_the_title_generator_builds_on_the_pinned_model(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "default")
     built: list[str] = []
 
     def _keyed(model_id: str) -> Model:
@@ -149,7 +149,7 @@ def test_the_note_compactor_builds_on_the_pinned_model(
 def test_the_injection_judge_is_built_on_the_model_in_force(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "default")
     built: list[str] = []
 
     def _deployment(model_id: str) -> Model:

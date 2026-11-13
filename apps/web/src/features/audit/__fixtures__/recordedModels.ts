@@ -1,4 +1,4 @@
-import { findingModelsSchema } from "@pathfinder/shared/generated/zod/findingModelsSchema";
+import { findingModelsSchema } from "@strategist/shared/generated/zod/findingModelsSchema";
 
 import recorded from "./recordedModels.json";
 

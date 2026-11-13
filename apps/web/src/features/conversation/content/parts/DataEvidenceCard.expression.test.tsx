@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import type { EvidenceCard, ExpressionFit } from "@pathfinder/shared";
+import type { EvidenceCard, ExpressionFit } from "@strategist/shared";
 
 import { DataEvidenceCard } from "./DataEvidenceCard";
 import { EVIDENCE_CARD } from "./evidenceCardFixture";

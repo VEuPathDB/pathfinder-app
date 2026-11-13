@@ -5,7 +5,7 @@
  * means containment.
  */
 
-import type { Step, StepKind } from "@pathfinder/shared";
+import type { Step, StepKind } from "@strategist/shared";
 import { inferStepKind } from "@/features/strategy/graph";
 
 // Public types

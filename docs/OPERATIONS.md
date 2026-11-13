@@ -19,7 +19,7 @@ Every command below runs as root on the host that runs the stage. Replace `dev` 
 |---|---|---|---|
 | `pathfinder-db@` | `docker.io/pgvector/pgvector:pg16` | Postgres with pgvector: every stored record, the job queue, the embedding index | nothing |
 | `pathfinder-api@` | `docker.io/veupathdb/pathfinder-api` | The HTTP API on 8000. Migrates the database at start, loads the site catalogs, writes the embedding index | db (and pulls in the worker) |
-| `pathfinder-worker@` | `pathfinder-api`, `Exec=... -m pathfinder.jobs.worker` | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
+| `pathfinder-worker@` | `pathfinder-api`, `Exec=bin/strategist-worker` (the image's command for the worker; a quadlet that still names `-m pathfinder.jobs.worker` starts the same process) | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
 | `pathfinder-wdk-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for an assistant that declares the source | db |
 | `pathfinder-research-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp.research` | Literature and web search over MCP on 8110 | searxng |
 | `pathfinder-searxng@` | `docker.io/searxng/searxng` | The web search engine research-mcp asks first, on 8080 | nothing |
@@ -155,7 +155,7 @@ uncomment the line (a pull request to `webservices-quadlets`).
 | name | used by | what it does |
 |---|---|---|
 | `GEMINI_API_KEY` | api, worker | Lets the deployment pay for Gemini models. |
-| `SERVICE_TOKENS` (as `PATHFINDER_SERVICE_TOKENS`) | api | Applications that call the api in the `X-PathFinder-Service-Token` header, as `app_id:secret[,...]`. Rotating one breaks only that caller. |
+| `SERVICE_TOKENS` (as `STRATEGIST_SERVICE_TOKENS`) | api | Applications that call the api in the `X-Strategist-Service-Token` header, as `app_id:secret[,...]`. Rotating one breaks only that caller. |
 | `S2_API_KEY` (as `RESEARCH_MCP_S2_API_KEY`) | research-mcp | Raises the Semantic Scholar rate limit. |
 | `NCBI_API_KEY` (as `RESEARCH_MCP_NCBI_API_KEY`) | research-mcp | Raises the NCBI E-utilities (PubMed) rate limit. |
 

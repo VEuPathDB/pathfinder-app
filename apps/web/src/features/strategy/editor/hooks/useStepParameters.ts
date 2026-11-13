@@ -1,6 +1,6 @@
 "use client";
 
-import type { ParamSpec, Search, StepKind } from "@pathfinder/shared";
+import type { ParamSpec, Search, StepKind } from "@strategist/shared";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import { useParamSpecs } from "@/lib/hooks/useParamSpecs";
 import { isInputStepParam } from "@/features/strategy/parameters/spec";

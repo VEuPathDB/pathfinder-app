@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@strategist/shared";
 
 const fitViewMock = vi.fn();
 const zoomInMock = vi.fn();

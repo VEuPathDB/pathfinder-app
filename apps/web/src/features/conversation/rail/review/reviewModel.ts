@@ -1,8 +1,8 @@
-import type { EvidenceCard, SampledGene, Strategy } from "@pathfinder/shared";
-import type { GroundedConstraint } from "@pathfinder/shared/generated/types/GroundedConstraint";
-import type { NodeResult } from "@pathfinder/shared/generated/types/NodeResult";
-import type { VerificationDigest } from "@pathfinder/shared/generated/types/VerificationDigest";
-import type { VerificationSection } from "@pathfinder/shared/generated/types/VerificationSection";
+import type { EvidenceCard, SampledGene, Strategy } from "@strategist/shared";
+import type { GroundedConstraint } from "@strategist/shared/generated/types/GroundedConstraint";
+import type { NodeResult } from "@strategist/shared/generated/types/NodeResult";
+import type { VerificationDigest } from "@strategist/shared/generated/types/VerificationDigest";
+import type { VerificationSection } from "@strategist/shared/generated/types/VerificationSection";
 
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { countNoun } from "@/lib/utils/countNoun";

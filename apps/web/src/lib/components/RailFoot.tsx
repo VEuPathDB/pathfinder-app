@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PathFinderMark } from "@/lib/components/PathFinderMark";
+import { StrategistMark } from "@/lib/components/StrategistMark";
 import { helpUrl } from "@/lib/routes";
 
 export function RailFoot({ onOpenSettings }: { onOpenSettings: () => void }) {
@@ -35,7 +35,7 @@ export function RailFoot({ onOpenSettings }: { onOpenSettings: () => void }) {
         </TooltipTrigger>
         <TooltipContent side="right">Settings</TooltipContent>
       </Tooltip>
-      <PathFinderMark />
+      <StrategistMark />
     </div>
   );
 }

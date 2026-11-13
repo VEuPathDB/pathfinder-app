@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 
-import type { ScoredComparison, ScoredVariant } from "@pathfinder/shared";
+import type { ScoredComparison, ScoredVariant } from "@strategist/shared";
 
 import {
   ExhibitTable,

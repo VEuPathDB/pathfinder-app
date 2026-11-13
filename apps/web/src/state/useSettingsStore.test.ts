@@ -33,13 +33,13 @@ describe("state/useSettingsStore", () => {
 
     expect(document.documentElement.style.fontSize).toBe("130%");
     expect(
-      JSON.parse(window.localStorage.getItem("pathfinder-settings-20260625") ?? "{}"),
+      JSON.parse(window.localStorage.getItem("strategist-settings-20260625") ?? "{}"),
     ).toMatchObject({ state: { textScale: 130 } });
   });
 
   it("reads back a stored text size and applies it to the root", async () => {
     window.localStorage.setItem(
-      "pathfinder-settings-20260625",
+      "strategist-settings-20260625",
       JSON.stringify({ state: { textScale: 115 }, version: 0 }),
     );
 
@@ -52,7 +52,7 @@ describe("state/useSettingsStore", () => {
   it("reads back the default text size for a stored size it does not offer", async () => {
     useSettingsStore.getState().setTextScale(90);
     window.localStorage.setItem(
-      "pathfinder-settings-20260625",
+      "strategist-settings-20260625",
       JSON.stringify({ state: { textScale: 250 }, version: 0 }),
     );
 
@@ -122,7 +122,7 @@ describe("state/useSettingsStore", () => {
 
   it("reads back no stored pick for a role the researcher cannot pick", async () => {
     window.localStorage.setItem(
-      "pathfinder-settings-20260625",
+      "strategist-settings-20260625",
       JSON.stringify({
         state: {
           showRawToolCalls: true,
@@ -151,7 +151,7 @@ describe("state/useSettingsStore", () => {
 
   it("resetAllPersistedSettings removes the stored model picks", () => {
     useSettingsStore.getState().setPhaseModel("lead", OPENAI_FLAGSHIP.id);
-    expect(window.localStorage.getItem("pathfinder-settings-20260625")).toContain(
+    expect(window.localStorage.getItem("strategist-settings-20260625")).toContain(
       OPENAI_FLAGSHIP.id,
     );
 

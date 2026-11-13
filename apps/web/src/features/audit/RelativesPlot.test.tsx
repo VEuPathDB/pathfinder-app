@@ -3,9 +3,9 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { EvidenceView } from "@pathfinder/shared/generated/types/EvidenceView";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { RelativesEvidence } from "@pathfinder/shared/generated/types/RelativesEvidence";
+import type { EvidenceView } from "@strategist/shared/generated/types/EvidenceView";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { RelativesEvidence } from "@strategist/shared/generated/types/RelativesEvidence";
 
 import {
   RELATIVES_NO_REFERENCE_ROW,

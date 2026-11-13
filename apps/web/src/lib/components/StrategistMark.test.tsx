@@ -4,11 +4,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { healthCheckQueryKey } from "@pathfinder/shared/generated/hooks/useHealthCheck";
+import { healthCheckQueryKey } from "@strategist/shared/generated/hooks/useHealthCheck";
 
 import { createTestWrapper } from "@/lib/query/testing";
 
-import { PathFinderMark } from "./PathFinderMark";
+import { StrategistMark } from "./StrategistMark";
 
 const HEALTH = {
   status: "healthy",
@@ -25,7 +25,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function renderMark() {
   const { queryClient, Wrapper } = createTestWrapper();
-  render(<PathFinderMark />, { wrapper: Wrapper });
+  render(<StrategistMark />, { wrapper: Wrapper });
   return queryClient;
 }
 
@@ -34,7 +34,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("PathFinderMark", () => {
+describe("StrategistMark", () => {
   it("shows the logo, which is neither a link nor a button", () => {
     vi.stubGlobal(
       "fetch",
@@ -47,8 +47,8 @@ describe("PathFinderMark", () => {
       img.getAttribute("src"),
     );
     expect(sources).toEqual([
-      "/pathfinder/brand/pathfinder-mark-light.svg",
-      "/pathfinder/brand/pathfinder-mark-dark.svg",
+      "/pathfinder/brand/strategist-mark-light.svg",
+      "/pathfinder/brand/strategist-mark-dark.svg",
     ]);
     expect(screen.queryByRole("link", { name: "VEuPathDB Strategist" })).toBeNull();
     expect(screen.queryByRole("button", { name: "VEuPathDB Strategist" })).toBeNull();

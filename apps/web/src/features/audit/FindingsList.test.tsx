@@ -4,9 +4,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { listAuditFindingsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useListAuditFindingsSuspense";
-import type { FindingPage } from "@pathfinder/shared/generated/types/FindingPage";
-import type { FindingView } from "@pathfinder/shared/generated/types/FindingView";
+import { listAuditFindingsSuspenseQueryOptions } from "@strategist/shared/generated/hooks/useListAuditFindingsSuspense";
+import type { FindingPage } from "@strategist/shared/generated/types/FindingPage";
+import type { FindingView } from "@strategist/shared/generated/types/FindingView";
 
 import { createTestWrapper } from "@/lib/query/testing";
 

@@ -41,7 +41,7 @@ def review_on_an_unpaid_provider(
     del app, db_session, in_memory_jobs
     with sealed_provider_keys(monkeypatch):
         settings = get_settings()
-        monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+        monkeypatch.setattr(settings, "strategist_chat_provider", "default")
         monkeypatch.setattr(settings, "default_tier", "custom")
         monkeypatch.setattr(settings, "input_screening_enabled", False)
         monkeypatch.setattr(

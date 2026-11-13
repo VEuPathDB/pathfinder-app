@@ -1,4 +1,4 @@
-import type { MissingGeneAudit } from "@pathfinder/shared/generated/types/MissingGeneAudit";
+import type { MissingGeneAudit } from "@strategist/shared/generated/types/MissingGeneAudit";
 
 export interface LocusFeature {
   kind: "anchor" | "found" | "matched" | "overlap";

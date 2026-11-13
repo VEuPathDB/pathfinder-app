@@ -1,10 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Note } from "@pathfinder/shared/generated/types/Note";
-import { deleteScratchpadNote } from "@pathfinder/shared/generated/hooks/useDeleteScratchpadNote";
-import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
-import { patchScratchpadNote } from "@pathfinder/shared/generated/hooks/usePatchScratchpadNote";
+import type { Note } from "@strategist/shared/generated/types/Note";
+import { deleteScratchpadNote } from "@strategist/shared/generated/hooks/useDeleteScratchpadNote";
+import { listScratchpadNotesQueryOptions } from "@strategist/shared/generated/hooks/useListScratchpadNotes";
+import { patchScratchpadNote } from "@strategist/shared/generated/hooks/usePatchScratchpadNote";
 import { Pin, PinOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 

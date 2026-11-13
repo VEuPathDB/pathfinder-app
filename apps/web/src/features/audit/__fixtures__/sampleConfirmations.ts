@@ -1,6 +1,6 @@
-import type { ConfirmationEvidence } from "@pathfinder/shared/generated/types/ConfirmationEvidence";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { GeneEvidencePayload } from "@pathfinder/shared/generated/types/GeneEvidencePayload";
+import type { ConfirmationEvidence } from "@strategist/shared/generated/types/ConfirmationEvidence";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { GeneEvidencePayload } from "@strategist/shared/generated/types/GeneEvidencePayload";
 
 import { sampleDetail } from "./sampleRun";
 

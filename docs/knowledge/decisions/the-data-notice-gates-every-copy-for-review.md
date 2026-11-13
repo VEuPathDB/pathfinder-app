@@ -13,7 +13,7 @@ status: stable
 **The statement has one version, owned by the api.**
 `domain/data_statement.py::DataStatementVersion.CURRENT` is the date the data
 statement was last updated (`2026-10-09`). It reaches the web through the OpenAPI
-spec: `@pathfinder/shared` exports `DATA_STATEMENT_VERSION` from the generated
+spec: `@strategist/shared` exports `DATA_STATEMENT_VERSION` from the generated
 `dataStatementVersionEnum`, and `/help/your-data` prints it as "Last updated". A
 change to the statement changes this one value and regenerates the types, so the
 page date and the gate cannot disagree.

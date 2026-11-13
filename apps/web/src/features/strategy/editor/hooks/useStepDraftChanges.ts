@@ -1,6 +1,6 @@
 "use client";
 
-import type { ColocationParams, Step } from "@pathfinder/shared";
+import type { ColocationParams, Step } from "@strategist/shared";
 import { paramValueToRaw } from "@/features/strategy/parameters/paramValue";
 
 export interface StepDraftSnapshot {

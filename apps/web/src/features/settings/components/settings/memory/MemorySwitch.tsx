@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { MemorySetting } from "@pathfinder/shared";
+import type { MemorySetting } from "@strategist/shared";
 
 import { getMemorySetting, putMemorySetting } from "@/features/settings/api/memories";
 import { toUserMessage } from "@/lib/api/errors";

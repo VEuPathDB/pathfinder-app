@@ -1,6 +1,6 @@
-import type { EvidenceCard } from "@pathfinder/shared";
-import { evidenceCardSchema } from "@pathfinder/shared/generated/zod/evidenceCardSchema";
-import { strategyRevisionPayloadSchema } from "@pathfinder/shared/generated/zod/strategyRevisionPayloadSchema";
+import type { EvidenceCard } from "@strategist/shared";
+import { evidenceCardSchema } from "@strategist/shared/generated/zod/evidenceCardSchema";
+import { strategyRevisionPayloadSchema } from "@strategist/shared/generated/zod/strategyRevisionPayloadSchema";
 import type { UIMessage } from "ai";
 
 type Part = UIMessage["parts"][number];

@@ -1,5 +1,5 @@
 {
-  "name": "@pathfinder/shared",
+  "name": "@strategist/shared",
   "version": "0.2.0-alpha.1",
   "description": "Shared TypeScript types for Strategist",
   "main": "dist/index.js",

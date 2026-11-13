@@ -1,4 +1,4 @@
-import type { EdaVolcanoPoint } from "@pathfinder/shared/generated/types/EdaVolcanoPoint";
+import type { EdaVolcanoPoint } from "@strategist/shared/generated/types/EdaVolcanoPoint";
 
 /** A read-out lists at most this many rows; a volcano can select thousands. */
 export const READOUT_LIMIT = 50;

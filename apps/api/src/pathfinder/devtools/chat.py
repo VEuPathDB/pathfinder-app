@@ -785,7 +785,7 @@ async def drive_run(args: RunArgs) -> tuple[RunCapture, Gate]:
     """
     async with attach_application():
         if args.mock:
-            os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
+            os.environ["STRATEGIST_CHAT_PROVIDER"] = "mock"
             os.environ["API_ENV"] = "test"
             get_settings.cache_clear()
         settings = get_settings()
@@ -901,7 +901,7 @@ async def drive_respond(args: RespondArgs) -> tuple[RunCapture, Gate] | None:
     """
     async with attach_application():
         if args.mock:
-            os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
+            os.environ["STRATEGIST_CHAT_PROVIDER"] = "mock"
             os.environ["API_ENV"] = "test"
             get_settings.cache_clear()
         settings = get_settings()

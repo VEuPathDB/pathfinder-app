@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 
 export function useSaveValidation(args: {
   steps: Step[];

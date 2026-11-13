@@ -1,6 +1,6 @@
 "use client";
 
-import type { VariantComparison, VariantResult } from "@pathfinder/shared";
+import type { VariantComparison, VariantResult } from "@strategist/shared";
 import { z } from "zod";
 
 import {

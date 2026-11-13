@@ -94,6 +94,6 @@ def test_the_api_image_sets_what_every_stage_runs_with() -> None:
         "ENV PYTHONPATH=/app/apps/api/src",
         "ENV PYTHONUNBUFFERED=1",
         "ENV API_ENV=production",
-        "ENV PATHFINDER_CHAT_PROVIDER=default",
+        "ENV STRATEGIST_CHAT_PROVIDER=default",
         "ENV VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:",
     ]

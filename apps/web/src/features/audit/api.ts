@@ -2,9 +2,9 @@ import { queryOptions } from "@tanstack/react-query";
 import {
   getAuditRunSuspense,
   getAuditRunSuspenseQueryOptions,
-} from "@pathfinder/shared/generated/hooks/useGetAuditRunSuspense";
-import { listAuditFindingsSuspenseQueryKey } from "@pathfinder/shared/generated/hooks/useListAuditFindingsSuspense";
-import type { AuditRunView } from "@pathfinder/shared/generated/types/AuditRunView";
+} from "@strategist/shared/generated/hooks/useGetAuditRunSuspense";
+import { listAuditFindingsSuspenseQueryKey } from "@strategist/shared/generated/hooks/useListAuditFindingsSuspense";
+import type { AuditRunView } from "@strategist/shared/generated/types/AuditRunView";
 
 import { buildUrl } from "@/lib/api/http";
 

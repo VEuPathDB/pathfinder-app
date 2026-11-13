@@ -36,11 +36,11 @@ vi.mock("@assistant-ui/react", () => ({
     }),
 }));
 
-vi.mock("@pathfinder/shared/generated/hooks/useForkStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/useForkStrategy", () => ({
   forkStrategy: vi.fn(() => Promise.resolve({ id: "fork-4" })),
 }));
 
-vi.mock("@pathfinder/shared/generated/hooks/useRevertToMessage", () => ({
+vi.mock("@strategist/shared/generated/hooks/useRevertToMessage", () => ({
   revertToMessage: vi.fn(() => Promise.resolve({})),
 }));
 
@@ -49,8 +49,8 @@ const recordProductEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
-import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
+import { forkStrategy } from "@strategist/shared/generated/hooks/useForkStrategy";
+import { listScratchpadNotesQueryOptions } from "@strategist/shared/generated/hooks/useListScratchpadNotes";
 import { APIError } from "@/lib/api/http";
 import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";

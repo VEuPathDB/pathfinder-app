@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
 
 import {
   SAMPLE_DETAILS,

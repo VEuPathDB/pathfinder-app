@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { getMyProviderKeysQueryOptions } from "@pathfinder/shared/generated/hooks/useGetMyProviderKeys";
+import { getMyProviderKeysQueryOptions } from "@strategist/shared/generated/hooks/useGetMyProviderKeys";
 import type { Payers } from "@/lib/models/payers";
 
 export interface ProviderPayers {

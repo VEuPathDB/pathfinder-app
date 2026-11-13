@@ -13,7 +13,7 @@ import type {
   SiteResponse,
   StepCountsResponse,
   StrategyAst,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import { type ApiClient, CSRF_HEADERS } from "./api-client";
 import { type AstNode, astNodes } from "./ast";

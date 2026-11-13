@@ -8,7 +8,7 @@ import type {
   BackgroundTaskStarted,
   TaskCompleted,
   TaskProgressChunk,
-} from "@pathfinder/shared";
+} from "@strategist/shared";
 
 import {
   ChatHelpersProvider,

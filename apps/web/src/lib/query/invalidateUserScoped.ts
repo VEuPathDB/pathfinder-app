@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
-import { listDismissedStrategiesQueryKey } from "@pathfinder/shared/generated/hooks/useListDismissedStrategies";
-import { listStrategiesQueryKey } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { getMyQuotaQueryKey } from "@strategist/shared/generated/hooks/useGetMyQuota";
+import { listDismissedStrategiesQueryKey } from "@strategist/shared/generated/hooks/useListDismissedStrategies";
+import { listStrategiesQueryKey } from "@strategist/shared/generated/hooks/useListStrategies";
 
 import { isStrategyQueryKey } from "@/lib/api/strategy";
 import { queryKeyPrefixes } from "@/lib/query/keys";

@@ -3,7 +3,7 @@
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { GeneSet, VdiPublicationStatus } from "@pathfinder/shared";
+import type { GeneSet, VdiPublicationStatus } from "@strategist/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { APIError } from "@/lib/api/http";

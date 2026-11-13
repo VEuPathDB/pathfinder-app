@@ -1,4 +1,4 @@
-import type { EdaStatisticsPart } from "@pathfinder/shared";
+import type { EdaStatisticsPart } from "@strategist/shared";
 
 import type { ExhibitKind } from "../../thread/exhibits";
 

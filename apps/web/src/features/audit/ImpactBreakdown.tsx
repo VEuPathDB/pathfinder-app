@@ -1,5 +1,5 @@
 import { useId } from "react";
-import type { FindingView } from "@pathfinder/shared/generated/types/FindingView";
+import type { FindingView } from "@strategist/shared/generated/types/FindingView";
 
 import { Badge } from "@/components/ui/badge";
 

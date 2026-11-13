@@ -1,5 +1,5 @@
-import type { GroundedConstraint } from "@pathfinder/shared/generated/types/GroundedConstraint";
-import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
+import type { GroundedConstraint } from "@strategist/shared/generated/types/GroundedConstraint";
+import type { InvestigationLedger } from "@strategist/shared/generated/types/InvestigationLedger";
 
 export function groundedEntry(
   label: string,

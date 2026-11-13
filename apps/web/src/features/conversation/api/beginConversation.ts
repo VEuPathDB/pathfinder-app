@@ -1,8 +1,8 @@
-import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
+import { beginStrategy } from "@strategist/shared/generated/hooks/useBeginStrategy";
 import type {
   BeginStrategyMutationRequest,
   BeginStrategyMutationResponse,
-} from "@pathfinder/shared/generated/types/BeginStrategy";
+} from "@strategist/shared/generated/types/BeginStrategy";
 import { useSessionStore } from "@/state/useSessionStore";
 
 /** Create the conversation row, and record that it now exists. */

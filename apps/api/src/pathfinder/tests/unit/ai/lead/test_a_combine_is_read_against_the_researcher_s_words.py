@@ -47,7 +47,7 @@ _BOTH = frozenset({"a", "b"})
 
 @pytest.fixture(autouse=True)
 def _a_deployment_that_asks_the_service(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(get_settings(), "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(get_settings(), "strategist_chat_provider", "default")
 
 
 def _stated(rid: str, quote: str) -> Constraint:

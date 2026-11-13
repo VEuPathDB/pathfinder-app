@@ -5,15 +5,15 @@
  */
 
 import { expect } from "@playwright/test";
-import type { EdaAnalysisState, EdaEntityCount } from "@pathfinder/shared";
-import type { ConversationEdaResponse } from "@pathfinder/shared/generated/types/ConversationEdaResponse";
-import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
-import type { EdaComputeSummary } from "@pathfinder/shared/generated/types/EdaComputeSummary";
-import type { EdaOwnDatasetResponse } from "@pathfinder/shared/generated/types/EdaOwnDatasetResponse";
-import type { EdaOwnDatasetListResponse } from "@pathfinder/shared/generated/types/EdaOwnDatasetListResponse";
-import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
-import type { EdaStudySummaryResponse } from "@pathfinder/shared/generated/types/EdaStudySummaryResponse";
-import type { EdaVizResponse } from "@pathfinder/shared/generated/types/EdaVizResponse";
+import type { EdaAnalysisState, EdaEntityCount } from "@strategist/shared";
+import type { ConversationEdaResponse } from "@strategist/shared/generated/types/ConversationEdaResponse";
+import type { EdaComparison } from "@strategist/shared/generated/types/EdaComparison";
+import type { EdaComputeSummary } from "@strategist/shared/generated/types/EdaComputeSummary";
+import type { EdaOwnDatasetResponse } from "@strategist/shared/generated/types/EdaOwnDatasetResponse";
+import type { EdaOwnDatasetListResponse } from "@strategist/shared/generated/types/EdaOwnDatasetListResponse";
+import type { EdaStudyListResponse } from "@strategist/shared/generated/types/EdaStudyListResponse";
+import type { EdaStudySummaryResponse } from "@strategist/shared/generated/types/EdaStudySummaryResponse";
+import type { EdaVizResponse } from "@strategist/shared/generated/types/EdaVizResponse";
 
 import type { ApiClient } from "./api-client";
 import { printed } from "./site-reads";

@@ -11,7 +11,7 @@ vi.mock("@/features/settings/api/memories", () => ({
 
 import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { searchMemories } from "@/features/settings/api/memories";
-import type { MemoryItem } from "@pathfinder/shared";
+import type { MemoryItem } from "@strategist/shared";
 import { MemorySearch } from "./MemorySearch";
 
 const mockedSearch = vi.mocked(searchMemories);

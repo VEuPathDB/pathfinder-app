@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import type { Connection, Edge } from "@xyflow/react";
-import type { Step } from "@pathfinder/shared";
+import type { Step } from "@strategist/shared";
 import {
   buildGraphIndices,
   getConnectionEffect,

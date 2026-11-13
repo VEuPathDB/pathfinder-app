@@ -4,10 +4,10 @@ import type {
   VdiPublication,
   VdiPublicationRequest,
   VdiPublicationStatus,
-} from "@pathfinder/shared";
-import { geneSetResponseSchema } from "@pathfinder/shared/generated/zod/geneSetResponseSchema";
-import { vdiPublicationSchema } from "@pathfinder/shared/generated/zod/vdiPublicationSchema";
-import { vdiPublicationStatusSchema } from "@pathfinder/shared/generated/zod/vdiPublicationStatusSchema";
+} from "@strategist/shared";
+import { geneSetResponseSchema } from "@strategist/shared/generated/zod/geneSetResponseSchema";
+import { vdiPublicationSchema } from "@strategist/shared/generated/zod/vdiPublicationSchema";
+import { vdiPublicationStatusSchema } from "@strategist/shared/generated/zod/vdiPublicationStatusSchema";
 import { z } from "zod";
 
 import { queryKeyPrefixes } from "@/lib/query/keys";

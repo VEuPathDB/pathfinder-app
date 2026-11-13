@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { StrategyMeta } from "@pathfinder/shared";
+import type { StrategyMeta } from "@strategist/shared";
 
 import { DataStrategyMeta } from "./DataStrategyMeta";
 

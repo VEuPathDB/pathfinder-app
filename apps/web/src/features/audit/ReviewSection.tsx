@@ -1,11 +1,11 @@
 "use client";
 
 import { useId } from "react";
-import type { AgreementView } from "@pathfinder/shared/generated/types/AgreementView";
-import type { AuditWords } from "@pathfinder/shared/generated/types/AuditWords";
-import type { FindingDetail } from "@pathfinder/shared/generated/types/FindingDetail";
-import type { FindingReview } from "@pathfinder/shared/generated/types/FindingReview";
-import type { ReviewState } from "@pathfinder/shared/generated/types/ReviewState";
+import type { AgreementView } from "@strategist/shared/generated/types/AgreementView";
+import type { AuditWords } from "@strategist/shared/generated/types/AuditWords";
+import type { FindingDetail } from "@strategist/shared/generated/types/FindingDetail";
+import type { FindingReview } from "@strategist/shared/generated/types/FindingReview";
+import type { ReviewState } from "@strategist/shared/generated/types/ReviewState";
 
 import { impactText } from "./format";
 import { CERTAINTY_WORDS } from "./words";

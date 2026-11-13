@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@strategist/shared";
 import { createTestWrapper } from "@/lib/query/testing";
 import { chatUrl } from "@/lib/routes";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const pushStrategyMock = vi.hoisted(() => vi.fn());
-vi.mock("@pathfinder/shared/generated/hooks/usePushStrategy", () => ({
+vi.mock("@strategist/shared/generated/hooks/usePushStrategy", () => ({
   pushStrategy: pushStrategyMock.mockImplementation(
     async (_id: string, body: { name: string }) => ({ ...STRATEGY, name: body.name }),
   ),
@@ -24,7 +24,7 @@ vi.mock("@pathfinder/shared/generated/hooks/usePushStrategy", () => ({
 const recordProductEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
-vi.mock("@pathfinder/shared/generated/hooks/useComputeStepCounts", () => ({
+vi.mock("@strategist/shared/generated/hooks/useComputeStepCounts", () => ({
   computeStepCounts: vi.fn(async () => ({ counts: {} })),
 }));
 
