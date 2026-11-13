@@ -139,6 +139,7 @@ def operational_spec() -> OperationalSpec:
         dropped=[DroppedCriterion(text="host response", reason="no gene search")],
         constraints=[
             Constraint(
+                id="0000000000c1",
                 kind=ConstraintKind.ORGANISM,
                 requested_value="P. falciparum 3D7",
                 label="organism",
@@ -184,6 +185,7 @@ def domain_state() -> StrategyDomainState:
         ],
         recommendations=[
             Constraint(
+                id="0000000000d1",
                 kind=ConstraintKind.DATA_TYPE,
                 requested_value="P. falciparum 3D7 gametocyte RNA-seq",
                 label="Which gametocyte RNA-seq study?",
