@@ -11,12 +11,14 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import (
     ConfigDict,
     Field,
+    WrapValidator,
     model_validator,
 )
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
 from pathfinder.ai.graph.clipped_draft import ClippedDraft
+from pathfinder.ai.graph.saved_domain import read_by_this_build
 from pathfinder.ai.graph.stored_requirement_keys import (
     check_by_id,
     gaps_by_id,
@@ -140,10 +142,6 @@ class VerificationDigest(CamelModel):
 class StrategyDomainState(ThreadRequirements):
     """What the investigation knows: the framed spec, the searches it saw,
     the last build and its verification."""
-
-    # A conversation saved by an earlier build may carry a field this build
-    # dropped; the value is discarded and the rest of the state is rebuilt.
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
 
     user_intent: UserIntent | None = None
     lead_next_state: Literal["await_user", "complete"] | None = None
@@ -452,7 +450,9 @@ class StrategyDomainState(ThreadRequirements):
 class PipelineState(TurnState):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
 
-    domain: StrategyDomainState = Field(default_factory=StrategyDomainState)
+    domain: Annotated[StrategyDomainState, WrapValidator(read_by_this_build)] = Field(
+        default_factory=StrategyDomainState
+    )
 
     @property
     def turn_markers(self) -> TurnMarkers:

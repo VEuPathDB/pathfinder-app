@@ -1,5 +1,15 @@
 # Log
 
+## 2026-11-13
+
+* **A saved conversation loads under this build or ends its turn with a plain refusal.** A
+  thread's domain state is validated again on every load (`revalidate_instances` on
+  `ThreadRequirements`), so a record the checkpoint serializer left as a mapping is rebuilt before
+  any validator reads it. A value this build cannot read refuses the turn with
+  `ConversationFromEarlierBuildError` (`ai/graph/saved_domain.py`). A `PickTail` saved without a
+  variable name loads and binds no variable. See
+  [the EDA step decision](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
 ## 2026-11-12
 
 * **The organism scope of a combine reads both of its inputs.** `output_organisms` is now the

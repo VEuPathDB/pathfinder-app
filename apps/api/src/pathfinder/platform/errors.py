@@ -1,10 +1,12 @@
 """Typed error model with problem+json responses."""
 
+from __future__ import annotations
+
 from enum import StrEnum
 
 import httpx
 from assistant_core.platform.types import JSONArray
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.provider_keys import KeyRefusal
@@ -205,6 +207,16 @@ class ConversationFromEarlierBuildError(AppError):
                 f"(conversation {conversation_id}: {reasons})"
             ),
         )
+
+    @classmethod
+    def of(
+        cls, conversation_id: str, exc: ValidationError
+    ) -> ConversationFromEarlierBuildError:
+        reasons = "; ".join(
+            f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
+            for error in exc.errors()[:3]
+        )
+        return cls(conversation_id, reasons)
 
 
 # A site notice prints these, so they are sentences and not class names. The

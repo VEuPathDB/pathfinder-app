@@ -101,7 +101,8 @@ sample.
   edge for the rule, computed the same way; any other bound is refused with a
   retry that names the study's edge, and no second card is asked. A variable
   of another name gets its own card: the end that means the same thing can
-  differ between two variables, for example a fitness score and a rank of it. A picked class is that study's own value and binds as a
+  differ between two variables, for example a fitness score and a rank of it. A pick that names no
+  variable binds no variable. A picked class is that study's own value and binds as a
   set filter; it holds no rule, because vocabularies differ across studies.
   With no option to offer, the retry asks for the cut in the researcher's
   words. A

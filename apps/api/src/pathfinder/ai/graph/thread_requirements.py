@@ -52,7 +52,11 @@ class ThreadRequirements(BaseModel):
     """The requirements, the questions and the recommendations of one thread,
     and the markers of the message that last changed them."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
+    # A conversation saved by an earlier build may carry a field this build
+    # dropped; the value is discarded and the rest of the state is rebuilt.
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True, extra="ignore", revalidate_instances="always"
+    )
 
     turn_markers: TurnMarkers = Field(default_factory=TurnMarkers)
     # Every requirement the thread has stated, oldest first. A clarification

@@ -84,7 +84,7 @@ class PickTail(CamelModel):
 
     kind: Literal["pick_tail"] = "pick_tail"
     rule: TailRule
-    variable_name: str
+    variable_name: str = ""
 
 
 class PickClass(CamelModel):

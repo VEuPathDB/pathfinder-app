@@ -18,10 +18,6 @@ def rebuilt_state(state: PipelineState) -> PipelineState:
     try:
         return PipelineState.model_validate(state.model_dump())
     except ValidationError as exc:
-        reasons = "; ".join(
-            f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-            for error in exc.errors()[:3]
-        )
-        raise ConversationFromEarlierBuildError(
-            str(state.conversation_id), reasons
+        raise ConversationFromEarlierBuildError.of(
+            str(state.conversation_id), exc
         ) from exc

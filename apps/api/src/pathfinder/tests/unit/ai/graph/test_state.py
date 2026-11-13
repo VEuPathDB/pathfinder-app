@@ -21,6 +21,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.platform.errors import ConversationFromEarlierBuildError
 
 
 @pytest.fixture
@@ -193,7 +194,9 @@ class TestCheckpointsFromEarlierBuilds:
     def test_a_value_this_build_cannot_read_is_refused(self) -> None:
         stored = self._earlier_shape()
         stored["domain"] = {"last_build_outcome": 5}
-        with pytest.raises(ValidationError, match="last_build_outcome"):
+        with pytest.raises(
+            ConversationFromEarlierBuildError, match="last_build_outcome"
+        ):
             PipelineState.model_validate(stored)
 
 
