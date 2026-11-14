@@ -339,7 +339,7 @@ jobs:
           file: apps/api/Dockerfile
           tags: pathfinder-e2e-api:ci
           push: false
-          outputs: type=docker,dest=/tmp/pathfinder-api.tar
+          outputs: type=docker,dest=/tmp/strategist-api.tar
           cache-from: type=gha,scope=e2e-api
           cache-to: type=gha,scope=e2e-api,mode=max
 
@@ -352,7 +352,7 @@ jobs:
           build-args: NEXT_PUBLIC_API_URL=http://api:8000
           tags: pathfinder-e2e-web:ci
           push: false
-          outputs: type=docker,dest=/tmp/pathfinder-web.tar
+          outputs: type=docker,dest=/tmp/strategist-web.tar
           cache-from: type=gha,scope=e2e-web
           cache-to: type=gha,scope=e2e-web,mode=max
 
@@ -362,8 +362,8 @@ jobs:
         with:
           name: e2e-images
           path: |
-            /tmp/pathfinder-api.tar
-            /tmp/pathfinder-web.tar
+            /tmp/strategist-api.tar
+            /tmp/strategist-web.tar
           retention-days: 1
           compression-level: 0
 
@@ -430,8 +430,8 @@ jobs:
 
       - name: Load the images
         run: |
-          docker load -i "$RUNNER_TEMP/e2e-images/pathfinder-api.tar"
-          docker load -i "$RUNNER_TEMP/e2e-images/pathfinder-web.tar"
+          docker load -i "$RUNNER_TEMP/e2e-images/strategist-api.tar"
+          docker load -i "$RUNNER_TEMP/e2e-images/strategist-web.tar"
 
       # Self-contained test env; secret is generated per run, never committed.
       # Compose interpolates the whole file, so SEARXNG_SECRET needs a value

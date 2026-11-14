@@ -192,7 +192,7 @@ container (`METRICS_PORT`; 0 serves none). The port is not published. Both units
 scrapes them. To read them by hand:
 
 ```bash
-podman exec pathfinder-api-dev curl -s http://localhost:9100/metrics | grep '^pathfinder_'
+podman exec pathfinder-api-dev curl -s http://localhost:9100/metrics | grep '^strategist_'
 ```
 
 | series | process | labels |

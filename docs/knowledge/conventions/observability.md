@@ -19,7 +19,7 @@ agent run, both httpx distributions and, where the host passes it, the SQLAlchem
 engine.
 
 Strategist's `platform/observability.py` calls it once per process: the api as
-`pathfinder-api` (with its engine), the worker as `pathfinder-worker`. It adds the
+`strategist-api` (with its engine), the worker as `strategist-worker`. It adds the
 Authorization header Langfuse's ingress reads, built from `LANGFUSE_PUBLIC_KEY`
 and `LANGFUSE_SECRET_KEY`. `create_app` instruments the routes through
 `trace_routes`, because the middleware stack is built before the lifespan runs;

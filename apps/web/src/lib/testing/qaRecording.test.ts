@@ -7,7 +7,7 @@ const absent = qaRecording(import.meta.url, "./absent-recording.json");
 
 describe("qaRecording", () => {
   it("reads a recording that is present", () => {
-    expect(present).toMatchObject({ name: "pathfinder-web" });
+    expect(present).toMatchObject({ name: "strategist-web" });
   });
 
   it("answers null for a recording that is gone, beside a skip that names why", () => {
