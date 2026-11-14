@@ -26,7 +26,7 @@
     <img src="https://img.shields.io/badge/Gemini-8E75B2?logo=google-gemini&logoColor=white" alt="Google Gemini" />
     <img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" />
   </p>
-  <img src="assets/pathfinder.png" alt="VEuPathDB Strategist" width="100%" />
+  <img src="assets/strategist.png" alt="VEuPathDB Strategist" width="100%" />
 
 </div>
 
@@ -238,7 +238,7 @@ cat > .env.test <<'EOF'
 API_ENV=test
 STRATEGIST_CHAT_PROVIDER=mock
 NEXT_PUBLIC_API_URL=http://api:8000
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/strategist
 DEFAULT_PROVIDER=anthropic
 DEFAULT_TIER=balanced
 EOF
@@ -301,7 +301,7 @@ docker compose --env-file .env.dev \
 The first start creates the organization, the project, its keys and the login
 from the `LANGFUSE_INIT_*` values. Open `http://localhost:3100` and sign in with
 `LANGFUSE_INIT_USER_EMAIL` / `LANGFUSE_INIT_USER_PASSWORD` (the dev defaults are
-`dev@pathfinder.local` / `pathfinder-local-dev`).
+`dev@strategist.local` / `strategist-local-dev`).
 
 ### Option D: run API + Web directly (no Docker)
 
@@ -331,13 +331,14 @@ yarn dev
 
 ## Deployment and releases
 
-The deployment is the `pathfinder` stack of the estate's service definitions
+The deployment is the `strategist` stack of the estate's service definitions
 (`VEuPathDB/webservices-quadlets`): seven containers per stage as root podman quadlets, with the web container
 behind Traefik and the website's Apache proxying `/pathfinder` to it. What runs, the secrets,
 health, metrics, backups and troubleshooting are [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
-Images come from Jenkins (`Jenkinsfile`), which publishes `docker.io/veupathdb/pathfinder-api`
-and `pathfinder-web`: `:latest` on every push to `main`, and the version on a release tag. A
+Images come from Jenkins (`Jenkinsfile`), which publishes `docker.io/veupathdb/strategist-api`
+and `strategist-web` (and, until the estate has moved, the same build as `pathfinder-api` and
+`pathfinder-web`): `:latest` on every push to `main`, and the version on a release tag. A
 release is tagged `v` plus the semver spelling of the api version (`v0.2.0-b7` publishes
 `:0.2.0-b7`); `node scripts/check-release.mjs <tag>` refuses any other tag. The development stage
 follows `:latest`. QA runs `:qa`, which `VEuPathDB/tagger` moves to a published version. The two

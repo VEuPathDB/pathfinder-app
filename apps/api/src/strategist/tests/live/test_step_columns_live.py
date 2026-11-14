@@ -66,7 +66,7 @@ async def built(wdk_identity: str) -> AsyncGenerator[Built]:
             record_type="transcript",
         )
         strategy = await api.create_strategy(
-            WDKStepTree(step_id=step.id), name="pathfinder-live-lane", is_internal=True
+            WDKStepTree(step_id=step.id), name="strategist-live-lane", is_internal=True
         )
         made.append(strategy.id)
         return step.id, await api.get_step_count(step.id)

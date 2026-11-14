@@ -20,8 +20,8 @@ class _EnvOnlySettings(Settings):
 def make_settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
         "api_env": "test",
-        "api_secret_key": "pathfinder-test-secret-key-1234567890",
-        "database_url": "postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",
+        "api_secret_key": "strategist-test-secret-key-1234567890",
+        "database_url": "postgresql+asyncpg://postgres:postgres@db:5432/strategist",
         "strategist_chat_provider": "mock",
         "openai_api_key": "sk-test",
         "anthropic_api_key": "",
@@ -124,8 +124,8 @@ def test_empty_env_value_is_ignored_for_complex_settings(
 
     settings = _EnvOnlySettings(
         api_env="test",
-        api_secret_key="pathfinder-test-secret-key-1234567890",
-        database_url="postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",
+        api_secret_key="strategist-test-secret-key-1234567890",
+        database_url="postgresql+asyncpg://postgres:postgres@db:5432/strategist",
         strategist_chat_provider="mock",
         openai_api_key="sk-test",
         anthropic_api_key="",
@@ -454,14 +454,14 @@ _DB_VALUE = "db-value-0123456789"
 def test_the_postgres_settings_give_the_database_address() -> None:
     settings = make_settings(
         database_url="",
-        postgres_host="pathfinder-db",
-        postgres_user="pathfinder",
+        postgres_host="strategist-db",
+        postgres_user="strategist",
         postgres_password=_DB_VALUE,
-        postgres_db="pathfinder",
+        postgres_db="strategist",
     )
 
     assert settings.database_url == (
-        f"postgresql+asyncpg://pathfinder:{_DB_VALUE}@pathfinder-db:5432/pathfinder"
+        f"postgresql+asyncpg://strategist:{_DB_VALUE}@strategist-db:5432/strategist"
     )
 
 
@@ -469,21 +469,21 @@ def test_the_bundled_config_lets_the_postgres_settings_give_the_address(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    monkeypatch.setenv("POSTGRES_HOST", "pathfinder-db")
-    monkeypatch.setenv("POSTGRES_USER", "pathfinder")
+    monkeypatch.setenv("POSTGRES_HOST", "strategist-db")
+    monkeypatch.setenv("POSTGRES_USER", "strategist")
     monkeypatch.setenv("POSTGRES_PASSWORD", _DB_VALUE)
-    monkeypatch.setenv("POSTGRES_DB", "pathfinder")
+    monkeypatch.setenv("POSTGRES_DB", "strategist")
 
     settings = _EnvOnlySettings.model_validate(
         {
             "api_env": "test",
-            "api_secret_key": "pathfinder-test-secret-key-1234567890",
+            "api_secret_key": "strategist-test-secret-key-1234567890",
             "strategist_chat_provider": "mock",
         }
     )
 
     assert settings.database_url == (
-        f"postgresql+asyncpg://pathfinder:{_DB_VALUE}@pathfinder-db:5432/pathfinder"
+        f"postgresql+asyncpg://strategist:{_DB_VALUE}@strategist-db:5432/strategist"
     )
 
 

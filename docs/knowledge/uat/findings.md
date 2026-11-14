@@ -9,7 +9,7 @@ status: draft
 
 # Pre-UAT findings
 
-Measured on 2026-09-24, VEuPathDB build 71, with `pathfinder.devtools.chat` on the host (model `openai:gpt-5.6-luna` for every role, at the tier's `medium` effort; the debugger's `--effort` flag now sets every role's effort and `turn_settings.json` records it) and raw WDK reads under the dev login. Run directories are under `apps/api/.pf-runs/uat/` (gitignored); the pass-2 re-checks of 2026-09-25 ran every role at `high` effort and are under `apps/api/.pf-runs/p2/`. Each finding names the flow that catches it at UAT.
+Measured on 2026-09-24, VEuPathDB build 71, with `strategist.devtools.chat` on the host (model `openai:gpt-5.6-luna` for every role, at the tier's `medium` effort; the debugger's `--effort` flag now sets every role's effort and `turn_settings.json` records it) and raw WDK reads under the dev login. Run directories are under `apps/api/.pf-runs/uat/` (gitignored); the pass-2 re-checks of 2026-09-25 ran every role at `high` effort and are under `apps/api/.pf-runs/p2/`. Each finding names the flow that catches it at UAT.
 
 | Id | Severity | Title | Flow |
 |---|---|---|---|
@@ -561,9 +561,9 @@ Fixed in a18: the tool server writes a range facet as {min, max} and a member fa
 
 **Why that's wrong.** No value FRAME can write reaches WDK, so every isolate-variation criterion on every site fails; the Lead then asks in prose.
 
-**Why it happens.** Two places. `veupathdb-mcp` `catalog/_param_filters.py:49-62` types a clause's `value` as `list[JsonValue]` and wraps a scalar or an object into a list, and `:158-185` writes the `facet=value` shorthand as a member list whatever `field.is_range` says; WDK's contract (wdk-client `Components/AttributeFilter/Types.ts:60-61,106-110`) is `RangeValue = {min?, max?}` for a range facet and a list only for a member facet. PathFinder's `ai/tools/standalone/_frame_proposals.py:58-103` types every proposal as `str | list[str] | None`, so the object form never reaches the tool server.
+**Why it happens.** Two places. `veupathdb-mcp` `catalog/_param_filters.py:49-62` types a clause's `value` as `list[JsonValue]` and wraps a scalar or an object into a list, and `:158-185` writes the `facet=value` shorthand as a member list whatever `field.is_range` says; WDK's contract (wdk-client `Components/AttributeFilter/Types.ts:60-61,106-110`) is `RangeValue = {min?, max?}` for a range facet and a list only for a member facet. Strategist's `ai/tools/standalone/_frame_proposals.py:58-103` types every proposal as `str | list[str] | None`, so the object form never reaches the tool server.
 
-**Fix.** The tool server writes the WDK shape per facet; PathFinder carries an object proposal as its JSON text.
+**Fix.** The tool server writes the WDK shape per facet; Strategist carries an object proposal as its JSON text.
 
 **What you'd get.** `{"field":"max_minor_allele_frequency","type":"number","isRange":true,"value":{"max":0.05}}` accepted by WDK, a count on the step.
 
@@ -599,7 +599,7 @@ Fixed in a18: the card hold drops every free text part of the Lead model's own s
 
 **Why that's wrong.** The researcher reads model markup as the first line of the answer.
 
-**Why it happens.** The Lead's output type is `[LeadResponse, DeferredToolRequests]` (`ai/lead/lead_agent.py:139`), so a free text part is never the reply, yet `ai/graph/_lead_card_hold.py:85-87` holds it and `:101` releases it whenever no card waits; the real reply is written separately by `ai/graph/_lead_capture.py:254-266`. The runtime adapter (`assistant_core/conversation/vercel_adapter.py:81-86`) forwards the part as any text part should; the choice of what a turn shows is PathFinder's.
+**Why it happens.** The Lead's output type is `[LeadResponse, DeferredToolRequests]` (`ai/lead/lead_agent.py:139`), so a free text part is never the reply, yet `ai/graph/_lead_card_hold.py:85-87` holds it and `:101` releases it whenever no card waits; the real reply is written separately by `ai/graph/_lead_capture.py:254-266`. The runtime adapter (`assistant_core/conversation/vercel_adapter.py:81-86`) forwards the part as any text part should; the choice of what a turn shows is Strategist's.
 
 **Fix.** The hold drops every text part of the Lead model's own stream. No runtime release.
 
@@ -702,7 +702,7 @@ Found by the a18 model report.
 
 **Why it happens.** `assistant_core/capabilities/repetition_guard.py::ToolRepetitionGuard._check_cap` escalates on `count > cap + 1` by count alone, so the ninth and tenth calls of one batch get the warning and the stop before the model has read either; `ai/lead/verify_dispatch.py::run_verification` raises `TypeError` when the stopped run returns no delta, and the turn fails instead of ending unverified.
 
-**Fix.** Runtime: the stop escalates only on a call the model issues after it has read the warning (a later request, not a sibling in the same batch). PathFinder: a stopped check records no verdict, and the Lead states that the check did not finish; nothing raises.
+**Fix.** Runtime: the stop escalates only on a call the model issues after it has read the warning (a later request, not a sibling in the same batch). Strategist: a stopped check records no verdict, and the Lead states that the check did not finish; nothing raises.
 
 **What you'd get.** Turn 2 ends `verified: true` on 257, or at worst on an unverified strategy and a sentence saying the check stopped.
 

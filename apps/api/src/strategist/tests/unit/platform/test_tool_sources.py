@@ -36,7 +36,7 @@ RESEARCH_TOKEN = "research-mcp-client-secret-0123456789abcdef"
 @pytest.fixture
 def wdk_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
-    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"pathfinder:{TOKEN}")
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"strategist:{TOKEN}")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -45,7 +45,7 @@ def wdk_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 @pytest.fixture
 def research_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("STRATEGIST_RESEARCH_MCP_URL", RESEARCH_ENDPOINT)
-    monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", f"pathfinder:{RESEARCH_TOKEN}")
+    monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", f"strategist:{RESEARCH_TOKEN}")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -136,13 +136,44 @@ def test_an_entry_for_another_application_admits_nothing(
     get_settings.cache_clear()
 
 
-def test_the_secret_of_the_pathfinder_entry_is_the_one_presented(
+def test_the_secret_of_the_strategist_entry_is_the_one_presented(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     other = "analytics-client-secret-0123456789abcdef"
     monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
     monkeypatch.setenv(
-        "WDK_MCP_SERVICE_TOKENS", f"analytics:{other},pathfinder:{TOKEN}"
+        "WDK_MCP_SERVICE_TOKENS", f"analytics:{other},strategist:{TOKEN}"
+    )
+    get_settings.cache_clear()
+    record = admitted_tool_sources().resolve(WDK_MCP_SOURCE_ID)
+    assert record is not None
+
+    assert source_credential(record) == TOKEN
+
+    get_settings.cache_clear()
+
+
+def test_a_secret_still_listed_under_pathfinder_is_presented(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"pathfinder:{TOKEN}")
+    get_settings.cache_clear()
+    record = admitted_tool_sources().resolve(WDK_MCP_SOURCE_ID)
+    assert record is not None
+
+    assert source_credential(record) == TOKEN
+
+    get_settings.cache_clear()
+
+
+def test_the_strategist_secret_wins_over_the_pathfinder_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    former = "pathfinder-client-secret-0123456789abcdef"
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv(
+        "WDK_MCP_SERVICE_TOKENS", f"pathfinder:{former},strategist:{TOKEN}"
     )
     get_settings.cache_clear()
     record = admitted_tool_sources().resolve(WDK_MCP_SOURCE_ID)

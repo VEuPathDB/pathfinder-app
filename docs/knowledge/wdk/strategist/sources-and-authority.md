@@ -2,7 +2,7 @@
 type: Reference
 title: Which repository wins, and which sites this application is verified on
 description: The authority ranking Strategist reads the upstream repositories under, the two sites its own work is confirmed on, and the one test shape that looks like evidence and is not.
-tags: [wdk-alignment, sources, verification, pathfinder]
+tags: [wdk-alignment, sources, verification, strategist]
 generated: { by: claude-code/opus-5, at: 2026-09-11T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-11T00:00:00Z }
 status: stable

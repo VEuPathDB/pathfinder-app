@@ -244,7 +244,7 @@ async def _purged_from_wdk(
 ) -> list[int]:
     api = _FakeStrategyApi()
     monkeypatch.setattr(user_data, "get_strategy_api", lambda _site: api)
-    token = application_id_ctx.set("pathfinder")
+    token = application_id_ctx.set("strategist")
     try:
         async with session_maker() as session:
             await purge_user_data(

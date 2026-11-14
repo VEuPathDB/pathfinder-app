@@ -85,7 +85,7 @@ async def owned_step_for(bearer: str) -> AsyncIterator[OwnedStep]:
     )
     strategy = await api.create_strategy(
         WDKStepTree(step_id=step.id),
-        name="pathfinder-mcp-live",
+        name="strategist-mcp-live",
         is_internal=True,
     )
     try:

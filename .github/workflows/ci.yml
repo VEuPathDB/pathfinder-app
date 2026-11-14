@@ -178,7 +178,7 @@ jobs:
         working-directory: apps/api
         env:
           API_ENV: test
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/strategist
           API_SECRET_KEY: spec-generation-secret-key-0000000000
           STRATEGIST_CHAT_PROVIDER: default
           ANTHROPIC_API_KEY: spec-generation-placeholder
@@ -212,7 +212,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: pathfinder_test
+          POSTGRES_DB: strategist_test
         ports:
           - 5432:5432
         options: >-
@@ -230,7 +230,7 @@ jobs:
         working-directory: apps/api
         env:
           API_ENV: test
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/strategist_test
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           STRATEGIST_CHAT_PROVIDER: mock
           TEST_TIER: ${{ github.event_name == 'push' && 'src/strategist/tests/unit' || 'src/strategist/tests' }}
@@ -337,7 +337,7 @@ jobs:
         with:
           context: .
           file: apps/api/Dockerfile
-          tags: pathfinder-e2e-api:ci
+          tags: strategist-e2e-api:ci
           push: false
           outputs: type=docker,dest=/tmp/strategist-api.tar
           cache-from: type=gha,scope=e2e-api
@@ -350,7 +350,7 @@ jobs:
           file: apps/web/Dockerfile
           target: runner
           build-args: NEXT_PUBLIC_API_URL=http://api:8000
-          tags: pathfinder-e2e-web:ci
+          tags: strategist-e2e-web:ci
           push: false
           outputs: type=docker,dest=/tmp/strategist-web.tar
           cache-from: type=gha,scope=e2e-web
@@ -442,7 +442,7 @@ jobs:
           API_ENV=test
           STRATEGIST_CHAT_PROVIDER=mock
           NEXT_PUBLIC_API_URL=http://api:8000
-          DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
+          DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/strategist
           DEFAULT_PROVIDER=anthropic
           DEFAULT_TIER=balanced
           OPENAI_API_KEY=sk-e2e-not-a-key

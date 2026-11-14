@@ -10,6 +10,9 @@ node('podbuild') {
   builder.buildContainers([
     [ name: 'pathfinder-api', dockerfile: 'apps/api/Dockerfile' ],
     [ name: 'pathfinder-web', dockerfile: 'apps/web/Dockerfile',
+      buildArgs: [ NEXT_PUBLIC_API_URL: 'http://pathfinder-api:8000' ] ],
+    [ name: 'strategist-api', dockerfile: 'apps/api/Dockerfile' ],
+    [ name: 'strategist-web', dockerfile: 'apps/web/Dockerfile',
       buildArgs: [ NEXT_PUBLIC_API_URL: 'http://pathfinder-api:8000' ] ]
   ])
 }

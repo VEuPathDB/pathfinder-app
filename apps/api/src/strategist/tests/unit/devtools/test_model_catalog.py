@@ -147,7 +147,7 @@ def _reader(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
     if any(isinstance(c, BinaryImage) for c in content):
         return ModelResponse(parts=[TextPart("Red.")])
     if any(isinstance(c, BinaryContent) for c in content):
-        return ModelResponse(parts=[TextPart("PATHFINDER")])
+        return ModelResponse(parts=[TextPart("STRATEGIST")])
     return ModelResponse(parts=[TextPart("ready")])
 
 

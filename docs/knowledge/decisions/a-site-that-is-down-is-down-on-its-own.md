@@ -193,6 +193,6 @@ still open, which are this deployment's own rows.
 
 **Keeping the per-site retry inside `veupathdb_mcp`.** `DiscoveryService.preload_all`
 is the served MCP process's own startup path and its pyproject names no
-`pathfinder`. The budget and the retry belong to the caller that owns the
+`strategist`. The budget and the retry belong to the caller that owns the
 readiness report, so Strategist's warm-up drives `get_catalog` per site and
 leaves the distribution alone.

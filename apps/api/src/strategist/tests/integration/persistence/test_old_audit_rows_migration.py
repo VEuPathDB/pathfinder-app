@@ -114,7 +114,7 @@ def database(
 ) -> Iterator[str]:
     del database_url, postgres_container
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_old_audit_rows"
+    name = "strategist_test_old_audit_rows"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     yield url

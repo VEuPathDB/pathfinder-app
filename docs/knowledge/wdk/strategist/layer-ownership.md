@@ -2,7 +2,7 @@
 type: Reference
 title: Who is allowed to talk to WDK
 description: The import-linter contracts that police the WDK boundary, exactly what each one forbids, the seam an upper layer calls instead of holding a WDK client, and the two things the contracts cannot see.
-tags: [wdk-alignment, layering, import-linter, ownership, pathfinder]
+tags: [wdk-alignment, layering, import-linter, ownership, strategist]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-08T00:00:00Z }
 status: stable
@@ -18,7 +18,7 @@ what the prose says, and where it is blind.
 
 Six `forbidden` contracts live under `[tool.importlinter]` in
 `apps/api/pyproject.toml`, over
-`root_packages = ["pathfinder", "veupathdb", "veupathdb_mcp", "assistant_core"]`
+`root_packages = ["strategist", "veupathdb", "veupathdb_mcp", "assistant_core"]`
 with `include_external_packages = true`. The three libraries are roots and not
 external packages because a forbidden contract cannot name a submodule of an
 external package. Run them with `cd apps/api && uv run lint-imports`.
@@ -30,7 +30,7 @@ external package. Run them with `cd apps/api && uv run lint-imports`.
 | Persistence never imports services, transport, or AI | `strategist.persistence` | `services`, `transport`, `ai` | **no** |
 | The science never imports an assistant's composition root | `ai`, `persistence`, `services` | `assistants` | **no** |
 | The agent and the jobs reach the evidence producers only through its facade | `ai`, `jobs` | the service modules the facade owns | **no** |
-| The application imports no private module of an installed distribution | `pathfinder` | the named `_*` modules of the three libraries | **no** |
+| The application imports no private module of an installed distribution | `strategist` | the named `_*` modules of the three libraries | **no** |
 
 **Three contracts left this file rather than being relaxed.** Domain purity and
 the integration direction are installation facts of `veupathdb-py`, and the MCP
@@ -60,7 +60,7 @@ statements, so a domain module that names `httpx`, or names `veupathdb.wdk` or
 `veupathdb.eda` (the two subpackages that open a connection), fails there.
 
 `uv run lint-imports` reports **6 kept, 0 broken**. The contract that forbade
-`pathfinder.integrations` to `transport` and `ai` was red twice before the split
+`strategist.integrations` to `transport` and `ai` was red twice before the split
 - once on a single edge from `catalog_discovery` into a WDK client wrapper that
 belonged in the service layer, once on four wire-model edges it carried as
 exceptions - and it left this file with the layer it named. See
@@ -71,7 +71,7 @@ exceptions - and it left this file with the layer it named. See
 Until 2026-09-03 the contract above was satisfied by one module.
 `services/wdk/__init__.py` re-exported the WDK client factories and two dozen
 WDK types, so an AI tool wrote `from strategist.services.wdk import WDKParameter`
-and never named `pathfinder.integrations`. That was the contract satisfied by an
+and never named `strategist.integrations`. That was the contract satisfied by an
 alias: the object a caller received was the integration's own, and no check said
 which of the twenty-four a caller took.
 

@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The client library is a distribution, so Strategist cannot reach into it
-description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed by repository URL at a tag; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository. The authoring model the client carried at first came back to this application at v0.1.0a7.
+description: strategist/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed by repository URL at a tag; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository. The authoring model the client carried at first came back to this application at v0.1.0a7.
 tags: [veupathdb-py, split, architecture, packaging, import-linter, wdk, eda]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -11,7 +11,7 @@ status: stable
 # What was decided
 
 The VEuPathDB client is its own repository: its own `pyproject.toml`, its own lock
-file, a `src/veupathdb` layout importable with no `pathfinder.` prefix, its own
+file, a `src/veupathdb` layout importable with no `strategist.` prefix, its own
 test tree with a hermetic lane and a live lane, its own README, its own copy of
 the WDK and EDA knowledge bundle with the two check scripts that keep it honest,
 and `apps/api` consuming it as a dependency it installs. This is the shape
@@ -22,9 +22,9 @@ The mapping is a prefix rename and nothing else:
 
 | was | is |
 | --- | --- |
-| `pathfinder.veupathdb` | `veupathdb` |
-| `pathfinder.integrations.veupathdb` | `veupathdb.wdk` |
-| `pathfinder.integrations.eda` | `veupathdb.eda` |
+| `strategist.veupathdb` | `veupathdb` |
+| `strategist.integrations.veupathdb` | `veupathdb.wdk` |
+| `strategist.integrations.eda` | `veupathdb.eda` |
 | `strategist.domain.{parameters,strategy,search,wdk_values,eda_study,eda_filter_checks}` | `veupathdb.domain.*` |
 | `strategist.devtools.{wdk_fixtures,eda_schemas,pins}` | `veupathdb.devtools.{fixtures,eda_schemas,pins}` |
 
@@ -39,7 +39,7 @@ the WDK test-account credential reader and the live lane's drift log.
 cd veupathdb-py && rm -rf .venv && uv sync --frozen && uv run pytest tests/unit
 ```
 
-in a shell where Strategist is not installed. A module that imported `pathfinder`
+in a shell where Strategist is not installed. A module that imported `strategist`
 would fail to resolve, not fail a lint rule. `tests/unit/test_package_boundary.py`
 walks every module and asserts the same thing per module, so the failure names the
 module rather than the run.
@@ -52,7 +52,7 @@ dependency list plus `test_the_domain_opens_no_connection`. Contract 4's survivi
 half - the embedding index does not reach up into services - moved out of this
 distribution with the index itself; see [the MCP server is a
 distribution](the-mcp-server-is-a-distribution.md), which deleted the empty
-`pathfinder.integrations` package. Contract 2 keeps the persistence half and loses
+`strategist.integrations` package. Contract 2 keeps the persistence half and loses
 the four `ignore_imports` that named `wdk_models`: a third-party module needs no
 exemption.
 

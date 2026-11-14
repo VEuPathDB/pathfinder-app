@@ -13,7 +13,7 @@ os.environ["EMBEDDING_BACKEND"] = "fake"
 
 # A catalog snapshot the live lane builds stays out of the source tree.
 os.environ.setdefault(
-    "CATALOG_CACHE_DIR", tempfile.mkdtemp(prefix="pathfinder-catalogs-")
+    "CATALOG_CACHE_DIR", tempfile.mkdtemp(prefix="strategist-catalogs-")
 )
 
 # The test profile wins over the host environment: a sourced dev env file
@@ -25,7 +25,7 @@ os.environ["INPUT_SCREENING_ENABLED"] = "true"
 os.environ.setdefault("API_SECRET_KEY", "test-secret-key-test-secret-key-test")
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test",
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/strategist_test",
 )
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
 os.environ.setdefault("GEMINI_API_KEY", "")
@@ -95,7 +95,7 @@ pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
 def _get_test_database_url() -> str:
     url = (
         os.environ.get("DATABASE_URL")
-        or "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test"
+        or "postgresql+asyncpg://postgres:postgres@localhost:5432/strategist_test"
     )
     if not url.startswith("postgresql"):
         msg = f"Tests require PostgreSQL DATABASE_URL, got: {url!r}."
@@ -103,10 +103,10 @@ def _get_test_database_url() -> str:
 
     # Tests refuse to run against a database that is not a test database.
     allow = os.environ.get("ALLOW_NONTEST_DATABASE") == "1"
-    if not allow and "pathfinder_test" not in url:
+    if not allow and "strategist_test" not in url:
         msg = (
             "Refusing to run tests against a non-test database. "
-            "Set DATABASE_URL to a test DB (suggested db name: 'pathfinder_test'), "
+            "Set DATABASE_URL to a test DB (suggested db name: 'strategist_test'), "
             "or set ALLOW_NONTEST_DATABASE=1 to override."
         )
         raise RuntimeError(msg)
@@ -141,7 +141,7 @@ def postgres_container(
         "pgvector/pgvector:pg16",
         username="postgres",
         password="postgres",
-        dbname="pathfinder_test",
+        dbname="strategist_test",
     )
     try:
         container.start()

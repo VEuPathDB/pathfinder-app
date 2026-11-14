@@ -2,7 +2,7 @@
 type: Proposal
 title: Strategist EDA integration concept
 description: The two seams by which Strategist can adopt EDA, what an EDA tab of its own would be, and how models are fed EDA knowledge. Concept and surface map only; no execution plan.
-tags: [eda, pathfinder, integration, proposal, agents]
+tags: [eda, strategist, integration, proposal, agents]
 generated: { by: claude-code/fable-5, at: 2026-08-27T00:00:00Z }
 verified: { by: claude-code/fable-5, at: 2026-08-27T00:00:00Z }
 status: accepted

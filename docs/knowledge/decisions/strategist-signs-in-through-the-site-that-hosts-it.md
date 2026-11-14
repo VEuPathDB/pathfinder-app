@@ -68,7 +68,7 @@ the next Strategist request is refused and the notice returns.
 embedded variant, since the website's header names the product. The rail
 (`apps/web/src/app/components/AppNavRail.tsx`) carries the sections, help and settings, and the Strategist mark sits at the bottom of
 the conversation's right rail (`apps/web/src/lib/components/StrategistMark.tsx`). When the parent window has the same origin, a
-route change posts `{ type: "pathfinder:location", path }` to it
+route change posts `{ type: "strategist:location", path }` to it
 (`apps/web/src/lib/frameBridge.ts`), so the website page keeps its address bar
 on the Strategist page. A Strategist page opened in a tab of its own on the
 website's host replaces itself with the website page for the same path

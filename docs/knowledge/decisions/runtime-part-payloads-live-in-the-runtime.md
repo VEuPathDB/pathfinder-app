@@ -24,14 +24,14 @@ They rebased from `shared_py.pydantic_base.CamelModel` onto
 key, `extra="ignore"`, which is Pydantic's own default, so the wire behaviour
 and the published schema are unchanged.
 
-`pathfinder-shared` is gone. The models that name a gene, a strategy or an
+`strategist-shared` is gone. The models that name a gene, a strategy or an
 enrichment folded into `apps/api`: the part payloads are
 `strategist/ai/stream_part_payloads.py` and `strategist/domain/eda_parts.py`,
 and no distribution outside `apps/api` declares them.
 
 # What was rejected
 
-**Publishing `pathfinder-shared` as a second distribution.** It is the smaller
+**Publishing `strategist-shared` as a second distribution.** It is the smaller
 edit: leave the modules, add a build target. It was rejected because the
 package has no second consumer and its remaining contents are Strategist's
 product parts. A host that wants to run a turn would install a distribution of
@@ -63,5 +63,5 @@ module a process reaches first, which is the worst kind.
 venv with no path dependencies and importing
 `assistant_core.graph.stream_events`: the day that needs a module of
 Strategist's, this is gone. `assistant-platform: packages/assistant-core/tests/unit/test_package_boundary.py` fails if any
-module under `assistant_core` imports `pathfinder`, and pins the two payload
+module under `assistant_core` imports `strategist`, and pins the two payload
 modules to the model library alone.

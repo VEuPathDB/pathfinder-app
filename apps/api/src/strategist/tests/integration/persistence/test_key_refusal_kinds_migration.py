@@ -57,7 +57,7 @@ def old_database(
     del database_url, postgres_container
 
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_key_refusal_kinds"
+    name = "strategist_test_key_refusal_kinds"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     with psycopg.connect(psycopg_url(url), autocommit=True) as connection:

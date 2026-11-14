@@ -1,15 +1,15 @@
 # Operating Strategist
 
-This runbook is for the Strategist estate stack: the `pathfinder` folder of
+This runbook is for the Strategist estate stack: the `strategist` folder of
 `VEuPathDB/webservices-quadlets`. The units are root templated podman quadlets. The instance
-name `%i` is the stage (`dev` today, `qa` next), so `pathfinder-api@dev.service` runs the
-container `pathfinder-api-dev`. Puppet decides which stage runs on which host.
+name `%i` is the stage (`dev` today, `qa` next), so `strategist-api@dev.service` runs the
+container `strategist-api-dev`. Puppet decides which stage runs on which host.
 
 The stack reads its environment in this order, a later file overriding an earlier one:
-`env/00-pathfinder_defaults.env`, `env/10-pathfinder_override_<stage>.env`,
-`env/20-pathfinder_override_<host FQDN>.env`, `env/30-pathfinder_override_<stage>_<host FQDN>.env`.
+`env/00-strategist_defaults.env`, `env/10-strategist_override_<stage>.env`,
+`env/20-strategist_override_<host FQDN>.env`, `env/30-strategist_override_<stage>_<host FQDN>.env`.
 The repository's own README explains the layering. Secrets are podman secrets named
-`pathfinder_<NAME>_<stage>`, which puppet creates.
+`strategist_<NAME>_<stage>`, which puppet creates.
 
 Every command below runs as root on the host that runs the stage. Replace `dev` with the stage.
 
@@ -17,26 +17,29 @@ Every command below runs as root on the host that runs the stage. Replace `dev` 
 
 | unit | image | what it does | waits for |
 |---|---|---|---|
-| `pathfinder-db@` | `docker.io/pgvector/pgvector:pg16` | Postgres with pgvector: every stored record, the job queue, the embedding index | nothing |
-| `pathfinder-api@` | `docker.io/veupathdb/pathfinder-api` | The HTTP API on 8000. Migrates the database at start, loads the site catalogs, writes the embedding index | db (and pulls in the worker) |
-| `pathfinder-worker@` | `pathfinder-api`, `Exec=bin/strategist-worker` (the image's command for the worker; the package is `strategist`, so a quadlet that names `-m pathfinder.jobs.worker` no longer starts it) | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
-| `pathfinder-wdk-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for an assistant that declares the source | db |
-| `pathfinder-research-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp.research` | Literature and web search over MCP on 8110 | searxng |
-| `pathfinder-searxng@` | `docker.io/searxng/searxng` | The web search engine research-mcp asks first, on 8080 | nothing |
-| `pathfinder-service@` | `docker.io/veupathdb/pathfinder-web` | The Next.js site on 3000. Forwards `/pathfinder/api/*` and `/pathfinder/health/*` to the api | api |
+| `strategist-db@` | `docker.io/pgvector/pgvector:pg16` | Postgres with pgvector: every stored record, the job queue, the embedding index | nothing |
+| `strategist-api@` | `docker.io/veupathdb/strategist-api` | The HTTP API on 8000. Migrates the database at start, loads the site catalogs, writes the embedding index | db (and pulls in the worker) |
+| `strategist-worker@` | `strategist-api`, `Exec=bin/strategist-worker` (the image's command for the worker; the package is `strategist`, so a quadlet that names `-m pathfinder.jobs.worker` no longer starts it) | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
+| `strategist-wdk-mcp@` | `strategist-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for an assistant that declares the source | db |
+| `strategist-research-mcp@` | `strategist-api`, `Exec=... -m veupathdb_mcp.research` | Literature and web search over MCP on 8110 | searxng |
+| `strategist-searxng@` | `docker.io/searxng/searxng` | The web search engine research-mcp asks first, on 8080 | nothing |
+| `strategist-service@` | `docker.io/veupathdb/strategist-web` | The Next.js site on 3000. Forwards `/pathfinder/api/*` and `/pathfinder/health/*` to the api, and answers `/strategist/*` with the page under `/pathfinder` | api |
 
-Two volumes: `pathfinder-db-data-<stage>` (the database) and `pathfinder-catalogs-<stage>`
-(catalog snapshots, shared by api, worker and wdk-mcp). One network, `pathfinder-internal-<stage>`;
-containers reach each other by alias (`pathfinder-db`, `pathfinder-api`, `pathfinder-wdk-mcp`,
-`pathfinder-research-mcp`, `pathfinder-searxng`). The api and the worker also join `monitoring`.
+Two volumes: `strategist-db-data-<stage>` (the database) and `strategist-catalogs-<stage>`
+(catalog snapshots, shared by api, worker and wdk-mcp). One network, `strategist-internal-<stage>`;
+containers reach each other by alias (`strategist-db`, `strategist-api`, `strategist-wdk-mcp`,
+`strategist-research-mcp`, `strategist-searxng`). The api also answers to `pathfinder-api`,
+the address the web image is built with until the transition ends. The api and the worker also join `monitoring`.
 
-Only the web container is on Traefik, at `pathfinder-<stage>.local.apidb.org` on the `local`
-entrypoint (8443). Apache on the website's vhost proxies `/pathfinder` to
-`https://pathfinder-<stage>.local.apidb.org:8443/pathfinder` (`set_pathfinder_proxy` in
-`Containers.pm` of `puppet-ebrc_httpd_setup`, the same shape as `set_jbrowse2_proxy`). The dev
-stage is served at `https://muharram.veupathdb.org/pathfinder`, qa at
-`https://qa.veupathdb.org/pathfinder`. Strategist builds every link it hands out as a path
-under `/pathfinder`, so it needs no setting for its own address.
+Only the web container is on Traefik, at `strategist-<stage>.local.apidb.org` on the `local`
+entrypoint (8443); until the transition ends its router also answers the former
+`pathfinder-<stage>.local.apidb.org`. Apache on the website's vhost proxies `/pathfinder` (and
+`/strategist`, once systems adds it) to the stage's host on 8443 under the same path
+(`set_pathfinder_proxy` in `Containers.pm` of `puppet-ebrc_httpd_setup`, the same shape as
+`set_jbrowse2_proxy`). The dev stage is served at `https://muharram.veupathdb.org/pathfinder`,
+qa at `https://qa.veupathdb.org/pathfinder`, and each under `/strategist` as well. Strategist
+builds every link it hands out as a path under `/pathfinder`, so it needs no setting for its
+own address.
 
 Restarting one unit alone:
 
@@ -60,7 +63,7 @@ Restarting one unit alone:
    tasks and usage). The worker does not migrate. The graph checkpointer and the memory store
    create their own tables when the api opens them.
 5. The api starts serving. It then reaches the embedding backend, loads one catalog per site in
-   the stage's sites file (`pathfinder/config/sites-<stage>.yml` in `webservices-quadlets`, mounted
+   the stage's sites file (`strategist/config/sites-<stage>.yml` in `webservices-quadlets`, mounted
    at `/app/config/sites.yml`), and writes the embedding index. A site has 30 s
    (`SITE_PRELOAD_TIMEOUT_SECONDS`) to answer; one that does not is degraded and retried every
    60 s (`SITE_RETRY_INTERVAL_SECONDS`).
@@ -70,8 +73,8 @@ which is after the migrations. Catalogs keep loading behind it, so the stack is 
 researchers when `/health/ready` answers 200 and `/health/system` reports `"ready": true`:
 
 ```bash
-podman ps --filter name=pathfinder- --format '{{.Names}}  {{.Status}}'
-podman exec pathfinder-api-dev curl -sS http://localhost:8000/health/system
+podman ps --filter name=strategist- --format '{{.Names}}  {{.Status}}'
+podman exec strategist-api-dev curl -sS http://localhost:8000/health/system
 ```
 
 Only the api refreshes catalogs and writes the embedding index. The worker and wdk-mcp run with
@@ -84,27 +87,27 @@ Jenkins builds both images from this repository's `Jenkinsfile`: `:latest` on ev
 `main`, and `:<semver>` on a tag `v<semver>` (`v0.2.0-b7` publishes `:0.2.0-b7`). The two MCP
 units run the api image, so a release moves all three together.
 
-- **dev** runs `PATHFINDER_TAG=latest` (`00-pathfinder_defaults.env`). Every unit carries
+- **dev** runs `STRATEGIST_TAG=latest` (`00-strategist_defaults.env`). Every unit carries
   `AutoUpdate=registry`, so `podman-auto-update` pulls a moved tag and restarts the unit. A push
   to `main` reaches dev without anyone acting.
-- **qa** runs `PATHFINDER_TAG=qa` (`10-pathfinder_override_qa.env`). The `VEuPathDB/tagger`
-  repository moves `:qa`: a pull request to its `qa` branch adds `pathfinder-api: <version>` and
-  `pathfinder-web: <version>` to `versions.yml`, and its job retags those images as `:qa`. The
+- **qa** runs `STRATEGIST_TAG=qa` (`10-strategist_override_qa.env`). The `VEuPathDB/tagger`
+  repository moves `:qa`: a pull request to its `qa` branch adds `strategist-api: <version>` and
+  `strategist-web: <version>` to `versions.yml`, and its job retags those images as `:qa`. The
   version must already be on Docker Hub.
 
 To see what a stage runs:
 
 ```bash
-podman exec pathfinder-api-dev curl -fsS http://localhost:8000/health
-podman exec pathfinder-wdk-mcp-dev curl -fsS http://localhost:8100/health
+podman exec strategist-api-dev curl -fsS http://localhost:8000/health
+podman exec strategist-wdk-mcp-dev curl -fsS http://localhost:8100/health
 ```
 
 The first prints the api version. The second prints the tool server version, which must equal
 the `veupathdb-mcp` the api imports:
-`podman exec pathfinder-api-dev .venv/bin/python -c "import importlib.metadata as m; print(m.version('veupathdb-mcp'))"`.
+`podman exec strategist-api-dev .venv/bin/python -c "import importlib.metadata as m; print(m.version('veupathdb-mcp'))"`.
 
-**Pin a stage to one version.** Put `PATHFINDER_TAG=<version>` (for example `0.2.0-b7`) in
-`env/30-pathfinder_override_<stage>_<host FQDN>.env`, or in `env/20-pathfinder_override_<host FQDN>.env`
+**Pin a stage to one version.** Put `STRATEGIST_TAG=<version>` (for example `0.2.0-b7`) in
+`env/30-strategist_override_<stage>_<host FQDN>.env`, or in `env/20-strategist_override_<host FQDN>.env`
 to pin every stage on that host. Either is a pull request to `webservices-quadlets`; a merged
 change reaches the servers within an hour and restarts the stack (prod needs a manual restart).
 A version tag never moves, so auto-update leaves a pinned stage alone. Delete the file to follow
@@ -122,8 +125,8 @@ its arguments. Before the new tag lands, stop the api so no new turn starts, the
 worker has nothing queued or running:
 
 ```bash
-systemctl stop pathfinder-api@dev
-podman exec pathfinder-db-dev psql -U pathfinder -d pathfinder -c \
+systemctl stop strategist-api@dev
+podman exec strategist-db-dev psql -U strategist -d strategist -c \
   "SELECT queue_name, status, count(*) FROM procrastinate_jobs WHERE status IN ('todo','doing') GROUP BY 1, 2"
 ```
 
@@ -134,18 +137,18 @@ take the release and start the api. On dev, which follows
 
 ## Secrets
 
-Each is the podman secret `pathfinder_<NAME>_<stage>`. A container reads a secret when it
+Each is the podman secret `strategist_<NAME>_<stage>`. A container reads a secret when it
 starts, so a rotation is: change the value, then restart every unit in "used by". Values that
 need randomness: `openssl rand -hex 32`.
 
 | name | used by | what it does | rotating it |
 |---|---|---|---|
-| `POSTGRES_PASSWORD` | db, api, worker, wdk-mcp | Password of the `pathfinder` role. The db image applies it only when it initializes an empty volume; the other three build their database address from it, `POSTGRES_USER`, `POSTGRES_DB` and the host `pathfinder-db`. | Changing the secret alone does nothing on an existing volume. Run `podman exec pathfinder-db-dev psql -U pathfinder -d pathfinder -c "ALTER ROLE pathfinder PASSWORD '<new>'"`, then change this secret and restart api, worker and wdk-mcp. |
+| `POSTGRES_PASSWORD` | db, api, worker, wdk-mcp | Password of the `strategist` role. The db image applies it only when it initializes an empty volume; the other three build their database address from it, `POSTGRES_USER`, `POSTGRES_DB` and the host `strategist-db`. | Changing the secret alone does nothing on an existing volume. Run `podman exec strategist-db-dev psql -U strategist -d strategist -c "ALTER ROLE strategist PASSWORD '<new>'"`, then change this secret and restart api, worker and wdk-mcp. |
 | `API_SECRET_KEY` | api, worker | Signs Strategist bearer tokens and the mock stack's dev-login cookie (HS256, valid 24 h). A browser signs in with the website's login and carries no Strategist token. At least 32 characters; the api and the worker refuse to start on a shorter value or one containing `example`, `placeholder` or `change-me`. | Every Strategist bearer token stops verifying. Researchers in a browser are not affected; nothing stored is lost. |
 | `OPENAI_API_KEY` | api, worker, wdk-mcp | The deployment's OpenAI account: the default chat models, the injection judge and every embedding (memories and the catalog index). | Restart all three. Without it the worker refuses to start, because it cannot build the injection judge, and the api reports `embedding_backend` not ready. |
 | `ANTHROPIC_API_KEY` | api, worker | Lets the deployment pay for Claude Haiku 5.5. Sonnet 5.5 and Opus 5.5 run only on a researcher's own key. | Restart api and worker. Without it, Claude models need a researcher's key. |
 | `PROVIDER_KEY_ENCRYPTION_KEY` | api, worker | Seals the model keys researchers store in Settings (AES-256-GCM). The base64url encoding of 32 random bytes: `python3 -c 'import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'`. Empty turns the feature off. A malformed value stops both processes. | Every stored key stops opening. At the researcher's next turn the worker marks the key unreadable and refuses a turn that needs it; the deployment's key never stands in. Each researcher enters the key again in Settings. Keep this secret with the database backups. |
-| `WDK_MCP_SERVICE_TOKENS` | wdk-mcp, worker | The applications wdk-mcp admits, as `app_id:secret[,app_id:secret...]`: `pathfinder:<secret>`, the secret at least 32 characters. wdk-mcp admits each entry; the worker presents the secret of the `pathfinder` entry. | Change the value and restart wdk-mcp and the worker. Without a `pathfinder` entry the worker admits no wdk-mcp source. |
+| `WDK_MCP_SERVICE_TOKENS` | wdk-mcp, worker | The applications wdk-mcp admits, as `app_id:secret[,app_id:secret...]`: `strategist:<secret>`, the secret at least 32 characters. wdk-mcp admits each entry; the worker presents the secret of the `strategist` entry. | Change the value and restart wdk-mcp and the worker. Without a `strategist` entry the worker admits no wdk-mcp source. |
 | `RESEARCH_MCP_SERVICE_TOKENS` | research-mcp, worker | The same form and the same use, for research-mcp. | As for wdk-mcp. Without it literature and web search end. |
 | `SEARXNG_SECRET` | searxng | SearXNG's server secret. The stack's `config/searxng-settings.yml` turns the limiter and the image proxy off. | Restart searxng. Nothing else reads it. |
 
@@ -169,8 +172,8 @@ uncomment the line (a pull request to `webservices-quadlets`).
 | `/health/config` | The providers the deployment pays for, the site, and the sign-in address. |
 
 ```bash
-podman exec pathfinder-api-dev curl -sS http://localhost:8000/health/ready
-podman exec pathfinder-research-mcp-dev curl -fsS http://localhost:8110/health
+podman exec strategist-api-dev curl -sS http://localhost:8000/health/ready
+podman exec strategist-research-mcp-dev curl -fsS http://localhost:8110/health
 curl -sS https://muharram.veupathdb.org/pathfinder/health/system   # through Apache and the web container
 ```
 
@@ -179,9 +182,9 @@ the researcher's account ID. A queue line names a job by its name, id, queue and
 its arguments or its result.
 
 ```bash
-journalctl -u pathfinder-api@dev --since -1h
-journalctl -u pathfinder-worker@dev -f
-journalctl -u pathfinder-api@dev | grep '"level": "error"'
+journalctl -u strategist-api@dev --since -1h
+journalctl -u strategist-worker@dev -f
+journalctl -u strategist-api@dev | grep '"level": "error"'
 ```
 
 ## Metrics
@@ -192,7 +195,7 @@ container (`METRICS_PORT`; 0 serves none). The port is not published. Both units
 scrapes them. To read them by hand:
 
 ```bash
-podman exec pathfinder-api-dev curl -s http://localhost:9100/metrics | grep '^strategist_'
+podman exec strategist-api-dev curl -s http://localhost:9100/metrics | grep '^strategist_'
 ```
 
 | series | process | labels |
@@ -214,7 +217,7 @@ The db volume holds everything researchers made: conversations and their events,
 saved gene sets, memories, usage and the sealed provider keys. Back it up with `pg_dump`:
 
 ```bash
-podman exec pathfinder-db-dev pg_dump -U pathfinder -d pathfinder -Fc > pathfinder-dev-$(date +%F).dump
+podman exec strategist-db-dev pg_dump -U strategist -d strategist -Fc > strategist-dev-$(date +%F).dump
 ```
 
 The catalogs volume is a cache. The api rebuilds it from the sites, so it needs no backup.
@@ -225,9 +228,9 @@ value loses them (see [Secrets](#secrets)).
 Restore into the running db with the api, worker and wdk-mcp stopped:
 
 ```bash
-systemctl stop pathfinder-service@dev pathfinder-worker@dev pathfinder-api@dev pathfinder-wdk-mcp@dev
-podman exec -i pathfinder-db-dev pg_restore -U pathfinder -d pathfinder --clean --if-exists < pathfinder-dev-2026-10-09.dump
-systemctl start pathfinder-api@dev pathfinder-wdk-mcp@dev pathfinder-worker@dev pathfinder-service@dev
+systemctl stop strategist-service@dev strategist-worker@dev strategist-api@dev strategist-wdk-mcp@dev
+podman exec -i strategist-db-dev pg_restore -U strategist -d strategist --clean --if-exists < strategist-dev-2026-10-09.dump
+systemctl start strategist-api@dev strategist-wdk-mcp@dev strategist-worker@dev strategist-service@dev
 ```
 
 Start the image version that wrote the dump, or a newer one: the api migrates forward at start,
@@ -238,7 +241,7 @@ never back.
 **A site shows as unavailable** ("Couldn't reach" in the notice on its website, 503 `SITE_UNAVAILABLE` on its
 routes). Its catalog did not load inside its 30 s budget. `/health/ready` lists it under
 `degraded`, and the api retries it every 60 s with no action needed. The api log names it:
-`journalctl -u pathfinder-api@dev | grep 'Site catalog did not load'`. The deployment holds no
+`journalctl -u strategist-api@dev | grep 'Site catalog did not load'`. The deployment holds no
 VEuPathDB account: each process reads catalogs as one guest, which it mints once with a `GET` of a
 site's service root and reuses. If every site is degraded, check that the host reaches the URLs
 in the stage's sites file and that `curl -si <base_url>` from the host answers with a
@@ -247,9 +250,9 @@ in the stage's sites file and that `curl -si <base_url>` from the host answers w
 **Chat hangs.** Check the worker first; the api never runs a turn.
 
 ```bash
-podman exec pathfinder-api-dev curl -sS http://localhost:8000/health/system   # "workerAlive": false?
-systemctl status pathfinder-worker@dev
-journalctl -u pathfinder-worker@dev --since -15m
+podman exec strategist-api-dev curl -sS http://localhost:8000/health/system   # "workerAlive": false?
+systemctl status strategist-worker@dev
+journalctl -u strategist-worker@dev --since -15m
 ```
 
 A worker that logs "the injection judge did not build" cannot reach its model; check
@@ -263,10 +266,10 @@ turn" with the source id and the reason.
 
 - From Traefik (a plain `404 page not found`): the web container is not running or not on the
   `traefik` network, or `TRAEFIK_DOMAIN` does not match the host Apache proxies to.
-  `systemctl status pathfinder-service@dev`.
+  `systemctl status strategist-service@dev`.
 - From Apache: the vhost has no `set_pathfinder_proxy('<stage>')` call. That is a systems change
   in `puppet-ebrc_httpd_setup`.
-- Test each hop: `curl -sk https://pathfinder-dev.local.apidb.org:8443/pathfinder/health` from
+- Test each hop: `curl -sk https://strategist-dev.local.apidb.org:8443/pathfinder/health` from
   the web host, then the public URL.
 
 **Sign-in fails.** Strategist has no login of its own. It reads the website's `Authorization`

@@ -10,7 +10,7 @@ os.environ.setdefault(
     str(Path(__file__).resolve().parents[3] / "deploy" / "sites" / "qa.yml"),
 )
 os.environ.setdefault(
-    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder"
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/strategist"
 )
 os.environ.setdefault("OPENAI_API_KEY", "docs-build-placeholder")
 os.environ.setdefault("API_SECRET_KEY", "docs-build-secret-key-0000000000000000")

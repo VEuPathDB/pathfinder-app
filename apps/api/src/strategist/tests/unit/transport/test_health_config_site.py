@@ -72,7 +72,7 @@ async def test_development_without_the_dev_account_signs_in_on_the_site(
     )
 
 
-async def test_the_site_page_is_the_websites_pathfinder_page(
+async def test_the_site_page_is_the_websites_strategist_page(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(get_settings(), "strategist_site", "plasmodb")

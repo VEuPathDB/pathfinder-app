@@ -12,9 +12,9 @@ status: stable
 
 The assistant runtime is `assistant-platform: packages/assistant-core`: its own `pyproject.toml`,
 its own lock file, a `src/assistant_core` layout importable with no
-`pathfinder.` prefix, its own test tree, and `apps/api` consuming it as a
+`strategist.` prefix, its own test tree, and `apps/api` consuming it as a
 dependency it installs. A module under
-`assistant_core/` cannot import `pathfinder` because the distribution it
+`assistant_core/` cannot import `strategist` because the distribution it
 belongs to does not depend on it. The boundary stopped being a rule a linter
 applies and became a fact about what is installed.
 
@@ -110,14 +110,14 @@ extracted, it has been rehoused.
 
 # What replaced contract 7
 
-Contract 7 forbade any chain from `pathfinder.assistant_core` to the science.
+Contract 7 forbade any chain from `strategist.assistant_core` to the science.
 The module no longer exists, so the contract cannot be written. Three things
 carry its weight:
 
 1. `assistant-platform: packages/assistant-core/pyproject.toml` declares no dependency on this
    application. This is the enforcement; the rest is instrumentation.
 2. `assistant-platform: packages/assistant-core/tests/unit/test_package_boundary.py` walks every
-   module in the package and fails on an import naming `pathfinder`. The two
+   module in the package and fails on an import naming `strategist`. The two
    wire-type modules it once read are now the package's own; see [the runtime's
    part payloads live in the runtime](runtime-part-payloads-live-in-the-runtime.md).
 3. A seventh contract still exists in `apps/api`, asserting something that is
@@ -137,7 +137,7 @@ Done. The runtime is `VEuPathDB/ai-assistant-platform`, `packages/assistant-core
 # What would falsify this
 
 `cd assistant-platform: packages/assistant-core && uv run pytest` runs the package's whole suite
-with no `pathfinder` installed; the day it needs one, the boundary is gone.
+with no `strategist` installed; the day it needs one, the boundary is gone.
 `apps/api/src/strategist/tests/unit/test_core_boundary.py`
 fails if the dependency edge reverses or the two source trees merge.
 `uv run lint-imports` fails if the science starts importing the composition

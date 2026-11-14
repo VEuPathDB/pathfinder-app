@@ -79,7 +79,7 @@ def migrated(
 ) -> Iterator[str]:
     del database_url, postgres_container
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_audit_tables"
+    name = "strategist_test_audit_tables"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     command.upgrade(alembic_config(url), REVISION)
@@ -99,7 +99,7 @@ def _seed(url: str) -> tuple[str, str, int]:
         connection.execute("INSERT INTO users (id) VALUES (%s)", (user_id,))
         connection.execute(
             "INSERT INTO conversations (id, user_id, site_id, name, assistant_id) "
-            "VALUES (%s, %s, 'plasmodb', '', 'pathfinder')",
+            "VALUES (%s, %s, 'plasmodb', '', 'strategist')",
             (conversation_id, user_id),
         )
         connection.execute(

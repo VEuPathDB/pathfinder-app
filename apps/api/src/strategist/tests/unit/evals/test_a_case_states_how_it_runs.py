@@ -461,6 +461,6 @@ def test_every_corpus_case_runs_under_an_installed_assistant() -> None:
 def test_a_case_names_its_assistant_as_written() -> None:
     raw = json.loads(min(CORPUS_DIR.glob("*.json")).read_text())
 
-    case = EvalCase.model_validate({**raw, "assistantId": "pathfinder"})
+    case = EvalCase.model_validate({**raw, "assistantId": "another-assistant"})
 
-    assert case.assistant_id == "pathfinder"
+    assert case.assistant_id == "another-assistant"

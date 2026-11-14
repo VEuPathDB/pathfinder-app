@@ -341,6 +341,7 @@ describe("AppShellLayout framed by the website page", () => {
 
     expect(screen.getByTestId("signed-out-notice")).toBeVisible();
     expect(postMessage.mock.calls).toEqual([
+      [{ type: "strategist:location", path: "/conversation" }, window.location.origin],
       [{ type: "pathfinder:location", path: "/conversation" }, window.location.origin],
     ]);
   });

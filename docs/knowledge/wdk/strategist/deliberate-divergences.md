@@ -2,7 +2,7 @@
 type: Reference
 title: Where Strategist deliberately differs from WDK
 description: Nine places Strategist does something other than what WDK does, each with the reason and the decision that records what was rejected - and the test that separates these from the bugs in the backlog.
-tags: [wdk-alignment, divergence, decisions, pathfinder]
+tags: [wdk-alignment, divergence, decisions, strategist]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 status: stable

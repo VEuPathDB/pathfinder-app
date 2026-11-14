@@ -148,7 +148,7 @@ async def root_genes(wdk_identity: str) -> AsyncGenerator[Genes]:
     async def genes(root: StrategyStepNode) -> frozenset[str]:
         tree = await push(root)
         strategy = await api.create_strategy(
-            tree, name="pathfinder-live-lane", is_internal=True
+            tree, name="strategist-live-lane", is_internal=True
         )
         strategies.append(strategy.id)
         steps.clear()

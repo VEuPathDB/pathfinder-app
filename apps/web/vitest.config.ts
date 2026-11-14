@@ -11,10 +11,6 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: "@/", replacement: `${srcDir}/` },
-      {
-        find: /^@pathfinder\/shared\/generated\/(.*)$/,
-        replacement: `${sharedDir}/generated/$1`,
-      },
       { find: "@strategist/shared", replacement: sharedDir },
       {
         find: "@tanstack/react-query",

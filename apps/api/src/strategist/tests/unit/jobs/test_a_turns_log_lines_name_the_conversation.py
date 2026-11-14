@@ -47,7 +47,7 @@ async def _logging_turn(**kwargs: Any) -> None:
 
 async def _application(conversation_id: UUID) -> str:
     del conversation_id
-    return "pathfinder"
+    return "strategist"
 
 
 async def _no_keys(user_id: UUID) -> ProviderKeyring:

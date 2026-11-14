@@ -12,7 +12,7 @@ body:
     attributes:
       label: Conversation link
       description: Copy the address bar of the conversation page. It holds the conversation id, which lets us read the whole turn.
-      placeholder: https://<pathfinder address>/plasmodb/conversation/<id>
+      placeholder: https://<strategist address>/plasmodb/conversation/<id>
     validations:
       required: true
   - type: dropdown

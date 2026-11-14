@@ -39,7 +39,7 @@ uv run lint-imports
 uv run vulture
 uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
-VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m strategist.devtools.openapi check
+VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/strategist uv run python -m strategist.devtools.openapi check
 uv run pip-audit
 uv run --group docs sphinx-build -b html docs docs/_build/html  # the CI build-docs job
 
@@ -74,7 +74,7 @@ built already holds `embedding_vectors` and `embedding_index_entries` under
 Strategist's chain, so the api exits with `DuplicateTableError` until the MCP
 chain is stamped once on that database, from a checkout of the MCP repository or
 the `wdk-mcp` container: `alembic -c alembic.ini stamp head`. The dev volume and
-the e2e volume (`pathfinder_test`) are such databases; a fresh one needs nothing.
+the e2e volume (`strategist_test`) are such databases; a fresh one needs nothing.
 
 ### The bundle
 

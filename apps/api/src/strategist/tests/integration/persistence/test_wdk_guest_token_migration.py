@@ -29,7 +29,7 @@ def database_with_guest_tokens(
     del database_url, postgres_container
 
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_guest_token"
+    name = "strategist_test_guest_token"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     yield url

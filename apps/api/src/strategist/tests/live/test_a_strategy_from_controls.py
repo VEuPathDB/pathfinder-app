@@ -114,7 +114,7 @@ async def built(wdk_identity: str) -> AsyncGenerator[Built]:
     async def build(root: StrategyStepNode) -> tuple[int, int | None]:
         tree = await push(root)
         strategy = await api.create_strategy(
-            tree, name="pathfinder-live-lane", is_internal=True
+            tree, name="strategist-live-lane", is_internal=True
         )
         strategies.append(strategy.id)
         details = await api.get_strategy(strategy.id)

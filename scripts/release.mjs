@@ -10,7 +10,7 @@ import { pep440, tagVersion } from "./check-release.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PYPROJECT = "apps/api/pyproject.toml";
 const INIT = "apps/api/src/strategist/__init__.py";
-const IMAGES = ["pathfinder-api", "pathfinder-web"];
+const IMAGES = ["strategist-api", "strategist-web", "pathfinder-api", "pathfinder-web"];
 const TAGGER = "git@github.com:VEuPathDB/tagger.git";
 const STAGES = new Map([
   ["qa", false],
@@ -79,9 +79,9 @@ async function promote(stage, version, push) {
   run("git", ["clone", "--quiet", "--branch", branch, TAGGER, clone], ROOT);
   const file = join(clone, "versions.yml");
   writeFileSync(file, withImages(readFileSync(file, "utf8"), version));
-  const proposal = `pathfinder-${version}`;
+  const proposal = `strategist-${version}`;
   if (review) run("git", ["switch", "--quiet", "-c", proposal], clone);
-  run("git", ["commit", "--quiet", "-am", `Update pathfinder version to ${version}`], clone);
+  run("git", ["commit", "--quiet", "-am", `Update strategist version to ${version}`], clone);
   run("git", ["show", "--stat", "--format=%s", "HEAD"], clone);
   if (!push) {
     console.log(`release: nothing pushed; add --push to move ${stage} to ${version}`);

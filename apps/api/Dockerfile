@@ -52,10 +52,10 @@ ENV VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__strategist_internal__:
 ENV VEUPATHDB_FORMER_INTERNAL_STRATEGY_NAME_PREFIXES='["__pathfinder_internal__:Pathfinder ", "__pathfinder_internal__:Strategist ", "__pathfinder_internal__:"]'
 WORKDIR /app/apps/api
 
-RUN useradd --system --uid 10001 --no-create-home --home-dir /nonexistent pathfinder \
+RUN useradd --system --uid 10001 --no-create-home --home-dir /nonexistent strategist \
     && mkdir -p /app/data/catalogs \
-    && chown pathfinder /app/data/catalogs
-USER pathfinder
+    && chown strategist /app/data/catalogs
+USER strategist
 
 EXPOSE 8000
 

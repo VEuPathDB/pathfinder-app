@@ -15,7 +15,7 @@ Run on each site in [sites and accounts](sites-and-accounts.md) unless the flow 
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Browser, profile of account A, signed out of the website | Open `<pathfinder-url>` | The app is replaced by one panel: `Strategist`, `VEuPathDB Strategy Builder` (CSS), `Sign in to VEuPathDB to build and manage search strategies.`, link `Sign in to VEuPathDB`. No dialog, no email or password field. |
+| 1 | Browser, profile of account A, signed out of the website | Open `<strategist-url>` | The app is replaced by one panel: `Strategist`, `VEuPathDB Strategy Builder` (CSS), `Sign in to VEuPathDB to build and manage search strategies.`, link `Sign in to VEuPathDB`. No dialog, no email or password field. |
 | 2 | Signed-out panel | `Sign in to VEuPathDB` | The website's login page opens in the whole window, its `destination` the page you were on: the website page that shows Strategist, or Strategist itself when opened alone. |
 | 3 | Website login | Sign in as account A | The website returns to that page; the panel is gone and Strategist shows `/conversation` on the site whose website it is on, with no site control. |
 | 4 | First signed-in visit | Read the notice | Dialog `Your data in Strategist` with seven points, link `Read the full statement` (opens a new tab), checkbox `Let Strategist learn from my strategies` ticked, button `Continue`. Escape does not close it. Click `Continue`. It does not appear again after a reload. |
@@ -112,7 +112,7 @@ Uses the conversation of `S4` then `S9` in [standard strategy flows](flows-strat
 |---|---|---|---|
 | 1 | New conversation | Send the E2 prompt of [EDA flows](flows-eda.md) | A task row `Run differential expression` with `~120 s` and a percent. |
 | 2 | Browser | Close the tab while the percent is under 100 | - |
-| 3 | Browser, 3 minutes later | Open `<pathfinder-url>`, open the conversation | The task row reads its summary (not a percent), the reply is there (201 genes), and the right rail `Tasks` panel lists `Run differential expression` with status `complete`. |
+| 3 | Browser, 3 minutes later | Open `<strategist-url>`, open the conversation | The task row reads its summary (not a percent), the reply is there (201 genes), and the right rail `Tasks` panel lists `Run differential expression` with status `complete`. |
 
 ## F12 - Two accounts stay apart - core, once
 

@@ -101,7 +101,7 @@ def test_the_unique_wdk_strategy_index_moved_to_the_side_table() -> None:
 
 def test_the_strategy_ast_column_maps_the_jsonb_the_chain_built() -> None:
     """Both columns that hold a strategy AST compile to the type the chain built."""
-    dialect = create_async_engine("postgresql+asyncpg://pathfinder@db/pf").dialect
+    dialect = create_async_engine("postgresql+asyncpg://strategist@db/pf").dialect
     column = _SIDE_TABLE.c.strategy_ast
 
     assert column.type.compile(dialect) == "JSONB"

@@ -343,6 +343,6 @@ def test_a_body_may_name_no_site() -> None:
 
 
 def test_a_body_keeps_the_assistant_id_it_names() -> None:
-    body = ChatRequestBody.model_validate(_body(assistantId="pathfinder"))
+    body = ChatRequestBody.model_validate(_body(assistantId="strategist"))
 
-    assert body.assistant_id == "pathfinder"
+    assert body.assistant_id == "strategist"

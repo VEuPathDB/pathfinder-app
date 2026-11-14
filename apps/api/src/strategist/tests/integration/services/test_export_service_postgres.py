@@ -33,7 +33,7 @@ async def test_store_and_retrieve_postgres_export(
     assert fetched.data == b"col1\tcol2\nx\ty\n"
 
 
-async def test_an_export_links_under_the_pathfinder_path(
+async def test_an_export_links_under_the_strategist_path(
     db_cleaner: None,
     patch_app_db_engine: None,
     monkeypatch: pytest.MonkeyPatch,

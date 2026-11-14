@@ -30,14 +30,14 @@
 
 services:
   api:
-    image: pathfinder-e2e-api:ci
+    image: strategist-e2e-api:ci
     pull_policy: never
     environment:
       API_ENV: test
       STRATEGIST_CHAT_PROVIDER: mock
       # The suite carries no API key, so every vector is the deterministic one.
       EMBEDDING_BACKEND: fake
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/pathfinder_test
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/strategist_test
       # The suite drives only the sites this file lists; warming the other
       # catalogs would only slow the boot.
       VEUPATHDB_SITES_CONFIG: /app/e2e-sites.yaml
@@ -51,13 +51,13 @@ services:
       start_period: 120s
 
   worker:
-    image: pathfinder-e2e-api:ci
+    image: strategist-e2e-api:ci
     pull_policy: never
     environment:
       API_ENV: test
       STRATEGIST_CHAT_PROVIDER: mock
       EMBEDDING_BACKEND: fake
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/pathfinder_test
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/strategist_test
       VEUPATHDB_SITES_CONFIG: /app/e2e-sites.yaml
       # The measured capacity of one runner at two Playwright workers
       # (docs/knowledge/decisions/the-e2e-stack-serves-the-production-build.md).
@@ -66,7 +66,7 @@ services:
       - ./e2e-sites.yaml:/app/e2e-sites.yaml:ro
 
   web:
-    image: pathfinder-e2e-web:ci
+    image: strategist-e2e-web:ci
     pull_policy: never
     build:
       # Overrides the dev overlay's `dev` target when both files are layered.
@@ -82,6 +82,6 @@ services:
 
   db:
     environment:
-      POSTGRES_DB: pathfinder_test
+      POSTGRES_DB: strategist_test
     ports: !override
       - "5433:5432"

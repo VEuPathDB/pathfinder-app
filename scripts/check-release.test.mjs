@@ -19,7 +19,7 @@ veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "${mcpT
 line-length = 88
 `;
 
-const INIT = (version) => `"""Pathfinder."""\n\n__version__ = "${version}"\n`;
+const INIT = (version) => `"""Strategist."""\n\n__version__ = "${version}"\n`;
 
 const COMPOSE = (wdkTag, researchTag) => `services:
   wdk-mcp:

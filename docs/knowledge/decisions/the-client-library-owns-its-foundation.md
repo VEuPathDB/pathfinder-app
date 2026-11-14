@@ -20,7 +20,7 @@ else; an edge that still pointed up could not be renamed.
 
 The foundation those modules rest on is a new package,
 `veupathdb-py: src/veupathdb/`. It was the only place both
-`strategist.domain` and `pathfinder.integrations` could import from under the
+`strategist.domain` and `strategist.integrations` could import from under the
 layer contracts of the time, because contract 1 forbade domain -> integrations.
 Its names carry no underscore: the other two units import them too.
 
@@ -129,7 +129,7 @@ no-op call.
 
 `veupathdb-py: tests/unit/test_package_boundary.py` walks every module of the
 installed distribution with `pkgutil`, parses each with `ast`, and fails on an
-import whose root is `pathfinder`, `assistant_core`, `veupathdb_mcp`,
+import whose root is `strategist`, `assistant_core`, `veupathdb_mcp`,
 `sqlalchemy`, `asyncpg`, `pgvector`, `pydantic_ai`, `langgraph`, `fastapi`,
 `fastmcp`, `prometheus_client` or `opentelemetry`. It also fails any module
 that calls `structlog.configure`, any `veupathdb.domain` module that opens a

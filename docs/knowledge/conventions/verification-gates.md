@@ -109,7 +109,7 @@ project environment: an older interpreter on `PATH` reports every PEP 758, PEP
 The sixth names each library's `_*` modules one by one, because a forbidden
 contract matches whole module segments and cannot name a submodule of an
 external package. The three libraries are therefore `root_packages` beside
-`pathfinder`, so the gate needs them installed, which `uv sync` gives it.
+`strategist`, so the gate needs them installed, which `uv sync` gives it.
 
 Domain purity, the integration direction and the MCP server's isolation are no
 longer contracts. They are installation facts of `veupathdb-py` and
@@ -119,7 +119,7 @@ distribution](../decisions/the-client-library-is-a-distribution.md). The four
 `ignore_imports` that let four FRAME tool modules annotate a WDK search
 definition with a wire model went with them: a third-party module needs no
 exemption. The embedding index left with the MCP server, and
-`pathfinder.integrations` with it, so the contract that forbade it and the test
+`strategist.integrations` with it, so the contract that forbade it and the test
 that named the offending module are both deleted; what holds the property now is
 `veupathdb-mcp`'s own `tests/unit/test_package_boundary.py`. See [the MCP server
 is a distribution](../decisions/the-mcp-server-is-a-distribution.md).
@@ -132,10 +132,10 @@ No test mints a real guest token: an autouse fixture in `src/strategist/tests/co
 
 A unit test that needs a real connection carries `@pytest.mark.allow_network`. No production test does: the two database-backed ones live in `tests/integration/`, where they belong. A new marked test needs a reason, because the marker is how the guard is defeated.
 
-The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need the credential and `live_model` the only one allowed to need the key; CI skips the tests that ask for the registered account, and `live_model` is deselected by `addopts` so a developer's key in `.env` is never spent by a default run (the pre-release report selects it with `-m live_model`). An autouse fixture in `src/strategist/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. The same fixture clears `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` for every test that is not `live_wdk`, because a mocked debugger run signs in when they are set. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `pathfinder_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
+The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need the credential and `live_model` the only one allowed to need the key; CI skips the tests that ask for the registered account, and `live_model` is deselected by `addopts` so a developer's key in `.env` is never spent by a default run (the pre-release report selects it with `-m live_model`). An autouse fixture in `src/strategist/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. The same fixture clears `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` for every test that is not `live_wdk`, because a mocked debugger run signs in when they are set. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `strategist_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
 
 ```
-D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
+D=strategist_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
 H=$(mktemp -d); mv .env "$H/api.env"; mv ../../.env "$H/root.env"; mv ../../ollama_models.yaml "$H/"; \
 env WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= WDK_TEST_TOKEN= \
   OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= STRATEGIST_RESEARCH_MCP_URL= \

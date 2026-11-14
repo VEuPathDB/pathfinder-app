@@ -48,3 +48,6 @@ class ProviderKeyCipher:
         nonce = blob[len(_SCHEME) : len(_SCHEME) + _NONCE_BYTES]
         sealed = blob[len(_SCHEME) + _NONCE_BYTES :]
         return SecretStr(AESGCM(self.secret).decrypt(nonce, sealed, aad).decode())
+
+    def reseal(self, blob: bytes, *, old_aad: bytes, new_aad: bytes) -> bytes:
+        return self.seal(self.open(blob, aad=old_aad), aad=new_aad)

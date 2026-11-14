@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The wdk-mcp server is a product module of the api, served from the api image
-description: veupathdb-wdk-mcp lives at pathfinder/mcp/ inside the api distribution, imports strategist.services directly, and gains fastmcp-slim[server] as an api dependency; a standalone package, a mount inside the FastAPI app, and exporting the ai/tools wrappers were rejected. A tool whose realistic duration exceeds the 60-second per-server budget declares its own floor in tool `_meta`.
+description: veupathdb-wdk-mcp lives at strategist/mcp/ inside the api distribution, imports strategist.services directly, and gains fastmcp-slim[server] as an api dependency; a standalone package, a mount inside the FastAPI app, and exporting the ai/tools wrappers were rejected. A tool whose realistic duration exceeds the 60-second per-server budget declares its own floor in tool `_meta`.
 tags: [mcp, architecture, packaging, wdk, tools]
 generated: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
@@ -9,13 +9,13 @@ status: superseded
 ---
 
 > Superseded by [the MCP server is a distribution](the-mcp-server-is-a-distribution.md):
-> `pathfinder/mcp/` became the `veupathdb-mcp` distribution, and the contract
+> `strategist/mcp/` became the `veupathdb-mcp` distribution, and the contract
 > that guarded it became that package's dependency list. What follows is why the
 > module came first.
 
 # What was decided
 
-`veupathdb-wdk-mcp` is `pathfinder/mcp/`, a module of the api distribution. It
+`veupathdb-wdk-mcp` is `strategist/mcp/`, a module of the api distribution. It
 builds a `FastMCP` server whose tools call `strategist.services` and nothing
 else, and it runs as its own process on the api image rather than inside the
 api process.
@@ -27,7 +27,7 @@ Three facts make that the cheapest correct shape:
   `strategist.services`, which is the api.
 - **The coupling that matters is enforced, not conventional.** Import-linter
   contract "The MCP server never imports the agents or the API transport"
-  forbade `strategist.ai` and `strategist.transport` from `pathfinder.mcp`, so
+  forbade `strategist.ai` and `strategist.transport` from `strategist.mcp`, so
   a turn-scoped object could not reach a stateless server by accident. That
   contract is now the `veupathdb-mcp` distribution's dependency list; see
   [the MCP server is a distribution](the-mcp-server-is-a-distribution.md), which
@@ -41,7 +41,7 @@ Three facts make that the cheapest correct shape:
 
 **A standalone `veupathdb-wdk-mcp` distribution.** It would either vendor the
 retrieval code, which puts a second copy of the WDK rules behind a release
-cycle, or depend on `pathfinder-api`, which is the same coupling with an extra
+cycle, or depend on `strategist-api`, which is the same coupling with an extra
 package boundary and no new guarantee. The boundary that earns its keep here is
 the import contract, and that already exists.
 

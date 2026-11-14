@@ -203,7 +203,7 @@ async def test_a_scripted_turn_replies_with_no_classify_call() -> None:
 _EXPORT_REQUEST = (
     "Export the gene set 'gametocyte secreted candidates' as a CSV. [[arc:export]]"
 )
-_EXPORT_URL = "https://pathfinder.example.org/api/v1/exports/e1"
+_EXPORT_URL = "https://strategist.example.org/api/v1/exports/e1"
 
 
 class _ExportService:

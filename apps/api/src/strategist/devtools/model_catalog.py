@@ -55,7 +55,7 @@ _PAGE_SIZE = 1000
 _SNAPSHOT = re.compile(r"-(\d{8}|\d{4}-\d{2}-\d{2})$")
 # The family word, then the first version number and an optional minor of 1-2 digits.
 _FAMILY = re.compile(r"^([a-z]+)-(?:[a-z]+-)*?(\d+)(?:[.-](\d{1,2})(?!\d))?")
-_PDF_WORD = "PATHFINDER"
+_PDF_WORD = "STRATEGIST"
 _KEYABLE: TypeAdapter[KeyableProvider] = TypeAdapter(KeyableProvider)
 _PROVIDER_OWNERS = frozenset({"openai", "openai-internal", "system"})
 

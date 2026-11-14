@@ -124,7 +124,7 @@ async def owned_strategy(
         )
         steps.append((site, step.id))
         strategy = await api.create_strategy(
-            WDKStepTree(step_id=step.id), name="pathfinder-live-lane", is_internal=True
+            WDKStepTree(step_id=step.id), name="strategist-live-lane", is_internal=True
         )
         strategies.append((site, strategy.id))
         return strategy.id, step.id

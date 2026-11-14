@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The MCP server is a distribution, and Strategist is one of its consumers
-description: pathfinder/{mcp, services/catalog, services/wdk, services/gene_lookup, services/control_*, services/tool_payloads, integrations/embeddings} moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, alembic chain, Dockerfile and CI lane; Strategist consumes it in process as a dependency it installs by repository URL and import-linter contract 7 was deleted. Keeping the server inside apps/api, and making Strategist an MCP client of the served process now, were both rejected.
+description: strategist/{mcp, services/catalog, services/wdk, services/gene_lookup, services/control_*, services/tool_payloads, integrations/embeddings} moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, alembic chain, Dockerfile and CI lane; Strategist consumes it in process as a dependency it installs by repository URL and import-linter contract 7 was deleted. Keeping the server inside apps/api, and making Strategist an MCP client of the served process now, were both rejected.
 tags: [veupathdb-mcp, split, architecture, packaging, import-linter, mcp, embeddings, alembic]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -12,7 +12,7 @@ status: stable
 
 The WDK catalog, parameter and gene tools with their MCP transport are
 its own repository: its own `pyproject.toml`, its own lock file, a
-`src/veupathdb_mcp` layout importable with no `pathfinder.` prefix, its own test
+`src/veupathdb_mcp` layout importable with no `strategist.` prefix, its own test
 tree with a hermetic lane, a pgvector integration lane and a live lane, its own
 README, its own alembic chain, its own image and its own CI lane. This is the
 shape [the runtime is a package](the-runtime-is-a-package.md) and
@@ -25,16 +25,16 @@ share:
 
 | was | is |
 | --- | --- |
-| `pathfinder.mcp` | `veupathdb_mcp` |
-| `pathfinder.mcp._catalog_tools`, `._user_tools` | `veupathdb_mcp.tools.catalog_tools`, `.user_tools` |
+| `strategist.mcp` | `veupathdb_mcp` |
+| `strategist.mcp._catalog_tools`, `._user_tools` | `veupathdb_mcp.tools.catalog_tools`, `.user_tools` |
 | `strategist.services.catalog` | `veupathdb_mcp.catalog` |
 | `strategist.services.wdk` | `veupathdb_mcp.wdk` |
 | `strategist.services.gene_lookup` | `veupathdb_mcp.gene_lookup` |
 | `strategist.services.control_{tests,helpers,types}` | `veupathdb_mcp.controls.control_{tests,helpers,types}` |
 | `strategist.services.tool_payloads` | `veupathdb_mcp.tool_payloads` |
-| `pathfinder.integrations.embeddings` | `veupathdb_mcp.embeddings` |
+| `strategist.integrations.embeddings` | `veupathdb_mcp.embeddings` |
 
-`pathfinder/integrations/` held nothing else and is gone, with the contract
+`strategist/integrations/` held nothing else and is gone, with the contract
 terms that named it.
 
 # Strategist consumes it as a library, not as a served endpoint
@@ -42,7 +42,7 @@ terms that named it.
 `apps/api/pyproject.toml` names `veupathdb-mcp` in `[project].dependencies` with
 a `[tool.uv.sources]` path row. Strategist's agent tools call the catalog, WDK
 and gene-lookup functions **in process**: measured, 132 production import edges
-from `pathfinder` into the unit, in the toolsets, the transport routers, the
+from `strategist` into the unit, in the toolsets, the transport routers, the
 durable jobs and the experiment engine.
 
 **The rejected alternative is making Strategist an MCP client of the served
@@ -75,12 +75,12 @@ what created these tables before.
 
 # What the boundary is, and how it is proved
 
-`veupathdb_mcp.**` reaches no `pathfinder`, `assistant_core`, `pydantic_ai`,
+`veupathdb_mcp.**` reaches no `strategist`, `assistant_core`, `pydantic_ai`,
 `langgraph` or `fastapi`. `tests/unit/test_package_boundary.py` walks every
 module and asserts it, and the served entrypoint's own closure is asserted the
 same way. The proof is not the test but the environment it runs in:
 `cd veupathdb-mcp && rm -rf .venv && uv sync --frozen && uv run pytest tests/unit`
-resolves a lock that names no application, so a `pathfinder` import fails to
+resolves a lock that names no application, so a `strategist` import fails to
 resolve rather than failing a lint rule. Import-linter contract 7 ("the MCP
 server never imports the agents or the API transport") is deleted, because the
 package's dependency list says it.

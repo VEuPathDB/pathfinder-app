@@ -31,7 +31,7 @@ def seeded_database(
 ) -> Iterator[str]:
     del database_url, postgres_container
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_memory_switch"
+    name = "strategist_test_memory_switch"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     with psycopg.connect(psycopg_url(url), autocommit=True) as connection:

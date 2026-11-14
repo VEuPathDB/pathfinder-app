@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The estate stack holds only deployment facts
-description: The estate units run both MCP servers from the pathfinder-api image with a command of their own, mount each stage's sites file from the services repository, and set only the values that differ from the code's defaults or name the stage, so a Strategist release needs no change to the services repository. A separate MCP tag in the stack's environment, MCP images built from this repository's Jenkinsfile and sites files baked into the public api image were rejected.
+description: The estate units run both MCP servers from the strategist-api image with a command of their own, mount each stage's sites file from the services repository, and set only the values that differ from the code's defaults or name the stage, so a Strategist release needs no change to the services repository. A separate MCP tag in the stack's environment, MCP images built from this repository's Jenkinsfile and sites files baked into the public api image were rejected.
 tags: [deployment, quadlets, docker, jenkins, mcp, sites]
 generated: { by: claude-code/opus-5.5, at: 2026-10-09T00:00:00Z }
 status: stable
@@ -14,14 +14,14 @@ A release of Strategist is a tag of this repository and nothing else. The units 
 secret, a network, a memory limit, a site URL.
 
 **Both MCP servers run from the api image.** The api image installs `veupathdb-mcp`
-at the release `apps/api/pyproject.toml` pins, so the estate's `pathfinder-wdk-mcp@`
-and `pathfinder-research-mcp@` units run `docker.io/veupathdb/pathfinder-api:${PATHFINDER_TAG}`
+at the release `apps/api/pyproject.toml` pins, so the estate's `strategist-wdk-mcp@`
+and `strategist-research-mcp@` units run `docker.io/veupathdb/strategist-api:${STRATEGIST_TAG}`
 with `Exec=.venv/bin/python -m veupathdb_mcp` and `Exec=.venv/bin/python -m veupathdb_mcp.research`.
 The servers are always the release the api imports in process, and `tagger` promotes
-two images, `pathfinder-api` and `pathfinder-web`. Each MCP unit keeps a `HealthCmd`
+two images, `strategist-api` and `strategist-web`. Each MCP unit keeps a `HealthCmd`
 of its own, because the image's `HEALTHCHECK` probes the api port.
 
-**Each stage's sites file is in the services repository.** `pathfinder/config/sites-<stage>.yml`
+**Each stage's sites file is in the services repository.** `strategist/config/sites-<stage>.yml`
 is mounted read-only at `/app/config/sites.yml` in the api, the worker and wdk-mcp, the way
 the searxng settings are, and `VEUPATHDB_SITES_CONFIG` names that path. A new site URL is a
 pull request there. The api image carries no sites file. This repository keeps only
@@ -29,7 +29,7 @@ pull request there. The api image carries no sites file. This repository keeps o
 `deploy/sites` (`tests/unit/test_the_stage_sites_files.py`).
 
 **The stack's environment holds what the code cannot know.** A variable stays in
-`env/00-pathfinder_defaults.env` only when it names the stage or the stack (the image
+`env/00-strategist_defaults.env` only when it names the stage or the stack (the image
 tag, the auto-update policy, the database names, the public address, the sites file,
 the service names on the stack network, the Crossref mailbox) or differs between two
 containers (the catalog refresh and the index sync). A tuning change is a change to a
@@ -45,7 +45,7 @@ Strategist's.
 A stage whose MCP servers report another version on `/health` than the
 `veupathdb-mcp` the api has installed; a Strategist release that cannot reach a stage
 without a change to the services repository; or a stage that serves another site list
-than its file under `pathfinder/config/` in the services repository.
+than its file under `strategist/config/` in the services repository.
 
 # What was rejected
 
@@ -55,7 +55,7 @@ the pin then needed a pull request to the services repository, in step with the
 release, and `tagger` had to promote four images as a matched pair.
 
 **MCP images built from this repository's Jenkinsfile.** The images would carry the
-names `pathfinder-wdk-mcp` and `pathfinder-research-mcp`, which the `ai-wdk-mcp` job
+names `strategist-wdk-mcp` and `strategist-research-mcp`, which the `ai-wdk-mcp` job
 already publishes. Two jobs that push one name overwrite each other, and changing the
 other job needs the systems team. The `ai-wdk-mcp` job stays as it is; this stack does
 not use its images.

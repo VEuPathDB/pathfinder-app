@@ -39,7 +39,7 @@ async def _user_with_a_thread(session: AsyncSession) -> User:
             Conversation(
                 assistant_id=STRATEGIST_ASSISTANT_ID,
                 user_id=owner.id,
-                application_id="pathfinder",
+                application_id="strategist",
                 site_id="plasmodb",
                 name="a thread",
             ),
@@ -94,7 +94,7 @@ async def test_a_commit_that_fails_leaves_the_memories_in_place(
         msg = "the purge transaction failed"
         raise RuntimeError(msg)
 
-    token = application_id_ctx.set("pathfinder")
+    token = application_id_ctx.set("strategist")
     try:
         async with session_maker() as session:
             monkeypatch.setattr(session, "commit", _refuse)
@@ -122,7 +122,7 @@ async def test_the_purge_takes_the_memories_and_their_tombstones_after_the_commi
     owner = await _user_with_a_thread(db_session)
     await _seed_memory(app_memory_store, owner)
 
-    token = application_id_ctx.set("pathfinder")
+    token = application_id_ctx.set("strategist")
     try:
         async with session_maker() as session:
             result = await purge_user_data(

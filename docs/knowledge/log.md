@@ -2,6 +2,19 @@
 
 ## 2026-11-14
 
+* **Strategist answers to both names while the website and the estate move.** Jenkins
+  publishes `pathfinder-*` and `strategist-*`, Next rewrites `/strategist` onto the
+  `/pathfinder` build, the frame posts both location messages, and the worker presents the
+  `strategist` service-token entry or the `pathfinder` one. The local and test databases are
+  `strategist` and `strategist_test`, and the nightly MCP lane reads
+  `STRATEGIST_MCP_SERVICE_TOKENS`. The transition names, the repository name and the site page
+  address are what remain ([backlog](backlog/the-identifiers-take-the-strategist-name.md)).
+
+* **The application id is `"strategist"`, and the estate runs the `strategist` stack.**
+  Migration `2026_11_14_0001` moves every row, column default and memory of the application and
+  reseals each stored provider key under the new associated data. See
+  [the decision](decisions/the-product-is-named-veupathdb-strategist.md).
+
 * **The worker reads its tool servers from `STRATEGIST_WDK_MCP_URL` and
   `STRATEGIST_RESEARCH_MCP_URL`.** The quadlets have set both beside the old pair since the
   worker started as `bin/strategist-worker`.

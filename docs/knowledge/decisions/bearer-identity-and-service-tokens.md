@@ -32,7 +32,7 @@ never costs a network call to the OAuth server.
 `STRATEGIST_SERVICE_TOKENS` (`app_id:secret[,app_id:secret...]`, each secret at
 least 32 characters, parsed and validated when settings load). A valid token
 sets `Principal.application_id`; an unknown one is 401; an absent one leaves the
-default `pathfinder`. There is no applications table and no per-application
+default `strategist`. There is no applications table and no per-application
 routing: the tenancy work decides both.
 
 # The protocol, and where it is written down

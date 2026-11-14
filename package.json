@@ -1,5 +1,5 @@
 {
-  "name": "pathfinder",
+  "name": "strategist",
   "private": true,
   "packageManager": "yarn@4.13.0+sha512.5c20ba010c99815433e5c8453112165e673f1c7948d8d2b267f4b5e52097538658388ebc9f9580656d9b75c5cc996f990f611f99304a2197d4c56d21eea370e7",
   "workspaces": [
@@ -7,7 +7,7 @@
     "packages/shared-ts"
   ],
   "scripts": {
-    "generate:types": "cd apps/api && VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m strategist.devtools.openapi generate && cd ../.. && yarn --cwd packages/shared-ts generate",
+    "generate:types": "cd apps/api && VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/strategist uv run python -m strategist.devtools.openapi generate && cd ../.. && yarn --cwd packages/shared-ts generate",
     "check:knowledge": "node scripts/check-knowledge.mjs",
     "check:wdk-rules": "node scripts/check-wdk-rules.mjs",
     "wdk:live": "cd apps/api && uv run pytest src/strategist/tests -m live_wdk -q",

@@ -23,7 +23,7 @@ def _cipher() -> ProviderKeyCipher:
 
 
 def _aad(provider: str = "openai") -> bytes:
-    return key_aad(_USER, "pathfinder", provider)
+    return key_aad(_USER, "strategist", provider)
 
 
 _USER = uuid4()
@@ -52,9 +52,9 @@ def test_two_seals_of_one_key_differ() -> None:
 @pytest.mark.parametrize(
     "other",
     [
-        key_aad(uuid4(), "pathfinder", "openai"),
+        key_aad(uuid4(), "strategist", "openai"),
         key_aad(_USER, "companion", "openai"),
-        key_aad(_USER, "pathfinder", "anthropic"),
+        key_aad(_USER, "strategist", "anthropic"),
     ],
     ids=["another user", "another application", "another provider"],
 )
@@ -86,3 +86,15 @@ def test_the_hint_is_the_last_four_characters() -> None:
 
 def test_the_cipher_never_prints_its_secret() -> None:
     assert repr(_cipher()) == "ProviderKeyCipher()"
+
+
+def test_a_resealed_key_opens_only_under_its_new_data() -> None:
+    old = key_aad(_USER, "pathfinder", "openai")
+    new = key_aad(_USER, "strategist", "openai")
+    blob = _cipher().seal(SecretStr(_SENTINEL), aad=old)
+
+    resealed = _cipher().reseal(blob, old_aad=old, new_aad=new)
+
+    assert _cipher().open(resealed, aad=new).get_secret_value() == _SENTINEL
+    with pytest.raises(InvalidTag):
+        _cipher().open(resealed, aad=old)

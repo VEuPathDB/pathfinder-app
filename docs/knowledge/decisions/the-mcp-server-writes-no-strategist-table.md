@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The MCP server writes no Strategist table, so a second deployment can run it
-description: The two paths from the served veupathdb-wdk-mcp entrypoint to strategist.persistence were an identity lookup whose result was only stringified and an export write a second deployment cannot perform; both are cut, the gene_sets package __init__ that dragged 1009 LOC of store into the closure is empty, and the server's own foundation lives under pathfinder/mcp/. An ExportSink protocol and a read-only connection were rejected.
+description: The two paths from the served veupathdb-wdk-mcp entrypoint to strategist.persistence were an identity lookup whose result was only stringified and an export write a second deployment cannot perform; both are cut, the gene_sets package __init__ that dragged 1009 LOC of store into the closure is empty, and the server's own foundation lives under strategist/mcp/. An ExportSink protocol and a read-only connection were rejected.
 tags: [mcp, split, architecture, packaging, persistence, auth]
 generated: { by: claude-code/opus-5, at: 2026-09-04T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-04T00:00:00Z }
@@ -53,7 +53,7 @@ and every consumer names the module it wants.
 
 ## Where the server's own foundation lives
 
-`pathfinder/mcp/` is the future `veupathdb_mcp` root, so what the server owns
+`strategist/mcp/` is the future `veupathdb_mcp` root, so what the server owns
 lives there: `locks.py` (from `platform/keyed_locks.py`), `tool_errors.py`
 (from `platform/tool_errors.py`, which is the shape an MCP tool returns and
 which the agent toolsets import from there), `service_tokens.py` (the

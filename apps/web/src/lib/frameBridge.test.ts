@@ -60,6 +60,7 @@ describe("reportLocation", () => {
     reportLocation(frame.win, "/conversation/1?step=2");
 
     expect(website.postMessage.mock.calls).toEqual([
+      [{ type: "strategist:location", path: "/conversation/1?step=2" }, ORIGIN],
       [{ type: "pathfinder:location", path: "/conversation/1?step=2" }, ORIGIN],
     ]);
     expect(frame.postMessage).not.toHaveBeenCalled();
@@ -89,10 +90,14 @@ describe("reportLocation", () => {
       reportLocation(frame.win, path);
     }
 
-    expect(website.postMessage.mock.calls.map(([message]) => message)).toEqual([
-      { type: "pathfinder:location", path: "/saved" },
-      { type: "pathfinder:location", path: "/conversation" },
-      { type: "pathfinder:location", path: "/saved" },
+    expect(
+      website.postMessage.mock.calls
+        .map(([message]) => message)
+        .filter((message) => message.type === "strategist:location"),
+    ).toEqual([
+      { type: "strategist:location", path: "/saved" },
+      { type: "strategist:location", path: "/conversation" },
+      { type: "strategist:location", path: "/saved" },
     ]);
   });
 });

@@ -45,7 +45,7 @@ def seeded_database(
 ) -> Iterator[str]:
     del database_url, postgres_container
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_gene_set_out_of_date"
+    name = "strategist_test_gene_set_out_of_date"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     _seed_old_shape(url)

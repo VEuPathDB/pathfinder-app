@@ -47,7 +47,7 @@ async def test_the_job_reads_the_application_from_the_conversation_row(
         inside = application_id_ctx.get()
 
     assert inside == OTHER
-    assert application_id_ctx.get() == "pathfinder"
+    assert application_id_ctx.get() == "strategist"
 
 
 @pytest.mark.asyncio

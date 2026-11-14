@@ -64,7 +64,7 @@ services:
       WDK_DEV_EMAIL: ${WDK_DEV_EMAIL:-}
       WDK_DEV_PASSWORD: ${WDK_DEV_PASSWORD:-}
       # The two MCP endpoints an assistant's declaration resolves to. Each is
-      # called with the secret of the pathfinder entry in the server's own
+      # called with the secret of the strategist entry in the server's own
       # token list; without that entry the source is not admitted.
       STRATEGIST_WDK_MCP_URL: ${STRATEGIST_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
       WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
@@ -157,7 +157,7 @@ services:
       METRICS_PORT: ${METRICS_PORT:-9100}
       METRICS_ADDR: ${METRICS_ADDR:-0.0.0.0}
       # The two MCP endpoints an assistant's declaration resolves to. Each is
-      # called with the secret of the pathfinder entry in the server's own
+      # called with the secret of the strategist entry in the server's own
       # token list; without that entry the source is not admitted.
       STRATEGIST_WDK_MCP_URL: ${STRATEGIST_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
       WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
@@ -303,7 +303,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-pathfinder}
+      POSTGRES_DB: ${POSTGRES_DB:-strategist}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:

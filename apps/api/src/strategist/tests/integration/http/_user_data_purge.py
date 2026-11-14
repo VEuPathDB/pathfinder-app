@@ -145,7 +145,7 @@ async def add_conv(
     site_id: str,
     wdk_strategy_id: int | None,
     created_here: bool,
-    application_id: str = "pathfinder",
+    application_id: str = "strategist",
 ) -> UUID:
     conv = Conversation(
         assistant_id=STRATEGIST_ASSISTANT_ID,
@@ -184,7 +184,7 @@ async def add_experiment(
             id=experiment_id,
             site_id=site_id,
             user_id=user_id,
-            application_id="pathfinder",
+            application_id="strategist",
             name="a run",
             status="completed",
             data={"id": experiment_id, "wdkStrategyId": wdk_strategy_id},
@@ -200,7 +200,7 @@ async def add_staged_case(
     *,
     site_id: str,
     conversation_id: UUID,
-    application_id: str = "pathfinder",
+    application_id: str = "strategist",
 ) -> UUID:
     """One eval candidate awaiting curation, named by its site."""
     staging_id = uuid4()

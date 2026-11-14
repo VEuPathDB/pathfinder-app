@@ -34,7 +34,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: pathfinder_test
+          POSTGRES_DB: strategist_test
         ports:
           - 5432:5432
         options: >-
@@ -51,9 +51,9 @@ jobs:
           API_ENV: test
           API_SECRET_KEY: mcp-nightly-secret-key-0000000000000
           STRATEGIST_CHAT_PROVIDER: mock
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/strategist_test
           WDK_MCP_BASE_URL: http://localhost:8100
-          WDK_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
+          WDK_MCP_SERVICE_TOKENS: ${{ secrets.STRATEGIST_MCP_SERVICE_TOKENS }}
         working-directory: apps/api
         run: |
           test -n "$WDK_MCP_SERVICE_TOKENS" || {
@@ -80,10 +80,10 @@ jobs:
           STRATEGIST_CHAT_PROVIDER: mock
           WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
           WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
-          WDK_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
+          WDK_MCP_SERVICE_TOKENS: ${{ secrets.STRATEGIST_MCP_SERVICE_TOKENS }}
           STRATEGIST_MCP_URL: http://localhost:8100/mcp
           MCP_ADMISSION_REPORT: mcp-admission-report.json
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/strategist_test
         run: uv run pytest src/strategist/tests/integration/mcp -m live_wdk -q
 
       - name: Show what the run admitted

@@ -19,19 +19,21 @@ test("a version with no PEP 440 reading is refused", () => {
   );
 });
 
-test("promoting adds both images when the stage lists neither", () => {
+test("promoting adds every image when the stage lists none", () => {
   assert.equal(
     withImages("service-eda: 1.16.0\n", "0.9.0-b1"),
-    "service-eda: 1.16.0\npathfinder-api: 0.9.0-b1\npathfinder-web: 0.9.0-b1\n",
+    "service-eda: 1.16.0\nstrategist-api: 0.9.0-b1\nstrategist-web: 0.9.0-b1\n" +
+      "pathfinder-api: 0.9.0-b1\npathfinder-web: 0.9.0-b1\n",
   );
 });
 
-test("promoting moves both images and leaves every other service", () => {
+test("promoting moves every image and leaves every other service", () => {
   const held =
     "pathfinder-api: 0.9.0-b1\nservice-eda: 1.16.0\npathfinder-web: 0.9.0-b1\n";
   assert.equal(
     withImages(held, "0.9.0-b2"),
-    "pathfinder-api: 0.9.0-b2\nservice-eda: 1.16.0\npathfinder-web: 0.9.0-b2\n",
+    "pathfinder-api: 0.9.0-b2\nservice-eda: 1.16.0\npathfinder-web: 0.9.0-b2\n" +
+      "strategist-api: 0.9.0-b2\nstrategist-web: 0.9.0-b2\n",
   );
 });
 

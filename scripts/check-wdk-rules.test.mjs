@@ -123,8 +123,8 @@ test("a renamed vitest case is rejected", () => {
 test("undefined citations are caught in every folder of the bundle", () => {
   const errors = errorsFor("prose-dirs").sort();
   assert.equal(errors.length, 2);
-  assert.match(errors[0], /pathfinder\/b\.md: cites undefined rule WDK-VOCAB-500/);
-  assert.match(errors[1], /rest\/a\.md: cites undefined rule WDK-PARAM-404/);
+  assert.match(errors[0], /rest\/a\.md: cites undefined rule WDK-PARAM-404/);
+  assert.match(errors[1], /strategist\/b\.md: cites undefined rule WDK-VOCAB-500/);
 });
 
 test("a citation in a prose file at the bundle root is checked", () => {

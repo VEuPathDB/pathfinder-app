@@ -101,7 +101,7 @@ def seeded_database(
 ) -> Iterator[str]:
     del database_url, postgres_container
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_removed_assistant_threads"
+    name = "strategist_test_removed_assistant_threads"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     _seed(url)
@@ -116,7 +116,7 @@ def checkpointless_database(
 ) -> Iterator[str]:
     del database_url, postgres_container
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_removed_assistant_fresh"
+    name = "strategist_test_removed_assistant_fresh"
     url = create_database(base_url, name)
     yield url
     drop_database(base_url, name)

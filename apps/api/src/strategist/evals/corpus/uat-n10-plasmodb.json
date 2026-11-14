@@ -5,7 +5,7 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "strategist",
-  "rationale": "An off-topic request gets what PathFinder does and an invitation to rephrase, not an answer.",
+  "rationale": "An off-topic request gets what Strategist does and an invitation to rephrase, not an answer.",
   "expected": {
     "buildsStrategy": false,
     "structure": null,

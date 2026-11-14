@@ -38,7 +38,7 @@ async def _where() -> dict[str, tuple[str, str, str]]:
     }
 
 
-async def test_each_site_names_its_origin_sign_in_and_pathfinder_page() -> None:
+async def test_each_site_names_its_origin_sign_in_and_strategist_page() -> None:
     assert await _where() == {
         "veupathdb": (
             "https://muharram.veupathdb.org",

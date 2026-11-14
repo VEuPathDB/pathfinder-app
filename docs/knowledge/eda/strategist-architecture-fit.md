@@ -2,7 +2,7 @@
 type: Proposal
 title: How EDA fits Strategist's architecture
 description: Where every EDA concern lands in the layer model, how an EDA compute maps onto the durable-tool machinery piece by piece, how EDA capabilities reach the MCP/SDK program as an admitted tool source, and the single Pydantic model set that keeps the analysis spec from being written three times.
-tags: [eda, pathfinder, architecture, layering, durable-tools, mcp, sdk, proposal, ssot]
+tags: [eda, strategist, architecture, layering, durable-tools, mcp, sdk, proposal, ssot]
 generated: { by: claude-code/opus-5, at: 2026-08-27T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-27T00:00:00Z }
 status: accepted
@@ -171,7 +171,7 @@ data it has, added in `services/catalog/`.
 ### 1.4 `ai/tools/` - thin wrappers only
 
 An EDA tool cannot call the client, not even for a one-line `/count`. No
-import contract says so - the contracts here name the layers of `pathfinder` and
+import contract says so - the contracts here name the layers of `strategist` and
 the private modules of the installed distributions - but WDK-MAP-005's call-site
 test (`apps/api/src/strategist/tests/unit/test_call_sites.py`) fails on any
 module in this tree that builds an `httpx` client against a site URL. Every tool
@@ -202,7 +202,7 @@ analysis on the VEuPathDB site.
 ### 1.6 What must not go in `assistant-core`
 
 The boundary is an installation fact, not a convention:
-`assistant-platform: packages/assistant-core/pyproject.toml` names no `pathfinder` dependency, and
+`assistant-platform: packages/assistant-core/pyproject.toml` names no `strategist` dependency, and
 `assistant-platform: packages/assistant-core/tests/unit/test_package_boundary.py` pins the import
 surface ([the runtime is a package](../decisions/the-runtime-is-a-package.md)).
 CLAUDE.md states the placement rule directly: "anything that names a gene, a

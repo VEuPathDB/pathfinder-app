@@ -75,7 +75,7 @@ def seeded_database(
     del database_url, postgres_container
 
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_conversation_split"
+    name = "strategist_test_conversation_split"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     _seed_old_shape(url)

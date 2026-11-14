@@ -197,7 +197,7 @@ async def test_a_veupathdb_bearer_token_authenticates_and_maps_to_a_user(
     assert response.status_code == _OK, response.text
     body = response.json()
     assert body["credential"] == "veupathdb-bearer"
-    assert body["applicationId"] == "pathfinder"
+    assert body["applicationId"] == "strategist"
     assert await _user_ids_by_external_id(session_maker, WDK_EMAIL) == [
         UUID(body["userId"]),
     ]

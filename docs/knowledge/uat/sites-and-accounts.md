@@ -53,7 +53,7 @@ The default of `isSyntenic` on every site is `no`. A request that does not say "
 
 | Item | Detail |
 |---|---|
-| The test deployment | `<pathfinder-url>`, and whatever network access its operator requires (a VPN or a tunnel). |
+| The test deployment | `<strategist-url>`, and whatever network access its operator requires (a VPN or a tunnel). |
 | Account A | A registered VEuPathDB account used only for UAT. Strategist refuses guests: a request without a registered login answers 401 `WDK_LOGIN_REQUIRED`. |
 | Account B | A second registered VEuPathDB account, used only for the isolation flows (`F12`). It must be a different VEuPathDB user than A. |
 | Two browser profiles | One per account, so the two sessions never share a cookie. |

@@ -42,7 +42,7 @@ async def test_the_site_login_names_the_user_and_the_default_application() -> No
 
     assert principal.user_id == user_id
     assert principal.credential == "veupathdb-cookie"
-    assert principal.application_id == "pathfinder"
+    assert principal.application_id == "strategist"
 
 
 async def test_a_strategist_bearer_wins_over_the_site_login() -> None:

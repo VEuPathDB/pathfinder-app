@@ -21,7 +21,7 @@ async def test_the_database_the_session_settled_on_answers() -> None:
     ("url", "failure"),
     [
         (
-            "postgresql+asyncpg://postgres:postgres@127.0.0.1:1/pathfinder_test",
+            "postgresql+asyncpg://postgres:postgres@127.0.0.1:1/strategist_test",
             "a refused port",
         ),
         (
@@ -50,6 +50,6 @@ async def test_a_server_that_answers_under_another_role_is_reported_as_unusable(
 
 
 def test_a_sync_url_is_probed_on_the_async_driver() -> None:
-    assert asyncpg_url("postgresql://postgres:postgres@db:5432/pathfinder_test") == (
-        "postgresql+asyncpg://postgres:postgres@db:5432/pathfinder_test"
+    assert asyncpg_url("postgresql://postgres:postgres@db:5432/strategist_test") == (
+        "postgresql+asyncpg://postgres:postgres@db:5432/strategist_test"
     )

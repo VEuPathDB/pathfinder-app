@@ -22,7 +22,7 @@ where the test covers only part of the rule and the body names the part it does
 not cover. No
 rule is held by an import contract. The six `forbidden` contracts under
 `[tool.importlinter]` in `apps/api/pyproject.toml` are about the layers of
-`pathfinder` and about the private modules of the installed distributions, not
+`strategist` and about the private modules of the installed distributions, not
 about these invariants; what they can and cannot see is in
 [layer-ownership](../layer-ownership.md).
 
@@ -93,7 +93,7 @@ The value models therefore cannot quietly grow a dependency on them.
 *The wire.* Nothing stops a `WDKSearchConfig` or a `WDKParameter` being added to a
 response model in `services/` and appearing in `openapi.json` tomorrow. The six
 `forbidden` contracts in `apps/api/pyproject.toml` name the layers of
-`pathfinder` and the private modules of the installed distributions; not one of
+`strategist` and the private modules of the installed distributions; not one of
 them is about which type a response model carries, and the table of what each
 forbids is in [layer-ownership](../layer-ownership.md). The 308-schema
 measurement above is a fact about today, not a gate.
@@ -169,19 +169,19 @@ the only WDK-shaped surface an agent tool names
 ([the service-layer decision](../../../decisions/the-wdk-service-layer-holds-functions-not-re-exports.md)).
 
 **The layering contract that used to enforce this is gone with the layer it
-named.** Until the split, `import-linter` forbade `pathfinder.integrations` to
+named.** Until the split, `import-linter` forbade `strategist.integrations` to
 `transport` and `ai`, and that contract had been red once: an edge ran from
 `catalog_discovery` into a WDK client wrapper that belonged in the service
-layer, and moving the wrapper cleared it. There is no `pathfinder.integrations`
+layer, and moving the wrapper cleared it. There is no `strategist.integrations`
 any more, so the prohibition is vacuous and the contract term was deleted. What
 still checks the proposition is the call-site walk: no module in this tree
 constructs an `httpx` client against a site base URL, which is the failure the
 prohibition existed to prevent. That test is
-[WDK-MAP-005](#wdk-map-005---no-pathfinder-module-opens-a-connection-to-a-wdk-host-and-no-contract-can-see-that)'s,
+[WDK-MAP-005](#wdk-map-005---no-strategist-module-opens-a-connection-to-a-wdk-host-and-no-contract-can-see-that)'s,
 and it holds for this rule too because a tool that holds no client cannot be a
 different user.
 
-### WDK-MAP-005 - No `pathfinder` module opens a connection to a WDK host, and no contract can see that
+### WDK-MAP-005 - No `strategist` module opens a connection to a WDK host, and no contract can see that
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/SessionService.java#L277-L311
@@ -189,7 +189,7 @@ different user.
 - status: ENFORCED by apps/api/src/strategist/tests/unit/test_call_sites.py::test_wdk_map_005_no_strategist_module_builds_a_site_client
 
 The WDK transport is the client library's (`veupathdb-py`, `veupathdb/wdk/`).
-This application holds none of it: a `pathfinder` module that builds its own
+This application holds none of it: a `strategist` module that builds its own
 client to a site is a second WDK caller with its own credential handling, and
 the site answers it as a different user than the one the request is for.
 
@@ -298,7 +298,7 @@ The collision is not accidental and not wrong - the browser is a client for
 Strategist, not for WDK ([deliberate-divergences](../deliberate-divergences.md)).
 It is recorded as a rule because the failure mode is a reviewer reading
 `Step.id` in frontend code and reasoning about it as a WDK step id, which
-[WDK-MAP-006](#wdk-map-006---a-wdk-step-id-is-an-integer-stored-beside-pathfinders-own-string-id-never-in-place-of-it)
+[WDK-MAP-006](#wdk-map-006---a-wdk-step-id-is-an-integer-stored-beside-strategists-own-string-id-never-in-place-of-it)
 says it is not.
 
 The named test reads `packages/shared-ts/src/types.ts` and asserts that each of

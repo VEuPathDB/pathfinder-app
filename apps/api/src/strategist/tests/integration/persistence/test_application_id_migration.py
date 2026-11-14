@@ -10,7 +10,6 @@ import psycopg
 import pytest
 from alembic import command
 from assistant_core.embeddings.embedder import EMBEDDING_DIMENSIONS
-from langgraph.store.postgres.base import MIGRATIONS, VECTOR_MIGRATIONS
 from psycopg.sql import SQL, Identifier
 from testcontainers.community.postgres import PostgresContainer
 
@@ -18,6 +17,7 @@ from strategist.tests.integration.persistence._migration_db import (
     alembic_config,
     columns,
     create_database,
+    create_store_tables,
     drop_database,
     indexes,
     psycopg_url,
@@ -27,6 +27,7 @@ PREVIOUS_REVISION = "2026_08_09_0001"
 # The revision under test. A later one widens the store vector and empties it,
 # so the memory rows are read at the revision that moves them.
 TENANCY_REVISION = "2026_08_19_0001"
+BEFORE_THE_RENAME = "2026_11_13_0002"
 USER_ID = uuid4()
 OLD_PREFIX = f"user.{USER_ID}.knowledge"
 NEW_PREFIX = f"app.pathfinder.user.{USER_ID}.knowledge"
@@ -40,22 +41,6 @@ OWNED_TABLES = (
     "memory_tombstones",
     "monthly_usage",
 )
-
-
-def _create_store_tables(url: str) -> None:
-    """Build the store tables the way the LangGraph store builds them."""
-    vectors = next(
-        migration
-        for migration in VECTOR_MIGRATIONS
-        if "CREATE TABLE IF NOT EXISTS store_vectors" in migration.sql
-    )
-    statements = [sql for sql in MIGRATIONS if "CONCURRENTLY" not in sql]
-    statements.append(
-        vectors.sql % {"vector_type": "vector", "dims": EMBEDDING_DIMENSIONS},
-    )
-    with psycopg.connect(psycopg_url(url), autocommit=True) as connection:
-        for statement in statements:
-            connection.execute(statement.encode())
 
 
 def _seed_memory(url: str) -> None:
@@ -112,10 +97,10 @@ def seeded_database(
     del database_url, postgres_container
 
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_tenancy_seeded"
+    name = "strategist_test_tenancy_seeded"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
-    _create_store_tables(url)
+    create_store_tables(url)
     _seed_memory(url)
     yield url
     drop_database(base_url, name)
@@ -130,7 +115,7 @@ def storeless_database(
     del database_url, postgres_container
 
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_tenancy_fresh"
+    name = "strategist_test_tenancy_fresh"
     url = create_database(base_url, name)
     yield url
     drop_database(base_url, name)
@@ -148,7 +133,7 @@ def test_the_upgrade_moves_every_memory_under_the_default_application(
 def test_every_owned_table_gains_a_required_column_defaulting_to_pathfinder(
     seeded_database: str,
 ) -> None:
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), BEFORE_THE_RENAME)
 
     for table in OWNED_TABLES:
         assert _application_column(seeded_database, table) == (
@@ -182,7 +167,7 @@ def test_the_upgrade_installs_the_new_indexes_and_unique_keys(
 
 def test_a_memory_keeps_its_expiry_when_it_moves(seeded_database: str) -> None:
     """Every column of the store row travels, not the ones this revision knew."""
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), BEFORE_THE_RENAME)
 
     with psycopg.connect(psycopg_url(seeded_database), autocommit=True) as connection:
         row = connection.execute(
@@ -233,7 +218,7 @@ def test_the_store_vector_widens_to_the_current_dimension(
     seeded_database: str,
 ) -> None:
     """A 512-wide vector cannot be read as a 1024-wide one, so the rows go."""
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), BEFORE_THE_RENAME)
 
     assert _vector_width(seeded_database, "store_vectors", "embedding") == (
         EMBEDDING_DIMENSIONS

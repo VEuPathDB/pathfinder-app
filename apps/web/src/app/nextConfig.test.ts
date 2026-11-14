@@ -19,6 +19,25 @@ describe("the Next config", () => {
     expect(nextConfig.basePath).toBe("/pathfinder");
   });
 
+  it("sends every address under /strategist to the same place under /pathfinder", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+
+    expect(redirects).toEqual([
+      {
+        source: "/strategist",
+        destination: "/pathfinder",
+        basePath: false,
+        permanent: false,
+      },
+      {
+        source: "/strategist/:path*",
+        destination: "/pathfinder/:path*",
+        basePath: false,
+        permanent: false,
+      },
+    ]);
+  });
+
   it("proxies only the health and API routes to the api", async () => {
     vi.stubEnv("NEXT_PUBLIC_API_URL", "http://api:8000");
     const rewrites = await nextConfig.rewrites?.();

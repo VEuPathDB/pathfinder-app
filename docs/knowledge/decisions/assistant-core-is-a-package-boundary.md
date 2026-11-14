@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The assistant runtime is a package boundary, not a contract over scattered modules
-description: The runtime-generic modules moved into pathfinder/assistant_core/ and an import-linter contract rejects any chain from there to the science; leaving the modules where they were and writing the contract over a module list was rejected, because it makes the future service extraction an archaeology exercise instead of a move.
+description: The runtime-generic modules moved into strategist/assistant_core/ and an import-linter contract rejects any chain from there to the science; leaving the modules where they were and writing the contract over a module list was rejected, because it makes the future service extraction an archaeology exercise instead of a move.
 tags: [assistant-core, ws2, architecture, import-linter]
 generated: { by: claude-code/opus-5, at: 2026-08-22T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-22T00:00:00Z }
@@ -29,7 +29,7 @@ directory.
 
 The runtime-generic modules moved into `apps/api/src/strategist/assistant_core/`
 (`capabilities/`, `conversation/`, `graph/`, `memory/`, `models/`), and
-import-linter contract 7 forbids any import chain from `pathfinder.assistant_core`
+import-linter contract 7 forbids any import chain from `strategist.assistant_core`
 to `strategist.ai`, `strategist.domain`, `veupathdb.wdk`,
 `strategist.services`, `strategist.transport`, `strategist.jobs` or
 `strategist.devtools`. What is left reachable is the whole allowed surface:

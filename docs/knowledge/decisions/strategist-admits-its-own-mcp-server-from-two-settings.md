@@ -16,7 +16,7 @@ the name the server publishes, the part namespace is `wdk`, the credential mode
 is `service`, the budget covers the longest call the server declares - and only
 two values come from settings: `STRATEGIST_WDK_MCP_URL`, the endpoint a turn
 dials, and `WDK_MCP_SERVICE_TOKENS`, the server's own list of the applications it
-admits, whose `pathfinder` entry holds the credential presented there. The worker
+admits, whose `strategist` entry holds the credential presented there. The worker
 reads the same value as the server, so one secret serves both ends. The
 server is admitted only when the endpoint is set and the list holds that entry, so a deployment never calls an
 admitted endpoint without the credential it takes, and a half-finished
@@ -24,7 +24,7 @@ configuration admits nothing rather than failing at the transport.
 
 The same module answers `source_credential`, the runtime's credential provider.
 It refuses a source id this deployment holds no credential for, and refuses a
-list with no `pathfinder` entry by the variable's name.
+list with no `strategist` entry by the variable's name.
 
 The processes that drive turns install the set at start: the worker
 (`jobs/worker.py`) and the chat debugger (`devtools/chat.py`). The API process

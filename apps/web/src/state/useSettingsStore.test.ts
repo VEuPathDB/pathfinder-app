@@ -158,7 +158,7 @@ describe("state/useSettingsStore", () => {
     resetAllPersistedSettings();
 
     expect(
-      Object.keys(window.localStorage).filter((key) => key.startsWith("pathfinder-")),
+      Object.keys(window.localStorage).filter((key) => key.startsWith("strategist-")),
     ).toEqual([]);
   });
 });

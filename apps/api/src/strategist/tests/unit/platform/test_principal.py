@@ -17,11 +17,11 @@ def _assign(target: object, field: str, value: str) -> None:
 
 
 class TestPrincipal:
-    def test_the_application_defaults_to_pathfinder(self) -> None:
+    def test_the_application_defaults_to_strategist(self) -> None:
         principal = Principal(user_id=USER_ID, credential="veupathdb-cookie")
 
         assert principal.application_id == APPLICATION_ID
-        assert principal.application_id == "pathfinder"
+        assert principal.application_id == "strategist"
 
     def test_the_principal_is_immutable(self) -> None:
         principal = Principal(user_id=USER_ID, credential="veupathdb-cookie")

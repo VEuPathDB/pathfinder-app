@@ -2,7 +2,7 @@
 type: Reference
 title: What corresponds to what
 description: A four-column map from WDK's Java model to wdk-client, to Strategist's Pydantic, to the TypeScript the browser sees - and an explicit account of every cell that is empty.
-tags: [wdk-alignment, types, correspondence, pathfinder]
+tags: [wdk-alignment, types, correspondence, strategist]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 status: stable

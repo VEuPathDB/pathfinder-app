@@ -32,7 +32,7 @@ def migrated(
 ) -> Iterator[str]:
     del database_url, postgres_container
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_audit_finding_declined"
+    name = "strategist_test_audit_finding_declined"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     user_id, run_id = str(uuid4()), str(uuid4())

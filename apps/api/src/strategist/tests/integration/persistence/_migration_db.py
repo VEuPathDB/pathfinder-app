@@ -7,6 +7,8 @@ from typing import Any
 
 import psycopg
 from alembic.config import Config
+from assistant_core.embeddings.embedder import EMBEDDING_DIMENSIONS
+from langgraph.store.postgres.base import MIGRATIONS, VECTOR_MIGRATIONS
 from psycopg.abc import QueryNoTemplate
 from psycopg.sql import SQL, Identifier
 from sqlalchemy.engine import make_url
@@ -67,3 +69,18 @@ def tables(url: str) -> set[str]:
         "WHERE table_schema = 'public'",
     )
     return {row[0] for row in found}
+
+
+def create_store_tables(url: str) -> None:
+    vectors = next(
+        migration
+        for migration in VECTOR_MIGRATIONS
+        if "CREATE TABLE IF NOT EXISTS store_vectors" in migration.sql
+    )
+    statements = [sql for sql in MIGRATIONS if "CONCURRENTLY" not in sql]
+    statements.append(
+        vectors.sql % {"vector_type": "vector", "dims": EMBEDDING_DIMENSIONS},
+    )
+    with psycopg.connect(psycopg_url(url), autocommit=True) as connection:
+        for statement in statements:
+            connection.execute(statement.encode())

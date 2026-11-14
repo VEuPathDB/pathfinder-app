@@ -24,7 +24,7 @@ twenty-four had no importer at all.
 
 Most importers did not need it. A service may import an integration, so
 `services/catalog`, `services/conversations`, `services/strategies`,
-`services/tool_payloads` and `pathfinder/mcp` were routing through an alias to
+`services/tool_payloads` and `strategist/mcp` were routing through an alias to
 reach something they were always allowed to name.
 
 # The decision

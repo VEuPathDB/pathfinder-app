@@ -73,7 +73,7 @@ async def count(require_wdk_creds: str) -> AsyncGenerator[Count]:
         )
         strategy = await api.create_strategy(
             WDKStepTree(step_id=step.id),
-            name="pathfinder-live-user-datasets",
+            name="strategist-live-user-datasets",
             is_internal=True,
         )
         made.append((site, strategy.id))

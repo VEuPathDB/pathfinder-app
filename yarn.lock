@@ -11035,12 +11035,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pathfinder@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "pathfinder@workspace:."
-  languageName: unknown
-  linkType: soft
-
 "picocolors@npm:1.1.1, picocolors@npm:^1.1.1":
   version: 1.1.1
   resolution: "picocolors@npm:1.1.1"
@@ -12496,6 +12490,12 @@ __metadata:
     zod: "npm:^4.5.4"
     zone.js: "npm:^0.16.2"
     zustand: "npm:^5.0.15"
+  languageName: unknown
+  linkType: soft
+
+"strategist@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "strategist@workspace:."
   languageName: unknown
   linkType: soft
 

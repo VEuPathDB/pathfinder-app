@@ -53,7 +53,7 @@ async def _heavy_gene_ids() -> list[str]:
     )
     # The site reports a step only inside a strategy, and deletes both together.
     strategy = await api.create_strategy(
-        WDKStepTree(step_id=step.id), name="pathfinder-live-lane", is_internal=True
+        WDKStepTree(step_id=step.id), name="strategist-live-lane", is_internal=True
     )
     try:
         return list(

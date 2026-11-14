@@ -98,7 +98,7 @@ def checkpointed_database(
     del database_url, postgres_container
 
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_checkpoint_flush"
+    name = "strategist_test_checkpoint_flush"
     url = create_database(base_url, name)
     command.upgrade(alembic_config(url), PREVIOUS_REVISION)
     _create_checkpoint_tables(url)
@@ -116,7 +116,7 @@ def checkpointless_database(
     del database_url, postgres_container
 
     base_url = os.environ["DATABASE_URL"]
-    name = "pathfinder_test_checkpoint_flush_fresh"
+    name = "strategist_test_checkpoint_flush_fresh"
     url = create_database(base_url, name)
     yield url
     drop_database(base_url, name)

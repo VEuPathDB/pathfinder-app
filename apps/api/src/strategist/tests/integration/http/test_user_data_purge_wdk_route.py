@@ -99,7 +99,7 @@ async def test_a_strategy_opened_from_the_website_survives_the_wdk_purge(
     wdk_api: FakeStrategyApi,
 ) -> None:
     """Strategist destroys on VEuPathDB only what Strategist made there."""
-    token = application_id_ctx.set("pathfinder")
+    token = application_id_ctx.set("strategist")
     try:
         async with session_maker() as session:
             await sync_to_chat(

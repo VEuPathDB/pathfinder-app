@@ -14,8 +14,8 @@ x-local-tracing: &local-tracing
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://langfuse:3000/api/public/otel}
   OTEL_INCLUDE_CONTENT: ${OTEL_INCLUDE_CONTENT:-true}
   LANGFUSE_HOST: ${LANGFUSE_HOST:-http://langfuse:3000}
-  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-pathfinder-local-dev}
-  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-pathfinder-local-dev}
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-strategist-local-dev}
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-strategist-local-dev}
 
 services:
   api:
@@ -114,7 +114,7 @@ services:
     environment: &langfuse-env
       NEXTAUTH_URL: ${LANGFUSE_NEXTAUTH_URL:-http://localhost:3100}
       DATABASE_URL: postgresql://${LANGFUSE_POSTGRES_USER:-langfuse}:${LANGFUSE_POSTGRES_PASSWORD:-langfuse}@langfuse-db:5432/${LANGFUSE_POSTGRES_DB:-langfuse}
-      SALT: ${LANGFUSE_SALT:-pathfinder-local-salt}
+      SALT: ${LANGFUSE_SALT:-strategist-local-salt}
       ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-7ad57e4f76d1ad8e3fa73b3a81c9f0ab998d0b9b148a2fa6cd762fce6e8736cb}
       TELEMETRY_ENABLED: "false"
       CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
@@ -176,16 +176,16 @@ services:
       - "${LANGFUSE_PORT:-3100}:3000"
     environment:
       <<: *langfuse-env
-      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-pathfinder-local-nextauth-secret}
-      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-pathfinder-local}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-strategist-local-nextauth-secret}
+      LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-strategist-local}
       LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-Strategist}
-      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-pathfinder-local-project}
+      LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-strategist-local-project}
       LANGFUSE_INIT_PROJECT_NAME: ${LANGFUSE_INIT_PROJECT_NAME:-Strategist Local}
-      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-pathfinder-local-dev}
-      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-pathfinder-local-dev}
-      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-dev@pathfinder.local}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-strategist-local-dev}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-strategist-local-dev}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-dev@strategist.local}
       LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-Strategist Dev}
-      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-pathfinder-local-dev}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-strategist-local-dev}
 
 volumes:
   langfuse_postgres_data:
