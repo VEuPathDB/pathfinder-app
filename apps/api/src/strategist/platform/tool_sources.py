@@ -88,14 +88,14 @@ def admitted_tool_sources() -> AdmittedSources:
     candidates = (
         _record(
             source_id=WDK_MCP_SOURCE_ID,
-            endpoint=settings.pathfinder_wdk_mcp_url,
+            endpoint=settings.strategist_wdk_mcp_url,
             token=_own_secret(settings.mcp_service_tokens),
             part_namespace=WDK_MCP_PART_NAMESPACE,
             max_call_seconds=WDK_MCP_CALL_SECONDS,
         ),
         _record(
             source_id=RESEARCH_MCP_SOURCE_ID,
-            endpoint=settings.pathfinder_research_mcp_url,
+            endpoint=settings.strategist_research_mcp_url,
             token=_own_secret(settings.research_mcp_tokens),
             part_namespace=RESEARCH_MCP_PART_NAMESPACE,
             max_call_seconds=RESEARCH_MCP_CALL_SECONDS,

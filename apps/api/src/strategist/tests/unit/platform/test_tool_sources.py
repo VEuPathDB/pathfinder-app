@@ -35,7 +35,7 @@ RESEARCH_TOKEN = "research-mcp-client-secret-0123456789abcdef"
 
 @pytest.fixture
 def wdk_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
     monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"pathfinder:{TOKEN}")
     get_settings.cache_clear()
     yield
@@ -44,7 +44,7 @@ def wdk_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture
 def research_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", RESEARCH_ENDPOINT)
+    monkeypatch.setenv("STRATEGIST_RESEARCH_MCP_URL", RESEARCH_ENDPOINT)
     monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", f"pathfinder:{RESEARCH_TOKEN}")
     get_settings.cache_clear()
     yield
@@ -53,9 +53,9 @@ def research_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture
 def no_wdk_mcp(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", "")
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", "")
     monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", "")
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", "")
+    monkeypatch.setenv("STRATEGIST_RESEARCH_MCP_URL", "")
     monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
     yield
@@ -114,7 +114,7 @@ def test_an_endpoint_without_its_credential_admits_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Half a configuration admits no server, rather than calling it bare."""
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
     monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
 
@@ -126,9 +126,9 @@ def test_an_endpoint_without_its_credential_admits_nothing(
 def test_an_entry_for_another_application_admits_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
     monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"analytics:{TOKEN}")
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", "")
+    monkeypatch.setenv("STRATEGIST_RESEARCH_MCP_URL", "")
     get_settings.cache_clear()
 
     assert admitted_tool_sources().records == ()
@@ -140,7 +140,7 @@ def test_the_secret_of_the_pathfinder_entry_is_the_one_presented(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     other = "analytics-client-secret-0123456789abcdef"
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
     monkeypatch.setenv(
         "WDK_MCP_SERVICE_TOKENS", f"analytics:{other},pathfinder:{TOKEN}"
     )
@@ -246,9 +246,9 @@ def test_each_server_is_presented_its_own_credential(
 def test_a_research_endpoint_without_its_credential_admits_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", "")
+    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", "")
     monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", "")
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", RESEARCH_ENDPOINT)
+    monkeypatch.setenv("STRATEGIST_RESEARCH_MCP_URL", RESEARCH_ENDPOINT)
     monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
 

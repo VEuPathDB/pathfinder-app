@@ -14,7 +14,7 @@ status: stable
 `AdmittedSources` in code. The record's shape is fixed there - the source id is
 the name the server publishes, the part namespace is `wdk`, the credential mode
 is `service`, the budget covers the longest call the server declares - and only
-two values come from settings: `PATHFINDER_WDK_MCP_URL`, the endpoint a turn
+two values come from settings: `STRATEGIST_WDK_MCP_URL`, the endpoint a turn
 dials, and `WDK_MCP_SERVICE_TOKENS`, the server's own list of the applications it
 admits, whose `pathfinder` entry holds the credential presented there. The worker
 reads the same value as the server, so one secret serves both ends. The

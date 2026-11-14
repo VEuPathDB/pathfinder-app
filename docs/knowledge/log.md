@@ -2,6 +2,10 @@
 
 ## 2026-11-14
 
+* **The worker reads its tool servers from `STRATEGIST_WDK_MCP_URL` and
+  `STRATEGIST_RESEARCH_MCP_URL`.** The quadlets have set both beside the old pair since the
+  worker started as `bin/strategist-worker`.
+
 * **The User-Agent, the metrics and the traces say Strategist.** Every request to a site sends
   `Strategist/<version>`, the Prometheus series are `strategist_*` and the trace services
   `strategist-api` and `strategist-worker`. A chat body that names `"pathfinder"` is no longer

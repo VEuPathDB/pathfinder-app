@@ -191,8 +191,8 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     # The two MCP endpoints this deployment's assistants call. An empty URL
     # admits nobody.
-    pathfinder_wdk_mcp_url: str = ""
-    pathfinder_research_mcp_url: str = ""
+    strategist_wdk_mcp_url: str = ""
+    strategist_research_mcp_url: str = ""
     research_mcp_service_tokens: str = Field(default="", repr=False)
 
     # Conversation provider. "mock" gives deterministic offline runs.

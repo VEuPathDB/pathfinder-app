@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: The identifiers take the Strategist name
-description: The screen, every name this repository alone reads, the package and the assistant id say Strategist, and the package waits for the estate to start the worker by its command; the application id, two quadlet-set variables, the URL path and the deployment names still say pathfinder. Each moves with what reads it, so no saved conversation, worker, client or setting breaks.
+description: The screen, every name this repository alone reads, the package and the assistant id say Strategist, and the package waits for the estate to start the worker by its command; the application id, the URL path and the deployment names still say pathfinder. Each moves with what reads it, so no saved conversation, worker, client or setting breaks.
 tags: [rename, release, deploy, persistence, frontend]
 generated: { by: claude-code/opus-5.5, at: 2026-11-13T00:00:00Z }
 status: proposed
@@ -29,8 +29,8 @@ The same day, the client library's four citations of the renamed `wdk/strategist
 
 ## 2. After step 1
 
-- **The two MCP URL settings** read `STRATEGIST_*`; a later quadlet change drops the
-  `PATHFINDER_` pair.
+- **The quadlet `PATHFINDER_WDK_MCP_URL` and `PATHFINDER_RESEARCH_MCP_URL` lines** are read by
+  nothing and go with the stack rename.
 - **The README screenshot** (`assets/pathfinder.png`) shows an old screen with the old name;
   take a new one from the running app.
 

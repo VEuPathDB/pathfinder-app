@@ -49,7 +49,8 @@ because a worker started as `-m pathfinder.jobs.worker` does not start from this
   extract) and the queued `chat_turn` jobs (the payload and its body).
 - **The User-Agent, metrics and traces.** Every request to a site sends `Strategist/<version>`,
   the Prometheus series are `strategist_*` and the trace services `strategist-api` and
-  `strategist-worker`. A chat body that names `"pathfinder"` names an assistant no deployment
+  `strategist-worker`. The worker reads its tool servers from `STRATEGIST_WDK_MCP_URL` and
+  `STRATEGIST_RESEARCH_MCP_URL`. A chat body that names `"pathfinder"` names an assistant no deployment
   serves.
 
 Each of these is read by something outside one release, so it keeps `pathfinder` until it
@@ -57,7 +58,6 @@ moves with its reader:
 
 - `application_id` (`"pathfinder"`), which is also the key of the MCP service-token secrets
   puppet writes.
-- `PATHFINDER_WDK_MCP_URL` and `PATHFINDER_RESEARCH_MCP_URL`, which the quadlet env files set.
 - The type of the location message the frame sends, which the site's page listens for.
 - The `/pathfinder` path, which the site route and the site proxy name.
 - Image, quadlet unit, volume, database and repository names.

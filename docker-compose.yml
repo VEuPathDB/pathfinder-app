@@ -66,9 +66,9 @@ services:
       # The two MCP endpoints an assistant's declaration resolves to. Each is
       # called with the secret of the pathfinder entry in the server's own
       # token list; without that entry the source is not admitted.
-      PATHFINDER_WDK_MCP_URL: ${PATHFINDER_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
+      STRATEGIST_WDK_MCP_URL: ${STRATEGIST_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
       WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
-      PATHFINDER_RESEARCH_MCP_URL: ${PATHFINDER_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
+      STRATEGIST_RESEARCH_MCP_URL: ${STRATEGIST_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
       RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       # Every process that writes or matches a helper strategy reads the same
       # prefix. A process on the library default recognises none of them.
@@ -159,9 +159,9 @@ services:
       # The two MCP endpoints an assistant's declaration resolves to. Each is
       # called with the secret of the pathfinder entry in the server's own
       # token list; without that entry the source is not admitted.
-      PATHFINDER_WDK_MCP_URL: ${PATHFINDER_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
+      STRATEGIST_WDK_MCP_URL: ${STRATEGIST_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
       WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
-      PATHFINDER_RESEARCH_MCP_URL: ${PATHFINDER_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
+      STRATEGIST_RESEARCH_MCP_URL: ${STRATEGIST_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
       RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       # Every process that writes or matches a helper strategy reads the same
       # prefix. A process on the library default recognises none of them.

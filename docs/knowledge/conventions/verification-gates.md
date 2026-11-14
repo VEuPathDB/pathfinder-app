@@ -138,7 +138,7 @@ The integration tier must pass with no VEuPathDB credential and no provider key,
 D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
 H=$(mktemp -d); mv .env "$H/api.env"; mv ../../.env "$H/root.env"; mv ../../ollama_models.yaml "$H/"; \
 env WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= WDK_TEST_TOKEN= \
-  OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= PATHFINDER_RESEARCH_MCP_URL= \
+  OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= STRATEGIST_RESEARCH_MCP_URL= \
   API_ENV=test API_SECRET_KEY=test-secret-key-xxxxx-xxxxx-xxxxx STRATEGIST_CHAT_PROVIDER=mock \
   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/$D \
   uv run pytest src/strategist/tests; \
