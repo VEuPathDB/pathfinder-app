@@ -49,12 +49,12 @@ def test_the_worker_installs_under_its_own_name_with_the_langfuse_header(
     )
     calls = _recorded_install(monkeypatch)
 
-    observability.setup_observability(service_name="pathfinder-worker")
+    observability.setup_observability(service_name="strategist-worker")
 
     expected = base64.b64encode(b"pk-lf-test:sk-lf-test").decode()
     assert calls == [
         {
-            "service_name": "pathfinder-worker",
+            "service_name": "strategist-worker",
             "service_version": __version__,
             "environment": get_settings().api_env,
             "include_content": True,
@@ -72,7 +72,7 @@ def test_without_langfuse_keys_no_header_is_added(
     )
     calls = _recorded_install(monkeypatch)
 
-    observability.setup_observability(service_name="pathfinder-api")
+    observability.setup_observability(service_name="strategist-api")
 
     assert [call["exporter_headers"] for call in calls] == [{}]
 

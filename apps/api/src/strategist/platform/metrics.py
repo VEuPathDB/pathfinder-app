@@ -39,49 +39,49 @@ _OTHER_METHOD = "OTHER"
 _METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 
 HTTP_REQUESTS = Counter(
-    "pathfinder_http_requests_total",
+    "strategist_http_requests_total",
     "HTTP requests the api answered, by method, route template and status class.",
     ("method", "route", "status"),
 )
 HTTP_REQUEST_DURATION = Histogram(
-    "pathfinder_http_request_duration_seconds",
+    "strategist_http_request_duration_seconds",
     "Seconds from a request's arrival to its response headers.",
     ("method", "route"),
 )
 CHAT_TURNS_STARTED = Counter(
-    "pathfinder_chat_turns_started_total",
+    "strategist_chat_turns_started_total",
     "Chat turns the api queued for the worker, by assistant.",
     ("assistant",),
 )
 CHAT_TURNS_FINISHED = Counter(
-    "pathfinder_chat_turns_finished_total",
+    "strategist_chat_turns_finished_total",
     "Chat turns the worker ended, by assistant, outcome and the model that read the prompt.",
     ("assistant", "outcome", "model"),
 )
 CHAT_TURN_DURATION = Histogram(
-    "pathfinder_chat_turn_duration_seconds",
+    "strategist_chat_turn_duration_seconds",
     "Seconds one chat turn ran in the worker.",
     ("assistant", "outcome"),
     buckets=(1, 2.5, 5, 10, 20, 30, 60, 120, 300, 600, 1200),
 )
 MODEL_TOKENS = Counter(
-    "pathfinder_model_tokens_total",
+    "strategist_model_tokens_total",
     "Tokens the finished turns recorded, by model and by whose key paid.",
     ("model", "payer"),
 )
 MODEL_COST_USD = Counter(
-    "pathfinder_model_cost_usd_total",
+    "strategist_model_cost_usd_total",
     "US dollars the finished turns recorded, by model and by whose key paid.",
     ("model", "payer"),
 )
 TOOL_SOURCE_ERRORS = Counter(
-    "pathfinder_tool_source_errors_total",
+    "strategist_tool_source_errors_total",
     "Tool source failures, by admitted source id and the stage that failed.",
     ("source", "stage"),
 )
 
 WDK_SEARCH_WAIT = Histogram(
-    "pathfinder_wdk_search_wait_seconds",
+    "strategist_wdk_search_wait_seconds",
     "Seconds a request that runs a WDK search waited in line before it was sent, by site and line.",
     ("site", "kind"),
     buckets=(0.05, 0.25, 1, 2.5, 5, 10, 30, 60, 120, 300, 600),

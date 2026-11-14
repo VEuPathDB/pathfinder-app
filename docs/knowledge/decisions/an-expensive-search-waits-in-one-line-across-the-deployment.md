@@ -48,7 +48,7 @@ again.
 PlasmoDB), and an empty one when the search starts; the status line shows the notice in
 place of the phase name while it stands. A durable body writes the same words on its own
 task progress, at the percent it last reported, and its last message again when the search
-starts. `pathfinder_wdk_search_wait_seconds{site,kind}` counts every wait by line
+starts. `strategist_wdk_search_wait_seconds{site,kind}` counts every wait by line
 (`turn`, `site`, `expensive`), with a site outside the loaded list counted as `other`.
 
 # What was rejected

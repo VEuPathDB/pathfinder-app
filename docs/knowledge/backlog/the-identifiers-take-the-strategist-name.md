@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: The identifiers take the Strategist name
-description: The screen, every name this repository alone reads, the package and the assistant id say Strategist, and the package waits for the estate to start the worker by its command; the application id, two quadlet-set variables, the User-Agent, the URL path and the deployment names still say pathfinder. Each moves with what reads it, so no saved conversation, worker, client or setting breaks.
+description: The screen, every name this repository alone reads, the package and the assistant id say Strategist, and the package waits for the estate to start the worker by its command; the application id, two quadlet-set variables, the URL path and the deployment names still say pathfinder. Each moves with what reads it, so no saved conversation, worker, client or setting breaks.
 tags: [rename, release, deploy, persistence, frontend]
 generated: { by: claude-code/opus-5.5, at: 2026-11-13T00:00:00Z }
 status: proposed
@@ -29,9 +29,6 @@ The same day, the client library's four citations of the renamed `wdk/strategist
 
 ## 2. After step 1
 
-- **The old assistant id on a request**: `AssistantId` (`platform/identity.py`) still reads
-  `"pathfinder"` on a chat request body as `"strategist"`, for a browser tab opened before the
-  release. Remove it in the release after.
 - **The two MCP URL settings** read `STRATEGIST_*`; a later quadlet change drops the
   `PATHFINDER_` pair.
 - **The README screenshot** (`assets/pathfinder.png`) shows an old screen with the old name;
@@ -45,8 +42,5 @@ The same day, the client library's four citations of the renamed `wdk/strategist
   moves the route and redirects the old one. Once the sites run it, this repository's links to
   the site page (`strategist_page_url`, share links) name `/app/strategist`. The app's own
   base path `/pathfinder` is the iframe's source, which no researcher reads; it stays.
-- **The User-Agent** becomes `Strategist/` after VEuPathDB operations is told.
-- **Metric and trace names** (`pathfinder_*`, `pathfinder-api`) change after the owners of any
-  dashboard or alert are told.
 - **Image names, tagger keys, the Jenkins job, the repository, the database and the env-file
   names**: optional; no researcher sees them.

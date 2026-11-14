@@ -31,13 +31,13 @@ more of it, so the series live on a server the app does not serve.
 
 | series | process | labels |
 |---|---|---|
-| `pathfinder_http_requests_total` | api | method, full route template with every include prefix (`platform/route_templates.py`; `unmatched` when none), status class |
-| `pathfinder_http_request_duration_seconds` | api | method, route template; time to the response headers, so a stream counts its first frame |
-| `pathfinder_chat_turns_started_total` | api | assistant; one per queued turn |
-| `pathfinder_chat_turns_finished_total` | worker | assistant, outcome (`completed`, `failed`, `stopped`), the model that read the prompt |
-| `pathfinder_chat_turn_duration_seconds` | worker | assistant, outcome |
-| `pathfinder_model_tokens_total`, `pathfinder_model_cost_usd_total` | worker | model, payer (`deployment` or `user`) |
-| `pathfinder_tool_source_errors_total` | worker | admitted source id, stage (`open`, `call`, or `unresolved` for a declared source a turn did not resolve) |
+| `strategist_http_requests_total` | api | method, full route template with every include prefix (`platform/route_templates.py`; `unmatched` when none), status class |
+| `strategist_http_request_duration_seconds` | api | method, route template; time to the response headers, so a stream counts its first frame |
+| `strategist_chat_turns_started_total` | api | assistant; one per queued turn |
+| `strategist_chat_turns_finished_total` | worker | assistant, outcome (`completed`, `failed`, `stopped`), the model that read the prompt |
+| `strategist_chat_turn_duration_seconds` | worker | assistant, outcome |
+| `strategist_model_tokens_total`, `strategist_model_cost_usd_total` | worker | model, payer (`deployment` or `user`) |
+| `strategist_tool_source_errors_total` | worker | admitted source id, stage (`open`, `call`, or `unresolved` for a declared source a turn did not resolve) |
 
 The worker reads a turn's spend from the usage chunks the turn already writes
 (`jobs/turn_metrics.py`): the Lead's usage and each sub-agent dispatch under their

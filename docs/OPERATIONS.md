@@ -197,13 +197,13 @@ podman exec pathfinder-api-dev curl -s http://localhost:9100/metrics | grep '^pa
 
 | series | process | labels |
 |---|---|---|
-| `pathfinder_http_requests_total` | api | method, route template, status class |
-| `pathfinder_http_request_duration_seconds` | api | method, route template |
-| `pathfinder_chat_turns_started_total` | api | assistant |
-| `pathfinder_chat_turns_finished_total` | worker | assistant, outcome, model |
-| `pathfinder_chat_turn_duration_seconds` | worker | assistant, outcome |
-| `pathfinder_model_tokens_total`, `pathfinder_model_cost_usd_total` | worker | model, payer |
-| `pathfinder_tool_source_errors_total` | worker | source, stage |
+| `strategist_http_requests_total` | api | method, route template, status class |
+| `strategist_http_request_duration_seconds` | api | method, route template |
+| `strategist_chat_turns_started_total` | api | assistant |
+| `strategist_chat_turns_finished_total` | worker | assistant, outcome, model |
+| `strategist_chat_turn_duration_seconds` | worker | assistant, outcome |
+| `strategist_model_tokens_total`, `strategist_model_cost_usd_total` | worker | model, payer |
+| `strategist_tool_source_errors_total` | worker | source, stage |
 
 Started turns that never finish point at the worker. The reasoning is in
 [docs/knowledge/decisions/metrics-go-to-the-estate-prometheus.md](knowledge/decisions/metrics-go-to-the-estate-prometheus.md).
@@ -255,7 +255,7 @@ journalctl -u pathfinder-worker@dev --since -15m
 A worker that logs "the injection judge did not build" cannot reach its model; check
 `OPENAI_API_KEY`. If the worker runs but turns stay queued, look at the queue with the
 `procrastinate_jobs` query under [Releases](#releases). A tool server that refuses the worker
-shows in `pathfinder_tool_source_errors_total`; check its token pair. Stage `unresolved` counts
+shows in `strategist_tool_source_errors_total`; check its token pair. Stage `unresolved` counts
 each turn that ran without a declared source, and the worker logs "Tool source is unavailable this
 turn" with the source id and the reason.
 

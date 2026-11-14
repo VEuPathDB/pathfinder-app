@@ -6,27 +6,14 @@ strategies this deployment writes into a WDK account are named here too,
 because a run and the cleanup that matches it must read one string.
 """
 
-from typing import Annotated
-
-from pydantic import AfterValidator
-
 from strategist import __version__
 
 APPLICATION_ID = "pathfinder"
 STRATEGIST_ASSISTANT_ID = "strategist"
 AUDIT_ASSISTANT_ID = "audit"
 
-_FORMER_ASSISTANT_IDS = {"pathfinder": STRATEGIST_ASSISTANT_ID}
-
-
-def _current_assistant_id(assistant_id: str) -> str:
-    return _FORMER_ASSISTANT_IDS.get(assistant_id, assistant_id)
-
-
-AssistantId = Annotated[str, AfterValidator(_current_assistant_id)]
-
 VEUPATHDB_USER_AGENT = (
-    f"PathFinder/{__version__} (+https://github.com/VEuPathDB/pathfinder-app)"
+    f"Strategist/{__version__} (+https://github.com/VEuPathDB/pathfinder-app)"
 )
 
 INTERNAL_STRATEGY_NAME_PREFIX = "__strategist_internal__:"

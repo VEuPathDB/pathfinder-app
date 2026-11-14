@@ -42,7 +42,7 @@ from strategist.services.experiment.seed.catalog import (
 from strategist.services.experiment.seed.types import SeedDef, SeedMeasurement
 from strategist.services.wdk_build import site_build
 
-STRATEGY_NAME = "pathfinder seed measure"
+STRATEGY_NAME = "strategist seed measure"
 
 
 async def measure_seed(

@@ -366,7 +366,7 @@ async def test_amain_traces_the_turns_it_runs_and_flushes_on_exit() -> None:
     """The worker runs every model call, so it installs the tracer before any job."""
     run = await _run_amain()
 
-    assert run.observability == ["on:pathfinder-worker", "off", "langfuse-off"]
+    assert run.observability == ["on:strategist-worker", "off", "langfuse-off"]
 
 
 async def test_amain_meters_at_the_catalog_prices() -> None:

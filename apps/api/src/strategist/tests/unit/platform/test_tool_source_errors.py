@@ -25,7 +25,7 @@ class _SourceDownError(RuntimeError):
 def _errors(stage: str) -> float:
     return (
         REGISTRY.get_sample_value(
-            "pathfinder_tool_source_errors_total", {"source": _SOURCE, "stage": stage}
+            "strategist_tool_source_errors_total", {"source": _SOURCE, "stage": stage}
         )
         or 0.0
     )

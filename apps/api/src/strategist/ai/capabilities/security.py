@@ -43,7 +43,7 @@ check: another part of the product decides what to do with it.
 
 # The one text the scripted judge calls an injection. A mock run reaches no
 # provider, and no ordinary fixture is refused by accident.
-INJECTION_TEST_MARKER = "[[pathfinder-injection-test]]"
+INJECTION_TEST_MARKER = "[[strategist-injection-test]]"
 
 UNSCREENED = (
     "A result from this tool was not passed on because it could not be screened."

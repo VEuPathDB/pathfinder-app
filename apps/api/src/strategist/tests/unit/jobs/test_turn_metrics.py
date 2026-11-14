@@ -48,17 +48,17 @@ def _sample(name: str, labels: dict[str, str]) -> float:
 
 def _finished(assistant: str, outcome: str, model: str) -> float:
     return _sample(
-        "pathfinder_chat_turns_finished_total",
+        "strategist_chat_turns_finished_total",
         {"assistant": assistant, "outcome": outcome, "model": model},
     )
 
 
 def _tokens(model: str, payer: str) -> float:
-    return _sample("pathfinder_model_tokens_total", {"model": model, "payer": payer})
+    return _sample("strategist_model_tokens_total", {"model": model, "payer": payer})
 
 
 def _cost(model: str, payer: str) -> float:
-    return _sample("pathfinder_model_cost_usd_total", {"model": model, "payer": payer})
+    return _sample("strategist_model_cost_usd_total", {"model": model, "payer": payer})
 
 
 def _frame_call(
@@ -110,7 +110,7 @@ async def test_a_completed_turn_counts_each_model_on_the_key_that_paid() -> None
 async def test_spend_no_agent_names_is_the_turn_models() -> None:
     tokens, cost = _tokens(_HELPER, "deployment"), _cost(_HELPER, "deployment")
     durations = _sample(
-        "pathfinder_chat_turn_duration_seconds_count",
+        "strategist_chat_turn_duration_seconds_count",
         {"assistant": "helper", "outcome": "completed"},
     )
 
@@ -124,7 +124,7 @@ async def test_spend_no_agent_names_is_the_turn_models() -> None:
     assert _cost(_HELPER, "deployment") == pytest.approx(cost + 0.004)
     assert (
         _sample(
-            "pathfinder_chat_turn_duration_seconds_count",
+            "strategist_chat_turn_duration_seconds_count",
             {"assistant": "helper", "outcome": "completed"},
         )
         == durations + 1

@@ -142,7 +142,7 @@ def _heartbeat(worker: ServingWorker, settings: Settings) -> HeartbeatThread:
 
 async def amain() -> None:
     setup_logging()
-    setup_observability(service_name="pathfinder-worker")
+    setup_observability(service_name="strategist-worker")
     install_procrastinate_redaction()
     install_catalog_prices()
     # The index shares this process's pool instead of opening a second one.

@@ -312,13 +312,13 @@ async def test_a_worker_turn_counts_under_the_model_that_read_the_prompt(
     model = prompt_reader_model("strategist", {})
     finished = {"assistant": "strategist", "outcome": "completed", "model": model}
     spent = {"model": model, "payer": "deployment"}
-    before = _sample("pathfinder_chat_turns_finished_total", finished)
-    tokens = _sample("pathfinder_model_tokens_total", spent)
+    before = _sample("strategist_chat_turns_finished_total", finished)
+    tokens = _sample("strategist_model_tokens_total", spent)
     payload = ChatTurnPayload(
         body=_body(), user_id=uuid4(), turn_id=uuid4(), assistant_id="strategist"
     )
 
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
 
-    assert _sample("pathfinder_chat_turns_finished_total", finished) == before + 1
-    assert _sample("pathfinder_model_tokens_total", spent) == tokens + 240
+    assert _sample("strategist_chat_turns_finished_total", finished) == before + 1
+    assert _sample("strategist_model_tokens_total", spent) == tokens + 240

@@ -59,7 +59,7 @@ def _reachable(record: AdmissionRecord, credential: str | None) -> AbstractTools
 def _unresolved_count() -> float:
     return (
         REGISTRY.get_sample_value(
-            "pathfinder_tool_source_errors_total",
+            "strategist_tool_source_errors_total",
             {"source": RESEARCH_MCP_SOURCE_ID, "stage": "unresolved"},
         )
         or 0.0

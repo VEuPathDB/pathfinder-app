@@ -14,7 +14,7 @@ _APP = Path(__file__).resolve().parents[2]
 
 _RETIRED = re.compile(r"\bPath[Ff]inder\b")
 
-_WIRE_NAMES = frozenset({VEUPATHDB_USER_AGENT, *FORMER_INTERNAL_STRATEGY_NAME_PREFIXES})
+_WIRE_NAMES = frozenset(FORMER_INTERNAL_STRATEGY_NAME_PREFIXES)
 
 
 def _application_files(pattern: str) -> list[Path]:
@@ -57,5 +57,5 @@ def test_a_service_client_names_itself_under_the_new_product() -> None:
     assert SERVICE_AUTH_HEADER == "X-Strategist-Service-Token"
 
 
-def test_the_sites_still_see_the_user_agent_their_operators_know() -> None:
-    assert VEUPATHDB_USER_AGENT.startswith("PathFinder/")
+def test_the_sites_see_the_strategist_user_agent() -> None:
+    assert VEUPATHDB_USER_AGENT.startswith("Strategist/")

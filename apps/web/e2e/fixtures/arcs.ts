@@ -69,4 +69,4 @@ export function prompt(name: ArcName, text: string): string {
 }
 
 /** The message the scripted injection judge refuses. */
-export const INJECTION_TEST_MESSAGE = "[[pathfinder-injection-test]]";
+export const INJECTION_TEST_MESSAGE = "[[strategist-injection-test]]";

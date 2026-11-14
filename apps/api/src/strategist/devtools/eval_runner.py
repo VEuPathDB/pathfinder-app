@@ -512,7 +512,7 @@ def build_dataset(
 ) -> Dataset[EvalCase, ObservedOutcome, None]:
     """The corpus as a harness dataset, one row per case."""
     return Dataset[EvalCase, ObservedOutcome, None](
-        name="pathfinder-logic",
+        name="strategist-logic",
         cases=[Case(name=case.name, inputs=case) for case in cases],
         evaluators=[CaseVerdict(builds=builds, taxonomies=taxonomies)],
     )

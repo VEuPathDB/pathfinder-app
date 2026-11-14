@@ -342,13 +342,7 @@ def test_a_body_may_name_no_site() -> None:
     assert ChatRequestBody.model_validate(_body(siteId="")).site_id == ""
 
 
-@pytest.mark.parametrize(
-    ("named", "answered"),
-    [("pathfinder", "strategist"), ("strategist", "strategist"), ("audit", "audit")],
-)
-def test_a_body_that_names_the_former_assistant_id_names_strategist(
-    named: str, answered: str
-) -> None:
-    body = ChatRequestBody.model_validate(_body(assistantId=named))
+def test_a_body_keeps_the_assistant_id_it_names() -> None:
+    body = ChatRequestBody.model_validate(_body(assistantId="pathfinder"))
 
-    assert body.assistant_id == answered
+    assert body.assistant_id == "pathfinder"

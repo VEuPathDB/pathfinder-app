@@ -20,9 +20,9 @@ from strategist.tests.integration.http.conftest import (
     make_user,
 )
 
-_STARTED = 'pathfinder_chat_turns_started_total{assistant="strategist"}'
+_STARTED = 'strategist_chat_turns_started_total{assistant="strategist"}'
 _CHAT_REQUESTS = (
-    'pathfinder_http_requests_total{method="POST",route="/api/v1/chat",status="2xx"}'
+    'strategist_http_requests_total{method="POST",route="/api/v1/chat",status="2xx"}'
 )
 
 

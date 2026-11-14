@@ -1,5 +1,13 @@
 # Log
 
+## 2026-11-14
+
+* **The User-Agent, the metrics and the traces say Strategist.** Every request to a site sends
+  `Strategist/<version>`, the Prometheus series are `strategist_*` and the trace services
+  `strategist-api` and `strategist-worker`. A chat body that names `"pathfinder"` is no longer
+  read as `"strategist"`, and the eval corpus names `"strategist"`. See
+  [the decision](decisions/the-product-is-named-veupathdb-strategist.md).
+
 ## 2026-11-13
 
 * **A helper strategy is written under the Strategist prefix, and older ones are still found.**

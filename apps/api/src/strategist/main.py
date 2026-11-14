@@ -235,7 +235,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         readiness.mark_failed("database", str(e))
         raise
 
-    setup_observability(service_name="pathfinder-api", engine=get_engine())
+    setup_observability(service_name="strategist-api", engine=get_engine())
     metrics_server = serve_metrics(settings.metrics_port, settings.metrics_addr)
     set_observer(StrategistObserver())
     _install_the_wdk_lines(settings)

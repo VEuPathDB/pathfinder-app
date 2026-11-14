@@ -29,7 +29,7 @@ The declaration is not `required`. A deployment that configures no endpoint or
 no credential admits nothing, the turn runs without those two tools, and the
 Lead, Explore and VERIFY are pinned that literature and web search are unavailable
 this turn, in place of the lines that name the two tools. Each declared source a
-turn does not resolve is counted under `pathfinder_tool_source_errors_total` stage
+turn does not resolve is counted under `strategist_tool_source_errors_total` stage
 `unresolved` and logged as a warning with its source id and the reason (`not
 admitted` or `did not open`) by `ai/capabilities/screened_sources.py`. That is what mock
 mode is: `RESEARCH_MCP_SERVICE_TOKENS` is unset, so the e2e stack needs no

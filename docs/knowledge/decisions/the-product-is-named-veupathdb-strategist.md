@@ -47,9 +47,10 @@ because a worker started as `-m pathfinder.jobs.worker` does not start from this
 - **Stored assistant ids.** Migration `2026_11_13_0002` renames `"pathfinder"` to
   `"strategist"` in `conversations.assistant_id`, `eval_staged_cases` (its column and its
   extract) and the queued `chat_turn` jobs (the payload and its body).
-- **A request that still names the old id.** `AssistantId` (`platform/identity.py`) reads
-  `"pathfinder"` as `"strategist"` on a chat body, for a browser tab opened before the
-  release. The eval corpus names `"strategist"`, and an eval case keeps the id it states.
+- **The User-Agent, metrics and traces.** Every request to a site sends `Strategist/<version>`,
+  the Prometheus series are `strategist_*` and the trace services `strategist-api` and
+  `strategist-worker`. A chat body that names `"pathfinder"` names an assistant no deployment
+  serves.
 
 Each of these is read by something outside one release, so it keeps `pathfinder` until it
 moves with its reader:
@@ -58,9 +59,8 @@ moves with its reader:
   puppet writes.
 - `PATHFINDER_WDK_MCP_URL` and `PATHFINDER_RESEARCH_MCP_URL`, which the quadlet env files set.
 - The type of the location message the frame sends, which the site's page listens for.
-- The `PathFinder/` User-Agent, which VEuPathDB operations reads.
 - The `/pathfinder` path, which the site route and the site proxy name.
-- Metric and trace service names, image, database and repository names.
+- Image, quadlet unit, volume, database and repository names.
 
 The [rename backlog item](../backlog/the-identifiers-take-the-strategist-name.md) moves each
 one with what reads it.

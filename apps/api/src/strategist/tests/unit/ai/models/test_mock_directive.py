@@ -88,7 +88,7 @@ def test_a_fault_token_apart_from_the_arc_token_still_counts() -> None:
 
 
 def test_the_injection_token_is_no_arc_token() -> None:
-    assert directive_of("[[pathfinder-injection-test]]") == ArcDirective()
+    assert directive_of("[[strategist-injection-test]]") == ArcDirective()
 
 
 def test_an_arc_the_registry_does_not_hold_fails_loudly() -> None:

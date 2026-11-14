@@ -17,8 +17,8 @@ from strategist.platform.metrics import (
 )
 from strategist.platform.route_templates import install_route_templates
 
-_REQUESTS = "pathfinder_http_requests_total"
-_LATENCY_COUNT = "pathfinder_http_request_duration_seconds_count"
+_REQUESTS = "strategist_http_requests_total"
+_LATENCY_COUNT = "strategist_http_request_duration_seconds_count"
 
 
 def _sample(name: str, labels: dict[str, str]) -> float:
@@ -126,7 +126,7 @@ def test_the_server_answers_the_text_format_on_its_port_and_address() -> None:
         server.server_close()
 
     assert content_type.startswith("text/plain; version=")
-    assert "# TYPE pathfinder_chat_turns_finished_total counter" in body
+    assert "# TYPE strategist_chat_turns_finished_total counter" in body
 
 
 async def test_the_app_serves_no_metrics_route() -> None:
@@ -150,7 +150,7 @@ async def test_the_app_counts_its_requests_under_their_templates() -> None:
     assert _sample(_REQUESTS, labels) == before + 1
 
 
-_WAITS = "pathfinder_wdk_search_wait_seconds_count"
+_WAITS = "strategist_wdk_search_wait_seconds_count"
 
 
 @pytest.mark.parametrize(
