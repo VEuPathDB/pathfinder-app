@@ -34,7 +34,7 @@ describe("ShareButton", () => {
   it("opens the share dialog", async () => {
     server.use(
       http.get(
-        "http://localhost:3000/pathfinder/api/v1/conversations/conv-1/share",
+        "http://localhost:3000/strategist/api/v1/conversations/conv-1/share",
         () => HttpResponse.json({ share: null }),
       ),
     );

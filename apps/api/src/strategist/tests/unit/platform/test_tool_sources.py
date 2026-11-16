@@ -153,37 +153,6 @@ def test_the_secret_of_the_strategist_entry_is_the_one_presented(
     get_settings.cache_clear()
 
 
-def test_a_secret_still_listed_under_pathfinder_is_presented(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
-    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"pathfinder:{TOKEN}")
-    get_settings.cache_clear()
-    record = admitted_tool_sources().resolve(WDK_MCP_SOURCE_ID)
-    assert record is not None
-
-    assert source_credential(record) == TOKEN
-
-    get_settings.cache_clear()
-
-
-def test_the_strategist_secret_wins_over_the_pathfinder_one(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    former = "pathfinder-client-secret-0123456789abcdef"
-    monkeypatch.setenv("STRATEGIST_WDK_MCP_URL", ENDPOINT)
-    monkeypatch.setenv(
-        "WDK_MCP_SERVICE_TOKENS", f"pathfinder:{former},strategist:{TOKEN}"
-    )
-    get_settings.cache_clear()
-    record = admitted_tool_sources().resolve(WDK_MCP_SOURCE_ID)
-    assert record is not None
-
-    assert source_credential(record) == TOKEN
-
-    get_settings.cache_clear()
-
-
 def test_an_unconfigured_credential_is_refused_loudly(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

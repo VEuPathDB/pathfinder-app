@@ -352,7 +352,7 @@ test.describe("Studies", () => {
         .getByTestId("data-eda-analysis-state")
         .getByRole("button", { name: "Open study", exact: true })
         .click();
-      await expect(page).toHaveURL(new RegExp(`/pathfinder/conversation/${id}/eda$`), {
+      await expect(page).toHaveURL(new RegExp(`/strategist/conversation/${id}/eda$`), {
         timeout: 60_000,
       });
       const tab = page.getByTestId("eda-workbench");

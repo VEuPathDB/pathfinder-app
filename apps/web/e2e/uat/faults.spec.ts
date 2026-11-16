@@ -380,7 +380,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await expect(correctedRows(page, "Choose a search")).toHaveCount(1);
     await expect(
       chatPage.assistantMessages.locator(
-        `a[href="https://qa.veupathdb.org/veupathdb.qa/app/pathfinder/conversation"]`,
+        `a[href="https://qa.veupathdb.org/veupathdb.qa/app/strategist/conversation"]`,
       ),
     ).toHaveCount(1);
     await expect(page.getByTestId("approval-card")).toHaveCount(0);

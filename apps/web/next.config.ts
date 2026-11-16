@@ -43,22 +43,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async redirects() {
-    return [
-      {
-        source: "/strategist",
-        destination: "/pathfinder",
-        basePath: false,
-        permanent: false,
-      },
-      {
-        source: "/strategist/:path*",
-        destination: "/pathfinder/:path*",
-        basePath: false,
-        permanent: false,
-      },
-    ];
-  },
   async rewrites() {
     const apiBase = getConfiguredServerApiBaseUrl();
     return {

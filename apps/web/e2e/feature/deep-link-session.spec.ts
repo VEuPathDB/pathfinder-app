@@ -73,7 +73,7 @@ test.describe("A deep link opened on the website login alone", () => {
       await expect(page.getByTestId("spend-ring")).toHaveAccessibleName(
         /^Monthly spend \d+% of allowance$/,
       );
-      expect(requests).toContain("GET 200 /pathfinder/api/v1/me/quota");
+      expect(requests).toContain("GET 200 /strategist/api/v1/me/quota");
       expect(requests.filter((line) => line.includes(" 401 "))).toEqual([]);
     } finally {
       await api.delete(`api/v1/conversations/${conversationId}`);

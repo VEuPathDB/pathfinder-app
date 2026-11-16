@@ -36,9 +36,7 @@ function frameUnderWebsitePage(): ReturnType<typeof vi.fn> {
 }
 
 function postedMessages(postMessage: ReturnType<typeof vi.fn>): unknown[] {
-  return postMessage.mock.calls
-    .map(([message]) => message)
-    .filter((message) => message.type === "strategist:location");
+  return postMessage.mock.calls.map(([message]) => message);
 }
 
 async function settle(): Promise<void> {
@@ -64,13 +62,8 @@ describe("FrameLocationReporter", () => {
 
     expect(postMessage.mock.calls).toEqual([
       [{ type: "strategist:location", path: "/conversation" }, window.location.origin],
-      [{ type: "pathfinder:location", path: "/conversation" }, window.location.origin],
       [
         { type: "strategist:location", path: "/conversation/abc?step=2" },
-        window.location.origin,
-      ],
-      [
-        { type: "pathfinder:location", path: "/conversation/abc?step=2" },
         window.location.origin,
       ],
     ]);

@@ -19,7 +19,7 @@ function site(over: Partial<SiteResponse>): SiteResponse {
     isPortal: false,
     siteOrigin: "https://qa.plasmodb.org",
     signInUrl: "https://qa.plasmodb.org/plasmo.qa/app/user/login",
-    pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/pathfinder",
+    pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/strategist",
     available: true,
     unavailableReason: null,
     offersAudits: false,

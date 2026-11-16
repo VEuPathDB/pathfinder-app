@@ -62,7 +62,7 @@ function renderRing({
   messages?: UIMessage[];
 } = {}) {
   server.use(
-    http.get("http://localhost:3000/pathfinder/api/v1/me/quota", ({ request }) => {
+    http.get("http://localhost:3000/strategist/api/v1/me/quota", ({ request }) => {
       quotaReads.push(request.url);
       return HttpResponse.json({ ...QUOTA, ...quota });
     }),

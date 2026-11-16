@@ -9,7 +9,6 @@ because a run and the cleanup that matches it must read one string.
 from strategist import __version__
 
 APPLICATION_ID = "strategist"
-FORMER_APPLICATION_ID = "pathfinder"
 STRATEGIST_ASSISTANT_ID = "strategist"
 AUDIT_ASSISTANT_ID = "audit"
 

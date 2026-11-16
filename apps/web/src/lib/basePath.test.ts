@@ -4,10 +4,10 @@ import { BASE_PATH, withBasePath } from "./basePath";
 
 describe("withBasePath", () => {
   it("puts an absolute app path under the base path", () => {
-    expect(withBasePath("/conversation")).toBe("/pathfinder/conversation");
+    expect(withBasePath("/conversation")).toBe("/strategist/conversation");
   });
 
   it("leaves a path that already carries the base path alone", () => {
-    expect(withBasePath(`${BASE_PATH}/x`)).toBe("/pathfinder/x");
+    expect(withBasePath(`${BASE_PATH}/x`)).toBe("/strategist/x");
   });
 });

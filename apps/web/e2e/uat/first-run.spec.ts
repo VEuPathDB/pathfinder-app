@@ -262,7 +262,7 @@ test.describe("First run and navigation", () => {
       await context.request.get(`${BASE_URL}/health/config`)
     ).json()) as SystemConfigResponse;
     const loginPage = new URL(config.siteSignInUrl);
-    loginPage.searchParams.set("destination", "/pathfinder/conversation");
+    loginPage.searchParams.set("destination", "/strategist/conversation");
     await expect(
       signedOut.getByRole("link", { name: "Sign in to VEuPathDB" }),
     ).toHaveAttribute("href", loginPage.href);
@@ -335,7 +335,7 @@ test.describe("First run and navigation", () => {
     const down = siteId === "toxodb" ? "plasmodb" : "toxodb";
     const reason = "the site did not answer in time";
     await page.route(
-      (url) => url.pathname === "/pathfinder/api/v1/sites",
+      (url) => url.pathname === "/strategist/api/v1/sites",
       async (route) => {
         const response = await route.fetch();
         const listed = (await response.json()) as SiteResponse[];

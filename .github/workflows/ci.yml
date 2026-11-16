@@ -479,7 +479,7 @@ jobs:
           ready=
           for _ in $(seq 1 90); do
             if curl -fsS http://localhost:8000/health/ready > /dev/null 2>&1 \
-              && curl -fsS http://localhost:3000/pathfinder/ > /dev/null 2>&1 \
+              && curl -fsS http://localhost:3000/strategist/ > /dev/null 2>&1 \
               && curl -fsS http://localhost:8000/health/system | jq -e '.workerAlive == true' > /dev/null 2>&1; then
               ready=1; break
             fi

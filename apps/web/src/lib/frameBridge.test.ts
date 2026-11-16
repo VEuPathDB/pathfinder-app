@@ -61,7 +61,6 @@ describe("reportLocation", () => {
 
     expect(website.postMessage.mock.calls).toEqual([
       [{ type: "strategist:location", path: "/conversation/1?step=2" }, ORIGIN],
-      [{ type: "pathfinder:location", path: "/conversation/1?step=2" }, ORIGIN],
     ]);
     expect(frame.postMessage).not.toHaveBeenCalled();
   });
@@ -90,11 +89,7 @@ describe("reportLocation", () => {
       reportLocation(frame.win, path);
     }
 
-    expect(
-      website.postMessage.mock.calls
-        .map(([message]) => message)
-        .filter((message) => message.type === "strategist:location"),
-    ).toEqual([
+    expect(website.postMessage.mock.calls.map(([message]) => message)).toEqual([
       { type: "strategist:location", path: "/saved" },
       { type: "strategist:location", path: "/conversation" },
       { type: "strategist:location", path: "/saved" },
@@ -103,7 +98,7 @@ describe("reportLocation", () => {
 });
 
 describe("goToWebsitePage", () => {
-  const SITE_PAGE = `${ORIGIN}/eupathdb.amuharram/app/pathfinder`;
+  const SITE_PAGE = `${ORIGIN}/eupathdb.amuharram/app/strategist`;
 
   function tab(origin: string, parent?: Window) {
     const replace = vi.fn();

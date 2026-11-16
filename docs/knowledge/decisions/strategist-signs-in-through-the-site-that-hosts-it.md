@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Strategist signs in through the site that hosts it
-description: Strategist is served at /pathfinder on a VEuPathDB website's own host, reads a researcher's WDK identity only from that website's Authorization cookie, never writes or deletes that cookie outside local development, and keeps no session of its own: each request acts as the account that cookie names. Signing in and out is the website's. A Strategist password form, a host of its own, a base path per environment and a Strategist session beside the website login were rejected.
+description: Strategist is served at /strategist on a VEuPathDB website's own host, reads a researcher's WDK identity only from that website's Authorization cookie, never writes or deletes that cookie outside local development, and keeps no session of its own: each request acts as the account that cookie names. Signing in and out is the website's. A Strategist password form, a host of its own, a base path per environment and a Strategist session beside the website login were rejected.
 tags: [security, auth, veupathdb, wdk, deployment, frontend]
 generated: { by: claude-code/opus-5.5, at: 2026-10-08T00:00:00Z }
 status: stable
@@ -9,7 +9,7 @@ status: stable
 
 # What was decided
 
-Strategist is served at the fixed base path `/pathfinder` on the host of the
+Strategist is served at the fixed base path `/strategist` on the host of the
 VEuPathDB website that shows it, and a page of that website embeds it under the
 website's own header. Every environment uses the same base path, local
 development included (`apps/api/src/strategist/platform/config.py::BASE_PATH`,
@@ -23,7 +23,7 @@ calls `cookie.setPath("/")`, at the WDK sha
 cookie takes FgpUtil `CookieBuilder`'s default path `/` and a null domain
 ([`CookieBuilder`](https://github.com/VEuPathDB/FgpUtil/blob/a63e80460f6ffe3bec2144a9a42d74e0f92d584c/Web/src/main/java/org/gusdb/fgputil/web/CookieBuilder.java#L10),
 [`toJaxRsCookie`](https://github.com/VEuPathDB/FgpUtil/blob/a63e80460f6ffe3bec2144a9a42d74e0f92d584c/Web/src/main/java/org/gusdb/fgputil/web/CookieBuilder.java#L51-L62)).
-The cookie is therefore host-only: a page under `/pathfinder` on the website's
+The cookie is therefore host-only: a page under `/strategist` on the website's
 host receives it with every request, and a page on any other host never does.
 The request middleware in `main.py` puts it on
 `veupathdb_auth_token_ctx`, as it does a token sent in a header. Strategist
@@ -49,10 +49,10 @@ mock-only `POST /api/v1/dev/login` minted.
 
 **Signing in and out is the website's.** Strategist has no password form, no
 logout route and no account name of its own to show. One deployment serves
-every website whose host proxies `/pathfinder` to it, so the website that frames
+every website whose host proxies `/strategist` to it, so the website that frames
 Strategist is the one at the page's own origin: `GET /api/v1/sites` names each
 site's `siteOrigin`, its `signInUrl` (its `/app/user/login`, or the development
-route when that route is mounted) and its `pageUrl` (its `/app/pathfinder`), and
+route when that route is mounted) and its `pageUrl` (its `/app/strategist`), and
 `apps/web/src/app/hooks/useSitePages.ts` takes the pages of the site whose
 `siteOrigin` is the page's origin, which the browser decides, because Apache proxies with `ProxyPreserveHost Off` and the server sees one Host
 for every website. On a host no site names, such as local development, the
@@ -75,7 +75,7 @@ website's host replaces itself with the website page for the same path
 (the framing site's `pageUrl`), so a bookmark or a shared link opens under the website's header. A host the
 website is not on keeps the page.
 
-**A link Strategist writes for later is a path under `/pathfinder`.** An export
+**A link Strategist writes for later is a path under `/strategist`.** An export
 download link and the development sign-in address carry no host, so the browser
 resolves them on the website that serves Strategist and no setting names it.
 
@@ -136,4 +136,4 @@ serves several hosts, and `GET /health/config` is the one place that changes if
 one does.
 
 **Building a download link from the request's `Origin`.** It loses
-`/pathfinder`, and a link the worker builds has no request to read.
+`/strategist`, and a link the worker builds has no request to read.

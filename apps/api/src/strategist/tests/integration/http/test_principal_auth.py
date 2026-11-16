@@ -362,21 +362,6 @@ async def test_the_site_login_alone_names_its_user(
 
 
 @pytest.mark.asyncio
-async def test_a_pathfinder_session_cookie_alone_signs_nobody_in(
-    principal_client: httpx.AsyncClient,
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
-    async with session_maker() as session:
-        user = await make_user(session)
-    principal_client.cookies.set("pathfinder-auth", create_user_token(user.id))
-
-    response = await principal_client.get(PRINCIPAL_PATH)
-
-    assert response.status_code == _UNAUTHORIZED, response.text
-    assert response.json()["detail"] == "Not authenticated"
-
-
-@pytest.mark.asyncio
 async def test_a_guest_site_login_signs_nobody_in(
     principal_client: httpx.AsyncClient,
     signing_key: ec.EllipticCurvePrivateKey,

@@ -10,7 +10,7 @@ import { pep440, tagVersion } from "./check-release.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PYPROJECT = "apps/api/pyproject.toml";
 const INIT = "apps/api/src/strategist/__init__.py";
-const IMAGES = ["strategist-api", "strategist-web", "pathfinder-api", "pathfinder-web"];
+const IMAGES = ["strategist-api", "strategist-web"];
 const TAGGER = "git@github.com:VEuPathDB/tagger.git";
 const STAGES = new Map([
   ["qa", false],

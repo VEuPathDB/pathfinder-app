@@ -18,7 +18,7 @@ const CONFIG: SystemConfigResponse = {
   providers: { openai: false, anthropic: false, google: false, ollama: false },
   siteId: "veupathdb",
   siteSignInUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login",
-  sitePageUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/pathfinder",
+  sitePageUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/strategist",
 };
 
 function site(id: string, origin: string, webapp: string): SiteResponse {
@@ -31,7 +31,7 @@ function site(id: string, origin: string, webapp: string): SiteResponse {
     isPortal: false,
     siteOrigin: origin,
     signInUrl: `${origin}/${webapp}/app/user/login`,
-    pageUrl: `${origin}/${webapp}/app/pathfinder`,
+    pageUrl: `${origin}/${webapp}/app/strategist`,
     available: true,
     unavailableReason: null,
     offersAudits: false,
@@ -56,7 +56,7 @@ describe("useSitePages", () => {
 
     expect(pagesWith([framing])).toEqual({
       signInUrl: `${window.location.origin}/plasmo.amuharram/app/user/login`,
-      pageUrl: `${window.location.origin}/plasmo.amuharram/app/pathfinder`,
+      pageUrl: `${window.location.origin}/plasmo.amuharram/app/strategist`,
     });
   });
 

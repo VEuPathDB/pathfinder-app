@@ -25,7 +25,7 @@ from strategist.transport.http.routers.veupathdb_auth import router
 
 _AUTH = "/api/v1/veupathdb/auth"
 _SITE_LOGIN_WRITER = Path("transport/http/routers/dev_site_login.py")
-_DEV_LOGIN_SCOPE = ["HttpOnly", "Path=/pathfinder", "SameSite=lax", "Secure"]
+_DEV_LOGIN_SCOPE = ["HttpOnly", "Path=/strategist", "SameSite=lax", "Secure"]
 
 
 def _scope(header: str) -> list[str]:
@@ -118,10 +118,6 @@ def _naming(cookie: str) -> set[Path]:
 
 def test_only_the_security_module_names_the_dev_login_cookie() -> None:
     assert _naming("strategist-dev-login") == {Path("platform/security.py")}
-
-
-def test_no_module_names_a_pathfinder_session_cookie() -> None:
-    assert _naming("pathfinder-auth") == set()
 
 
 @pytest.fixture

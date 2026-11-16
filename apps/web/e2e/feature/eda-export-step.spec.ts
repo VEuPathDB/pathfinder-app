@@ -96,7 +96,7 @@ test.describe("EDA export as a strategy step", () => {
     );
     await expect(
       page.getByRole("link", { name: "Open the strategy canvas" }),
-    ).toHaveAttribute("href", `/pathfinder/conversation/${conversationId}/strategy`);
+    ).toHaveAttribute("href", `/strategist/conversation/${conversationId}/strategy`);
     await expect(page.getByTestId("eda-export-step-name")).toHaveText(
       `Exported: ${EXPORTED_STEP.displayName}`,
     );
@@ -108,7 +108,7 @@ test.describe("EDA export as a strategy step", () => {
       .getByRole("link")
       .click();
     await expect(page).toHaveURL(
-      new RegExp(`/pathfinder/conversation/${conversationId}$`),
+      new RegExp(`/strategist/conversation/${conversationId}$`),
     );
 
     const panel = page.getByTestId("rail-strategy-panel");

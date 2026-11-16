@@ -11,7 +11,7 @@ from fastapi import Response
 from strategist.platform.config import get_settings
 from strategist.platform.security import set_dev_login_cookie
 
-_SCOPE = {"httponly": True, "path": "/pathfinder", "samesite": "lax"}
+_SCOPE = {"httponly": True, "path": "/strategist", "samesite": "lax"}
 
 
 @pytest.fixture

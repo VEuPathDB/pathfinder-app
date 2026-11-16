@@ -36,7 +36,7 @@ Strategist's goal is to make complex query/strategy construction **easier, faste
 - **Execution with real tools** (build/edit a real strategy graph via validated tool calls)
 - **Catalog grounding** (live WDK catalog for discovery and examples)
 
-Strategist is served at `/pathfinder` on a VEuPathDB website's own host by the estate's
+Strategist is served at `/strategist` on a VEuPathDB website's own host by the estate's
 container stack, and signs researchers in through that website's login. How the stack is run is
 [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
@@ -203,7 +203,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- Web: `http://localhost:3000/pathfinder`
+- Web: `http://localhost:3000/strategist`
 - API: `http://localhost:8000`
   - Docs: `http://localhost:8000/docs`
   - Health: `http://localhost:8000/health`
@@ -223,7 +223,7 @@ cp .env.dev.example .env.dev
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-- Web: `http://localhost:3000/pathfinder`
+- Web: `http://localhost:3000/strategist`
 - API: `http://localhost:8000`
 - Postgres: `localhost:5432`
 
@@ -333,12 +333,11 @@ yarn dev
 
 The deployment is the `strategist` stack of the estate's service definitions
 (`VEuPathDB/webservices-quadlets`): seven containers per stage as root podman quadlets, with the web container
-behind Traefik and the website's Apache proxying `/pathfinder` to it. What runs, the secrets,
+behind Traefik and the website's Apache proxying `/strategist` to it. What runs, the secrets,
 health, metrics, backups and troubleshooting are [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 Images come from Jenkins (`Jenkinsfile`), which publishes `docker.io/veupathdb/strategist-api`
-and `strategist-web` (and, until the estate has moved, the same build as `pathfinder-api` and
-`pathfinder-web`): `:latest` on every push to `main`, and the version on a release tag. A
+and `strategist-web`: `:latest` on every push to `main`, and the version on a release tag. A
 release is tagged `v` plus the semver spelling of the api version (`v0.2.0-b7` publishes
 `:0.2.0-b7`); `node scripts/check-release.mjs <tag>` refuses any other tag. The development stage
 follows `:latest`. QA runs `:qa`, which `VEuPathDB/tagger` moves to a published version. The two

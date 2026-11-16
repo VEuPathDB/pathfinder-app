@@ -12,7 +12,7 @@ import { server } from "../../../../vitest.msw-setup";
 import { ShareDialog } from "./ShareDialog";
 
 const CONVERSATION = "4f1c2a3b-5d6e-4f70-8a9b-0c1d2e3f4a5b";
-const SHARE = `http://localhost:3000/pathfinder/api/v1/conversations/${CONVERSATION}/share`;
+const SHARE = `http://localhost:3000/strategist/api/v1/conversations/${CONVERSATION}/share`;
 const TOKEN = "tok-abcdefghijklmnopqrstuvwxyz0123456789";
 
 interface Stored {
@@ -86,7 +86,7 @@ describe("ShareDialog", () => {
     ]);
     expect(await screen.findByLabelText("Password")).toHaveValue("pw-1");
     expect(screen.getByLabelText("Link")).toHaveValue(
-      `http://localhost:3000/pathfinder/shared/${TOKEN}`,
+      `http://localhost:3000/strategist/shared/${TOKEN}`,
     );
   });
 
@@ -118,7 +118,7 @@ describe("ShareDialog", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Copy link" }));
 
     expect(writeText).toHaveBeenCalledWith(
-      `http://localhost:3000/pathfinder/shared/${TOKEN}`,
+      `http://localhost:3000/strategist/shared/${TOKEN}`,
     );
   });
 

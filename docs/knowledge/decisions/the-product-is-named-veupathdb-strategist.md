@@ -56,18 +56,13 @@ because a worker started as `-m pathfinder.jobs.worker` does not start from this
   `2026_11_14_0001` renames `pathfinder` to `strategist` in every `application_id` column and
   every column default, moves each memory from the store prefix `app.pathfinder.` to
   `app.strategist.`, and reseals each stored provider key, whose associated data names the
-  application. The estate's `strategist` stack names its units, volumes, secrets, database
-  and role `strategist`.
-- **Both names, until every owner has moved.** The website, the estate stack and this
-  repository each move on their own day, so for one transition this repository answers to
-  both names. Jenkins publishes `veupathdb/pathfinder-*` and `veupathdb/strategist-*` from one
-  build and the release promotes all four. Strategist is built under `/pathfinder` and Next
-  rewrites every `/strategist` address onto it, so a website that proxies either path frames
-  it. The frame posts its location as `strategist:location` and as the former type. The web image reaches
-  the api at `pathfinder-api`, an alias the `strategist` stack keeps. The worker presents the
-  service-token secret listed under `strategist`, or under `pathfinder` when only that entry
-  exists. The [rename backlog item](../backlog/the-identifiers-take-the-strategist-name.md)
-  lists what goes once every owner has moved.
+  application. The images are
+  `veupathdb/strategist-api` and `strategist-web`, and the estate runs the `strategist` stack:
+  its units, volumes, secrets, database and role. The MCP service-token secrets name the
+  application `strategist`.
+- **The address, the frame message and the estate host.** Strategist is served at
+  `/strategist` (`BASE_PATH` on both sides). The website's Apache proxies `/strategist` to
+  `strategist-<stage>.local.apidb.org`. The frame posts `strategist:location` to the website's page.
 - **Local names.** The local and test databases are `strategist` and `strategist_test` (the
   integration guard refuses any other), the e2e images `strategist-e2e-api` and
   `strategist-e2e-web`, the root workspace `strategist`, and the local Langfuse defaults name
@@ -75,19 +70,14 @@ because a worker started as `-m pathfinder.jobs.worker` does not start from this
 
 What still says `pathfinder`, and why:
 
-- **Former names that are read, never written.** The former helper prefixes above, the
-  migrations that move stored values (they name the old value), the browser storage keys moved
-  on load, and the absent `pathfinder-auth` cookie the tests assert no module names.
+- **Former names that are read, never written.** The former helper prefixes above, and the
+  migrations that move stored values (they name the old value).
 - **Names the sites store.** The UAT uploads (`pathfinder-uat-*`) and the live-check datasets
   on the test account keep the names they were uploaded under.
 - **The repository** `VEuPathDB/pathfinder-app`, which the User-Agent, Jenkins, the
   documentation host and the knowledge citation prefix name.
-- **The site page address** `/app/pathfinder`, which the websites serve until they deploy
-  `/app/strategist`.
-- **The transition names** under "Both names" above.
-
 The [rename backlog item](../backlog/the-identifiers-take-the-strategist-name.md) moves the
-last three.
+last two.
 
 ## Rejected
 
@@ -97,9 +87,5 @@ last three.
 - **One mass replacement of every spelling.** It renames the package under saved
   conversations and the worker command under the estate, so existing threads fail to load and
   the worker does not start until the estate changes on the same day.
-- **One day on which every owner moves together.** The website build, the estate cutover
-  and this release belong to three teams; answering to both names lets each merge when it is
-  ready.
-- **Building under `/strategist` and rewriting `/pathfinder` onto it.** A page served through
-  the former proxy would then ask for its scripts under `/strategist`, which that website
-  does not yet proxy.
+- **A configurable base path.** Next.js fixes the base path when the image is built, so
+  one image cannot serve two paths; the path moved with the site proxy.

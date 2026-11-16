@@ -19,10 +19,7 @@ systems team deploys.
 | Image | Built from |
 | --- | --- |
 | `strategist-api` | `apps/api/Dockerfile`, context the repository root; the worker runs the same image with a command of its own |
-| `strategist-web` | `apps/web/Dockerfile`, context the repository root, with `NEXT_PUBLIC_API_URL=http://pathfinder-api:8000` |
-
-Until the estate runs the `strategist` stack, the same build is published again as
-`pathfinder-api` and `pathfinder-web`, which the former stack names.
+| `strategist-web` | `apps/web/Dockerfile`, context the repository root, with `NEXT_PUBLIC_API_URL=http://strategist-api:8000` |
 
 A push to `main` publishes `:latest`. A tag publishes its version without the
 `v`: `v0.2.0-b5` publishes `:0.2.0-b5`, and a release without a pre-release,
@@ -39,7 +36,7 @@ team deploys them as it deploys every estate service. They name
 `docker.io/veupathdb/strategist-api` and `strategist-web` at the one tag each stage
 sets, `STRATEGIST_TAG`; the worker and the two MCP servers run the api image with a
 command of their own
-([The estate stack holds only deployment facts](the-estate-stack-holds-only-deployment-facts.md)). The website's own host forwards `/pathfinder` to the
+([The estate stack holds only deployment facts](the-estate-stack-holds-only-deployment-facts.md)). The website's own host forwards `/strategist` to the
 stage's web container, which is what makes Strategist same-origin with the
 website ([Strategist signs in through the site that hosts it](strategist-signs-in-through-the-site-that-hosts-it.md)).
 The units and the secrets are not in this repository.
@@ -76,9 +73,8 @@ names another release than `apps/api/pyproject.toml`.
 
 **The web image carries the address of the api.** `NEXT_PUBLIC_API_URL` is read
 on the server only and is baked at `yarn build`, so the image is built with
-`http://pathfinder-api:8000`, the api's name on the stack network (the
-`strategist` stack keeps it as an alias until the transition ends), and the
-browser calls the web origin, which rewrites. The base path `/pathfinder` is
+`http://strategist-api:8000`, the api's name on the stack network, and the
+browser calls the web origin, which rewrites. The base path `/strategist` is
 baked the same way and is the same in every stage, so one web image serves
 every stage.
 
@@ -93,7 +89,7 @@ by the machine's own address.
 A push to `main` that leaves `docker.io/veupathdb/strategist-api:latest` and
 `strategist-web:latest` older than the commit; a tag `v0.2.0-b5` that publishes
 no `:0.2.0-b5`; the development stage not answering
-`https://<development site host>/pathfinder/` with the new build after an
+`https://<development site host>/strategist/` with the new build after an
 auto-update; or a stage whose MCP servers report another version on `/health`
 than the `veupathdb-mcp` the api has installed.
 

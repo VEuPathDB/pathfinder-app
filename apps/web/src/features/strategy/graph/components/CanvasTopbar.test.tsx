@@ -147,7 +147,7 @@ describe("CanvasTopbar", () => {
     await userEvent.click(screen.getByLabelText("More strategy actions"));
     await userEvent.click(await screen.findByText("Copy strategy URL"));
     expect(writeText).toHaveBeenCalledWith(
-      "http://localhost:3000/pathfinder/conversation/conv-1/strategy",
+      "http://localhost:3000/strategist/conversation/conv-1/strategy",
     );
   });
 });

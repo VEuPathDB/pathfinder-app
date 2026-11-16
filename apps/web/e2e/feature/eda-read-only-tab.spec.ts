@@ -96,7 +96,7 @@ test.describe("The EDA tab reads the analysis and the site edits it", () => {
     // The dev server compiles the tab route on first request.
     await page.getByRole("button", { name: "Open study", exact: true }).click();
     await expect(page).toHaveURL(
-      new RegExp(`/pathfinder/conversation/${conversationId}/eda$`),
+      new RegExp(`/strategist/conversation/${conversationId}/eda$`),
       { timeout: 60_000 },
     );
 

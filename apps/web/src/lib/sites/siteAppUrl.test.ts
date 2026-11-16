@@ -13,7 +13,7 @@ function site(baseUrl: string): SiteResponse {
     isPortal: false,
     siteOrigin: "https://qa.toxodb.org",
     signInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
-    pageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+    pageUrl: "https://qa.toxodb.org/toxo.qa/app/strategist",
     available: true,
     unavailableReason: null,
     offersAudits: false,

@@ -19,7 +19,7 @@ const PORTAL_DOWN: SiteResponse = {
   isPortal: true,
   siteOrigin: "https://qa.veupathdb.org",
   signInUrl: "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
-  pageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
+  pageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/strategist",
   available: false,
   unavailableReason: "TimeoutError",
   offersAudits: false,

@@ -164,7 +164,7 @@ test.describe("EDA data parts render in the thread", () => {
     // navigation assertion waits longer than the default.
     await page.getByTestId("rail-eda-open").click();
     await expect(page).toHaveURL(
-      new RegExp(`/pathfinder/conversation/${conversationId}/eda$`),
+      new RegExp(`/strategist/conversation/${conversationId}/eda$`),
       { timeout: 60_000 },
     );
     await expect(page.getByTestId("eda-workbench-header")).toContainText(STUDY_TITLE, {
@@ -207,7 +207,7 @@ test.describe("EDA data parts render in the thread", () => {
     // navigation assertion waits longer than the default.
     await page.getByRole("button", { name: "Open study", exact: true }).click();
     await expect(page).toHaveURL(
-      new RegExp(`/pathfinder/conversation/${conversationId}/eda$`),
+      new RegExp(`/strategist/conversation/${conversationId}/eda$`),
       { timeout: 60_000 },
     );
     await expect(page.getByTestId("eda-workbench-title")).toContainText(STUDY_TITLE, {

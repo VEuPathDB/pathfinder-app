@@ -42,7 +42,7 @@ describe("findingsCsvUrl", () => {
 });
 
 describe("the final read of a run's findings", () => {
-  const RUN_URL = `http://localhost:3000/pathfinder/api/v1/audits/${SAMPLE_RUN_ID}`;
+  const RUN_URL = `http://localhost:3000/strategist/api/v1/audits/${SAMPLE_RUN_ID}`;
   const LIVE = { ...SAMPLE_RUN, run: { ...SAMPLE_RUN.run, phase: "running" as const } };
   const LIST_KEY = listAuditFindingsSuspenseQueryKey(SAMPLE_RUN_ID, { limit: 50 });
 

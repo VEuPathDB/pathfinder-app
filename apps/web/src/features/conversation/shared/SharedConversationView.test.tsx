@@ -22,7 +22,7 @@ import { chatUrl } from "@/lib/routes";
 import { server } from "../../../../vitest.msw-setup";
 import { SharedConversationView } from "./SharedConversationView";
 
-const API = "http://localhost:3000/pathfinder/api/v1/shared/tok-1";
+const API = "http://localhost:3000/strategist/api/v1/shared/tok-1";
 const PASSWORD = "Zq3-pw-from-owner";
 
 const HEAD: SharedConversation = {

@@ -221,7 +221,7 @@ function stubConversationFetch(
   refuseTails = false,
 ): ConversationStub {
   const conversationId = crypto.randomUUID();
-  const eventsUrl = `http://localhost:3000/pathfinder/api/v1/conversations/${conversationId}/events`;
+  const eventsUrl = `http://localhost:3000/strategist/api/v1/conversations/${conversationId}/events`;
   const tailUrls: string[] = [];
   const encoder = new TextEncoder();
   let turn: ReadableStreamDefaultController<Uint8Array> | undefined;

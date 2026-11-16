@@ -31,7 +31,7 @@ contents:
   variable: request, user, application, site, stream and operation ids are the
   runtime's; `veupathdb_auth_token_ctx` and `request_base_url_ctx` stayed.
   `request_base_url_ctx` was later deleted, because an export link is a path
-  under `/pathfinder` and reads no request address.
+  under `/strategist` and reads no request address.
   `db.py` split by what it imports: the engine, the session factory and the
   request-scoped session are the runtime's; `init_db`, which runs alembic
   against `alembic.ini`, is the application's and became

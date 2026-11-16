@@ -54,7 +54,7 @@ let answer: unknown[] = LISTED;
 const reads: string[] = [];
 const server = setupServer(
   http.get(
-    "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
+    "http://localhost:3000/strategist/api/v1/sites/plasmodb/strategies",
     ({ request }) => {
       reads.push(request.url);
       return HttpResponse.json(answer);
@@ -82,7 +82,7 @@ function site(id: string, name: string, baseUrl: string): SiteResponse {
     isPortal: false,
     siteOrigin: new URL(baseUrl).origin,
     signInUrl: `${baseUrl.replace(/\/service$/, "")}/app/user/login`,
-    pageUrl: `${baseUrl.replace(/\/service$/, "")}/app/pathfinder`,
+    pageUrl: `${baseUrl.replace(/\/service$/, "")}/app/strategist`,
     available: true,
     unavailableReason: null,
     offersAudits: false,
@@ -123,7 +123,7 @@ describe("the VEuPathDB strategy import dialog", () => {
     expect(second.getByText(/132 results/)).toBeVisible();
     expect(second.queryByText(/Saved/)).toBeNull();
     expect([...new Set(reads)]).toEqual([
-      "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
+      "http://localhost:3000/strategist/api/v1/sites/plasmodb/strategies",
     ]);
   });
 
@@ -237,7 +237,7 @@ describe("the VEuPathDB strategy import dialog", () => {
   it("says so when the listing cannot be read, and keeps the paste path", async () => {
     server.use(
       http.get(
-        "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
+        "http://localhost:3000/strategist/api/v1/sites/plasmodb/strategies",
         () => HttpResponse.json({ detail: "no" }, { status: 503 }),
       ),
     );
@@ -252,7 +252,7 @@ describe("the VEuPathDB strategy import dialog", () => {
   it("reports a failed listing once, with no toast", async () => {
     server.use(
       http.get(
-        "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
+        "http://localhost:3000/strategist/api/v1/sites/plasmodb/strategies",
         () => HttpResponse.json({ detail: "strategy listing failed" }, { status: 500 }),
       ),
     );

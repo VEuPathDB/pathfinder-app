@@ -141,7 +141,7 @@ yarn install
 yarn dev
 ```
 
-Open `http://localhost:3000/pathfinder`. The API and the worker must both be running: chat turns execute in
+Open `http://localhost:3000/strategist`. The API and the worker must both be running: chat turns execute in
 the worker, so without it a turn never finishes.
 
 ### Scripts

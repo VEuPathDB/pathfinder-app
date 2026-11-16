@@ -43,7 +43,7 @@ describe("NewReleaseBanner", () => {
 
     const banner = await screen.findByRole("status");
     expect(banner).toHaveTextContent("Strategist has been updated.");
-    expect(requested).toEqual(["/pathfinder/api/v1/web-build"]);
+    expect(requested).toEqual(["/strategist/api/v1/web-build"]);
     fireEvent.click(screen.getByRole("button", { name: "Reload" }));
     expect(reloadPage).toHaveBeenCalledTimes(1);
   });
@@ -56,7 +56,7 @@ describe("NewReleaseBanner", () => {
     await renderBanner();
 
     await waitFor(() => {
-      expect(requested).toEqual(["/pathfinder/api/v1/web-build"]);
+      expect(requested).toEqual(["/strategist/api/v1/web-build"]);
     });
     expect(screen.queryByRole("status")).toBeNull();
   });

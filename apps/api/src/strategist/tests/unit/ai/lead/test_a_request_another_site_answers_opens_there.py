@@ -30,7 +30,7 @@ from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _ORTHOMCL = (
     "This needs OrthoMCL, whose searches answer it. [Open a new conversation "
-    "there](https://qa.orthomcl.org/orthomcl.qa/app/pathfinder/conversation); this conversation stays on PlasmoDB. "
+    "there](https://qa.orthomcl.org/orthomcl.qa/app/strategist/conversation); this conversation stays on PlasmoDB. "
     "Save the result there as a gene set, and a conversation on PlasmoDB can start "
     "from its PlasmoDB genes."
 )

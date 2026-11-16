@@ -11,9 +11,9 @@ describe("StrategistLogo", () => {
     const { container } = render(<StrategistLogo size={40} />);
 
     const [light, dark] = Array.from(container.querySelectorAll("img"));
-    expect(light).toHaveAttribute("src", "/pathfinder/brand/strategist-mark-light.svg");
+    expect(light).toHaveAttribute("src", "/strategist/brand/strategist-mark-light.svg");
     expect(light).toHaveClass("dark:hidden");
-    expect(dark).toHaveAttribute("src", "/pathfinder/brand/strategist-mark-dark.svg");
+    expect(dark).toHaveAttribute("src", "/strategist/brand/strategist-mark-dark.svg");
     expect(dark).toHaveClass("hidden", "dark:block");
     expect(light).toHaveAttribute("width", "40");
     expect(dark).toHaveAttribute("height", "40");

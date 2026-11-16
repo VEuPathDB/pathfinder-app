@@ -22,10 +22,10 @@ describe("BRAND", () => {
   it("points the browser at the favicons and the iOS icon under the base path", () => {
     expect(BRAND_ICONS).toEqual({
       icon: [
-        { url: "/pathfinder/brand/favicon.svg", type: "image/svg+xml" },
-        { url: "/pathfinder/brand/favicon.ico", sizes: "16x16 32x32 48x48" },
+        { url: "/strategist/brand/favicon.svg", type: "image/svg+xml" },
+        { url: "/strategist/brand/favicon.ico", sizes: "16x16 32x32 48x48" },
       ],
-      apple: "/pathfinder/brand/apple-touch-icon.png",
+      apple: "/strategist/brand/apple-touch-icon.png",
     });
   });
 });

@@ -68,7 +68,7 @@ describe("lib/api/http", () => {
   it("buildUrl puts a browser call under the base path on the page's origin", () => {
     vi.stubGlobal("window", { location: { origin: "https://site.example.org" } });
     expect(buildUrl("/api/v1/x", { siteId: "plasmodb" })).toBe(
-      "https://site.example.org/pathfinder/api/v1/x?siteId=plasmodb",
+      "https://site.example.org/strategist/api/v1/x?siteId=plasmodb",
     );
   });
 

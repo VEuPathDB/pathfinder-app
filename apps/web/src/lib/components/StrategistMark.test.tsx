@@ -47,8 +47,8 @@ describe("StrategistMark", () => {
       img.getAttribute("src"),
     );
     expect(sources).toEqual([
-      "/pathfinder/brand/strategist-mark-light.svg",
-      "/pathfinder/brand/strategist-mark-dark.svg",
+      "/strategist/brand/strategist-mark-light.svg",
+      "/strategist/brand/strategist-mark-dark.svg",
     ]);
     expect(screen.queryByRole("link", { name: "VEuPathDB Strategist" })).toBeNull();
     expect(screen.queryByRole("button", { name: "VEuPathDB Strategist" })).toBeNull();

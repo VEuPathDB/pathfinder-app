@@ -10,4 +10,4 @@ def sign_in_url(site: SiteInfo) -> str:
 
 
 def strategist_page_url(site: SiteInfo) -> str:
-    return f"{site.web_base_url}/app/pathfinder"
+    return f"{site.web_base_url}/app/strategist"

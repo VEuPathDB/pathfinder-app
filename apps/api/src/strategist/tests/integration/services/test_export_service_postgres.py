@@ -52,4 +52,4 @@ async def test_an_export_links_under_the_strategist_path(
     finally:
         user_id_ctx.reset(acting)
 
-    assert result.url == (f"/pathfinder/api/v1/exports/{result.export_id}")
+    assert result.url == (f"/strategist/api/v1/exports/{result.export_id}")

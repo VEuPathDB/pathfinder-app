@@ -43,12 +43,12 @@ async def test_each_site_names_its_origin_sign_in_and_strategist_page() -> None:
         "veupathdb": (
             "https://muharram.veupathdb.org",
             "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login",
-            "https://muharram.veupathdb.org/eupathdb.amuharram/app/pathfinder",
+            "https://muharram.veupathdb.org/eupathdb.amuharram/app/strategist",
         ),
         "plasmodb": (
             "https://muharram.plasmodb.org",
             "https://muharram.plasmodb.org/plasmo.amuharram/app/user/login",
-            "https://muharram.plasmodb.org/plasmo.amuharram/app/pathfinder",
+            "https://muharram.plasmodb.org/plasmo.amuharram/app/strategist",
         ),
     }
 
@@ -64,6 +64,6 @@ async def test_development_with_the_dev_account_signs_every_site_in_on_the_dev_r
     sign_ins = {site_id: where[1] for site_id, where in (await _where()).items()}
 
     assert sign_ins == {
-        "veupathdb": "/pathfinder/api/v1/dev/site-login",
-        "plasmodb": "/pathfinder/api/v1/dev/site-login",
+        "veupathdb": "/strategist/api/v1/dev/site-login",
+        "plasmodb": "/strategist/api/v1/dev/site-login",
     }

@@ -89,7 +89,7 @@ def test_the_cipher_never_prints_its_secret() -> None:
 
 
 def test_a_resealed_key_opens_only_under_its_new_data() -> None:
-    old = key_aad(_USER, "pathfinder", "openai")
+    old = key_aad(_USER, "analytics", "openai")
     new = key_aad(_USER, "strategist", "openai")
     blob = _cipher().seal(SecretStr(_SENTINEL), aad=old)
 

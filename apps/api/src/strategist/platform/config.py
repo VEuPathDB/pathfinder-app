@@ -35,7 +35,7 @@ from strategist.platform.model_catalog import DEFAULT_MODEL_ID
 from strategist.platform.paths import API_DIR, REPO_ROOT
 from strategist.platform.provider_key_cipher import SECRET_BYTES, ProviderKeyCipher
 
-BASE_PATH = "/pathfinder"
+BASE_PATH = "/strategist"
 
 _MIN_API_SECRET_LENGTH = 32
 _PLACEHOLDER_SECRET_MARKERS = (

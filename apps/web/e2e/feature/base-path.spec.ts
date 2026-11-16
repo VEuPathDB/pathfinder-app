@@ -1,5 +1,5 @@
 /**
- * The app lives under /pathfinder: a deep link survives a reload there, and
+ * The app lives under /strategist: a deep link survives a reload there, and
  * the first turn on the draft route writes its own address there.
  */
 
@@ -8,7 +8,7 @@ import { seedStrategy } from "../fixtures/strategy-builds";
 import { gotoOnSite, openConversationId } from "../pages/navigation";
 
 test.describe("The base path", () => {
-  test("a strategy deep link survives a reload under /pathfinder", async ({
+  test("a strategy deep link survives a reload under /strategist", async ({
     page,
     apiClient,
     siteId,
@@ -23,7 +23,7 @@ test.describe("The base path", () => {
     await expect(page).toHaveURL(`${BASE_URL}/conversation/${conversationId}/strategy`);
   });
 
-  test("the first turn on the draft route keeps the address under /pathfinder", async ({
+  test("the first turn on the draft route keeps the address under /strategist", async ({
     page,
     chatPage,
     siteId,

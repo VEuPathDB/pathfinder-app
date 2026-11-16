@@ -1,4 +1,4 @@
-const LOCATION_TYPES = ["strategist:location", "pathfinder:location"];
+const STRATEGIST_LOCATION = "strategist:location";
 
 let lastPosted: string | null = null;
 
@@ -15,9 +15,7 @@ export function sameOriginFramer(win: Window): Window | null {
 export function reportLocation(win: Window, path: string): void {
   const framer = sameOriginFramer(win);
   if (framer === null || path === lastPosted) return;
-  for (const type of LOCATION_TYPES) {
-    framer.postMessage({ type, path }, win.location.origin);
-  }
+  framer.postMessage({ type: STRATEGIST_LOCATION, path }, win.location.origin);
   lastPosted = path;
 }
 

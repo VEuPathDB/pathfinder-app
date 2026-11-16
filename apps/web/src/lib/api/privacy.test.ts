@@ -37,7 +37,7 @@ describe("privacy API client", () => {
 
     await expect(getPrivacySettings()).resolves.toEqual(SETTINGS);
 
-    expect(call(spy)[0]).toBe("http://localhost:3000/pathfinder/api/v1/me/privacy");
+    expect(call(spy)[0]).toBe("http://localhost:3000/strategist/api/v1/me/privacy");
   });
 
   it("writes the learning choice under the base path", async () => {
@@ -47,7 +47,7 @@ describe("privacy API client", () => {
     await updatePrivacySettings({ evalDataConsent: false });
 
     const [url, init] = call(spy);
-    expect(url).toBe("http://localhost:3000/pathfinder/api/v1/me/privacy");
+    expect(url).toBe("http://localhost:3000/strategist/api/v1/me/privacy");
     expect(init).toMatchObject({
       method: "PATCH",
       body: JSON.stringify({ evalDataConsent: false }),
@@ -61,7 +61,7 @@ describe("privacy API client", () => {
     await continuePastDataNotice(false);
 
     const [url, init] = call(spy);
-    expect(url).toBe("http://localhost:3000/pathfinder/api/v1/me/privacy/data-notice");
+    expect(url).toBe("http://localhost:3000/strategist/api/v1/me/privacy/data-notice");
     expect(init).toMatchObject({
       method: "POST",
       body: JSON.stringify({ version: DATA_STATEMENT_VERSION, evalDataConsent: false }),

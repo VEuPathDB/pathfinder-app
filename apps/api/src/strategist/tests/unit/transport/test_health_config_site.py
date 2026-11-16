@@ -57,7 +57,7 @@ async def test_development_with_the_dev_account_signs_in_through_the_dev_route(
 
     body = await _config()
 
-    assert body["siteSignInUrl"] == "/pathfinder/api/v1/dev/site-login"
+    assert body["siteSignInUrl"] == "/strategist/api/v1/dev/site-login"
 
 
 async def test_development_without_the_dev_account_signs_in_on_the_site(
@@ -79,4 +79,4 @@ async def test_the_site_page_is_the_websites_strategist_page(
 
     body = await _config()
 
-    assert body["sitePageUrl"] == f"{get_site('plasmodb').web_base_url}/app/pathfinder"
+    assert body["sitePageUrl"] == f"{get_site('plasmodb').web_base_url}/app/strategist"

@@ -40,7 +40,7 @@ import { ConversationSidebar } from "./ConversationSidebar";
 const mockOpenStrategy = vi.mocked(openStrategy);
 
 const server = setupServer(
-  http.get("http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies", () =>
+  http.get("http://localhost:3000/strategist/api/v1/sites/plasmodb/strategies", () =>
     HttpResponse.json([]),
   ),
 );
@@ -55,7 +55,7 @@ const SITES: SiteResponse[] = [
     isPortal: false,
     siteOrigin: "https://qa.plasmodb.org",
     signInUrl: "https://qa.plasmodb.org/plasmo.qa/app/user/login",
-    pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/pathfinder",
+    pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/strategist",
     available: true,
     unavailableReason: null,
     offersAudits: false,

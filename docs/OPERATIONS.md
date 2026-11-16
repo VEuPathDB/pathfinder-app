@@ -19,27 +19,23 @@ Every command below runs as root on the host that runs the stage. Replace `dev` 
 |---|---|---|---|
 | `strategist-db@` | `docker.io/pgvector/pgvector:pg16` | Postgres with pgvector: every stored record, the job queue, the embedding index | nothing |
 | `strategist-api@` | `docker.io/veupathdb/strategist-api` | The HTTP API on 8000. Migrates the database at start, loads the site catalogs, writes the embedding index | db (and pulls in the worker) |
-| `strategist-worker@` | `strategist-api`, `Exec=bin/strategist-worker` (the image's command for the worker; the package is `strategist`, so a quadlet that names `-m pathfinder.jobs.worker` no longer starts it) | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
+| `strategist-worker@` | `strategist-api`, `Exec=bin/strategist-worker` (the image's command for the worker) | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
 | `strategist-wdk-mcp@` | `strategist-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for an assistant that declares the source | db |
 | `strategist-research-mcp@` | `strategist-api`, `Exec=... -m veupathdb_mcp.research` | Literature and web search over MCP on 8110 | searxng |
 | `strategist-searxng@` | `docker.io/searxng/searxng` | The web search engine research-mcp asks first, on 8080 | nothing |
-| `strategist-service@` | `docker.io/veupathdb/strategist-web` | The Next.js site on 3000. Forwards `/pathfinder/api/*` and `/pathfinder/health/*` to the api, and answers `/strategist/*` with the page under `/pathfinder` | api |
+| `strategist-service@` | `docker.io/veupathdb/strategist-web` | The Next.js site on 3000. Forwards `/strategist/api/*` and `/strategist/health/*` to the api | api |
 
 Two volumes: `strategist-db-data-<stage>` (the database) and `strategist-catalogs-<stage>`
 (catalog snapshots, shared by api, worker and wdk-mcp). One network, `strategist-internal-<stage>`;
 containers reach each other by alias (`strategist-db`, `strategist-api`, `strategist-wdk-mcp`,
-`strategist-research-mcp`, `strategist-searxng`). The api also answers to `pathfinder-api`,
-the address the web image is built with until the transition ends. The api and the worker also join `monitoring`.
+`strategist-research-mcp`, `strategist-searxng`). The api and the worker also join `monitoring`.
 
 Only the web container is on Traefik, at `strategist-<stage>.local.apidb.org` on the `local`
-entrypoint (8443); until the transition ends its router also answers the former
-`pathfinder-<stage>.local.apidb.org`. Apache on the website's vhost proxies `/pathfinder` (and
-`/strategist`, once systems adds it) to the stage's host on 8443 under the same path
-(`set_pathfinder_proxy` in `Containers.pm` of `puppet-ebrc_httpd_setup`, the same shape as
-`set_jbrowse2_proxy`). The dev stage is served at `https://muharram.veupathdb.org/pathfinder`,
-qa at `https://qa.veupathdb.org/pathfinder`, and each under `/strategist` as well. Strategist
-builds every link it hands out as a path under `/pathfinder`, so it needs no setting for its
-own address.
+entrypoint (8443). Apache on the website's vhost proxies `/strategist` to
+`https://strategist-<stage>.local.apidb.org:8443/strategist`. The dev
+stage is served at `https://muharram.veupathdb.org/strategist`, qa at
+`https://qa.veupathdb.org/strategist`. Strategist builds every link it hands out as a path
+under `/strategist`, so it needs no setting for its own address.
 
 Restarting one unit alone:
 
@@ -174,7 +170,7 @@ uncomment the line (a pull request to `webservices-quadlets`).
 ```bash
 podman exec strategist-api-dev curl -sS http://localhost:8000/health/ready
 podman exec strategist-research-mcp-dev curl -fsS http://localhost:8110/health
-curl -sS https://muharram.veupathdb.org/pathfinder/health/system   # through Apache and the web container
+curl -sS https://muharram.veupathdb.org/strategist/health/system   # through Apache and the web container
 ```
 
 Logs are JSON lines on stdout, kept by journald. A line made inside a request or a turn carries
@@ -267,14 +263,14 @@ turn" with the source id and the reason.
 - From Traefik (a plain `404 page not found`): the web container is not running or not on the
   `traefik` network, or `TRAEFIK_DOMAIN` does not match the host Apache proxies to.
   `systemctl status strategist-service@dev`.
-- From Apache: the vhost has no `set_pathfinder_proxy('<stage>')` call. That is a systems change
+- From Apache: the vhost has no `set_strategist_proxy('<stage>')` call. That is a systems change
   in `puppet-ebrc_httpd_setup`.
-- Test each hop: `curl -sk https://strategist-dev.local.apidb.org:8443/pathfinder/health` from
+- Test each hop: `curl -sk https://strategist-dev.local.apidb.org:8443/strategist/health` from
   the web host, then the public URL.
 
 **Sign-in fails.** Strategist has no login of its own. It reads the website's `Authorization`
 cookie, which the browser sends only to the website's own host, so Strategist must be opened at
-`https://<website>/pathfinder`, never at the Traefik host. The researcher signs in on the website
+`https://<website>/strategist`, never at the Traefik host. The researcher signs in on the website
 with a registered account; a guest is refused (401 `WDK_LOGIN_REQUIRED`). If
 `/api/v1/veupathdb/auth/status` answers 503, the website's service did not answer the identity
 check.

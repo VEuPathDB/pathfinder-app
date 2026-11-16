@@ -18,7 +18,7 @@ from pydantic_ai.toolsets.abstract import ToolsetTool
 from veupathdb_mcp import ServiceTokenRegistry
 
 from strategist.platform.config import Settings, get_settings
-from strategist.platform.identity import APPLICATION_ID, FORMER_APPLICATION_ID
+from strategist.platform.identity import APPLICATION_ID
 from strategist.platform.metrics import TOOL_SOURCE_ERRORS
 
 WDK_MCP_SOURCE_ID = "veupathdb-wdk-mcp"
@@ -55,11 +55,7 @@ _CREDENTIALS: Mapping[str, tuple[Callable[[Settings], ServiceTokenRegistry], str
 
 
 def _own_secret(tokens: ServiceTokenRegistry) -> str:
-    return (
-        tokens.secret_for(APPLICATION_ID)
-        or tokens.secret_for(FORMER_APPLICATION_ID)
-        or ""
-    )
+    return tokens.secret_for(APPLICATION_ID) or ""
 
 
 def _record(

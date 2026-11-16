@@ -27,7 +27,7 @@ import { makeLedger } from "./ledgerFixture";
 import { ReviewPanel } from "./ReviewPanel";
 
 const CONVERSATION = "conv-1";
-const API = "http://localhost:3000/pathfinder/api/v1/conversations";
+const API = "http://localhost:3000/strategist/api/v1/conversations";
 
 function makeChat(messages: UIMessage[]): ChatHelpers {
   return {

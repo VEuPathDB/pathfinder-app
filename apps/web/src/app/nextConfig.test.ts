@@ -15,27 +15,8 @@ describe("the Next config", () => {
     expect(nextConfig.devIndicators).toBe(false);
   });
 
-  it("serves the app under /pathfinder", () => {
-    expect(nextConfig.basePath).toBe("/pathfinder");
-  });
-
-  it("sends every address under /strategist to the same place under /pathfinder", async () => {
-    const redirects = (await nextConfig.redirects?.()) ?? [];
-
-    expect(redirects).toEqual([
-      {
-        source: "/strategist",
-        destination: "/pathfinder",
-        basePath: false,
-        permanent: false,
-      },
-      {
-        source: "/strategist/:path*",
-        destination: "/pathfinder/:path*",
-        basePath: false,
-        permanent: false,
-      },
-    ]);
+  it("serves the app under /strategist", () => {
+    expect(nextConfig.basePath).toBe("/strategist");
   });
 
   it("proxies only the health and API routes to the api", async () => {

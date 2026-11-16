@@ -18,7 +18,7 @@ describe("SiteIcon", () => {
 
     const src = iconImage(container).getAttribute("src") ?? "";
     expect(new URL(src, "http://localhost").searchParams.get("url")).toBe(
-      "/pathfinder/icons/plasmodb.png",
+      "/strategist/icons/plasmodb.png",
     );
   });
 
@@ -28,6 +28,6 @@ describe("SiteIcon", () => {
 
     fireEvent.error(image);
 
-    expect(image.getAttribute("src")).toBe("/pathfinder/icons/veupathdb.png");
+    expect(image.getAttribute("src")).toBe("/strategist/icons/veupathdb.png");
   });
 });

@@ -66,7 +66,6 @@ test.describe("VEuPathDB login gate", () => {
 
     const cookieNames = (await apiClient.storageState()).cookies.map((c) => c.name);
     expect(cookieNames).toContain("Authorization");
-    expect(cookieNames).not.toContain("pathfinder-auth");
 
     // The website login alone is what a WDK-backed route needs.
     const geneSets = await apiClient.get("api/v1/gene-sets");

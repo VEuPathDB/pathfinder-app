@@ -16,7 +16,7 @@ import served from "../../../../../../packages/spec/audit_words.json";
 import { server } from "../../../../vitest.msw-setup";
 import Page from "./page";
 
-const RUNS_URL = "http://localhost:3000/pathfinder/api/v1/audits";
+const RUNS_URL = "http://localhost:3000/strategist/api/v1/audits";
 
 function site(id: string, origin: string, isPortal = false): SiteResponse {
   return {
@@ -28,7 +28,7 @@ function site(id: string, origin: string, isPortal = false): SiteResponse {
     isPortal,
     siteOrigin: origin,
     signInUrl: `${origin}/${id}/app/user/login`,
-    pageUrl: `${origin}/${id}/app/pathfinder`,
+    pageUrl: `${origin}/${id}/app/strategist`,
     available: true,
     unavailableReason: null,
     offersAudits: false,
@@ -59,7 +59,7 @@ async function askedOn(
     providers: { openai: false, anthropic: false, google: false, ollama: false },
     siteId: configuredSite,
     siteSignInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
-    sitePageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+    sitePageUrl: "https://qa.toxodb.org/toxo.qa/app/strategist",
   });
   render(<Page />, { wrapper: Wrapper });
   await screen.findByText(/^No audits/);

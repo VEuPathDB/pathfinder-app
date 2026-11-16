@@ -37,7 +37,7 @@ function makeConfigResponse(overrides: { llmConfigured: boolean }) {
     },
     siteId: "veupathdb",
     siteSignInUrl: "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
-    sitePageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
+    sitePageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/strategist",
   };
 }
 
@@ -105,7 +105,7 @@ describe("useSystemConfig", () => {
     });
 
     expect(result.current.sitePageUrl).toBe(
-      "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
+      "https://qa.veupathdb.org/veupathdb.qa/app/strategist",
     );
   });
 

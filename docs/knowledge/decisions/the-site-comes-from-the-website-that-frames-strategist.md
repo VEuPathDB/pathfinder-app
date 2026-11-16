@@ -15,7 +15,7 @@ status: stable
 VEuPathDB website frames its own Strategist, so the website is the site, and a site in
 the address would only repeat it or contradict it.
 
-**The browser decides the site.** Apache proxies `/pathfinder` with
+**The browser decides the site.** Apache proxies `/strategist` with
 `ProxyPreserveHost Off`, so the server sees one Host for every website. The browser
 compares the page's origin with each site's `siteOrigin` in `GET /api/v1/sites`
 (`apps/web/src/lib/sites/currentSite.ts`, read through
@@ -51,7 +51,7 @@ pick decided where the next one started. With every website framing its own Stra
 it offered a choice the website already makes.
 
 **The website adds and strips the site segment.** The website page knows its project,
-so it could load `/pathfinder/<site>/...` in the frame and show `/app/pathfinder/...`
+so it could load `/strategist/<site>/...` in the frame and show `/app/strategist/...`
 in the address bar. That keeps a site segment Strategist no longer needs, and makes
 every website translate between its project and Strategist's site ids for good.
 

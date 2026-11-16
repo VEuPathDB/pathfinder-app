@@ -75,7 +75,7 @@ describe("SystemReadyGate", () => {
       expect(screen.getByTestId("app-content")).toBeInTheDocument();
     });
     expect(seenByApp[0]).toEqual(
-      expect.arrayContaining(["/pathfinder/api/v1/sites", "/pathfinder/api/v1/models"]),
+      expect.arrayContaining(["/strategist/api/v1/sites", "/strategist/api/v1/models"]),
     );
   });
 
@@ -171,7 +171,7 @@ describe("SystemReadyGate", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn((input: string) =>
-        new URL(input).pathname === "/pathfinder/api/v1/web-build"
+        new URL(input).pathname === "/strategist/api/v1/web-build"
           ? Promise.resolve(Response.json({ build: "77b0e5a91c3f" }))
           : new Promise<Response>(() => {}),
       ),

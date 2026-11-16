@@ -61,7 +61,7 @@ describe("SignedOutNotice", () => {
     expect(signInLink()).toHaveAttribute(
       "href",
       `${SITE_SIGN_IN_URL}?destination=${encodeURIComponent(
-        "/pathfinder/conversation?step=4",
+        "/strategist/conversation?step=4",
       )}`,
     );
     expect(signInLink()).toHaveAttribute("target", "_top");

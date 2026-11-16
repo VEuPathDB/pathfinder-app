@@ -23,7 +23,7 @@ function site(id: string, origin: string, isPortal = false): SiteResponse {
     isPortal,
     siteOrigin: origin,
     signInUrl: `${origin}/${id}/app/user/login`,
-    pageUrl: `${origin}/${id}/app/pathfinder`,
+    pageUrl: `${origin}/${id}/app/strategist`,
     available: true,
     unavailableReason: null,
     offersAudits: false,
@@ -43,7 +43,7 @@ function currentSiteWith(sites: SiteResponse[]) {
     providers: { openai: false, anthropic: false, google: false, ollama: false },
     siteId: "toxodb",
     siteSignInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
-    sitePageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+    sitePageUrl: "https://qa.toxodb.org/toxo.qa/app/strategist",
   });
   return renderHook(() => useCurrentSite(), { wrapper: Wrapper }).result.current;
 }

@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
 
 import { useWebsitePage } from "./useWebsitePage";
 
-const SITE_PAGE = "https://muharram.veupathdb.org/eupathdb.amuharram/app/pathfinder";
+const SITE_PAGE = "https://muharram.veupathdb.org/eupathdb.amuharram/app/strategist";
 
 afterEach(() => {
   cleanup();

@@ -13,7 +13,7 @@ function site(id: string, host: string, webapp: string): SiteResponse {
     isPortal: id === "veupathdb",
     siteOrigin: `https://${host}`,
     signInUrl: `https://${host}/${webapp}/app/user/login`,
-    pageUrl: `https://${host}/${webapp}/app/pathfinder`,
+    pageUrl: `https://${host}/${webapp}/app/strategist`,
     available: true,
     unavailableReason: null,
     offersAudits: false,

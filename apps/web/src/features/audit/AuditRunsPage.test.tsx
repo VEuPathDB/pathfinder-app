@@ -15,8 +15,8 @@ import { server } from "../../../vitest.msw-setup";
 import { SAMPLE_RUN, SAMPLE_RUN_ID } from "./__fixtures__/sampleRun";
 import { AuditRunsPage } from "./AuditRunsPage";
 
-const RUNS_URL = "http://localhost:3000/pathfinder/api/v1/audits";
-const WORDS_URL = "http://localhost:3000/pathfinder/api/v1/audits/words";
+const RUNS_URL = "http://localhost:3000/strategist/api/v1/audits";
+const WORDS_URL = "http://localhost:3000/strategist/api/v1/audits/words";
 
 const SAMPLE_CHECKS =
   "Gene length against orthologs; Exon structure against RNA-seq; Organelle genes at the circular join; Pseudogene calls on intact genes; Strain model against its reference";

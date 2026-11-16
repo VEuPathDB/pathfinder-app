@@ -13,7 +13,7 @@ function site(id: string, origin: string, isPortal = false): SiteResponse {
     isPortal,
     siteOrigin: origin,
     signInUrl: `${origin}/${id}/app/user/login`,
-    pageUrl: `${origin}/${id}/app/pathfinder`,
+    pageUrl: `${origin}/${id}/app/strategist`,
     available: true,
     unavailableReason: null,
     offersAudits: false,

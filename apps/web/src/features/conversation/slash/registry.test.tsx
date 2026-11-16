@@ -106,7 +106,7 @@ describe("the slash registry", () => {
   });
 
   it("/export writes the newest gene set saved on this site", async () => {
-    const api = "http://localhost:3000/pathfinder/api/v1/gene-sets";
+    const api = "http://localhost:3000/strategist/api/v1/gene-sets";
     const set = (id: string, siteId: string) => ({
       id,
       name: id,
@@ -147,7 +147,7 @@ describe("the slash registry", () => {
   });
 
   it("/export says when the set no longer holds its strategy's result", async () => {
-    const api = "http://localhost:3000/pathfinder/api/v1/gene-sets";
+    const api = "http://localhost:3000/strategist/api/v1/gene-sets";
     server.use(
       http.get(api, () =>
         HttpResponse.json([

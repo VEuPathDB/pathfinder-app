@@ -21,7 +21,7 @@ import {
   DEFAULT_MODEL,
 } from "@/lib/models/__fixtures__/models";
 
-const BASE = "http://localhost:3000/pathfinder";
+const BASE = "http://localhost:3000/strategist";
 
 function uniform(modelId: string, reasoningEffort = "medium") {
   const config = { modelId, reasoningEffort };

@@ -57,6 +57,6 @@ describe("the chat transport's addresses", () => {
       expect(result.current.chat.status).not.toBe("submitted");
     });
 
-    expect(urls).toContain("http://localhost:3000/pathfinder/api/v1/chat");
+    expect(urls).toContain("http://localhost:3000/strategist/api/v1/chat");
   });
 });

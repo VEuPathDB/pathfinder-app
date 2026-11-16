@@ -22,7 +22,7 @@ vi.mock("@/app/hooks/useSystemConfig", () => ({
     setupRequired: false,
     siteId: "plasmodb",
     siteSignInUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login",
-    sitePageUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/pathfinder",
+    sitePageUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/strategist",
     retry: vi.fn(),
   }),
 }));
@@ -77,7 +77,7 @@ function siteRow(over: Partial<SiteResponse>): SiteResponse {
     isPortal: false,
     siteOrigin: "https://qa.plasmodb.org",
     signInUrl: "https://qa.plasmodb.org/plasmo.qa/app/user/login",
-    pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/pathfinder",
+    pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/strategist",
     available: true,
     unavailableReason: null,
     offersAudits: false,
@@ -94,7 +94,7 @@ const AVAILABLE_TOXODB = siteRow({
   projectId: "ToxoDB",
   siteOrigin: "https://qa.toxodb.org",
   signInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
-  pageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
+  pageUrl: "https://qa.toxodb.org/toxo.qa/app/strategist",
 });
 const PORTAL_DOWN = siteRow({
   id: "veupathdb",
@@ -170,7 +170,7 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     expect(screen.getByRole("link", { name: "Sign in to VEuPathDB" })).toHaveAttribute(
       "href",
       "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login?destination=" +
-        encodeURIComponent("/pathfinder/conversation"),
+        encodeURIComponent("/strategist/conversation"),
     );
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
     expect(container.querySelectorAll("input[type='password']")).toHaveLength(0);
@@ -342,7 +342,6 @@ describe("AppShellLayout framed by the website page", () => {
     expect(screen.getByTestId("signed-out-notice")).toBeVisible();
     expect(postMessage.mock.calls).toEqual([
       [{ type: "strategist:location", path: "/conversation" }, window.location.origin],
-      [{ type: "pathfinder:location", path: "/conversation" }, window.location.origin],
     ]);
   });
 });
@@ -545,7 +544,7 @@ describe("AppShellLayout on a site's own website", () => {
     ).toBeVisible();
     expect(screen.getByRole("link", { name: "Open it on ToxoDB" })).toHaveAttribute(
       "href",
-      "https://qa.toxodb.org/toxo.qa/app/pathfinder/conversation/c-toxo",
+      "https://qa.toxodb.org/toxo.qa/app/strategist/conversation/c-toxo",
     );
     expect(screen.queryByTestId("routed-content")).toBe(null);
   });
@@ -558,7 +557,7 @@ describe("AppShellLayout on a site's own website", () => {
     ).toBeVisible();
     expect(screen.getByRole("link", { name: "Open it on ToxoDB" })).toHaveAttribute(
       "href",
-      "https://qa.toxodb.org/toxo.qa/app/pathfinder/conversation/c-toxo",
+      "https://qa.toxodb.org/toxo.qa/app/strategist/conversation/c-toxo",
     );
     expect(screen.queryByTestId("routed-content")).toBe(null);
     await waitFor(() =>

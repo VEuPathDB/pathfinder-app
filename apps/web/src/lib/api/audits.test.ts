@@ -8,7 +8,7 @@ import served from "../../../../../packages/spec/audit_words.json";
 import { server } from "../../../vitest.msw-setup";
 import { auditWordsOptions, getAuditWords } from "./audits";
 
-const WORDS_URL = "http://localhost:3000/pathfinder/api/v1/audits/words";
+const WORDS_URL = "http://localhost:3000/strategist/api/v1/audits/words";
 
 describe("getAuditWords", () => {
   it("reads the words the API serves for every audit value", async () => {

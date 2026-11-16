@@ -43,7 +43,7 @@ function StubRuntimeProvider({ children }: { children: ReactNode }) {
 
 function renderSignedInThread(conversationId: string) {
   server.use(
-    http.post("http://localhost:3000/pathfinder/api/v1/chat", () => new Response(null)),
+    http.post("http://localhost:3000/strategist/api/v1/chat", () => new Response(null)),
   );
 
   const { queryClient, Wrapper } = createTestWrapper();
@@ -114,12 +114,12 @@ describe("ChatThread", () => {
     sendFromComposer("list kinases");
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe("/pathfinder/conversation/c1");
+      expect(window.location.pathname).toBe("/strategist/conversation/c1");
     });
   });
 
   it("keeps a deeper route of the same conversation when a run starts", async () => {
-    const strategyRoute = "/pathfinder/conversation/c1/strategy";
+    const strategyRoute = "/strategist/conversation/c1/strategy";
     window.history.replaceState(null, "", strategyRoute);
     renderSignedInThread("c1");
 

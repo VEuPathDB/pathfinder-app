@@ -69,12 +69,6 @@ async def test_no_site_login_is_not_authenticated() -> None:
     assert response.json()["detail"] == "Not authenticated"
 
 
-async def test_a_pathfinder_session_cookie_signs_nobody_in() -> None:
-    response = await _get(_app(None), {"pathfinder-auth": create_user_token(uuid4())})
-
-    assert response.status_code == 401
-
-
 async def test_a_dev_login_cookie_names_its_synthetic_user() -> None:
     user = uuid4()
 

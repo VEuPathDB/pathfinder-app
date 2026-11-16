@@ -15,7 +15,7 @@ from strategist.platform.config import get_settings
 from strategist.platform.error_handlers import veupathdb_error_handler
 from strategist.transport.http.routers import dev_site_login
 
-_PATH = "/pathfinder/plasmodb/conversation?tab=chat"
+_PATH = "/strategist/plasmodb/conversation?tab=chat"
 _PAGE = f"http://localhost:3000{_PATH}"
 
 type Login = tuple[str, str, str, str]
@@ -84,14 +84,14 @@ async def test_a_signed_in_account_returns_to_the_page(
 @pytest.mark.parametrize(
     ("params", "location"),
     [
-        ({"destination": "https://evil.example/x"}, "/pathfinder"),
-        ({"destination": "https://evil.example/pathfinder/x"}, "/pathfinder/x"),
-        ({"destination": "//evil.example/pathfinder"}, "/pathfinder"),
-        ({}, "/pathfinder"),
+        ({"destination": "https://evil.example/x"}, "/strategist"),
+        ({"destination": "https://evil.example/strategist/x"}, "/strategist/x"),
+        ({"destination": "//evil.example/strategist"}, "/strategist"),
+        ({}, "/strategist"),
     ],
     ids=["outside-the-path", "another-host", "scheme-relative", "no-destination"],
 )
-async def test_the_return_stays_on_this_origin_under_pathfinder(
+async def test_the_return_stays_on_this_origin_under_strategist(
     params: dict[str, str], location: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _site_answers(monkeypatch, "tok")
