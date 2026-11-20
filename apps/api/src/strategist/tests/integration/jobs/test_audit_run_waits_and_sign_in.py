@@ -236,7 +236,11 @@ async def test_a_forbidden_read_on_a_valid_sign_in_fails_only_its_unit(
     )
 
 
-@pytest.mark.parametrize(("status", "kept"), [(401, TOKEN), (403, EXPIRED_TOKEN)])
+@pytest.mark.parametrize(
+    ("status", "kept"),
+    [(401, TOKEN), (403, EXPIRED_TOKEN)],
+    ids=["unauthorized", "forbidden-and-expired"],
+)
 async def test_a_refused_sign_in_halts_the_run_and_a_new_one_resumes_it(
     jobs: InMemoryConnector,
     wired: Checks,
