@@ -320,25 +320,36 @@ jobs:
 
       - name: Check every test is in exactly one group
         working-directory: apps/api
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           set -o pipefail
           export LC_ALL=C
+          collect() {
+            tier="$1"; out="$2"; shift 2
+            uv run pytest "src/strategist/tests/$tier" -m "not live_model and not live_wdk" --collect-only -q "$@" | grep '::' | sort > "$out"
+          }
           check() {
-            tier="$1"; groups="$2"
-            tests() { uv run pytest "src/strategist/tests/$tier" -m "not live_model and not live_wdk" --collect-only -q "$@" | grep '::' | sort; }
-            tests > "$RUNNER_TEMP/whole.txt"
-            for g in $(seq 1 "$groups"); do tests --splits "$groups" --group "$g" --durations-path .test_durations; done | sort > "$RUNNER_TEMP/grouped.txt"
-            total=$(wc -l < "$RUNNER_TEMP/whole.txt")
+            tier="$1"; groups="$2"; dir="$RUNNER_TEMP/$tier"
+            mkdir -p "$dir"
+            pids=()
+            collect "$tier" "$dir/whole.txt" & pids+=($!)
+            for g in $(seq 1 "$groups"); do
+              collect "$tier" "$dir/group-$g.txt" --splits "$groups" --group "$g" --durations-path .test_durations & pids+=($!)
+            done
+            for p in "${pids[@]}"; do wait "$p"; done
+            sort "$dir"/group-*.txt > "$dir/grouped.txt"
+            total=$(wc -l < "$dir/whole.txt")
             [ "$total" -gt 0 ] || { echo "::error::pytest collected no $tier tests"; exit 1; }
-            if ! cmp -s "$RUNNER_TEMP/whole.txt" "$RUNNER_TEMP/grouped.txt"; then
+            if ! cmp -s "$dir/whole.txt" "$dir/grouped.txt"; then
               echo "::error::The $groups $tier groups do not run every test exactly once."
-              comm -3 "$RUNNER_TEMP/whole.txt" "$RUNNER_TEMP/grouped.txt"
+              comm -3 "$dir/whole.txt" "$dir/grouped.txt"
               exit 1
             fi
             echo "$total $tier tests, each in exactly one of $groups groups"
           }
           check unit 3
-          check integration 8
+          if [ "$EVENT" != "push" ]; then check integration 8; fi
 
   test-api-coverage:
     name: Test API coverage
