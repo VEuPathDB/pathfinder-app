@@ -15,6 +15,7 @@ runs:
   using: composite
   steps:
     - name: Set up Python
+      id: python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
@@ -24,7 +25,16 @@ runs:
       with:
         version: "0.12.10"
 
+    - name: Restore the virtual environment
+      id: venv
+      uses: actions/cache@v4
+      with:
+        path: apps/api/.venv
+        key: venv-${{ runner.os }}-${{ steps.python.outputs.python-version }}-${{ hashFiles('apps/api/uv.lock') }}-${{ inputs.sync-args }}
+
     - name: Install API dependencies
       shell: bash
       working-directory: apps/api
-      run: uv sync ${{ inputs.sync-args }}
+      env:
+        COMPILE: ${{ steps.venv.outputs.cache-hit != 'true' && '--compile-bytecode' || '' }}
+      run: uv sync $COMPILE ${{ inputs.sync-args }}
