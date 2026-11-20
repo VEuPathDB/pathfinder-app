@@ -357,7 +357,9 @@ def test_a_forbidden_read_on_a_sign_in_that_still_holds_is_a_failed_unit(
 
 
 @pytest.mark.parametrize(
-    "token", ["not-a-token", veupathdb_token(_KEY, is_guest=True), _expired()]
+    "token",
+    ["not-a-token", veupathdb_token(_KEY, is_guest=True), _expired()],
+    ids=["unreadable", "guest", "expired"],
 )
 def test_a_forbidden_read_on_a_lapsed_or_unreadable_sign_in_halts(token: str) -> None:
     held = veupathdb_auth_token_ctx.set(token)

@@ -25,8 +25,9 @@ from sqlalchemy.pool import NullPool
 from testcontainers.community.postgres import PostgresContainer
 
 from strategist.platform.migrations import include_object, upgrade_all
+from strategist.tests._support.worker_database import worker_scoped
 
-DATABASE_NAME = "strategist_test_three_chains"
+DATABASE_NAME = worker_scoped("strategist_test_three_chains")
 RUNTIME_HEAD = "2026_11_07_0006"
 
 Difference = tuple[Any, ...] | list[tuple[Any, ...]]
@@ -104,8 +105,10 @@ async def migrated_database(
 
     base_url = os.environ["DATABASE_URL"]
     with psycopg.connect(_psycopg_url(base_url), autocommit=True) as connection:
-        connection.execute(f'DROP DATABASE IF EXISTS "{DATABASE_NAME}"')
-        connection.execute(f'CREATE DATABASE "{DATABASE_NAME}"')
+        connection.execute(
+            SQL("DROP DATABASE IF EXISTS {}").format(Identifier(DATABASE_NAME))
+        )
+        connection.execute(SQL("CREATE DATABASE {}").format(Identifier(DATABASE_NAME)))
     url = (
         make_url(base_url)
         .set(database=DATABASE_NAME)
@@ -122,7 +125,9 @@ async def migrated_database(
     yield url
 
     with psycopg.connect(_psycopg_url(base_url), autocommit=True) as connection:
-        connection.execute(f'DROP DATABASE IF EXISTS "{DATABASE_NAME}"')
+        connection.execute(
+            SQL("DROP DATABASE IF EXISTS {}").format(Identifier(DATABASE_NAME))
+        )
 
 
 def test_the_entry_point_stamps_all_three_version_tables(

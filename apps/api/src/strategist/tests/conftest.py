@@ -30,6 +30,10 @@ os.environ.setdefault(
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
 os.environ.setdefault("GEMINI_API_KEY", "")
 
+from strategist.tests._support.worker_database import worker_database_url
+
+os.environ["DATABASE_URL"] = worker_database_url(os.environ["DATABASE_URL"])
+
 from strategist.platform.stage_sites import SITES_CONFIG_VARIABLE, live_sites_file
 from strategist.tests._support.decisions import OFFLINE_OPENAI_KEY
 
@@ -52,7 +56,6 @@ from assistant_core.platform import db
 from assistant_core.platform.logging import setup_logging
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
-from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -79,10 +82,11 @@ from strategist.platform.model_catalog import install_catalog_prices
 from strategist.platform.security import create_user_token, limiter
 from strategist.services import wdk_identity
 from strategist.services.eda import catalog
-from strategist.tests._support.database import can_connect, create_checkpoint_tables
+from strategist.tests._support.database import create_checkpoint_tables
 
 pytest_plugins = [
     "strategist.tests._support.hermetic_guest",
+    "strategist.tests._support.postgres_server",
     "strategist.tests._support.reporter_refusals",
     "strategist.tests._support.signed_in",
     "strategist.tests._support.site_session",
@@ -111,56 +115,6 @@ def _get_test_database_url() -> str:
         )
         raise RuntimeError(msg)
     return url
-
-
-# PostgreSQL.
-
-
-@pytest.fixture(scope="session")
-def database_url() -> str:
-    # An empty result makes the session start a disposable Postgres.
-    return os.environ.get("DATABASE_URL", "").strip()
-
-
-@pytest.fixture(scope="session")
-def postgres_container(
-    database_url: str,
-) -> Generator[PostgresContainer | None]:
-    url = database_url or os.environ.get("DATABASE_URL", "").strip()
-    # Another server can hold the port, so the URL counts only when it answers.
-    if url and "postgresql" in url and not asyncio.run(can_connect(url)):
-        url = ""
-        os.environ.pop("DATABASE_URL", None)
-
-    if url:
-        yield None
-        return
-
-    # This requires Docker
-    container = PostgresContainer(
-        "pgvector/pgvector:pg16",
-        username="postgres",
-        password="postgres",
-        dbname="strategist_test",
-    )
-    try:
-        container.start()
-    except Exception as exc:
-        msg = (
-            "DATABASE_URL was not set and Postgres could not be started via Docker. "
-            "Fix by either:\n"
-            "- setting DATABASE_URL to a test database URL, or\n"
-            "- installing/running Docker so testcontainers can start Postgres.\n"
-            f"Underlying error: {exc}"
-        )
-        raise RuntimeError(msg) from exc
-
-    url_obj = make_url(container.get_connection_url()).set(
-        drivername="postgresql+asyncpg"
-    )
-    os.environ["DATABASE_URL"] = url_obj.render_as_string(hide_password=False)
-    yield container
-    container.stop()
 
 
 _PROCRASTINATE_SCHEMA_SQL = (

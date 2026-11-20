@@ -66,7 +66,9 @@ def test_an_empty_site_is_no_site() -> None:
     assert LogIds(site_id="").named() == {}
 
 
-@pytest.mark.parametrize("header", ["request-one", str(uuid4())])
+@pytest.mark.parametrize(
+    "header", ["request-one", "6f0c2a1e-3b4d-4e5f-8a9b-0c1d2e3f4a5b"]
+)
 def test_a_request_id_that_is_an_id_is_kept(header: str) -> None:
     assert accepted_request_id(header) == header
 

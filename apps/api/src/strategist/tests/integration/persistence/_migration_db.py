@@ -13,6 +13,8 @@ from psycopg.abc import QueryNoTemplate
 from psycopg.sql import SQL, Identifier
 from sqlalchemy.engine import make_url
 
+from strategist.tests._support.worker_database import worker_scoped
+
 ALEMBIC_INI = Path(__file__).resolve().parents[5] / "alembic.ini"
 
 
@@ -24,6 +26,7 @@ def psycopg_url(url: str) -> str:
 
 
 def create_database(base_url: str, name: str) -> str:
+    name = worker_scoped(name)
     with psycopg.connect(psycopg_url(base_url), autocommit=True) as connection:
         connection.execute(SQL("DROP DATABASE IF EXISTS {}").format(Identifier(name)))
         connection.execute(SQL("CREATE DATABASE {}").format(Identifier(name)))
@@ -31,6 +34,7 @@ def create_database(base_url: str, name: str) -> str:
 
 
 def drop_database(base_url: str, name: str) -> None:
+    name = worker_scoped(name)
     with psycopg.connect(psycopg_url(base_url), autocommit=True) as connection:
         connection.execute(SQL("DROP DATABASE IF EXISTS {}").format(Identifier(name)))
 

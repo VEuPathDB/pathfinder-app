@@ -119,7 +119,7 @@ repos:
         stages: [pre-push]
       - id: pytest-api
         name: pytest (api)
-        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run python -m pytest src/strategist/tests/unit/ -v"
+        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run python -m pytest src/strategist/tests/unit/ -n auto"
         language: system
         pass_filenames: false
         types: [python]

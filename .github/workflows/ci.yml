@@ -234,7 +234,7 @@ jobs:
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           STRATEGIST_CHAT_PROVIDER: mock
           TEST_TIER: ${{ github.event_name == 'push' && 'src/strategist/tests/unit' || 'src/strategist/tests' }}
-        run: uv run pytest "$TEST_TIER" -m "not live_model and not live_wdk" --cov=src --cov-report=xml --cov-fail-under=40
+        run: uv run pytest "$TEST_TIER" -m "not live_model and not live_wdk" -n auto --cov=src --cov-report=xml --cov-fail-under=40
 
   lint-web:
     name: Lint Web
