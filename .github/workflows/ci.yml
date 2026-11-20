@@ -251,7 +251,7 @@ jobs:
         run: >-
           uv run pytest src/strategist/tests/unit -m "not live_model and not live_wdk"
           --splits 3 --group "$GROUP" --durations-path .test_durations
-          -n auto --durations=25 --cov=src --cov-report= --store-durations
+          -n auto --durations=25 --cov=src --cov-report=
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
@@ -261,23 +261,15 @@ jobs:
           retention-days: 1
           include-hidden-files: true
 
-      - name: Upload the durations
-        uses: actions/upload-artifact@v4
-        with:
-          name: durations-unit-${{ matrix.group }}
-          path: apps/api/.test_durations
-          retention-days: 1
-          include-hidden-files: true
-
   test-api-integration:
-    name: Test API (integration ${{ matrix.group }}/6)
+    name: Test API (integration ${{ matrix.group }}/8)
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' && github.event_name != 'push' }}
     strategy:
       fail-fast: false
       matrix:
-        group: [1, 2, 3, 4, 5, 6]
+        group: [1, 2, 3, 4, 5, 6, 7, 8]
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -306,22 +298,14 @@ jobs:
           GROUP: ${{ matrix.group }}
         run: >-
           uv run pytest src/strategist/tests/integration -m "not live_model and not live_wdk"
-          --splits 6 --group "$GROUP" --durations-path .test_durations
-          -n auto --durations=25 --cov=src --cov-report= --store-durations
+          --splits 8 --group "$GROUP" --durations-path .test_durations
+          -n auto --durations=25 --cov=src --cov-report=
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
         with:
           name: coverage-api-integration-${{ matrix.group }}
           path: apps/api/.coverage
-          retention-days: 1
-          include-hidden-files: true
-
-      - name: Upload the durations
-        uses: actions/upload-artifact@v4
-        with:
-          name: durations-integration-${{ matrix.group }}
-          path: apps/api/.test_durations
           retention-days: 1
           include-hidden-files: true
 
@@ -354,7 +338,7 @@ jobs:
             echo "$total $tier tests, each in exactly one of $groups groups"
           }
           check unit 3
-          check integration 6
+          check integration 8
 
   test-api-coverage:
     name: Test API coverage
