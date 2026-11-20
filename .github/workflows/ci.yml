@@ -241,6 +241,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-api
 
+      - name: Diagnose startup
+        working-directory: apps/api
+        env:
+          API_ENV: test
+          API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
+          STRATEGIST_CHAT_PROVIDER: mock
+        run: |
+          nproc; free -m | head -2
+          time uv run python -c "pass"
+          time uv run python -X importtime -c "import strategist.tests.conftest" 2> "$RUNNER_TEMP/imp.txt" > /dev/null
+          sort -t'|' -k2 -n -r "$RUNNER_TEMP/imp.txt" | head -25
+          time uv run pytest src/strategist/tests/unit/test_call_sites.py --co -q -p no:cacheprovider > /dev/null
+          time uv run pytest src/strategist/tests/unit/test_call_sites.py --co -q -p no:cacheprovider --cov=src --cov-report= > /dev/null
+
       - name: Run tests
         working-directory: apps/api
         env:
