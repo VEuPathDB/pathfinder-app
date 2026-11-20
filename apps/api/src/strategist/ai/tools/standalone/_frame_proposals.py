@@ -51,6 +51,7 @@ from strategist.ai.tools.standalone._catalog_elsewhere import (
     tree_tops,
 )
 from strategist.ai.tools.standalone._qualifier_words import proposal_values
+from strategist.ai.tools.standalone._vocab_resolution import bound_proposal
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
 from strategist.services.strategies.parameter_rules import site_fixed
 from strategist.services.strategies.user_dataset_searches import (
@@ -209,10 +210,8 @@ def _unmatched_retry(
             f"{shared[:MAX_NEAREST_ENTRIES]}."
         )
     return unmatched[0], (
-        f"{info.name} on {call.search_name} has no entry matching {unmatched}. Copy "
-        f"a value or a label from the vocabulary exactly; a substring names a "
-        f"different entry. Nearest entries: "
-        f"{nearest_entries(options, unmatched[0], MAX_NEAREST_ENTRIES)}."
+        f"{info.name} on {call.search_name} has no entry that states {unmatched}. "
+        f"Read its entries with get_parameter_options and pass one of them exactly."
     )
 
 
@@ -225,15 +224,18 @@ def refuse_unmatched_value(
         raise ModelRetry(retry[1])
 
 
-async def refuse_unmatched_values(
+async def bound_vocabulary_values(
     site_id: str,
     definition: WDKSearch,
     call: CriterionCall,
     infos: list[ParameterInfo],
     derived: frozenset[str],
     state: AgentToolState,
-) -> None:
-    """Checks every proposal the sheet's own vocabulary can answer.
+) -> CriterionCall:
+    """Binds every proposal the sheet's own vocabulary can answer, and refuses one
+    no entry states.
+
+    A proposal that is no entry is bound to the entry the catalog's pick settles.
 
     A dependent parameter is skipped here: the sheet showed its vocabulary under
     the search defaults, and ``reconcile_dependents`` checks it against the one
@@ -253,7 +255,13 @@ async def refuse_unmatched_values(
             or info.param_kind == "filter"
             or not options
         )
-        retry = None if skip else _unmatched_retry(call, info, options)
+        if skip or info.name not in call.params:
+            continue
+        bound = await bound_proposal(
+            site_id, call.search_name, info, call.params[info.name]
+        )
+        call = replace(call, params={**call.params, info.name: bound})
+        retry = _unmatched_retry(call, info, options)
         if retry is not None:
             value, msg = retry
             others = await _other_sites_holding(site_id, definition, info.name, value)
@@ -267,6 +275,7 @@ async def refuse_unmatched_values(
                     f"included: {state.portal_route}"
                 )
             raise ModelRetry(msg)
+    return call
 
 
 async def _refuse_an_upload_the_researcher_lacks(

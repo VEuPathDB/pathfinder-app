@@ -15,6 +15,7 @@ from strategist.tests._support.network_guard import refuse_every_connection
 from strategist.tests._support.organism_reads import serve_catalog_marks
 from strategist.tests._support.record_classes import serve_record_classes
 from strategist.tests._support.site_organisms import serve_planned_organisms
+from strategist.tests._support.vocab_picks import serve_no_vocabulary_pick
 
 # Input screening.
 
@@ -59,6 +60,7 @@ def _catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_catalog_marks(monkeypatch)
     serve_record_classes(monkeypatch)
     serve_planned_organisms(monkeypatch)
+    serve_no_vocabulary_pick(monkeypatch)
 
 
 @pytest.fixture

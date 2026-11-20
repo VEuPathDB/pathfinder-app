@@ -165,7 +165,7 @@ class TestARedecidedParamIsDecidedOnce:
 
         message = str(info.value)
         assert "min_max_avg_ref" in message
-        assert "minimum2" in message
+        assert "get_parameter_options" in message
         assert st.operational_spec_draft.criteria == []
 
     @pytest.mark.asyncio
@@ -307,7 +307,7 @@ class TestAnOrganismSwapRedecidesItsDependents:
 
         message = str(excinfo.value)
         assert "profileset" in message
-        assert _ZHU in message
+        assert "get_parameter_options" in message
         assert state.operational_spec_draft.criteria == []
 
     @pytest.mark.asyncio

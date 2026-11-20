@@ -1,7 +1,7 @@
 """A comparison variant takes the entries its search's vocabulary holds.
 
 A value in another case is the entry it names, a value the vocabulary lacks is
-refused with the nearest entries unless the step running the search holds it,
+refused unless the step running the search holds it,
 a word for every entry runs every entry of a multi-pick, a pick that names no
 entry runs at the site's published default, a search no
 step runs is refused with each step's search, before any report runs, and a
@@ -37,6 +37,9 @@ from strategist.tests._support.run_context import lead_run_context
 # The recorded plasmodb GenesByText, whose Fields vocabulary holds 26 entries.
 _TEXT = suite_search("search_genes_by_text")
 _ORGANISM = "Plasmodium falciparum 3D7"
+_READ_ENTRIES = (
+    "Read its entries with get_parameter_options and pass one of them exactly."
+)
 
 
 contexts: list[dict[str, str]] = []
@@ -116,7 +119,7 @@ async def test_a_value_in_another_case_runs_as_the_entry_it_names(
     assert {"document_type": "gene"} in contexts
 
 
-async def test_a_value_the_vocabulary_lacks_is_refused_with_the_nearest_entries(
+async def test_a_value_the_vocabulary_lacks_is_refused_and_sent_to_its_entries(
     ran: list[VariantSpec],
 ) -> None:
     guessed = _variant(
@@ -128,11 +131,10 @@ async def test_a_value_the_vocabulary_lacks_is_refused_with_the_nearest_entries(
         await compare_search_variants(lead_run_context(), [_product_only(), guessed])
 
     assert ran == []
-    message = refused.value.message
-    assert message.startswith(
-        "text_fields on GenesByText has no entry matching ['gene_name', 'description']."
+    assert refused.value.message == (
+        "text_fields on GenesByText has no entry that states "
+        f"['gene_name', 'description']. {_READ_ENTRIES}"
     )
-    assert "Nearest entries:" in message
 
 
 # The published default of text_fields on the recorded sheet: every field.
@@ -205,7 +207,7 @@ async def test_a_word_for_every_field_runs_every_entry(
     assert ran[1].parameters["text_fields"] == MultiPickValue(values=every_entry)
 
 
-async def test_a_word_that_is_no_entry_is_refused_with_the_nearest_entries(
+async def test_a_word_that_is_no_entry_is_refused_and_sent_to_its_entries(
     ran: list[VariantSpec],
 ) -> None:
     some = _variant(
@@ -216,10 +218,9 @@ async def test_a_word_that_is_no_entry_is_refused_with_the_nearest_entries(
         await compare_search_variants(lead_run_context(), [_product_only(), some])
 
     assert ran == []
-    assert refused.value.message.startswith(
-        "text_fields on GenesByText has no entry matching ['some']."
+    assert refused.value.message == (
+        f"text_fields on GenesByText has no entry that states ['some']. {_READ_ENTRIES}"
     )
-    assert "Nearest entries:" in refused.value.message
 
 
 def _text_step(fields: list[str]) -> StrategySession:

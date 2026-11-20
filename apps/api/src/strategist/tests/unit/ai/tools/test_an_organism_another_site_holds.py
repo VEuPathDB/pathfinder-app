@@ -16,7 +16,7 @@ from strategist.ai.agents.state import AgentToolState
 from strategist.ai.lead.site_routes import portal_route_sentence
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    refuse_unmatched_values,
+    bound_vocabulary_values,
 )
 from strategist.tests._support.qa_recording import client_recording
 from strategist.tests._support.recorded_searches import suite_search
@@ -27,10 +27,9 @@ _ORTHOLOGS = WDKSearchResponse.model_validate(
 _INFOS = format_param_info_typed(_ORTHOLOGS.parameters or [])
 _TOXO = "Toxoplasma gondii ME49"
 _UNMATCHED = (
-    "organism on GenesByOrthologs has no entry matching ['Toxoplasma gondii ME49']. "
-    "Copy a value or a label from the vocabulary exactly; a substring names a "
-    "different entry. Nearest entries: ['Plasmodiidae', 'Plasmodium', "
-    "'Plasmodium inui', 'Plasmodium vivax PAM', 'Plasmodium vivax']."
+    "organism on GenesByOrthologs has no entry that states "
+    "['Toxoplasma gondii ME49']. Read its entries with get_parameter_options and "
+    "pass one of them exactly."
 )
 _ROUTE = (
     " Transform by Orthology on plasmodb reaches Haemoproteidae and Plasmodiidae; "
@@ -60,7 +59,7 @@ async def _refusal(
 ) -> str:
     monkeypatch.setattr(catalog, "sites_holding_organism", holders)
     with pytest.raises(ModelRetry) as refused:
-        await refuse_unmatched_values(
+        await bound_vocabulary_values(
             "plasmodb", _ORTHOLOGS, _call(_TOXO), _INFOS, frozenset(), state
         )
     return str(refused.value)
@@ -111,7 +110,7 @@ async def test_vectorbase_to_plasmodium_links_the_portal(
     )
 
     with pytest.raises(ModelRetry) as refused:
-        await refuse_unmatched_values(
+        await bound_vocabulary_values(
             "vectorbase",
             aedes_orthologs,
             call,
@@ -169,13 +168,12 @@ async def test_a_flat_vocabulary_asks_no_site(monkeypatch: pytest.MonkeyPatch) -
     )
 
     with pytest.raises(ModelRetry) as refused:
-        await refuse_unmatched_values(
+        await bound_vocabulary_values(
             "plasmodb", _ORTHOLOGS, call, _INFOS, frozenset(), AgentToolState()
         )
 
     assert str(refused.value) == (
-        "isSyntenic on GenesByOrthologs has no entry matching ['maybe']. Copy a "
-        "value or a label from the vocabulary exactly; a substring names a "
-        "different entry. Nearest entries: ['yes', 'no']."
+        "isSyntenic on GenesByOrthologs has no entry that states ['maybe']. Read "
+        "its entries with get_parameter_options and pass one of them exactly."
     )
     holders.assert_not_awaited()

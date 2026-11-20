@@ -258,7 +258,7 @@ _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     (
         "GenesByText",
         _ORGANISM_MISS,
-        ("text_search_organism", "Plasmodium falciparum 3D7"),
+        ("text_search_organism", "get_parameter_options"),
     ),
     # "falciparum" reads as either organism under substring matching, so the
     # binding it would produce is decided by vocabulary order.
@@ -267,7 +267,7 @@ _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     (
         "GenesByOrthologs",
         _ADAPTER.validate_python({"is_syntenic": False}),
-        ("'false'", "'no'"),
+        ("'false'", "get_parameter_options"),
     ),
     (
         "GenesBySharedDomain",
@@ -350,21 +350,6 @@ async def test_a_refused_proposal_names_what_is_wrong(
     for fragment in fragments:
         assert fragment in message
     assert st.operational_spec_draft.criteria == []
-
-
-@pytest.mark.asyncio
-async def test_the_nearest_entries_lead_with_the_ones_the_value_starts(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    serve_for(monkeypatch, "GenesByInterproDomain")
-
-    with pytest.raises(ModelRetry) as info:
-        await propose(
-            AgentToolState(), "GenesByInterproDomain", {"domain_typeahead": "PF0006"}
-        )
-
-    message = str(info.value)
-    assert message.index("PF00069 : Pkinase") < message.index("PF00569 : ZZ")
 
 
 @pytest.mark.asyncio

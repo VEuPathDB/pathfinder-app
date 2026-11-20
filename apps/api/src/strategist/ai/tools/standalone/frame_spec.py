@@ -48,10 +48,10 @@ from strategist.ai.tools.standalone._frame_measure import (
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
     ParamProposals,
+    bound_vocabulary_values,
     radio_overrides,
     refuse_undecided,
     refuse_unknown_names,
-    refuse_unmatched_values,
     resolve_proposals,
     species_lists,
 )
@@ -322,7 +322,7 @@ async def _bind_the_search(
     refuse_undecided(call, infos)
     lists = species_lists(infos)
     radio = radio_overrides(definition, call, infos)
-    await refuse_unmatched_values(
+    call = await bound_vocabulary_values(
         ctx.deps.site_id,
         definition,
         call,

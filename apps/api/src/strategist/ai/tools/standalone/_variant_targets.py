@@ -33,6 +33,7 @@ from strategist.ai.tools.standalone._frame_proposals import (
     refuse_unmatched_value,
 )
 from strategist.ai.tools.standalone._qualifier_words import proposal_values
+from strategist.ai.tools.standalone._vocab_resolution import bound_proposal
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.session import StrategySession
 from strategist.services.evidence.comparisons import (
@@ -199,8 +200,12 @@ def _empty_pick(search_name: str, label: str, info: ParameterInfo) -> ModelRetry
     )
 
 
-def _entry_value(
-    variant: VariantSpec, info: ParameterInfo, value: ParamValue
+async def _entry_value(
+    site_id: str,
+    variant: VariantSpec,
+    info: ParameterInfo,
+    value: ParamValue,
+    context: dict[str, str],
 ) -> ParamValue:
     """The value as the vocabulary's own entries, the way ``set_criterion`` reads it.
 
@@ -223,11 +228,14 @@ def _entry_value(
         and match_exact_option(options, picks[0]) is None
     ):
         return MultiPickValue(values=[option.value for option in options])
+    picks = proposal_values(
+        await bound_proposal(site_id, variant.search_name, info, picks, context)
+    )
     call = CriterionCall(
         criterion_id=variant.label,
         search_name=variant.search_name,
         text="",
-        params=proposals,
+        params={**proposals, info.name: picks},
     )
     refuse_unmatched_value(call, info, options)
     entries = [match_exact_option(options, pick) or pick for pick in picks]
@@ -350,7 +358,7 @@ async def resolved_variants(
             name: value
             if held.get(name) == to_wire(value)
             or (phyletic and name in PHYLETIC_LIST_PARAMS)
-            else _entry_value(variant, infos[name], value)
+            else await _entry_value(site_id, variant, infos[name], value, parents)
             for name, value in variant.parameters.items()
             if name not in site_set
         }

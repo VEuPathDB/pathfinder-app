@@ -14,7 +14,7 @@ from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_gene_set, gene_sets
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    refuse_unmatched_values,
+    bound_vocabulary_values,
 )
 from strategist.ai.tools.standalone.gene_set_models import (
     LISTING_PAGE,
@@ -279,7 +279,7 @@ async def test_a_refused_upload_names_one_page_of_uploads(
     )
 
     with pytest.raises(ModelRetry) as refused:
-        await refuse_unmatched_values(
+        await bound_vocabulary_values(
             "plasmodb",
             search,
             CriterionCall(

@@ -15,7 +15,7 @@ from veupathdb_mcp.catalog import format_param_info_typed
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    refuse_unmatched_values,
+    bound_vocabulary_values,
 )
 from strategist.services.strategies import user_dataset_searches
 from strategist.services.strategies.user_dataset_searches import OwnedUpload
@@ -74,7 +74,7 @@ def account(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
 
 async def _refusal(value: str | None) -> str:
     with pytest.raises(ModelRetry) as refused:
-        await refuse_unmatched_values(
+        await bound_vocabulary_values(
             "plasmodb",
             _GENE_LIST,
             _call(value),
@@ -89,7 +89,7 @@ async def _refusal(value: str | None) -> str:
 async def test_the_researchers_upload_binds_though_the_cached_view_lacks_it(
     account: AsyncMock,
 ) -> None:
-    await refuse_unmatched_values(
+    await bound_vocabulary_values(
         "plasmodb",
         _GENE_LIST,
         _call("Ud18NklEhB0wF"),
@@ -190,7 +190,7 @@ def two_accounts(monkeypatch: pytest.MonkeyPatch) -> _AccountClient:
 async def test_each_account_binds_only_its_own_upload_in_sequence(
     two_accounts: _AccountClient,
 ) -> None:
-    await refuse_unmatched_values(
+    await bound_vocabulary_values(
         "plasmodb",
         _GENE_LIST,
         _call("Ud18NklEhB0wF"),
@@ -204,7 +204,7 @@ async def test_each_account_binds_only_its_own_upload_in_sequence(
         "researcher's own uploads: 'second-account-list' (zzZ5secondAcct). Pass "
         "the value of the upload the request refers to; nothing was recorded."
     )
-    await refuse_unmatched_values(
+    await bound_vocabulary_values(
         "plasmodb",
         _GENE_LIST,
         _call("zzZ5secondAcct"),

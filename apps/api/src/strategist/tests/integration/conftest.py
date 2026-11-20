@@ -40,6 +40,7 @@ from strategist.tests._support.site_organisms import serve_planned_organisms
 from strategist.tests._support.universal_searches import (
     serve_the_text_search_as_universal,
 )
+from strategist.tests._support.vocab_picks import serve_no_vocabulary_pick
 
 
 @pytest.fixture(autouse=True)
@@ -75,6 +76,7 @@ def no_veupathdb(
         serve_record_classes(monkeypatch)
         serve_planned_organisms(monkeypatch)
         serve_plasmodb_subset_searches(monkeypatch)
+        serve_no_vocabulary_pick(monkeypatch)
 
 
 @pytest.fixture(scope="session", autouse=True)
