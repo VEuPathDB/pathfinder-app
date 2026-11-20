@@ -18,7 +18,10 @@ from strategist.services.search_waits import runs_on_the_deployment_line
 
 SITE = "plasmodb"
 REFUSED = "the search failed inside its line"
-_LINE_LOCKS = text("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'")
+_LINE_LOCKS = text(
+    "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' "
+    "AND database = (SELECT oid FROM pg_database WHERE datname = current_database())"
+)
 _TAKE = text("SELECT pg_try_advisory_lock(hashtextextended(:line, 0))")
 _RELEASE = text("SELECT pg_advisory_unlock(hashtextextended(:line, 0))")
 

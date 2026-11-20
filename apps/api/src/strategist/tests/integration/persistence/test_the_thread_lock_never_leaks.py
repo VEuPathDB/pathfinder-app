@@ -33,7 +33,10 @@ from strategist.tests.integration.persistence._thread_surgery import (
     seed_user,
 )
 
-_ADVISORY_LOCKS = text("SELECT count(*) FROM pg_locks WHERE locktype = 'advisory'")
+_ADVISORY_LOCKS = text(
+    "SELECT count(*) FROM pg_locks WHERE locktype = 'advisory' "
+    "AND database = (SELECT oid FROM pg_database WHERE datname = current_database())"
+)
 REFUSED = "the commit was refused"
 DISCARDED = "the thread lock did not end cleanly; its connection is discarded"
 
