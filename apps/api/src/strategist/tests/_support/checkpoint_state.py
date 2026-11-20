@@ -22,7 +22,9 @@ from strategist.ai.graph.state import (
     VerificationDigest,
 )
 from strategist.ai.lead.intent import IntentClassification, UserIntent
+from strategist.domain.control_enrichment import ControlEnrichment
 from strategist.domain.evidence import VerificationReview
+from strategist.domain.separation import SeparationOffer
 from strategist.domain.site_checks import SiteCheck
 from strategist.domain.strategy.build_outcome import (
     BuildOutcome,
@@ -51,6 +53,21 @@ from strategist.tests._support.separation import (
     recorded_offer,
 )
 from strategist.tests.unit.ai.conversation._checkpoint_samples import pending_approval
+
+
+def recorded_bytes_offer() -> SeparationOffer:
+    offer = recorded_offer()
+    return offer.model_copy(
+        update={
+            "enrichment": ControlEnrichment(
+                population=120,
+                positives=80,
+                returned=50,
+                positives_returned=50,
+                p_value=float.fromhex("0x1.0ffcbf997df54p-41"),
+            )
+        }
+    )
 
 
 def search_overview(record_type: str) -> SearchOverview:
@@ -193,7 +210,7 @@ def domain_state() -> StrategyDomainState:
                 hard=False,
             ),
         ],
-        separation_offers={str(TASK_ID): recorded_offer()},
+        separation_offers={str(TASK_ID): recorded_bytes_offer()},
         attached_controls=ATTACHED_CONTROLS,
     )
 
