@@ -15,14 +15,26 @@ runs:
       shell: bash
       run: corepack enable
 
+    - name: Restore node_modules
+      id: modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules
+          apps/web/node_modules
+          packages/shared-ts/node_modules
+          .yarn/install-state.gz
+        key: node-modules-${{ runner.os }}-${{ inputs.node-version }}-${{ hashFiles('yarn.lock', '.yarnrc.yml', 'package.json', 'apps/web/package.json', 'packages/shared-ts/package.json') }}
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: "yarn"
+        cache: ${{ steps.modules.outputs.cache-hit != 'true' && 'yarn' || '' }}
         cache-dependency-path: yarn.lock
 
     - name: Install dependencies
+      if: ${{ steps.modules.outputs.cache-hit != 'true' }}
       shell: bash
       run: yarn install --immutable
 
