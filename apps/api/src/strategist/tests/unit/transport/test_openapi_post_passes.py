@@ -48,3 +48,22 @@ def test_anchored_payloads_carry_their_computed_fields(spec: dict[str, Any]) -> 
     assert {"criteriaCount", "readyToBuild", "needsUser", "structureRender"} <= set(
         frame
     )
+
+
+def test_the_schema_is_built_on_its_first_read() -> None:
+    app = create_app(include_dev_routes=False)
+    before = app.openapi_schema
+
+    read = app.openapi()
+
+    assert (before, app.openapi_schema) == (None, read)
+
+
+def test_the_first_schema_read_carries_the_post_passes() -> None:
+    app = create_app(include_dev_routes=False)
+
+    first = app.openapi()
+    second = app.openapi()
+
+    assert "ProblemDetail" in first["components"]["schemas"]
+    assert second is first

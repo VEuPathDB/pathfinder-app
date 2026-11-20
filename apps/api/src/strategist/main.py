@@ -88,7 +88,7 @@ from strategist.services.conversations.thread_lock import close_lock_engine
 from strategist.services.eda.catalog import preload_study_index
 from strategist.services.search_waits import runs_on_the_deployment_line
 from strategist.transport.http.deps import bind_request_log_ids
-from strategist.transport.http.openapi import install_openapi_post_passes
+from strategist.transport.http.openapi import StrategistAPI
 from strategist.transport.http.routers import (
     audits,
     chat,
@@ -341,7 +341,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     """
     settings = get_settings()
 
-    app = FastAPI(
+    app = StrategistAPI(
         title="VEuPathDB Strategist API",
         description="VEuPathDB Strategy Builder Chatbot API",
         version=__version__,
@@ -427,7 +427,6 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     if settings.offers_dev_site_login:
         app.include_router(dev_site_login.router)
 
-    install_openapi_post_passes(app)
     install_route_templates(app)
 
     return app

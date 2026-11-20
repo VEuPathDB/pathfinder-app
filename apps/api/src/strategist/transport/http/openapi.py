@@ -109,8 +109,10 @@ def _inject_problem_responses(schema: dict[str, Any]) -> None:
                 )
 
 
-def install_openapi_post_passes(app: FastAPI) -> None:
-    # app.openapi() builds and caches the schema; mutate the cached object.
-    schema = app.openapi()
-    _inject_components(schema)
-    _inject_problem_responses(schema)
+class StrategistAPI(FastAPI):
+    def openapi(self) -> dict[str, Any]:
+        if self.openapi_schema is None:
+            schema = super().openapi()
+            _inject_components(schema)
+            _inject_problem_responses(schema)
+        return super().openapi()
