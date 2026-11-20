@@ -223,6 +223,7 @@ dev = [
     # The served endpoint's admission run composes the suite as its own process.
     "veupathdb-mcp-conformance",
     "pytest-xdist>=3.8.0",
+    "pytest-split>=0.10.0",
 ]
 docs = [
     "furo>=2025.12.19",

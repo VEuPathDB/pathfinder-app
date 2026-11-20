@@ -226,11 +226,44 @@ jobs:
         working-directory: apps/api
         run: uv run sphinx-build -b html docs docs/_build/html
 
+  # A push to main runs the unit tier; a pull request, the nightly run and
+  # a hand-started run add the integration tier, split by recorded duration.
   test-api:
-    name: Test API
+    name: Test API (unit)
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.api == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-api
+
+      - name: Run tests
+        working-directory: apps/api
+        env:
+          API_ENV: test
+          API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
+          STRATEGIST_CHAT_PROVIDER: mock
+        run: >-
+          uv run pytest src/strategist/tests/unit -m "not live_model and not live_wdk"
+          -n auto --durations=25 --cov=src --cov-report=
+
+      - name: Upload the coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-api-unit
+          path: apps/api/.coverage
+          retention-days: 1
+          include-hidden-files: true
+
+  test-api-integration:
+    name: Test API (integration ${{ matrix.group }}/6)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' && github.event_name != 'push' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [1, 2, 3, 4, 5, 6]
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -242,15 +275,13 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 2s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 30
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-api
 
-      # A push to main runs the unit tier; a pull request, the nightly run and
-      # a hand-started run add the integration tier on top.
       - name: Run tests
         working-directory: apps/api
         env:
@@ -258,8 +289,68 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/strategist_test
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           STRATEGIST_CHAT_PROVIDER: mock
-          TEST_TIER: ${{ github.event_name == 'push' && 'src/strategist/tests/unit' || 'src/strategist/tests' }}
-        run: uv run pytest "$TEST_TIER" -m "not live_model and not live_wdk" -n auto --durations=25 --cov=src --cov-report=xml --cov-fail-under=40
+          GROUP: ${{ matrix.group }}
+        run: >-
+          uv run pytest src/strategist/tests/integration -m "not live_model and not live_wdk"
+          --splits 6 --group "$GROUP" --durations-path .test_durations
+          -n auto --durations=25 --cov=src --cov-report=
+
+      - name: Upload the coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-api-integration-${{ matrix.group }}
+          path: apps/api/.coverage
+          retention-days: 1
+          include-hidden-files: true
+
+  test-api-groups:
+    name: API groups cover the integration tier
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' && github.event_name != 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-api
+
+      - name: Check every test is in exactly one group
+        working-directory: apps/api
+        run: |
+          set -o pipefail
+          export LC_ALL=C
+          tests() { uv run pytest src/strategist/tests/integration -m "not live_model and not live_wdk" --collect-only -q "$@" | grep '::' | sort; }
+          tests > "$RUNNER_TEMP/whole.txt"
+          for g in 1 2 3 4 5 6; do tests --splits 6 --group "$g" --durations-path .test_durations; done | sort > "$RUNNER_TEMP/grouped.txt"
+          total=$(wc -l < "$RUNNER_TEMP/whole.txt")
+          [ "$total" -gt 0 ] || { echo "::error::pytest collected no integration tests"; exit 1; }
+          if ! cmp -s "$RUNNER_TEMP/whole.txt" "$RUNNER_TEMP/grouped.txt"; then
+            echo "::error::The six groups do not run every integration test exactly once."
+            comm -3 "$RUNNER_TEMP/whole.txt" "$RUNNER_TEMP/grouped.txt"
+            exit 1
+          fi
+          echo "$total tests, each in exactly one of 6 groups"
+
+  test-api-coverage:
+    name: Test API coverage
+    runs-on: ubuntu-latest
+    needs: [test-api, test-api-integration]
+    if: ${{ !cancelled() && needs.test-api.result == 'success' && needs.test-api-integration.result != 'failure' && needs.test-api-integration.result != 'cancelled' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-api
+
+      - name: Download the coverage data
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-api-*
+          path: ${{ runner.temp }}/coverage
+
+      - name: Combine and check coverage
+        working-directory: apps/api
+        run: |
+          for d in "$RUNNER_TEMP"/coverage/*/; do cp "$d/.coverage" ".coverage.$(basename "$d")"; done
+          uv run coverage combine
+          uv run coverage report --fail-under=40 --format=total
+          uv run coverage xml
 
   lint-web:
     name: Lint Web
@@ -653,6 +744,9 @@ jobs:
       - lint-api-pyright
       - build-docs
       - test-api
+      - test-api-integration
+      - test-api-groups
+      - test-api-coverage
       - lint-web
       - check-shared-ts
       - test-web
