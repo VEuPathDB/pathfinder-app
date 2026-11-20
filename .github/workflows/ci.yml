@@ -241,20 +241,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-api
 
-      - name: Diagnose startup
-        working-directory: apps/api
-        env:
-          API_ENV: test
-          API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
-          STRATEGIST_CHAT_PROVIDER: mock
-        run: |
-          nproc; free -m | head -2
-          time uv run python -c "pass"
-          time uv run python -X importtime -c "import strategist.tests.conftest" 2> "$RUNNER_TEMP/imp.txt" > /dev/null
-          sort -t'|' -k2 -n -r "$RUNNER_TEMP/imp.txt" | head -25
-          time uv run pytest src/strategist/tests/unit/test_call_sites.py --co -q -p no:cacheprovider > /dev/null
-          time uv run pytest src/strategist/tests/unit/test_call_sites.py --co -q -p no:cacheprovider --cov=src --cov-report= > /dev/null
-
       - name: Run tests
         working-directory: apps/api
         env:
@@ -265,13 +251,21 @@ jobs:
         run: >-
           uv run pytest src/strategist/tests/unit -m "not live_model and not live_wdk"
           --splits 3 --group "$GROUP" --durations-path .test_durations
-          -n auto --durations=25 --cov=src --cov-report=
+          -n auto --durations=25 --cov=src --cov-report= --store-durations
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
         with:
           name: coverage-api-unit-${{ matrix.group }}
           path: apps/api/.coverage
+          retention-days: 1
+          include-hidden-files: true
+
+      - name: Upload the durations
+        uses: actions/upload-artifact@v4
+        with:
+          name: durations-unit-${{ matrix.group }}
+          path: apps/api/.test_durations
           retention-days: 1
           include-hidden-files: true
 
@@ -313,13 +307,21 @@ jobs:
         run: >-
           uv run pytest src/strategist/tests/integration -m "not live_model and not live_wdk"
           --splits 6 --group "$GROUP" --durations-path .test_durations
-          -n auto --durations=25 --cov=src --cov-report=
+          -n auto --durations=25 --cov=src --cov-report= --store-durations
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
         with:
           name: coverage-api-integration-${{ matrix.group }}
           path: apps/api/.coverage
+          retention-days: 1
+          include-hidden-files: true
+
+      - name: Upload the durations
+        uses: actions/upload-artifact@v4
+        with:
+          name: durations-integration-${{ matrix.group }}
+          path: apps/api/.test_durations
           retention-days: 1
           include-hidden-files: true
 
