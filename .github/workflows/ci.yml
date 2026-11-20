@@ -326,17 +326,54 @@ jobs:
         run: yarn format:check
 
   test-web:
-    name: Test Web
+    name: Test Web (${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-web
 
       - name: Run unit tests (with coverage)
         working-directory: apps/web
-        run: yarn test:coverage
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: >-
+          yarn vitest run --shard="$SHARD/6" --reporter=default --reporter=blob
+          --coverage --coverage.thresholds.lines=0 --coverage.thresholds.statements=0
+          --coverage.thresholds.branches=0 --coverage.thresholds.functions=0
+
+      - name: Upload the blob report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-blob-${{ matrix.shard }}
+          path: apps/web/.vitest/blob
+          retention-days: 1
+          include-hidden-files: true
+
+  test-web-coverage:
+    name: Test Web coverage
+    runs-on: ubuntu-latest
+    needs: test-web
+    if: ${{ !cancelled() && needs.test-web.result == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-web
+
+      - name: Download the blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: vitest-blob-*
+          merge-multiple: true
+          path: apps/web/.vitest/blob
+
+      - name: Merge the shards and check coverage
+        working-directory: apps/web
+        run: yarn vitest run --merge-reports --coverage
 
   # The full-stack tier builds once, runs E2E_SHARDS shards at two Playwright
   # workers each and merges their reports. A push to main does not run it: the
@@ -619,6 +656,7 @@ jobs:
       - lint-web
       - check-shared-ts
       - test-web
+      - test-web-coverage
       - e2e-build
       - e2e-shard-check
       - e2e-shard
