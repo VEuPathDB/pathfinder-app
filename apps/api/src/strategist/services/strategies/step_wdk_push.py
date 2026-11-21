@@ -4,6 +4,7 @@ A failed push leaves the step in the local graph for the sync service to
 reconcile later.
 """
 
+from collections.abc import Collection, Mapping
 from typing import assert_never
 
 from assistant_core.platform.logging import get_logger
@@ -333,6 +334,25 @@ async def _validate_plan_params(
     return incomplete
 
 
+async def sort_a_ranked_root(
+    site_id: str,
+    sync_state: WDKSyncState,
+    steps: Mapping[str, StrategyStep],
+    root_id: str,
+    pushed: Collection[str],
+) -> None:
+    try:
+        await _sort_a_ranking(
+            get_strategy_api(site_id), sync_state, steps, root_id, pushed
+        )
+    except VEuPathDBError as exc:
+        logger.warning(
+            "The site did not sort the ranked result by score",
+            step_id=root_id,
+            error=str(exc)[:300],
+        )
+
+
 async def push_steps_with_plan(
     graph: StrategyGraph,
     sync_state: WDKSyncState,
@@ -386,14 +406,7 @@ async def push_steps_with_plan(
             succeeded.append(step.id)
         else:
             failures.append(failure)
-    try:
-        await _sort_a_ranking(get_strategy_api(site_id), sync_state, graph, succeeded)
-    except VEuPathDBError as exc:
-        logger.warning(
-            "The site did not sort the ranked result by score",
-            step_id=root_id,
-            error=str(exc)[:300],
-        )
+    await sort_a_ranked_root(site_id, sync_state, graph.steps, root_id, succeeded)
 
     return PushOutcome(
         succeeded=succeeded, failures=failures, recreated_wdk_ids=recreated

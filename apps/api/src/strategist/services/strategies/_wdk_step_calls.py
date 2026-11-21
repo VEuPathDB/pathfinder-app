@@ -21,7 +21,6 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
 from strategist.domain.strategy.combine_naming import combine_name
-from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies.step_search import (
     COLOCATION_SEARCH,
     refuse_a_set_operation,
@@ -232,16 +231,16 @@ async def _patch_name(
 async def _sort_a_ranking(
     api: StrategyAPI,
     sync_state: WDKSyncState,
-    graph: StrategyGraph,
+    steps: Mapping[str, StrategyStep],
+    root_id: str,
     pushed: Collection[str],
 ) -> None:
-    root_id = graph.primary_root_id()
-    if root_id is None or root_id not in sync_state.wdk_step_ids:
+    if root_id not in sync_state.wdk_step_ids:
         return
     weighted = {
         step_id
-        for step_id in subtree_ids(root_id, graph.steps)
-        if graph.steps[step_id].wdk_weight is not None
+        for step_id in subtree_ids(root_id, dict(steps))
+        if steps[step_id].wdk_weight is not None
     }
     if weighted and not (weighted | {root_id}).isdisjoint(pushed):
         await api.update_step_properties(

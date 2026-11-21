@@ -141,6 +141,11 @@ def _render_criterion(
     reason = crit.step_rationale
     if reason is not None:
         out.append(f"    WHY {reason.line()}")
+    if crit.weight is not None:
+        out.append(
+            f"    WEIGHT {crit.weight}: a gene this search finds scores "
+            f"{crit.weight} more; the result is sorted by score, highest first"
+        )
     out.extend(
         f"    {crit.display_name_of(name)} ({name}) = {shown_value(name, bound.value)} "
         f"({VALUE_SET_BY[bound.source]})"
