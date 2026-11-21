@@ -161,6 +161,8 @@ def steps_the_replay_reads(
     for change in changes.changed:
         if change.step_id not in nodes:
             continue
+        if change.search_after is None and not change.params:
+            continue
         moved = (
             nodes[change.step_id].parameters
             if change.search_after is not None
@@ -217,6 +219,21 @@ def _criterion_the_step_states(
     A step that exports an analysis is read by the binding it now carries,
     never by its document.
     """
+    restated = _criterion_bound_as_the_step_states(
+        criterion, change, node, reading, closed
+    )
+    if change.weight is None:
+        return restated
+    return restated.model_copy(update={"weight": change.weight.after})
+
+
+def _criterion_bound_as_the_step_states(
+    criterion: Criterion,
+    change: StepChange,
+    node: StrategyStepNode,
+    reading: StepReading,
+    closed: set[tuple[str, str]],
+) -> Criterion:
     binding = reading.analyses.get(node.id)
     if binding is not None:
         closed.update((criterion.id, slot.param_name) for slot in criterion.open_params)

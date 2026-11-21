@@ -115,3 +115,11 @@ def test_a_criterion_no_parents_read_names_is_left_as_it_is() -> None:
     )
 
     assert read_under_their_parents(spec, {"other": _UNDER_PF3D7}) == spec
+
+
+def test_a_weight_moved_outside_binds_no_value() -> None:
+    answered = _expression(80).model_copy(update={"wdk_weight": 3})
+
+    reads = _read(_ast(answered), _ast(answered.model_copy(update={"wdk_weight": 5})))
+
+    assert reads == {}

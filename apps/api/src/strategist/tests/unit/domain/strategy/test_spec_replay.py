@@ -366,3 +366,20 @@ def test_a_spec_the_strategy_still_answers_to_is_left_as_it_is() -> None:
     replayed = _replayed(spec, _built(), _built())
 
     assert replayed == spec
+
+
+def test_a_weight_set_outside_reaches_the_criterion() -> None:
+    spec = _spec()
+    _criterion(spec, "expr").weight = 3
+    answered, live = _built(80), _built(80)
+    assert answered.root.secondary_input is not None
+    assert live.root.secondary_input is not None
+    answered.root.secondary_input.wdk_weight = 3
+    live.root.secondary_input.wdk_weight = 5
+
+    replayed = _replayed(spec, answered, live)
+
+    assert [(c.id, c.weight) for c in replayed.criteria] == [
+        ("text", None),
+        ("expr", 5),
+    ]

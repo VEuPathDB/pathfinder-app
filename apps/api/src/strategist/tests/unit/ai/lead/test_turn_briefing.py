@@ -281,3 +281,16 @@ def test_an_outside_change_to_an_expression_names_both_handles() -> None:
         f"- groups (step_groups): phyletic_expression {expression_handle(before)} "
         f"-> {expression_handle(after)}"
     )
+
+
+def test_a_weight_set_on_the_site_is_named_in_the_briefing() -> None:
+    answered = _expression_ast(90)
+    answered.root.wdk_weight = 3
+    live = _expression_ast(90)
+    live.root.wdk_weight = 5
+
+    briefing = compose_turn_briefing(
+        ThreadActivity(), requirements=[], answered=answered, live=live
+    )
+
+    assert "- top expression (step_expr): weight 3 -> 5" in briefing.render()

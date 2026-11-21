@@ -149,6 +149,8 @@ def _step_line(change: StepChange) -> str:
     dropped = len(change.params) - _MAX_PARAMS_PER_STEP
     if dropped > 0:
         parts.append(f"+{dropped} more params")
+    if change.weight is not None:
+        parts.append(f"weight {change.weight.before} -> {change.weight.after}")
     label = _clipped(change.label, _MAX_LABEL_CHARS)
     return f"- {label} ({change.step_id}): {', '.join(parts)}"
 

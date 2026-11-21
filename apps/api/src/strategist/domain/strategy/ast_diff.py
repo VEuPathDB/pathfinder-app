@@ -16,6 +16,7 @@ __all__ = [
     "StepChange",
     "StepSummary",
     "StrategyAstDiff",
+    "WeightChange",
     "diff_strategy_asts",
     "nodes_of",
 ]
@@ -29,6 +30,13 @@ class ParamChange(BaseModel):
     name: str
     before: str | None = None
     after: str | None = None
+
+
+class WeightChange(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    before: int | None = None
+    after: int | None = None
 
 
 class StepSummary(BaseModel):
@@ -50,6 +58,7 @@ class StepChange(BaseModel):
     search_before: str | None = None
     search_after: str | None = None
     params: list[ParamChange] = Field(default_factory=list)
+    weight: WeightChange | None = None
 
 
 class StrategyAstDiff(BaseModel):
@@ -97,7 +106,12 @@ def _step_change(
 ) -> StepChange | None:
     params = _param_changes(before, after)
     searches_differ = before.search_name != after.search_name
-    if not params and not searches_differ:
+    weight = (
+        None
+        if before.wdk_weight == after.wdk_weight
+        else WeightChange(before=before.wdk_weight, after=after.wdk_weight)
+    )
+    if not params and not searches_differ and weight is None:
         return None
     return StepChange(
         step_id=after.id,
@@ -105,6 +119,7 @@ def _step_change(
         search_before=before.search_name if searches_differ else None,
         search_after=after.search_name if searches_differ else None,
         params=params,
+        weight=weight,
     )
 
 

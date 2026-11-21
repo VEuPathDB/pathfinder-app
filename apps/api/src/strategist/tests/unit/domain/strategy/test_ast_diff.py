@@ -10,7 +10,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
 )
 
-from strategist.domain.strategy.ast_diff import diff_strategy_asts
+from strategist.domain.strategy.ast_diff import WeightChange, diff_strategy_asts
 
 
 def _leaf(step_id: str, percentile: int) -> StrategyStepNode:
@@ -116,3 +116,15 @@ def test_a_combine_step_added_around_two_leaves_is_reported_once() -> None:
     assert sorted(s.step_id for s in diff.added) == ["step_join", "step_taxon"]
     assert diff.changed == []
     assert diff.removed == []
+
+
+def test_a_weight_set_on_the_site_is_reported_with_both_values() -> None:
+    weighted = _leaf("step_expr", 90).model_copy(update={"wdk_weight": 3})
+
+    diff = diff_strategy_asts(
+        _ast(weighted), _ast(weighted.model_copy(update={"wdk_weight": 5}))
+    )
+
+    assert [
+        (change.step_id, change.params, change.weight) for change in diff.changed
+    ] == [("step_expr", [], WeightChange(before=3, after=5))]
