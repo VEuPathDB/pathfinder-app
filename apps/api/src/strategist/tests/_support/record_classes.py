@@ -8,10 +8,13 @@ from functools import cache
 from pathlib import Path
 
 import pytest
+from veupathdb.domain import SearchContext
+from veupathdb.domain.strategy import StepValidation
+from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import RecordedWDKResponse
 from veupathdb.wdk import WDKRecordType, WDKSearch, WDKSearchResponse
 
-from strategist.services.strategies import record_classes
+from strategist.services.strategies import record_classes, sheet_params
 from strategist.tests._support.organism_reads import TRANSCRIPT
 
 _SUITE = Path(__file__).resolve().parents[1] / "fixtures" / "wdk"
@@ -35,8 +38,21 @@ def recorded_searches() -> dict[str, WDKSearch]:
     return found
 
 
+async def _recorded_details(
+    ctx: SearchContext, **_kw: object
+) -> tuple[WDKSearchResponse, str]:
+    search = recorded_searches().get(ctx.search_name)
+    if search is None:
+        msg = f"no recording of {ctx.search_name}"
+        raise WDKError(msg, 404)
+    validation = StepValidation(level="NONE", is_valid=False)
+    return WDKSearchResponse(search_data=search, validation=validation), ctx.record_type
+
+
 def serve_record_classes(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Answer each recorded search's record classes; any other search is unlisted."""
+    """Answer each recorded search's record classes and definition; any other
+    search is unlisted."""
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _recorded_details)
 
     async def _searches(_site_id: str, record_type: str) -> list[WDKSearch]:
         return [

@@ -52,7 +52,8 @@ The clauses are in `set_criterion`'s docstring and in the four test classes
 named under Anchor. What those do not say is why the contract has this shape,
 and there are three invariants behind it:
 
-- **Silence is not an answer.** Every visible required parameter must be decided,
+- **Silence is not an answer.** Every required parameter the model can bind (`bindable`, so
+  neither hidden nor read-only) must be decided,
   and `null` is a decision - it means "the request does not determine this", and
   it binds the disclosed default or opens a slot. A parameter simply left out is
   a retry. The failure this replaces is a default that answered a question

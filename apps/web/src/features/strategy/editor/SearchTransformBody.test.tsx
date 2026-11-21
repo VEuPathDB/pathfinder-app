@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useStore } from "@tanstack/react-form";
 import { SearchTransformBody } from "./SearchTransformBody";
+import { useParamForm } from "./hooks/useParamForm";
+import { makeSpec } from "./integration/fixtures";
 import type { StepEditorState } from "./useStepEditorState";
 import type { ParamSpec, Step } from "@strategist/shared";
 
@@ -141,5 +145,160 @@ describe("an empty parameter list only means empty once it is known", () => {
 
     expect(screen.getByTestId("param-specs-error")).toBeInTheDocument();
     expect(screen.queryByTestId("param-specs-loading")).toBeNull();
+  });
+});
+
+function BodyWithForm({ specs }: { specs: ParamSpec[] }) {
+  const { form } = useParamForm(specs);
+  const values = useStore(form.store, (s) => s.values);
+  const state = makeState({
+    paramSpecs: specs,
+    paramSpecsSettled: true,
+    isLoading: false,
+    form,
+    vocabOptions: {},
+    dependentOptions: {},
+    dependentLoading: {},
+    dependentErrors: {},
+  });
+  return (
+    <>
+      <SearchTransformBody
+        state={state}
+        step={STEP}
+        onSearchChange={noop}
+        onFieldChanged={noop}
+        onFieldBlurred={noop}
+      />
+      <output data-testid="organism-value">{String(values["organism"])}</output>
+    </>
+  );
+}
+
+describe("a read-only parameter is shown but not edited", () => {
+  const readOnly = makeSpec({
+    name: "organism",
+    displayName: "Organism",
+    isReadOnly: true,
+    initialDisplayValue: "Plasmodium falciparum 3D7",
+  });
+  const editable = makeSpec({ name: "text_expression", displayName: "Text" });
+
+  it("draws the read-only parameter with the site's value", () => {
+    render(<BodyWithForm specs={[readOnly, editable]} />);
+
+    expect(screen.getByText("Organism")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Plasmodium falciparum 3D7")).toBeInTheDocument();
+  });
+
+  it("disables the read-only parameter's field", () => {
+    render(<BodyWithForm specs={[readOnly, editable]} />);
+
+    expect(screen.getByDisplayValue("Plasmodium falciparum 3D7")).toBeDisabled();
+  });
+
+  it("keeps the site's value when a change is attempted", () => {
+    render(<BodyWithForm specs={[readOnly, editable]} />);
+
+    fireEvent.change(screen.getByDisplayValue("Plasmodium falciparum 3D7"), {
+      target: { value: "Plasmodium vivax" },
+    });
+
+    expect(screen.getByTestId("organism-value")).toHaveTextContent(
+      "Plasmodium falciparum 3D7",
+    );
+  });
+
+  it("leaves an ordinary parameter enabled", () => {
+    render(<BodyWithForm specs={[readOnly, editable]} />);
+
+    const inputs = screen.getAllByRole("textbox");
+    const text = inputs.find(
+      (input) => input.getAttribute("name") === "text_expression",
+    );
+    expect(text).toBeEnabled();
+  });
+
+  it("names the disabled group of a read-only field after its label", () => {
+    render(<BodyWithForm specs={[readOnly, editable]} />);
+
+    expect(screen.getByRole("group", { name: "Organism" })).toBeDisabled();
+  });
+
+  it("puts an editable field in no group", () => {
+    render(<BodyWithForm specs={[editable]} />);
+
+    expect(screen.queryByRole("group")).toBe(null);
+  });
+
+  it("gives the read-only group a box with no border, padding or margin", () => {
+    render(<BodyWithForm specs={[readOnly, editable]} />);
+
+    const group = screen.getByRole("group", { name: "Organism" });
+    expect([...group.classList].sort()).toEqual(["border-0", "m-0", "min-w-0", "p-0"]);
+  });
+});
+
+describe("a read-only tree can be opened but not changed", () => {
+  const tree = makeSpec({
+    name: "organism",
+    displayName: "Organism",
+    type: "multi-pick-vocabulary",
+    displayType: "treeBox",
+    multiPick: true,
+    allowMultipleValues: true,
+    isReadOnly: true,
+    initialDisplayValue: '["leaf-3","leaf-4"]',
+    vocabulary: {
+      data: { term: "@@fake@@", display: "@@fake@@" },
+      children: [
+        {
+          data: { term: "branch-b", display: "Branch B" },
+          children: [
+            { data: { term: "leaf-3", display: "Leaf 3" }, children: [] },
+            { data: { term: "leaf-4", display: "Leaf 4" }, children: [] },
+          ],
+        },
+        { data: { term: "leaf-5", display: "Leaf 5" }, children: [] },
+      ],
+    },
+  });
+
+  it("keeps the read-only tree a group named after its label", () => {
+    render(<BodyWithForm specs={[tree]} />);
+
+    expect(screen.getByRole("group", { name: "Organism" })).toBeInTheDocument();
+  });
+
+  it("expands on click and shows the selected leaf", async () => {
+    render(<BodyWithForm specs={[tree]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Expand" }));
+
+    expect(screen.getByRole("checkbox", { name: "Leaf 3" })).toBeChecked();
+  });
+
+  it("disables every selection checkbox", async () => {
+    render(<BodyWithForm specs={[tree]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Expand all" }));
+
+    const boxes = screen.getAllByRole("checkbox");
+    expect(boxes).toHaveLength(5);
+    for (const box of boxes) expect(box).toBeDisabled();
+  });
+
+  it("keeps the search box usable", () => {
+    render(<BodyWithForm specs={[tree]} />);
+
+    expect(screen.getByPlaceholderText("Search...")).toBeEnabled();
+  });
+
+  it("changes nothing in the form when a leaf is clicked", async () => {
+    render(<BodyWithForm specs={[tree]} />);
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "Leaf 5" }));
+
+    expect(screen.getByTestId("organism-value")).toHaveTextContent("leaf-3,leaf-4");
   });
 });

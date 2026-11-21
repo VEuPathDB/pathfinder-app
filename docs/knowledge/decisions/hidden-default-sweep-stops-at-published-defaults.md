@@ -58,11 +58,11 @@ Two things the sweep already does make the study unnecessary:
 
 A hidden required default that returns zero rows on one of the 219 unmeasured
 searches is not known today, and Strategist would fill it
-(`veupathdb-py: src/veupathdb/domain/parameters/specs.py:fill_hidden_required_defaults`). The protection
+(`veupathdb-py: src/veupathdb/domain/parameters/specs.py:fill_site_set_defaults`). The protection
 against that is not this sweep: it is that a filled hidden default is reported to
 the user as a value nobody chose
 (WDK-PARAM-008 in `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`, through
-`filled_hidden_defaults`), and that a zero count is surfaced rather than
+`filled_site_set_defaults`), and that a zero count is surfaced rather than
 narrated away. The sweep buys advance warning, and it buys it for the searches
 whose published defaults resolve.
 

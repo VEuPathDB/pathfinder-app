@@ -6,11 +6,14 @@ comparison, so it is computed here and nowhere else.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from veupathdb.domain.parameters import (
     MultiPickValue,
     NumberValue,
     ParamValue,
     SinglePickValue,
+    StringValue,
 )
 from veupathdb.domain.strategy import CombineOp
 
@@ -23,6 +26,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.spec_diff import SpecDiff, diff_specs
 from strategist.tests._support.bound_values import bound
+from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
 
 def _criterion(cid: str, **params: ParamValue) -> Criterion:
@@ -64,7 +68,7 @@ def _disposition(result: SpecDiff, criterion_id: str) -> str:
 
 class TestTheDiffNamesWhatHappened:
     def test_identical_specs_are_all_kept(self) -> None:
-        result = diff_specs(_three(), _three())
+        result = diff_specs(_three(), _three(), sets_the_site=sets_nothing)
 
         assert [c.disposition for c in result.changes] == ["kept", "kept", "kept"]
         assert result.structure_changed is False
@@ -72,7 +76,7 @@ class TestTheDiffNamesWhatHappened:
     def test_diff_reports_a_dropped_criterion(self) -> None:
         after = _spec(_criterion("text"), _criterion("go"))
 
-        result = diff_specs(_three(), after)
+        result = diff_specs(_three(), after, sets_the_site=sets_nothing)
 
         assert _disposition(result, "expr") == "dropped"
 
@@ -84,7 +88,7 @@ class TestTheDiffNamesWhatHappened:
             _criterion("expr", min_expression_percentile=NumberValue(value=90)),
         )
 
-        result = diff_specs(before, after)
+        result = diff_specs(before, after, sets_the_site=sets_nothing)
 
         change = next(c for c in result.changes if c.criterion_id == "expr")
         assert change.disposition == "changed"
@@ -98,7 +102,7 @@ class TestTheDiffNamesWhatHappened:
             _criterion("tm"),
         )
 
-        result = diff_specs(_three(), after)
+        result = diff_specs(_three(), after, sets_the_site=sets_nothing)
 
         assert _disposition(result, "tm") == "added"
 
@@ -107,7 +111,7 @@ class TestTheDiffNamesWhatHappened:
         after_criterion = _criterion("text")
         after_criterion.search_name = "GenesByTextSomethingElse"
 
-        result = diff_specs(before, _spec(after_criterion))
+        result = diff_specs(before, _spec(after_criterion), sets_the_site=sets_nothing)
 
         change = result.changes[0]
         assert change.disposition == "changed"
@@ -116,7 +120,7 @@ class TestTheDiffNamesWhatHappened:
     def test_a_removed_param_is_a_change(self) -> None:
         before = _spec(_criterion("go", organism=MultiPickValue(values=["Pf3D7"])))
 
-        result = diff_specs(before, _spec(_criterion("go")))
+        result = diff_specs(before, _spec(_criterion("go")), sets_the_site=sets_nothing)
 
         assert result.changes[0].disposition == "changed"
 
@@ -128,13 +132,52 @@ class TestTheDiffNamesWhatHappened:
             )
         )
 
-        result = diff_specs(before, after)
+        result = diff_specs(before, after, sets_the_site=sets_nothing)
 
         change = result.changes[0]
         assert change.disposition == "changed"
         assert change.changed_params == {
             "organism": '["Plasmodium falciparum 3D7"]',
         }
+
+
+def _sets(search_name: str, param: str) -> Callable[[str, str], bool]:
+    return lambda search, name: (search, name) == (search_name, param)
+
+
+class TestASiteSetValueTheStepCarries:
+    def test_a_read_only_value_added_at_its_site_value_is_kept(self) -> None:
+        after = _spec(
+            _criterion("text"),
+            _criterion("go", organism=MultiPickValue(values=["Plasmodium"])),
+            _criterion(
+                "expr",
+                min_expression_percentile=NumberValue(value=80),
+                document_type=StringValue(value="gene"),
+            ),
+        )
+
+        result = diff_specs(
+            _three(), after, sets_the_site=_sets("Byexpr", "document_type")
+        )
+
+        assert _disposition(result, "expr") == "kept"
+
+    def test_a_value_the_researcher_sets_added_is_a_change(self) -> None:
+        after = _spec(
+            _criterion("text"),
+            _criterion("go", organism=MultiPickValue(values=["Plasmodium"])),
+            _criterion(
+                "expr",
+                min_expression_percentile=NumberValue(value=80),
+                document_type=StringValue(value="gene"),
+            ),
+        )
+
+        result = diff_specs(_three(), after, sets_the_site=_sets("Byexpr", "other"))
+
+        change = next(c for c in result.changes if c.criterion_id == "expr")
+        assert change.changed_params == {"document_type": "gene"}
 
 
 class TestAHiddenValueTheStepCarries:
@@ -155,7 +198,7 @@ class TestAHiddenValueTheStepCarries:
             ),
         )
 
-        result = diff_specs(_three(), after)
+        result = diff_specs(_three(), after, sets_the_site=_sets("Byexpr", "channel"))
 
         change = next(c for c in result.changes if c.criterion_id == "expr")
         assert change.changed_params == {"min_expression_percentile": "90"}
@@ -169,25 +212,40 @@ class TestAHiddenValueTheStepCarries:
             ),
         )
 
-        assert _disposition(diff_specs(_three(), after), "expr") == "kept"
+        assert (
+            _disposition(
+                diff_specs(_three(), after, sets_the_site=_sets("Byexpr", "channel")),
+                "expr",
+            )
+            == "kept"
+        )
 
 
 class TestTheStructure:
     def test_an_identical_structure_is_unchanged(self) -> None:
-        assert diff_specs(_three(), _three()).structure_changed is False
+        assert (
+            diff_specs(_three(), _three(), sets_the_site=sets_nothing).structure_changed
+            is False
+        )
 
     def test_a_different_operator_changes_the_structure(self) -> None:
         after = _three()
         assert after.structure is not None
         after.structure.root.operator = CombineOp.UNION
 
-        assert diff_specs(_three(), after).structure_changed is True
+        assert (
+            diff_specs(_three(), after, sets_the_site=sets_nothing).structure_changed
+            is True
+        )
 
     def test_a_missing_structure_on_one_side_changes_it(self) -> None:
         after = _three()
         after.structure = None
 
-        assert diff_specs(_three(), after).structure_changed is True
+        assert (
+            diff_specs(_three(), after, sets_the_site=sets_nothing).structure_changed
+            is True
+        )
 
 
 class TestTheCounts:
@@ -197,22 +255,27 @@ class TestTheCounts:
         assert after.structure is not None
         after.structure.root.operator = CombineOp.UNION
 
-        assert diff_specs(_three(), after).touched_count() == 1
+        assert (
+            diff_specs(_three(), after, sets_the_site=sets_nothing).touched_count() == 1
+        )
 
     def test_an_untouched_spec_counts_no_touch(self) -> None:
-        assert diff_specs(_three(), _three()).touched_count() == 0
+        assert (
+            diff_specs(_three(), _three(), sets_the_site=sets_nothing).touched_count()
+            == 0
+        )
 
     def test_a_rewired_structure_is_named_in_the_render(self) -> None:
         after = _three()
         assert after.structure is not None
         after.structure.root.operator = CombineOp.UNION
 
-        assert diff_specs(_three(), after).render() == (
+        assert diff_specs(_three(), after, sets_the_site=sets_nothing).render() == (
             "kept 3, changed 0, added 0, dropped 0, structure rewired"
         )
 
     def test_an_unrewired_render_says_nothing_about_the_structure(self) -> None:
-        assert diff_specs(_three(), _three()).render() == (
+        assert diff_specs(_three(), _three(), sets_the_site=sets_nothing).render() == (
             "kept 3, changed 0, added 0, dropped 0"
         )
 
@@ -223,7 +286,7 @@ class TestTheCounts:
             _criterion("tm"),
         )
 
-        result = diff_specs(_three(), after)
+        result = diff_specs(_three(), after, sets_the_site=sets_nothing)
 
         assert result.kept_count == 1
         assert result.changed_count == 1

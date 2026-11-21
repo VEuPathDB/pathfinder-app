@@ -6,7 +6,12 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import ParamValue, VocabOption
 from veupathdb.domain.strategy import CombineOp
-from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
+from veupathdb_mcp.catalog import (
+    ExperimentCard,
+    ParameterInfo,
+    SheetEntry,
+    VocabLookup,
+)
 
 from strategist.ai.agents.unserved import UnservedSearch
 from strategist.domain.strategy.computed_groups import HeldComparison
@@ -28,6 +33,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.orthology_request import OrthologyRequest
 from strategist.domain.strategy.readings import ReadValues
+from strategist.domain.strategy.site_set_reads import site_set_names
 from strategist.domain.strategy.spec_reconciliation import spec_without_steps
 from strategist.domain.strategy.vocab_picks import PickRead
 from strategist.services.strategies.cut_picks import OptionsRead
@@ -232,6 +238,7 @@ class AgentToolState:
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)
     # The sheets open right now, by criterion, oldest first.
     open_sheets: dict[str, PinnedSheet] = field(default_factory=dict)
+    site_set_read_this_pass: dict[str, frozenset[str]] = field(default_factory=dict)
     # The workbench gene sets this turn created, in creation order. The list is
     # the Lead's, so a save by any agent of the turn lands in one place.
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
@@ -247,6 +254,14 @@ class AgentToolState:
     # turn shares it, so one configuration is read once.
     turn_counts: TurnCounts = field(default_factory=TurnCounts)
     offered_readings: list[ReadValues] = field(default_factory=list)
+
+    def record_site_set(self, search_name: str, infos: Iterable[ParameterInfo]) -> None:
+        """Keep the names of the search's parameters the site sets, as read."""
+        self.site_set_read_this_pass[search_name] = site_set_names(infos)
+
+    def sets_the_site(self, search_name: str, param: str) -> bool:
+        """Whether a sheet read this pass names the parameter as set by the site."""
+        return param in self.site_set_read_this_pass.get(search_name, frozenset())
 
     def pin_sheet(
         self,

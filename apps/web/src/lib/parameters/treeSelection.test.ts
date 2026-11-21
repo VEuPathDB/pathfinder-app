@@ -4,8 +4,11 @@ import type { VocabNode } from "@/lib/utils/vocab";
 
 import {
   ancestorsOfSelected,
+  branchValues,
   derivedExpansion,
+  nodeMatchesSearch,
   nodeStates,
+  searchExpansion,
   summarizeSelection,
   summaryLabel,
   toLeaves,
@@ -196,5 +199,28 @@ describe("summaryLabel", () => {
     expect(summaryLabel({ value: "e", label: "E", kind: "leaf", leafCount: 1 })).toBe(
       "E",
     );
+  });
+});
+
+describe("tree search", () => {
+  it("matches a node whose label or descendant's label holds the term", () => {
+    expect([nodeMatchesSearch(A, "c"), nodeMatchesSearch(B, "e")]).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it("opens every branch with a match below it", () => {
+    expect([...searchExpansion(tree, "d")]).toEqual(["a", "b"]);
+  });
+
+  it("opens no branch for a term that only a branch label holds", () => {
+    expect([...searchExpansion(tree, "b")]).toEqual(["a"]);
+  });
+});
+
+describe("branchValues", () => {
+  it("lists every branch in pre-order and no leaf", () => {
+    expect(branchValues(tree)).toEqual(["a", "b"]);
   });
 });

@@ -20,7 +20,6 @@ from strategist.persistence.repositories.conversation_strategy import (
 )
 from strategist.persistence.repositories.conversation_update import (
     ConversationUpdate,
-    collect_strategy_values,
 )
 from strategist.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
@@ -188,7 +187,7 @@ class ConversationRepository:
         )
         if stored_name is not None:
             upd.name = stored_name
-        await self._write_strategy(conversation_id, collect_strategy_values(upd))
+        await self._write_strategy(conversation_id, upd.strategy_values())
         await self.session.flush()
 
     async def _write_strategy(

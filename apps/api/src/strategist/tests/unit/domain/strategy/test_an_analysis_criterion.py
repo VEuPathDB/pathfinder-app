@@ -25,6 +25,7 @@ from strategist.domain.strategy.spec_to_operations import operations_for
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
 )
+from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
 from ._analysis import EXPORTED, analysed, binding, exported_step, pending
 from ._builders import graph_with
@@ -68,7 +69,10 @@ def test_a_diff_reads_another_document_of_the_same_meaning_as_kept() -> None:
         structure=SpecStructure(root=_leaf(EXPORTED)),
     )
 
-    assert [c.disposition for c in diff_specs(before, after).changes] == ["kept"]
+    assert [
+        c.disposition
+        for c in diff_specs(before, after, sets_the_site=sets_nothing).changes
+    ] == ["kept"]
 
 
 def test_a_diff_reads_a_new_cut_as_a_restated_binding() -> None:
@@ -78,7 +82,7 @@ def test_a_diff_reads_a_new_cut_as_a_restated_binding() -> None:
         structure=SpecStructure(root=_leaf(EXPORTED)),
     )
 
-    change = diff_specs(before, after).changes[0]
+    change = diff_specs(before, after, sets_the_site=sets_nothing).changes[0]
 
     assert (change.disposition, change.rebound_search, change.changed_params) == (
         "changed",
@@ -95,7 +99,9 @@ def test_a_restated_binding_writes_the_new_document_on_its_step() -> None:
     )
     graph = graph_with([exported_step()])
 
-    ops = operations_for(diff_specs(before, after), after=after, graph=graph)
+    ops = operations_for(
+        diff_specs(before, after, sets_the_site=sets_nothing), after=after, graph=graph
+    )
 
     assert len(ops) == 1
     assert isinstance(ops[0], ReplaceSubtreeOp)

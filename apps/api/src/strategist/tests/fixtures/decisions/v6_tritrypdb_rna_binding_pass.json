@@ -358,11 +358,12 @@
    "confidence": 0.26,
    "settled": false
   },
-  "controlsVocabOf": null,
-  "vocabDependsOn": [
+  "statedParents": [
    "organism",
    "domain_database"
   ],
+  "statedChildren": [],
+  "siteSet": false,
   "note": "The allowed values for this param change based on the value of organism, domain_database. The values below are the vocabulary under domain_database=Pfam, organism=[\"Trypanosoma brucei gambiense DAL972\"] -- the values already bound for this search. A different parent value yields a DIFFERENT list, so do not conclude a value does not exist without re-reading under the parent you mean.",
   "filterFields": [],
   "paramKind": "multi-pick-vocabulary"

@@ -35,6 +35,7 @@ from strategist.tests.unit.ai.tools.test_a_built_expression_binds_by_its_handle 
     sheet,
 )
 from strategist.tests.unit.ai.tools.test_frame_spec import serve_search
+from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
 _CASES = pytest.mark.parametrize("ceiling", [None, 1_900], ids=["recorded", "long"])
 _OTHER = "APIC>=1T AND MAMM=0T"
@@ -120,7 +121,9 @@ async def test_a_pending_edit_line_shows_both_handles(ceiling: int | None) -> No
         ]
     )
 
-    lines = pending_lines(diff_specs(answered, planned), planned, answered)
+    lines = pending_lines(
+        diff_specs(answered, planned, sets_the_site=sets_nothing), planned, answered
+    )
 
     [line] = [line for line in lines if line.startswith("- [c_more]")]
     assert line == (

@@ -55,6 +55,7 @@ def _param_info(**overrides: Any) -> ParameterInfo:
         "type": "string",
         "required": True,
         "is_visible": True,
+        "site_set": False,
         "help": "",
         "value_format": "",
     }

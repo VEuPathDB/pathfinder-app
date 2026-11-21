@@ -78,7 +78,7 @@ async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
         read.append(sorted(search_names))
         return {_SEARCH: sheet}
 
-    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _sheets)
+    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
     deps = lead_deps(
         pipeline_state(
             "plasmodb",

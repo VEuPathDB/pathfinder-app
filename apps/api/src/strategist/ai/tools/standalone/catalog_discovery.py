@@ -17,11 +17,11 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import coerce_context_values
 from veupathdb_mcp.catalog import (
     GetParameterOptionsResult,
-    HiddenParameterError,
     ParameterInfo,
     ParameterNotOnSearch,
     ParentContextRequired,
     SearchOverviewResult,
+    SiteSetParameterError,
     UnknownSearchError,
     UnlistedSearchError,
     VocabNarrowing,
@@ -191,7 +191,7 @@ async def get_parameter_options(
             context_values=typed_context,
             narrowing=narrowing,
         )
-    except HiddenParameterError as exc:
+    except SiteSetParameterError as exc:
         msg = f"{exc.detail} Read a parameter the sheet lists."
         raise ModelRetry(msg) from exc
     except UnlistedSearchError as exc:

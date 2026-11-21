@@ -32,6 +32,7 @@ async def _count(site_id: str, overrides: OverrideMap) -> int | None:
     resolved = await resolve_params_with_intent(
         fetch_at=wdk_fetch_at(site_id, "transcript", _SEARCH),
         intent=ParamIntent(),
+        search_name=_SEARCH,
         overrides={"organism_select_none": _ORGANISM[site_id], **overrides},
     )
     return await count_bound_criterion(site_id, "transcript", _SEARCH, resolved.params)

@@ -2,6 +2,7 @@
 
 import type { ParamSpec } from "@strategist/shared";
 import { extractVocabTree, type VocabOption } from "@/lib/utils/vocab";
+import { isEditable } from "@/lib/parameters/visibility";
 import { extractSpecVocabulary } from "./stepEditorUtils";
 import { resolveWidgetKind } from "../widgets/registry";
 import { StringParam } from "../widgets/StringParam";
@@ -41,6 +42,8 @@ export function ParamFieldRenderer({
   const vocabulary = extractSpecVocabulary(spec);
   const vocabTree = extractVocabTree(vocabulary);
   const widgetKind = resolveWidgetKind(spec);
+  const editable = isEditable(spec);
+  const widgetDisablesItself = widgetKind === "treebox";
 
   return (
     <state.form.Field name={paramName}>
@@ -52,6 +55,18 @@ export function ParamFieldRenderer({
           paramName,
           onFieldChanged,
           onFieldBlurred,
+          editable,
+        );
+        const widget = (
+          <WidgetRenderer
+            widgetKind={widgetKind}
+            spec={spec}
+            name={paramName}
+            options={options}
+            vocabTree={vocabTree}
+            field={wrappedField}
+            disabled={!editable}
+          />
         );
 
         return (
@@ -63,6 +78,7 @@ export function ParamFieldRenderer({
             }
           >
             <label
+              id={`${paramName}-label`}
               htmlFor={paramName}
               className={
                 hasFieldError
@@ -75,14 +91,17 @@ export function ParamFieldRenderer({
                 <span className="ml-1 text-destructive">*</span>
               )}
             </label>
-            <WidgetRenderer
-              widgetKind={widgetKind}
-              spec={spec}
-              name={paramName}
-              options={options}
-              vocabTree={vocabTree}
-              field={wrappedField}
-            />
+            {editable ? (
+              widget
+            ) : (
+              <fieldset
+                disabled={!widgetDisablesItself}
+                aria-labelledby={`${paramName}-label`}
+                className="m-0 min-w-0 border-0 p-0"
+              >
+                {widget}
+              </fieldset>
+            )}
             <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
               {state.dependentLoading[paramName] === true && (
                 <span>Loading options...</span>
@@ -110,10 +129,12 @@ function wrapFieldWithCallbacks(
   name: string,
   onFieldChanged: (name: string, allValues: ParamFormValues) => void,
   onFieldBlurred: () => void,
+  editable: boolean,
 ): ParamWidgetProps["field"] {
   return {
     state: field.state,
     handleChange: (value: string | string[]) => {
+      if (!editable) return;
       field.handleChange(value);
       onFieldChanged(name, state.form.state.values);
     },
@@ -131,6 +152,7 @@ interface WidgetRendererProps {
   options: VocabOption[];
   vocabTree: ParamWidgetProps["vocabTree"];
   field: ParamWidgetProps["field"];
+  disabled: boolean;
 }
 
 function WidgetRenderer({
@@ -140,8 +162,16 @@ function WidgetRenderer({
   options,
   vocabTree,
   field,
+  disabled,
 }: WidgetRendererProps) {
-  const widgetProps: ParamWidgetProps = { spec, name, options, vocabTree, field };
+  const widgetProps: ParamWidgetProps = {
+    spec,
+    name,
+    options,
+    vocabTree,
+    field,
+    disabled,
+  };
 
   switch (widgetKind) {
     case "treebox":

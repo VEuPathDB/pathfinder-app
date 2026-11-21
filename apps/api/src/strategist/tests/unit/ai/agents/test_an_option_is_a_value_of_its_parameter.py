@@ -17,7 +17,12 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.parameters import ParamKind, ParamValue, from_wire
-from veupathdb_mcp.catalog import PhyleticPattern, ValidatedParams
+from veupathdb.wdk import WDKStringParam
+from veupathdb_mcp.catalog import (
+    PhyleticPattern,
+    ValidatedParams,
+    format_param_info_typed,
+)
 
 from strategist.ai.agents.frame import build_frame_agent
 from strategist.ai.agents.frame_option_checks import hold_an_option_to_its_parameter
@@ -304,22 +309,32 @@ def test_a_question_that_names_no_slot_passes() -> None:
     )
 
 
-def test_a_hidden_parameter_binds_nothing_so_it_refuses_nothing() -> None:
+@pytest.mark.parametrize(
+    "param",
+    [
+        WDKStringParam(name="the_param", is_visible=False),
+        WDKStringParam(name="the_param", is_visible=True, is_read_only=True),
+    ],
+    ids=["hidden", "read_only"],
+)
+def test_a_value_the_site_sets_binds_nothing_so_it_refuses_nothing(
+    param: WDKStringParam,
+) -> None:
     criterion = Criterion(
         id="c_one",
         text="one property",
         search_name="SomeSearch",
         resolved_params={
             "the_param": BoundValue(
-                value=from_wire("filter", _NO_FILTER),
-                source="default",
-                visible=False,
+                value=from_wire("filter", _NO_FILTER), source="default"
             )
         },
     )
+    ctx = _context(criterion)
+    ctx.deps.agent_state.record_site_set("SomeSearch", format_param_info_typed([param]))
     asked = _asked(_question(_FILTER_LABEL, "Another label"))
 
-    assert hold_an_option_to_its_parameter(_context(criterion), asked) == asked
+    assert hold_an_option_to_its_parameter(ctx, asked) == asked
 
 
 def test_a_parked_run_is_no_result_to_check() -> None:

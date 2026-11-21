@@ -8,7 +8,6 @@ of a search with the same parameters.
 from __future__ import annotations
 
 import pytest
-from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import to_wire
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
@@ -112,33 +111,35 @@ async def test_a_hidden_parameter_at_the_sites_value_is_left_out(
     [criterion] = state.operational_spec_draft.criteria
     channel = criterion.resolved_params["channel"]
     assert (result.corrections, to_wire(channel.value), channel.source) == (
-        ["channel is set by the site to 'Channel 1', so the proposal was left out"],
+        ["channel is set by the site, so the proposal was left out"],
         "Channel 1",
         "default",
     )
 
 
 @pytest.mark.asyncio
-async def test_a_hidden_parameter_at_another_of_its_values_is_refused(
+async def test_a_hidden_parameter_at_another_of_its_values_is_left_out(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch)
     state = AgentToolState()
 
-    with pytest.raises(ModelRetry) as refused:
-        await _bind(
-            state,
-            _PERCENTILE,
-            _TACHYZOITE | {"channel": "Channel 2"},
-            _PERCENTILE_WHY,
-            text="genes expressed in asexual blood stages at the 50th percentile",
-        )
-
-    assert str(refused.value).startswith(
-        f"channel on {_PERCENTILE.url_segment} is set by the site to 'Channel 1' "
-        "and takes no other value; leave it out of params."
+    result = await _bind(
+        state,
+        _PERCENTILE,
+        _TACHYZOITE | {"channel": "Channel 2"},
+        _PERCENTILE_WHY,
+        text="genes expressed in asexual blood stages at the 50th percentile",
     )
-    assert state.operational_spec_draft.criteria == []
+
+    [criterion] = state.operational_spec_draft.criteria
+    assert (
+        result.corrections,
+        to_wire(criterion.resolved_params["channel"].value),
+    ) == (
+        ["channel is set by the site, so the proposal was left out"],
+        "Channel 1",
+    )
 
 
 _VES: Proposals = {
@@ -169,38 +170,36 @@ async def test_the_document_type_a_text_bind_copies_is_left_to_the_site(
     )
 
     assert result.corrections == [
-        "document_type is set by the site to 'gene', so the proposal was left out"
+        "document_type is set by the site, so the proposal was left out"
     ]
     assert result.rationale is not None
     assert result.rationale.term == "Text term (use * as wildcard)"
 
 
 @pytest.mark.asyncio
-async def test_a_value_only_the_site_sets_is_refused_at_another_value(
+async def test_a_value_only_the_site_sets_is_left_out_at_another_value(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch)
     state = AgentToolState()
 
-    with pytest.raises(ModelRetry) as refusal:
-        await _bind(
-            state,
-            _TEXT,
-            _VES | {"document_type": "transcript"},
-            {
-                "term": "Text term (use * as wildcard)",
-                "basis": "parameter",
-                "reason": "A wildcard text search captures product annotations.",
-            },
-            text="genes annotated in the ves multigene family",
-        )
-
-    assert str(refusal.value) == (
-        f"document_type on {_TEXT.url_segment} is set by the site to 'gene' and "
-        f"takes no other value; leave it out of params. The names params takes: "
-        f"['text_expression', 'text_fields', 'text_search_organism']."
+    result = await _bind(
+        state,
+        _TEXT,
+        _VES | {"document_type": "transcript"},
+        {
+            "term": "Text term (use * as wildcard)",
+            "basis": "parameter",
+            "reason": "A wildcard text search captures product annotations.",
+        },
+        text="genes annotated in the ves multigene family",
     )
-    assert state.operational_spec_draft.criteria == []
+
+    [criterion] = state.operational_spec_draft.criteria
+    assert (
+        result.corrections,
+        to_wire(criterion.resolved_params["document_type"].value),
+    ) == (["document_type is set by the site, so the proposal was left out"], "gene")
 
 
 def _fold_change_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
@@ -209,6 +208,7 @@ def _fold_change_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
         param_info(
             "dataset_url",
             is_visible=False,
+            site_set=True,
             required=False,
             default_value="https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a",
         ),
@@ -240,11 +240,7 @@ async def test_the_dataset_url_a_step_carries_is_left_to_the_site(
     )
 
     assert result.corrections == [
-        (
-            "dataset_url is set by the site to "
-            "'https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a', so the "
-            "proposal was left out"
-        )
+        "dataset_url is set by the site, so the proposal was left out"
     ]
     assert result.resolved_params["fold_change"] == "4"
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useStore } from "@tanstack/react-form";
 import { toast } from "sonner";
 import type { Step } from "@strategist/shared";
-import { isInputStepParam } from "@/features/strategy/parameters/spec";
+import { isShown } from "@/lib/parameters/visibility";
 import { useStrategyGraphCtx } from "@/features/strategy/graph/StrategyGraphContext";
 import {
   useDuplicateStepMutation,
@@ -73,11 +73,7 @@ export function EditorContent({
     stepId: step.id,
   });
 
-  const allowedParamKeys = new Set(
-    state.paramSpecs
-      .filter((s) => s.name !== "" && s.isVisible !== false && !isInputStepParam(s))
-      .map((s) => s.name),
-  );
+  const allowedParamKeys = new Set(state.paramSpecs.filter(isShown).map((s) => s.name));
 
   const formValues = useStore(state.form.store, (s) => s.values);
 

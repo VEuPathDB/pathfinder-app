@@ -73,7 +73,7 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del site_id
         return {name: sheet for name in search_names if name == _TROPHOZOITE}
 
-    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _sheets)
+    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
 
 
 def _trophozoite() -> Criterion:

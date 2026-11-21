@@ -30,11 +30,15 @@ from strategist.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.domain.strategy.site_set_reads import (
+    SiteSetReads,
+    searches_holding_values,
+)
 from strategist.domain.strategy.spec_hydration import (
     Analyses,
     analysis_criteria_stated,
-    hidden_params_dropped,
     read_under_their_parents,
+    site_set_params_dropped,
     spec_from_ast,
     steps_stated_by,
 )
@@ -65,6 +69,7 @@ from strategist.services.strategies.record_classes import (
 from strategist.services.strategies.revision_ops import last_change
 from strategist.services.strategies.search_sheets import radio_pairs_of
 from strategist.services.strategies.sheet_params import (
+    published_parameters_of_searches,
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
@@ -211,6 +216,15 @@ async def refresh_live_strategy_state(
             None if answered is None else spec_from_ast(answered, goal="", listed={}),
             working_state.domain.operational_spec,
         ],
+    )
+    domain = working_state.domain
+    held = searches_holding_values(
+        domain.operational_spec, domain.answered_spec, domain.spec_before_turn
+    )
+    domain.site_set = SiteSetReads.of(
+        await published_parameters_of_searches(
+            site_id=context.site_id, search_names=held
+        )
     )
     return working_state
 
@@ -412,5 +426,5 @@ async def stated_spec_of(
         for c in hydrated.criteria
     ]
     return read_under_their_parents(
-        hidden_params_dropped(hydrated, sheet_params=sheets), under_parents
+        site_set_params_dropped(hydrated, sheet_params=sheets), under_parents
     )

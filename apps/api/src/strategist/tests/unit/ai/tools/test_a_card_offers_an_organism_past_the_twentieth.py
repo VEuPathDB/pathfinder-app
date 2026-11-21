@@ -67,7 +67,7 @@ async def _criterion(infos: list[ParameterInfo], text: str) -> Criterion:
         return infos
 
     resolved = await resolve_params_with_intent(
-        fetch_at=fetch_at, intent=ParamIntent(text=text)
+        fetch_at=fetch_at, intent=ParamIntent(text=text), search_name="GenesByExonCount"
     )
     return Criterion(
         id="c1",

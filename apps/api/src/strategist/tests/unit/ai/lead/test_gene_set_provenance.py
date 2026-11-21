@@ -71,13 +71,13 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, int]]:
 
     monkeypatch.setattr(gene_sets, "read_step_genes", _read)
 
-    async def _visible(
+    async def _bindable(
         site_id: str, *, record_type: str, search_name: str
     ) -> frozenset[str]:
         del site_id, record_type, search_name
         return frozenset({"text_expression"})
 
-    monkeypatch.setattr(gene_sets, "visible_parameter_names", _visible)
+    monkeypatch.setattr(gene_sets, "bindable_parameter_names", _bindable)
     return seen
 
 
@@ -399,7 +399,7 @@ async def test_a_search_the_catalog_cannot_read_still_saves_the_set(
             title="Search definition could not be read", detail=search_name
         )
 
-    monkeypatch.setattr(gene_sets, "visible_parameter_names", _unreadable)
+    monkeypatch.setattr(gene_sets, "bindable_parameter_names", _unreadable)
 
     await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
 

@@ -3,7 +3,7 @@
 import type { ParamSpec, Search, StepKind } from "@strategist/shared";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import { useParamSpecs } from "@/lib/hooks/useParamSpecs";
-import { isInputStepParam } from "@/features/strategy/parameters/spec";
+import { isInputStepParam, isShown } from "@/lib/parameters/visibility";
 import type { ParamFormValues } from "./useParamForm";
 import { extractVocabOptions, type VocabOption } from "@/lib/utils/vocab";
 import { extractSpecVocabulary } from "../components/stepEditorUtils";
@@ -74,8 +74,7 @@ export function useStepParameters({
 export function hiddenParamDefaults(paramSpecs: ParamSpec[]): ParamFormValues {
   const hiddenDefaults: ParamFormValues = {};
   for (const spec of paramSpecs) {
-    if (spec.isVisible !== false || spec.name === "" || isInputStepParam(spec))
-      continue;
+    if (spec.name === "" || isShown(spec) || isInputStepParam(spec)) continue;
     if (spec.initialDisplayValue != null) {
       hiddenDefaults[spec.name] = spec.initialDisplayValue;
     }

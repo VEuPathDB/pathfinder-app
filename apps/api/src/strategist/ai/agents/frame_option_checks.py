@@ -59,6 +59,10 @@ def hold_an_option_to_a_held_expression(
 def _refusals(question: SlotQuestion, state: AgentToolState) -> list[str]:
     spec = state.operational_spec_draft
     criterion = next((c for c in spec.criteria if c.id == question.criterion_id), None)
+    if criterion is not None and state.sets_the_site(
+        criterion.search_name, question.param_name
+    ):
+        return []
     return [
         why
         for wire in question.wires_offered(criterion)

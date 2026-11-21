@@ -10,7 +10,12 @@ from veupathdb.domain.parameters import (
     VocabOption,
 )
 from veupathdb.domain.strategy import CombineOp
-from veupathdb_mcp.catalog import ParameterInfo, PhrasingMatch, VocabLookup
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    PhrasingMatch,
+    VocabLookup,
+    format_param_info_typed,
+)
 
 from strategist.ai.agents.state import (
     AgentToolState,
@@ -27,6 +32,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.services.strategies.cut_picks import OptionsRead
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.recorded_searches import suite_search
 
 
 def _ov(
@@ -361,6 +367,7 @@ def _cut_info() -> ParameterInfo:
         type="multi-pick-vocabulary",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         allowed_values=[VocabOption(value="PF00001", display="PF00001 : Peptidase")],
@@ -399,3 +406,19 @@ def test_a_snapshot_of_a_whole_lookup_keeps_the_lookup() -> None:
         total=None,
         lookup=VocabLookup(terms=["peptidase"]),
     )
+
+
+def test_a_parameter_read_as_site_set_this_pass_is_set_by_the_site() -> None:
+    state = AgentToolState()
+    state.record_site_set(
+        "GenesByText",
+        format_param_info_typed(
+            list(suite_search("search_genes_by_text").parameters or [])
+        ),
+    )
+
+    assert (
+        state.sets_the_site("GenesByText", "document_type"),
+        state.sets_the_site("GenesByText", "text_expression"),
+        state.sets_the_site("GenesByLocation", "document_type"),
+    ) == (True, False, False)

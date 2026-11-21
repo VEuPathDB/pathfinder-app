@@ -59,6 +59,7 @@ def _param(
         type=param_type,
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         allowed_values=[VocabOption(value=o, display=o) for o in options or []] or None,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from strategist.ai.lead.deltas import FrameResult
 from strategist.domain.strategy.card_answers import params_held
@@ -14,10 +14,12 @@ _ASKED_WINDOW = 4
 
 
 def _unheld_slot_questions(
-    questions: Sequence[SlotQuestion], draft: OperationalSpec
+    questions: Sequence[SlotQuestion],
+    draft: OperationalSpec,
+    sets_the_site: Callable[[str, str], bool],
 ) -> str:
     """Why a question names a slot no criterion of the draft holds, or empty."""
-    held = params_held(draft)
+    held = params_held(draft, sets_the_site)
     unheld = [
         q
         for q in questions
@@ -44,7 +46,11 @@ def _unheld_slot_questions(
     )
 
 
-def questions_that_bind_to_nothing(result: FrameResult, draft: OperationalSpec) -> str:
+def questions_that_bind_to_nothing(
+    result: FrameResult,
+    draft: OperationalSpec,
+    sets_the_site: Callable[[str, str], bool],
+) -> str:
     """Why a pass that stops on the user asks about a slot no criterion of the
     draft holds, or "". A slot question binds its criterion's parameter."""
-    return _unheld_slot_questions(result.open_questions, draft)
+    return _unheld_slot_questions(result.open_questions, draft, sets_the_site)

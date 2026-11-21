@@ -5,9 +5,9 @@ from typing import Any
 import pytest
 from pydantic_ai import ModelRetry
 from veupathdb_mcp.catalog import (
-    HiddenParameterError,
     PhyleticListError,
     ResolvedParams,
+    SiteSetParameterError,
     resolve_params_with_intent,
 )
 
@@ -49,14 +49,14 @@ async def test_a_phyletic_list_error_is_a_named_refusal(
 
 
 @pytest.mark.asyncio
-async def test_a_hidden_parameter_error_is_a_named_refusal(
+async def test_a_site_set_parameter_error_is_a_named_refusal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     st = AgentToolState()
 
-    async def _resolve(**_kw: object) -> ResolvedParams:
+    async def _resolve(*, search_name: str, **_kw: object) -> ResolvedParams:
         name = "channel"
-        raise HiddenParameterError(name, unset=True)
+        raise SiteSetParameterError(name, search_name, unset=True)
 
     serve_for(monkeypatch, "GenesByOptionalPercentile")
     monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _resolve)
@@ -67,9 +67,9 @@ async def test_a_hidden_parameter_error_is_a_named_refusal(
         )
 
     assert str(exc.value) == (
-        "GenesByOptionalPercentile: channel is a hidden parameter with no value "
-        "the site sets, so the search cannot run from the values given. Nothing "
-        "was recorded."
+        "channel on GenesByOptionalPercentile is set by the site, and the site "
+        "gives it no value, so the search cannot run from the values given. "
+        "Nothing was recorded."
     )
     assert st.operational_spec_draft.criteria == []
 
@@ -100,4 +100,5 @@ async def test_the_resolver_derives_the_pattern_from_both_lists_and_the_definiti
         "excluded_species" in overrides,
         "profile_pattern" in overrides,
     ) == ("pfal", False, False)
+    assert captured["search_name"] == "GenesByOrthologPattern"
     assert captured["definition"]

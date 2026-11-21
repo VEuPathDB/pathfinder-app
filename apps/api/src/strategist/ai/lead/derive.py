@@ -84,6 +84,7 @@ def derive_ledger(
             open_questions=state.domain.open_questions,
             named_readings=state.domain.named_readings,
             picked_readings=state.domain.picked_readings,
+            site_set=state.domain.site_set,
         ),
         build=_derive_build_section(state),
         verification=_derive_verification_section(state),

@@ -14,7 +14,13 @@ import type { ParamWidgetProps } from "./types";
 
 const PLACEHOLDER_VALUE = "__placeholder__";
 
-export function SelectParam({ spec, name, options, field }: ParamWidgetProps) {
+export function SelectParam({
+  spec,
+  name,
+  options,
+  field,
+  disabled = false,
+}: ParamWidgetProps) {
   const multi = isMultiParam(spec);
   const errors = field.state.meta.errors;
   const hasError = errors.length > 0;
@@ -25,6 +31,7 @@ export function SelectParam({ spec, name, options, field }: ParamWidgetProps) {
     return (
       <div>
         <Select
+          disabled={disabled}
           value={value === "" ? PLACEHOLDER_VALUE : value}
           onValueChange={(next) =>
             field.handleChange(next === PLACEHOLDER_VALUE ? "" : next)

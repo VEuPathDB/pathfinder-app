@@ -49,7 +49,7 @@ from strategist.services.gene_sets.homes import (
 from strategist.services.gene_sets.step_genes import (
     IncompleteAnswerError,
     TooManyGenesError,
-    visible_parameter_names,
+    bindable_parameter_names,
 )
 from strategist.services.gene_sets.types import GeneSet
 from strategist.services.strategies.user_dataset_searches import uploaded_gene_lists
@@ -115,21 +115,21 @@ def _wdk_provenance(session: StrategySession, step_id: str | None) -> WdkProvena
     )
 
 
-async def _with_the_parameters_a_user_sees(
+async def _with_the_parameters_a_researcher_sets(
     site_id: str, src: WdkProvenance, record_type: str
 ) -> WdkProvenance:
-    """The provenance with only the parameters WDK shows for its search."""
+    """The provenance with only the parameters a researcher sets on its search."""
     if src.search_name is None or src.parameters is None:
         return src
     try:
-        visible = await visible_parameter_names(
+        bindable = await bindable_parameter_names(
             site_id, record_type=record_type, search_name=src.search_name
         )
     except ValidationError:
         # A definition the catalog cannot read decides nothing, and the genes
         # are already in hand: the set is saved with what the step carried.
         return src
-    kept = {name: value for name, value in src.parameters.items() if name in visible}
+    kept = {name: value for name, value in src.parameters.items() if name in bindable}
     return src.model_copy(update={"parameters": kept})
 
 
@@ -144,7 +144,7 @@ async def _genes_of_step(
     genes = await read_step_genes(deps.site_id, src.wdk_step_id)
     if not genes.gene_ids:
         raise ModelRetry(_STEP_HOLDS_NO_GENES)
-    return genes, await _with_the_parameters_a_user_sees(
+    return genes, await _with_the_parameters_a_researcher_sets(
         deps.site_id, src, genes.record_class
     )
 

@@ -151,7 +151,7 @@ async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_tools
         ),
     )
     monkeypatch.setattr(
-        gene_sets, "visible_parameter_names", AsyncMock(return_value=set())
+        gene_sets, "bindable_parameter_names", AsyncMock(return_value=set())
     )
     deps = lead_deps(
         pipeline_state(user_prompt=_SAVE_REQUEST), strategy_session=_cleared_session()

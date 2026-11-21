@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import type { ParamSpec } from "@/features/strategy/parameters/spec";
+import { isEditable, isShown } from "@/lib/parameters/visibility";
 import type { ParamForm } from "../hooks/useParamForm";
 import {
   type PhyleticNode,
@@ -38,6 +39,7 @@ type TreeNodeProps = {
   states: Map<string, TriState>;
   expanded: Set<string>;
   searchQuery: string;
+  disabled: boolean;
   onToggleState: (code: string) => void;
   onToggleExpand: (code: string) => void;
 };
@@ -47,6 +49,7 @@ function TreeNodeRow({
   states,
   expanded,
   searchQuery,
+  disabled,
   onToggleState,
   onToggleExpand,
 }: TreeNodeProps) {
@@ -81,6 +84,7 @@ function TreeNodeRow({
           type="button"
           className={`w-5 text-center font-bold shrink-0 ${triStateColor(state)}`}
           data-toggle={node.code}
+          disabled={disabled}
           onClick={() => onToggleState(node.code)}
           aria-label={`Toggle ${node.label}`}
         >
@@ -97,6 +101,7 @@ function TreeNodeRow({
               states={states}
               expanded={expanded}
               searchQuery={searchQuery}
+              disabled={disabled}
               onToggleState={onToggleState}
               onToggleExpand={onToggleExpand}
             />
@@ -116,6 +121,7 @@ export function PhyleticProfileParam({ specs, form }: PhyleticProfileParamProps)
     findSpecVocab(specs, "phyletic_indent_map");
 
   const tree = buildPhyleticTree(termMapVocab, indentMapVocab);
+  const disabled = specs.some((spec) => isShown(spec) && !isEditable(spec));
 
   const [seeded] = useState(() =>
     seedTriStates(tree, {
@@ -212,6 +218,7 @@ export function PhyleticProfileParam({ specs, form }: PhyleticProfileParamProps)
             states={states}
             expanded={expanded}
             searchQuery={searchQuery}
+            disabled={disabled}
             onToggleState={handleToggleState}
             onToggleExpand={handleToggleExpand}
           />

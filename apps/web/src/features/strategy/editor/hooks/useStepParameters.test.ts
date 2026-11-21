@@ -34,4 +34,17 @@ describe("hiddenParamDefaults", () => {
 
     expect(defaults).toEqual({ document_type: "gene" });
   });
+
+  it("gives a read-only parameter no hidden default", () => {
+    const defaults = hiddenParamDefaults([
+      spec({
+        name: "organism",
+        isVisible: true,
+        isReadOnly: true,
+        initialDisplayValue: "Pf3D7",
+      }),
+    ]);
+
+    expect(defaults).toEqual({});
+  });
 });

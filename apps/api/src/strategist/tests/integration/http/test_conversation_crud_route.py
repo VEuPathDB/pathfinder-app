@@ -225,3 +225,29 @@ async def test_a_patch_cannot_write_the_tree(api_client: httpx.AsyncClient) -> N
     assert patched.json()["name"] == "Renamed kinases"
     ast = await api_client.get(f"/api/v1/conversations/{conv_id}/ast")
     assert ast.json()["root"]["searchName"] == "GenesByTaxon"
+
+
+async def test_a_null_in_a_patch_leaves_its_field_as_it_was(
+    api_client: httpx.AsyncClient,
+) -> None:
+    created = await api_client.post(
+        "/api/v1/conversations",
+        json={"name": "Kinase strategy", "siteId": "plasmodb", "strategyAst": _AST},
+    )
+    conv_id = created.json()["id"]
+    marked = await api_client.patch(
+        f"/api/v1/conversations/{conv_id}", json={"isSaved": True}
+    )
+    assert marked.status_code == 200, marked.text
+
+    patched = await api_client.patch(
+        f"/api/v1/conversations/{conv_id}", json={"name": None, "isSaved": None}
+    )
+
+    assert patched.status_code == 200, patched.text
+    assert (patched.json()["name"], patched.json()["isSaved"]) == (
+        "Kinase strategy",
+        True,
+    )
+    got = await api_client.get(f"/api/v1/conversations/{conv_id}")
+    assert (got.json()["name"], got.json()["isSaved"]) == ("Kinase strategy", True)

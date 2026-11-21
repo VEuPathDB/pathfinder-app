@@ -28,6 +28,7 @@ def _sheet(context: dict[str, str]) -> list[ParameterInfo]:
             "profile_pattern",
             display_name="Profile Pattern",
             is_visible=False,
+            site_set=True,
             default_value="%ecun:N%",
         ),
         param_info(
@@ -35,6 +36,7 @@ def _sheet(context: dict[str, str]) -> list[ParameterInfo]:
             "single-pick-vocabulary",
             display_name="Experiment",
             is_visible=False,
+            site_set=True,
             default_value="a",
             allowed_values=[VocabOption(value=v, display=v) for v in ("a", "b")],
         ),

@@ -49,6 +49,7 @@ from strategist.domain.strategy.step_rationale import SearchRationale
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.recorded_counts import CRYPTO_IOWA, TGON_STRAINS
 from strategist.tests._support.recorded_searches import suite_search
+from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
 _TREE = phyletic_tree_of(
     list(suite_search("search_genes_by_ortholog_pattern").parameters or [])
@@ -278,7 +279,11 @@ def _plan(
     before: OperationalSpec, after: OperationalSpec, graph: StrategyGraph
 ) -> list[GraphOperation]:
     folded = fold_option_criteria(after, live_step_ids=graph.steps).spec
-    return operations_for(diff_specs(before, folded), after=folded, graph=graph)
+    return operations_for(
+        diff_specs(before, folded, sets_the_site=sets_nothing),
+        after=folded,
+        graph=graph,
+    )
 
 
 def _sides(spec: OperationalSpec) -> tuple[Criterion, Criterion]:

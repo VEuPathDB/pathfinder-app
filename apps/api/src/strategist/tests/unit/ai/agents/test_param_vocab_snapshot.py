@@ -15,6 +15,7 @@ def _info() -> ParameterInfo:
         type="number-enum",
         required=True,
         is_visible=True,
+        site_set=False,
         help="Tier-quantile floor for read counts",
         value_format="single",
         default_value="6772.93",

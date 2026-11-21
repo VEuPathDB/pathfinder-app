@@ -48,6 +48,7 @@ def _param_info(**overrides: Any) -> ParameterInfo:
         "type": "string",
         "required": True,
         "is_visible": True,
+        "site_set": False,
         "help": "",
         "value_format": "",
     }
@@ -384,9 +385,10 @@ class TestReadingOnePhyleticList:
             await self._read(monkeypatch, parameter_id="profile_pattern")
 
         assert str(refused.value) == (
-            "profile_pattern is a hidden parameter of GenesByOrthologPattern: the "
-            "site sets it, so it takes no value from you. Read a parameter the "
-            "sheet lists."
+            "profile_pattern on GenesByOrthologPattern is set by the site: the "
+            "website does not offer it, and it is sent at the value the site gives "
+            "it under the other values. Leave it out. Read a parameter the sheet "
+            "lists."
         )
 
 

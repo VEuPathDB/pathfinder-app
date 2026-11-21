@@ -122,7 +122,8 @@ def _hidden_versioned(context: dict[str, str]) -> list[ParameterInfo]:
     """The versioned search with its vocabulary parameter not visible, beside
     a shown minimum."""
     hidden = [
-        info.model_copy(update={"is_visible": False}) for info in versioned(context)
+        info.model_copy(update={"is_visible": False, "site_set": True})
+        for info in versioned(context)
     ]
     return [param_info("min_count", default_value="1"), *hidden]
 

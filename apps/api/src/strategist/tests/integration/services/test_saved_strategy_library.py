@@ -45,7 +45,6 @@ async def _saved_thread(
                 wdk_strategy_id=wdk_strategy_id,
                 wdk_strategy_id_set=True,
                 is_saved=is_saved,
-                is_saved_set=True,
                 step_count=3,
                 strategy_ast=_ast(),
                 estimated_size=estimated_size,

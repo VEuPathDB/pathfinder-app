@@ -103,18 +103,18 @@ def empty_binding_alternatives(
     criterion: Criterion,
 ) -> list[ParameterAlternatives]:
     """The choices inside a binding that matches no record, on the parameters
-    the site shows.
+    the site does not set.
 
     A binding that matches records, and one whose count did not arrive, offers
     nothing to report.
     """
     if result_count != 0:
         return []
-    shown = criterion.shown_values
+    held = criterion.resolved_params
     offered = [
-        _offered_by(info, shown[info.name].value)
+        _offered_by(info, held[info.name].value)
         for info in infos
-        if info.param_kind in _VOCABULARY_KINDS and info.name in shown
+        if info.param_kind in _VOCABULARY_KINDS and info.bindable and info.name in held
     ]
     return [entry for entry in offered if entry is not None]
 

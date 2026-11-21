@@ -99,6 +99,7 @@ def test_a_term_the_vocabulary_offers_is_never_a_placeholder() -> None:
             "type": "single-pick-vocabulary",
             "required": True,
             "is_visible": True,
+            "site_set": False,
             "help": "",
             "value_format": "",
             "default_value": "",

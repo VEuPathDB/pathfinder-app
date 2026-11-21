@@ -2,6 +2,18 @@
 
 ## 2026-11-21
 
+* **A parameter the site sets is never asked for.** A hidden or read-only parameter is
+  site-set on its type (veupathdb-py `site_set`, `bindable`), so no sheet, question or card
+  holds one, and a proposal of one is left out with a named correction. The model sees stated
+  parents, and code that mirrors WDK reads wire parents. `SiteSetParameterError` replaces
+  `HiddenParameterError`, and Strategist's `site_fixed` class is now `site_set`. See
+  [the decision](decisions/a-parameter-the-site-sets-is-never-asked-for.md).
+* **A carried site-set value is never asked for.** A FRAME pass reads the site-set names of
+  every search its draft carries before it runs, and its question check holds a parameter by
+  that state, not by what the researcher is shown. A search the catalog cannot read is left
+  out of that read. An edit counts a site-set value a re-bind adds as no change; each turn reads the names
+  when it opens and keeps none. The catalog's
+  refusal of a site-set value names the search itself.
 * **The UAT uploads say strategist.** The test account's gene list, DESeq counts and
   phenotype uploads on PlasmoDB and VectorBase, and the three live-check datasets on
   PlasmoDB, were uploaded again under `strategist` names, and the old uploads were deleted.

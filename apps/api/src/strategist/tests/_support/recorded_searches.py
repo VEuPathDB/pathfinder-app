@@ -37,6 +37,7 @@ from strategist.ai.tools.standalone import (
 )
 from strategist.services.strategies import (
     record_classes,
+    sheet_params,
     spec_build,
     stated_sides,
     step_wdk_push,
@@ -217,11 +218,14 @@ def serve_recorded(
     async def _catalog(
         ctx: SearchContext, **_kw: object
     ) -> tuple[WDKSearchResponse, str]:
+        if ctx.search_name not in by_name:
+            msg = f"no recording of {ctx.search_name}"
+            raise WDKError(msg, 404)
         return _response(by_name[ctx.search_name]), ctx.record_type
 
     monkeypatch.setattr(_frame_sheet, "read_search_definition", _definition)
     monkeypatch.setattr(_catalog_models, "read_search_definition", _definition)
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _catalog)
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _catalog)
 
 
 def serve_recorded_definitions(

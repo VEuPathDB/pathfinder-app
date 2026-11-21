@@ -32,6 +32,7 @@ from strategist.services.strategies import (
     commit,
     live_counts,
     record_classes,
+    sheet_params,
     step_wdk_push,
     sync,
 )
@@ -154,9 +155,12 @@ def _organism_info() -> ParameterInfo:
         type="multi-pick-vocabulary",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         organism_param=True,
+        stated_children=["profileset"],
+        wire_children=["profileset"],
         vocab_leaves=[
             VocabOption(value=PF, display="P. falciparum 3D7"),
             VocabOption(value=PV, display="P. vivax P01"),
@@ -171,11 +175,13 @@ def _profileset_info(options: list[VocabOption], default: str) -> ParameterInfo:
         type="single-pick-vocabulary",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         default_value=default,
         allowed_values=options,
-        vocab_depends_on=["organism"],
+        stated_parents=["organism"],
+        wire_parents=["organism"],
     )
 
 
@@ -244,7 +250,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
         return (_search_response(ctx.search_name), "etag")
 
     monkeypatch.setattr(param_discovery, "fetch_search_details", _details)
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _details)
 
     async def _validate(
         _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object

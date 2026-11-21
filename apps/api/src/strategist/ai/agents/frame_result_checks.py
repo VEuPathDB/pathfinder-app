@@ -134,7 +134,9 @@ def hold_the_questions_to_the_draft(
     if not isinstance(output, FrameResult) or output.disposition != "needs_user":
         return output
     state = ctx.deps.agent_state
-    unbound = questions_that_bind_to_nothing(output, state.operational_spec_draft)
+    unbound = questions_that_bind_to_nothing(
+        output, state.operational_spec_draft, state.sets_the_site
+    )
     if not unbound:
         return output
     if not may_refuse(ctx, state.refusals):

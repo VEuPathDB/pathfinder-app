@@ -60,8 +60,8 @@ with, since a tree can hold a genus only under its family (piroplasmadb holds
 Babesia under Babesiidae). `BoundValue.taxon` holds the taxon and its organism
 count, and the facts row shows it ("Organism: Babesia (10 organisms)"). A longer
 entry the message names at the same words, a species, names that entry and not
-the taxon. A parameter the
-parameter rules class as `site_fixed` (read-only, or hidden)
+the taxon. A parameter whose
+`site_set` is true (read-only, or hidden)
 has the source rule `site`: its value is `default` whatever a message holds. `set_criterion` decides the source from that data;
 the model never declares it. A value read from a strategy that already exists
 (a hydrated spec, an outside change replayed) is `held`: the strategy holds it
@@ -106,8 +106,8 @@ against the site's default, when it differs. Each parameter class names its
 rule in `PARAMETER_RULES`, which is total over the kinds WDK publishes: a date,
 a dataset, a step input and the derived profile pattern record why they have
 no reading, an unquoted single word and a search the site search does not
-read record the same, and a read-only or hidden parameter is the site's to set,
-so nothing is measured. A hidden parameter is never a choice, with or without a
+read record the same, and a parameter whose `site_set` is true (read-only or
+hidden) is the site's to set, so nothing is measured. A hidden parameter is never a choice, with or without a
 vocabulary: the website draws no hidden group and sends each hidden value from
 its default or the saved step, and the sheet lists no hidden parameter
 (veupathdb-mcp 0.2.0b40). A count
@@ -244,7 +244,8 @@ to its other entry made QA plasmodb answer 500
 value now travels at its default, or at the saved step's value when that step
 is revised (`spec_diff._change_for` moves no hidden value the spec before it
 did not state). The bind's return lists no hidden value, no question holds one
-(`card_answers.params_held`), and a card binds none.
+(`card_answers.params_held`), and a card binds none. See
+[a parameter the site sets is never asked for](a-parameter-the-site-sets-is-never-asked-for.md).
 
 **The message states a value before the site does.** A read-only
 `document_type` "gene" and a site default "any" read as stated because a word
@@ -272,8 +273,9 @@ and `text_query` in `services/strategies/parameter_rules.py`; `bound_values` in
 `ai/lead/ledger_sections.py`; `AssumedValueCaveat` in `domain/value_caveats.py`;
 `measure_binding` and `TurnCounts` in
 `services/strategies/measurements.py`; `default_reading` in
-`services/strategies/pick_readings.py`; `PARAMETER_RULES` and `site_fixed` in
-`services/strategies/parameter_rules.py`; `vocabulary_labels` in
+`services/strategies/pick_readings.py`; `PARAMETER_RULES` in
+`services/strategies/parameter_rules.py`; the parameter's `site_set` in
+veupathdb-py `wdk/wdk_parameters.py`; `vocabulary_labels` in
 `services/strategies/value_labels.py`; `UnmeasuredValueCaveat` and
 `ChoiceCaveat` in `domain/value_caveats.py`; `stated_texts`, `stated_run` and `stated_by_labels` in
 `domain/strategy/value_source.py`; `in_the_sites_scale` and

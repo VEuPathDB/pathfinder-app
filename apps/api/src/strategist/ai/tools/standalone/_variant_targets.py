@@ -267,12 +267,11 @@ def _published_defaults(
 
 
 def _site_set(infos: dict[str, ParameterInfo]) -> dict[str, ParamValue]:
-    """Each hidden required parameter at the value the site sets, which no
-    caller chooses."""
+    """Each required parameter the site sets, at the value it sets."""
     return {
-        name: from_wire(info.param_kind, info.default_value)
+        name: from_wire(info.param_kind, value)
         for name, info in infos.items()
-        if not info.is_visible and info.required and info.default_value is not None
+        if info.required and (value := info.site_value) is not None
     }
 
 
@@ -311,7 +310,7 @@ async def resolved_variants(
     with each vocabulary value as the entry it names and each pick they name no
     entry for at the site's published default, and every other parameter they
     name no value for at the value the site's sheet gives it, as a step of the
-    search sends it. A hidden required parameter runs at the value the site
+    search sends it. A required parameter the site sets runs at the value it
     sets. Refuses a search the catalog
     does not list, an unknown parameter, and a value the vocabulary under the
     variant's parents lacks; a value a step holds passes as it is."""
@@ -349,7 +348,7 @@ async def resolved_variants(
         parents = {
             info.name: to_wire(variant.parameters[info.name])
             for info in published[search]
-            if info.controls_vocab_of and info.name in variant.parameters
+            if info.wire_children and info.name in variant.parameters
         }
         infos = {info.name: info for info in await infos_at(search, parents)}
         site_set = _site_set(infos)

@@ -23,7 +23,7 @@ MeasurementRule = Literal[
     "phrase_reach",
     "species_lists",
     "site_default",
-    "site_fixed",
+    "site_set",
     "not_measurable",
     "expression_reading",
 ]
@@ -42,7 +42,7 @@ ParameterClass = (
         "phyletic_list",
         "phyletic_pattern",
         "phyletic_expression",
-        "site_fixed",
+        "site_set",
     ]
 )
 
@@ -112,17 +112,11 @@ PARAMETER_RULES: Mapping[ParameterClass, ParameterRules] = MappingProxyType(
         "phyletic_expression": ParameterRules(
             measurement="expression_reading", label="own_label"
         ),
-        "site_fixed": ParameterRules(
-            measurement="site_fixed", label="own_label", source="site"
+        "site_set": ParameterRules(
+            measurement="site_set", label="own_label", source="site"
         ),
     }
 )
-
-
-def site_fixed(info: ParameterInfo) -> bool:
-    """A read-only or hidden parameter holds a value only the site sets: the
-    website never shows a hidden one, so it travels at its default."""
-    return info.is_read_only or not info.is_visible
 
 
 # The phyletic parameters are classed by name: their kind is a plain string.
@@ -138,8 +132,8 @@ _NAMED_CLASSES: Mapping[str, ParameterClass] = MappingProxyType(
 def parameter_class(info: ParameterInfo) -> ParameterClass:
     if info.name in _NAMED_CLASSES:
         return _NAMED_CLASSES[info.name]
-    if site_fixed(info):
-        return "site_fixed"
+    if info.site_set:
+        return "site_set"
     if info.param_kind == "string" and info.is_number:
         return "numeric_string"
     if info.allowed_values_tree is not None:
@@ -166,6 +160,5 @@ __all__ = [
     "SourceRule",
     "parameter_class",
     "rules_of",
-    "site_fixed",
     "text_query",
 ]

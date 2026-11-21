@@ -62,7 +62,7 @@ def _no_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del site_id, search_names
         return {}
 
-    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _sheets)
+    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
 
 
 @pytest.fixture

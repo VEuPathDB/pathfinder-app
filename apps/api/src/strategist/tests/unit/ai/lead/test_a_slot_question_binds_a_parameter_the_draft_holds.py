@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from veupathdb.domain.parameters import NumberValue
 
+from strategist.ai.agents.state import AgentToolState
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.frame_questions import questions_that_bind_to_nothing
 from strategist.domain.strategy.constraints import (
@@ -21,6 +22,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.questions import SlotQuestion
 
 _FLOOR = "min_expression_percentile"
+_NOTHING = AgentToolState()
 
 
 def _draft(*, open_floor: bool) -> OperationalSpec:
@@ -75,20 +77,31 @@ _GPI = Constraint(
 def test_a_question_on_an_open_slot_binds() -> None:
     draft = _draft(open_floor=True)
 
-    assert questions_that_bind_to_nothing(_asked(_asks("c_troph", _FLOOR)), draft) == ""
+    assert (
+        questions_that_bind_to_nothing(
+            _asked(_asks("c_troph", _FLOOR)), draft, _NOTHING.sets_the_site
+        )
+        == ""
+    )
 
 
 def test_a_question_on_a_value_the_site_defaulted_binds() -> None:
     """Asking a bound value again changes it, even over an untouched draft."""
     draft = _draft(open_floor=False)
 
-    assert questions_that_bind_to_nothing(_asked(_asks("c_troph", _FLOOR)), draft) == ""
+    assert (
+        questions_that_bind_to_nothing(
+            _asked(_asks("c_troph", _FLOOR)), draft, _NOTHING.sets_the_site
+        )
+        == ""
+    )
 
 
 def test_a_question_on_a_parameter_the_criterion_lacks_is_refused() -> None:
     refusal = questions_that_bind_to_nothing(
         _asked(_asks("c_troph", "max_expression_percentile")),
         _draft(open_floor=True),
+        _NOTHING.sets_the_site,
     )
 
     assert "max_expression_percentile" in refusal
@@ -97,7 +110,7 @@ def test_a_question_on_a_parameter_the_criterion_lacks_is_refused() -> None:
 
 def test_a_question_on_a_criterion_the_draft_lacks_is_refused() -> None:
     refusal = questions_that_bind_to_nothing(
-        _asked(_asks("c_gone", _FLOOR)), _draft(open_floor=True)
+        _asked(_asks("c_gone", _FLOOR)), _draft(open_floor=True), _NOTHING.sets_the_site
     )
 
     assert "c_gone" in refusal
@@ -105,7 +118,7 @@ def test_a_question_on_a_criterion_the_draft_lacks_is_refused() -> None:
 
 def test_a_question_that_names_half_a_slot_is_refused() -> None:
     refusal = questions_that_bind_to_nothing(
-        _asked(_asks("c_troph", "")), _draft(open_floor=True)
+        _asked(_asks("c_troph", "")), _draft(open_floor=True), _NOTHING.sets_the_site
     )
 
     assert "criterion_id and param_name" in refusal

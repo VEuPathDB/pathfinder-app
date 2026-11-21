@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import SinglePickValue, VocabOption
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -15,6 +14,8 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.question_options import SetValues
+from strategist.domain.strategy.value_binding import bind_values
+from strategist.tests._support.catalog_builders import ParamsAt
 from strategist.tests._support.catalog_reads import listing
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools._rationale_catalog import choice
@@ -57,9 +58,10 @@ def _sheet(context: dict[str, str]) -> list[ParameterInfo]:
             "single-pick-vocabulary",
             display_name="Experiment",
             is_visible=False,
+            site_set=True,
             default_value=_PNA,
             allowed_values=[VocabOption(value=v, display=v) for v in (_PNA, _AMA)],
-            controls_vocab_of=["samples_fc_direct_generic_page"],
+            wire_children=["samples_fc_direct_generic_page"],
         ),
         param_info(
             "samples_fc_direct_generic_page",
@@ -67,7 +69,7 @@ def _sheet(context: dict[str, str]) -> list[ParameterInfo]:
             display_name="Comparisons",
             default_value=term,
             allowed_values=[VocabOption(value=term, display=label)],
-            vocab_depends_on=["profileset_generic"],
+            wire_parents=["profileset_generic"],
         ),
         param_info("fold_change", display_name="Fold change", default_value="2"),
     ]
@@ -97,29 +99,38 @@ async def _bind(
     )
 
 
-@pytest.mark.asyncio
-async def test_a_hidden_parameter_proposed_at_another_value_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    serve_search(monkeypatch, _sheet, url_segment=_SEARCH, display_name="Life stages")
+_LEFT_OUT = "profileset_generic is set by the site, so the proposal was left out"
+
+
+async def _left_out_at_another_value(
+    monkeypatch: pytest.MonkeyPatch, sheet: ParamsAt
+) -> tuple[list[str], str]:
+    serve_search(monkeypatch, sheet, url_segment=_SEARCH, display_name="Life stages")
     state = AgentToolState()
 
-    with pytest.raises(ModelRetry) as refused:
-        await _bind(
-            state,
-            {
-                "profileset_generic": _AMA,
-                "samples_fc_direct_generic_page": _COMPARISONS[_AMA][0],
-                "fold_change": "2",
-            },
-        )
-
-    assert str(refused.value) == (
-        f"profileset_generic on {_SEARCH} is set by the site to '{_PNA}' and takes "
-        "no other value; leave it out of params. The names params takes: "
-        "['fold_change', 'samples_fc_direct_generic_page']."
+    result = await _bind(
+        state,
+        {
+            "profileset_generic": _AMA,
+            "samples_fc_direct_generic_page": _COMPARISONS[_PNA][0],
+            "fold_change": "2",
+        },
+        term="Fold change",
     )
-    assert state.operational_spec_draft.criteria == []
+
+    [criterion] = state.operational_spec_draft.criteria
+    held = criterion.resolved_params["profileset_generic"]
+    return result.corrections, held.value.to_wire()
+
+
+@pytest.mark.asyncio
+async def test_a_hidden_parameter_proposed_at_another_value_is_left_out(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert await _left_out_at_another_value(monkeypatch, _sheet) == (
+        [_LEFT_OUT],
+        _PNA,
+    )
 
 
 @pytest.mark.asyncio
@@ -161,17 +172,12 @@ async def test_a_hidden_parameter_proposed_at_its_default_is_left_out(
         term="Fold change",
     )
 
-    assert result.corrections == [
-        (
-            f"profileset_generic is set by the site to '{_PNA}', so the proposal "
-            "was left out"
-        )
-    ]
+    assert result.corrections == [_LEFT_OUT]
 
 
 def _read_only_sheet(context: dict[str, str]) -> list[ParameterInfo]:
     return [
-        info.model_copy(update={"is_read_only": True})
+        info.model_copy(update={"is_visible": True, "is_read_only": True})
         if info.name == "profileset_generic"
         else info
         for info in _sheet(context)
@@ -182,25 +188,9 @@ def _read_only_sheet(context: dict[str, str]) -> list[ParameterInfo]:
 async def test_a_read_only_parameter_with_a_vocabulary_is_left_to_the_site(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    serve_search(
-        monkeypatch, _read_only_sheet, url_segment=_SEARCH, display_name="Life stages"
-    )
-    state = AgentToolState()
-
-    with pytest.raises(ModelRetry) as refused:
-        await _bind(
-            state,
-            {
-                "profileset_generic": _AMA,
-                "samples_fc_direct_generic_page": _COMPARISONS[_AMA][0],
-                "fold_change": "2",
-            },
-        )
-
-    assert str(refused.value) == (
-        f"profileset_generic on {_SEARCH} is set by the site to '{_PNA}' and takes "
-        "no other value; leave it out of params. The names params takes: "
-        "['fold_change', 'samples_fc_direct_generic_page']."
+    assert await _left_out_at_another_value(monkeypatch, _read_only_sheet) == (
+        [_LEFT_OUT],
+        _PNA,
     )
 
 
@@ -245,7 +235,12 @@ def _held_spec() -> OperationalSpec:
 
 
 def test_a_hidden_parameter_is_held_by_no_question() -> None:
-    assert dict(params_held(_held_spec())) == {"c_ama": {"fold_change"}}
+    state = AgentToolState()
+    state.record_site_set(_SEARCH, _sheet({}))
+
+    assert dict(params_held(_held_spec(), state.sets_the_site)) == {
+        "c_ama": {"fold_change"}
+    }
 
 
 def test_a_card_binds_no_hidden_parameter() -> None:
@@ -259,3 +254,38 @@ def test_a_card_binds_no_hidden_parameter() -> None:
 
     held = carded.criteria[0].resolved_params["profileset_generic"]
     assert (held.value.to_wire(), held.source) == (_PNA, "default")
+
+
+def test_a_card_leaves_a_read_only_value_at_the_sites_default() -> None:
+    sheet = _read_only_sheet({})
+    spec = OperationalSpec(
+        goal="up in amastigotes",
+        criteria=[
+            Criterion(
+                id="c_ama",
+                text="up in amastigotes",
+                search_name=_SEARCH,
+                record_class="transcript",
+                resolved_params=bind_values(
+                    {"profileset_generic": SinglePickValue(value=_PNA)},
+                    "default",
+                    sheet,
+                ),
+            )
+        ],
+    )
+
+    carded = spec_bound_by_card(
+        spec,
+        SetValues(criterion_id="c_ama", params={"profileset_generic": _AMA}),
+        option_id="o_ama",
+        sheets={_SEARCH: sheet},
+        expressions={},
+    )
+
+    held = carded.criteria[0].resolved_params["profileset_generic"]
+    assert (held.value.to_wire(), held.source, held.visible) == (
+        _PNA,
+        "default",
+        True,
+    )

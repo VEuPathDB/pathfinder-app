@@ -165,3 +165,27 @@ export function summaryLabel(item: SelectionSummary): string {
     ? `${item.label} (all ${String(item.leafCount)})`
     : item.label;
 }
+
+export function nodeMatchesSearch(node: VocabNode, term: string): boolean {
+  if (node.label.toLowerCase().includes(term)) return true;
+  return node.children?.some((child) => nodeMatchesSearch(child, term)) ?? false;
+}
+
+/** Every branch with a search match below it; a search shows each match. */
+export function searchExpansion(nodes: VocabNode[], term: string): Set<string> {
+  const out = new Set<string>();
+  const visit = (node: VocabNode): void => {
+    if (node.children?.some((child) => nodeMatchesSearch(child, term)) === true) {
+      out.add(node.value);
+    }
+    node.children?.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return out;
+}
+
+export function branchValues(nodes: VocabNode[]): string[] {
+  return nodes.flatMap((node) =>
+    isBranch(node) ? [node.value, ...branchValues(node.children)] : [],
+  );
+}

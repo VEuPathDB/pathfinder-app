@@ -34,7 +34,12 @@ import {
 
 const SAVED_DATASET_ID = /^[1-9][0-9]*$/;
 
-export function DatasetParam({ spec, name, field }: ParamWidgetProps) {
+export function DatasetParam({
+  spec,
+  name,
+  field,
+  disabled = false,
+}: ParamWidgetProps) {
   const raw = typeof field.state.value === "string" ? field.state.value : "";
   const decoded = decodeDatasetValue(raw);
   const defaultIds = defaultIdListFromInitial(spec.initialDisplayValue);
@@ -166,6 +171,7 @@ export function DatasetParam({ spec, name, field }: ParamWidgetProps) {
           <StrategyTab
             value={strategyIdFromConfig(decoded)}
             onChange={updateStrategy}
+            disabled={disabled}
           />
         </TabsContent>
       </Tabs>

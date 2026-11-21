@@ -64,13 +64,6 @@ class PushConversationRequest(CamelModel):
     description: str | None = Field(default=None, max_length=2000)
 
 
-class ConversationPatchBody(CamelModel):
-    """Sidebar patch payload - rename / toggle saved."""
-
-    name: str | None = None
-    is_saved: bool | None = Field(default=None)
-
-
 class ConversationDuplicateResponse(CamelModel):
     id: UUID
     name: str

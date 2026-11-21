@@ -138,6 +138,7 @@ def _knob(choices: list[str]) -> ParameterInfo:
         type="single-pick-vocabulary",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         allowed_values=[VocabOption(value=c, display=c) for c in choices],

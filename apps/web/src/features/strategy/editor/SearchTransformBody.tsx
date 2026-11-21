@@ -2,7 +2,8 @@
 
 import type { Step, ParamSpec } from "@strategist/shared";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isHiddenParam, isAdvancedParam } from "./widgets/registry";
+import { isShown } from "@/lib/parameters/visibility";
+import { isAdvancedParam } from "./widgets/registry";
 import { SearchPicker } from "./components/SearchPicker";
 import { ParamFieldRenderer } from "./components/ParamFieldRenderer";
 import {
@@ -167,7 +168,7 @@ function bucketSpecs(specs: ParamSpec[]): BucketedSpecs {
       compositeSpecs.push(spec);
       continue;
     }
-    if (isHiddenParam(spec)) continue;
+    if (!isShown(spec)) continue;
     if (isAdvancedParam(spec)) {
       advancedSpecs.push(spec);
     } else {

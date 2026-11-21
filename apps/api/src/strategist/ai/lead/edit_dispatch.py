@@ -161,7 +161,9 @@ async def run_edit(
     # A criterion waiting for its analysis has no step to write; the EDA tools
     # add it, so the edit plans without it and the plan keeps it.
     planned = spec_without_pending_analyses(after)
-    diff = diff_specs(before, planned)
+    diff = diff_specs(
+        before, planned, sets_the_site=deps.state.domain.site_set.sets_the_site
+    )
     if frame.disposition != "spec_ready":
         # Nothing is pushed before the answer, so the delta carries no diff: a
         # row that read "changed" would state a change the strategy does not hold.
@@ -219,7 +221,9 @@ async def _undo(*, deps: LeadDeps, base: _EditBase) -> EditDelta:
     site_id, goal = deps.runtime.site_id, deps.state.user_prompt
     before = await stated_spec_of(live, site_id=site_id, goal=goal)
     after = await stated_spec_of(stored, site_id=site_id, goal=goal)
-    diff = diff_specs(before, after)
+    diff = diff_specs(
+        before, after, sets_the_site=deps.state.domain.site_set.sets_the_site
+    )
     _refuse_a_removal_the_card_owns(deps, diff, base.graph)
     # The commit's guards read the spec the thread states, so it states the
     # restored tree before the push.

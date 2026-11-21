@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from pydantic_ai import RunContext
 
+from strategist.ai.agents.state import AgentToolState
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -57,7 +60,11 @@ from strategist.domain.strategy.requirement_reports import (
     numbered_requirements,
     resolved_reports,
 )
+from strategist.domain.strategy.site_set_reads import searches_holding_values
 from strategist.domain.strategy.spec_diff import CriterionChange, diff_specs
+from strategist.services.strategies.sheet_params import (
+    published_parameters_of_searches,
+)
 
 
 def frame_work_order(reason: str, deps: LeadDeps) -> str:
@@ -245,6 +252,7 @@ async def _run_frame(
 ) -> FrameResult | SubAgentApprovalWait:
     """Run FRAME and apply its result, on a fresh dispatch or a resumed one."""
     agent_deps = agent_deps_for(deps, call_id=parent_tool_call_id)
+    await _record_the_carried_site_set(agent_deps.agent_state, agent_deps.site_id)
     if not agent_deps.agent_state.operational_spec_draft.goal:
         agent_deps.agent_state.operational_spec_draft.goal = deps.state.user_prompt
     bound_before = _bound_count(agent_deps.agent_state.operational_spec_draft)
@@ -279,12 +287,14 @@ async def _run_frame(
         return frame_result_from_draft(
             deps.state.domain.operational_spec, deps.last_phase_stop
         )
-    return await _accepted(
-        deps,
-        delta,
-        agent_deps.agent_state.operational_spec_draft,
-        agent_deps.agent_state.portal_route or _another_site_route(deps, delta),
-    )
+    return await _accepted(deps, delta, agent_deps.agent_state)
+
+
+async def _record_the_carried_site_set(state: AgentToolState, site_id: str) -> None:
+    carried = searches_holding_values(state.operational_spec_draft)
+    read = await published_parameters_of_searches(site_id=site_id, search_names=carried)
+    for search_name, infos in read.items():
+        state.record_site_set(search_name, infos)
 
 
 def _another_site_route(deps: LeadDeps, delta: FrameResult) -> str:
@@ -310,11 +320,13 @@ def _another_site_route(deps: LeadDeps, delta: FrameResult) -> str:
 
 
 async def _accepted(
-    deps: LeadDeps, delta: FrameResult, draft: OperationalSpec, route: str
+    deps: LeadDeps, delta: FrameResult, state: AgentToolState
 ) -> FrameResult:
     """The result the Lead reads from a pass that answered, its changes read
     from the wire values, or a refusal. A pass sent to another site carries
     that site's sentence, alone when the pass changed nothing."""
+    draft = state.operational_spec_draft
+    route = state.portal_route or _another_site_route(deps, delta)
     found = deps.state.domain.spec_before_dispatch
     if route and draft == (found or OperationalSpec(goal=draft.goal)):
         return FrameResult(disposition="needs_user", summary=route)
@@ -327,12 +339,13 @@ async def _accepted(
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
-    draft = _without_what_an_unbound_question_moved(deps, delta, draft)
-    return delta.model_copy(update={"changes": derived_changes(found, draft)})
+    draft = _without_what_an_unbound_question_moved(deps, delta, state)
+    changes = derived_changes(found, draft, state.sets_the_site)
+    return delta.model_copy(update={"changes": changes})
 
 
 def _without_what_an_unbound_question_moved(
-    deps: LeadDeps, delta: FrameResult, draft: OperationalSpec
+    deps: LeadDeps, delta: FrameResult, state: AgentToolState
 ) -> OperationalSpec:
     """The spec a pass leaves when it still ends on a question that binds nothing.
 
@@ -340,11 +353,12 @@ def _without_what_an_unbound_question_moved(
     takes back the values it was found with, so the plan moves no built step
     before an answer; what the pass added or dropped stays.
     """
+    draft = state.operational_spec_draft
     found = deps.state.domain.spec_before_dispatch
     if (
         found is None
         or delta.disposition != "needs_user"
-        or not questions_that_bind_to_nothing(delta, draft)
+        or not questions_that_bind_to_nothing(delta, draft, state.sets_the_site)
     ):
         return draft
     as_found = {c.id: c for c in found.criteria}
@@ -360,7 +374,9 @@ def _without_what_an_unbound_question_moved(
 
 
 def derived_changes(
-    found: OperationalSpec | None, draft: OperationalSpec
+    found: OperationalSpec | None,
+    draft: OperationalSpec,
+    sets_the_site: Callable[[str, str], bool],
 ) -> list[CriterionChange]:
     """What the pass did to each criterion the dispatch found, read from the
     wire values of the two specs. A drop carries the reason the pass gave."""
@@ -374,7 +390,7 @@ def derived_changes(
         )
         if change.disposition == "dropped"
         else change
-        for change in diff_specs(found, draft).changes
+        for change in diff_specs(found, draft, sets_the_site=sets_the_site).changes
         if change.criterion_id in texts
     ]
 

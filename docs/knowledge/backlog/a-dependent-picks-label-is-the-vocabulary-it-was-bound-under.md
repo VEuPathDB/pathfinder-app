@@ -16,7 +16,7 @@ bound parents. `pick_readings.site_default` counts a dependent pick at the
 published default, which the bound-parent vocabulary may not hold.
 
 **What is measured.** plasmodb `GenesByInterproDomain`, `domain_typeahead`
-(`vocab_depends_on`: `organism`, `domain_database`), read live with
+(`stated_parents`: `organism`, `domain_database`), read live with
 `domain_database = Pfam`: the published read (default organism Haemoproteus
 tartakovskyi strain SISKIN1) holds 1,509 entries; the read under Plasmodium
 falciparum 3D7 holds 2,102, of which 665 the published read lacks (PF00013,

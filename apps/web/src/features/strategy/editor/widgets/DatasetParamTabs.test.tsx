@@ -78,6 +78,36 @@ describe("StrategyTab", () => {
   });
 });
 
+describe("StrategyTab (read-only)", () => {
+  it("does not open the strategy list of a read-only parameter", async () => {
+    server.use(
+      http.get("*/api/v1/conversations", () =>
+        HttpResponse.json([
+          {
+            id: "5b0c1d2e-0000-4000-8000-000000000001",
+            name: "Kinases",
+            siteId: "plasmodb",
+            recordType: "transcript",
+            createdAt: "2026-09-24T00:00:00Z",
+            updatedAt: "2026-09-24T00:00:00Z",
+            wdkStrategyId: 330713643,
+          },
+        ]),
+      ),
+    );
+    const user = userEvent.setup();
+
+    render(<StrategyTab value="" onChange={vi.fn()} disabled />, {
+      wrapper: appQueryClientWrapper(),
+    });
+    const trigger = await screen.findByRole("combobox");
+    await user.click(trigger);
+
+    expect(trigger).toBeDisabled();
+    expect(screen.queryByText("Kinases")).toBe(null);
+  });
+});
+
 describe("PasteTab", () => {
   it("says what the site does with the IDs, not the source type", () => {
     render(

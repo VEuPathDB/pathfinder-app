@@ -189,3 +189,47 @@ describe("SelectParam (multi-pick, shadcn Checkbox stack)", () => {
     expect(beta.getAttribute("data-state")).toBe("checked");
   });
 });
+
+describe("SelectParam (read-only)", () => {
+  it("disables the trigger of a read-only select", () => {
+    render(
+      <WidgetTestForm name="test_param" defaultValue="a">
+        {(field) => (
+          <SelectParam
+            spec={makeSpec({ isReadOnly: true })}
+            name="test_param"
+            options={sampleOptions}
+            vocabTree={null}
+            field={field}
+            disabled
+          />
+        )}
+      </WidgetTestForm>,
+    );
+
+    expect(screen.getByRole("combobox")).toBeDisabled();
+  });
+
+  it("does not open a read-only select", async () => {
+    const user = userEvent.setup();
+    render(
+      <WidgetTestForm name="test_param" defaultValue="a">
+        {(field) => (
+          <SelectParam
+            spec={makeSpec({ isReadOnly: true })}
+            name="test_param"
+            options={sampleOptions}
+            vocabTree={null}
+            field={field}
+            disabled
+          />
+        )}
+      </WidgetTestForm>,
+    );
+
+    await user.click(screen.getByRole("combobox"));
+
+    expect(screen.queryByRole("listbox")).toBe(null);
+    expect(screen.queryByText("Beta")).toBe(null);
+  });
+});

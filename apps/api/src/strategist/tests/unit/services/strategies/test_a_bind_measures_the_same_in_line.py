@@ -31,6 +31,7 @@ def _number(name: str) -> ParameterInfo:
         type="number",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         min=0,

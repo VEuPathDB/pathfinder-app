@@ -24,6 +24,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone import _frame_proposals, frame_spec
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.services.strategies import sheet_params
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_searches import no_count
 from strategist.tests._support.tool_returns import returned
@@ -97,7 +98,7 @@ async def _bind(
     client.get_search_details = _details
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
     monkeypatch.setattr(searches, "list_searches", AsyncMock(return_value=[]))
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _catalog_details)
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _catalog_details)
     monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _resolve)
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)

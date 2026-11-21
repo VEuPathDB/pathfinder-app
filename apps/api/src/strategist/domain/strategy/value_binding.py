@@ -134,7 +134,7 @@ def parents_moved(
         parent
         for name in names
         if name in values and name in by_name
-        for parent in by_name[name].vocab_depends_on or ()
+        for parent in by_name[name].wire_parents
     }
     return any(
         parent in values

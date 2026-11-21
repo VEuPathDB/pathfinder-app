@@ -267,7 +267,6 @@ async def mark_saved(
                     wdk_strategy_id=None,
                     wdk_strategy_id_set=False,
                     is_saved=True,
-                    is_saved_set=True,
                 ),
                 held=await repo.get_strategy(conv_id),
             ),

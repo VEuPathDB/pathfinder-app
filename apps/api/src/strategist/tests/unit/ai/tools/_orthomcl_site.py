@@ -19,7 +19,7 @@ from strategist.ai.tools.standalone import (
     frame_spec,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.services.strategies import dataset_sources
+from strategist.services.strategies import dataset_sources, sheet_params
 from strategist.tests._support.orthomcl_site import OrthoSite
 from strategist.tests._support.recorded_counts import no_measurements
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
@@ -78,7 +78,7 @@ def serve_orthomcl(monkeypatch: pytest.MonkeyPatch) -> OrthoSite:
         return site.count(name, params)
 
     monkeypatch.setattr(_frame_sheet, "read_search_definition", _definition)
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _details)
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
     monkeypatch.setattr(_catalog_models, "read_search_definition", _definition)
     monkeypatch.setattr(tool_payloads, "list_search_listings", _listings)

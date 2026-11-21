@@ -16,6 +16,7 @@ from strategist.domain.strategy.reading_plan import plan_lines
 from strategist.domain.strategy.spec_diff import diff_specs
 from strategist.domain.strategy.spec_tree import build_step_tree
 from strategist.tests._support.bound_values import bound
+from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
 from ._builders import (
     applied,
@@ -83,7 +84,9 @@ def test_a_spec_read_from_a_strategy_keeps_each_steps_weight() -> None:
 def test_a_weight_change_changes_its_criterion() -> None:
     before = spec_of(three_step_root())
 
-    diff = diff_specs(before, _reweighted(before, "step_expr", 2))
+    diff = diff_specs(
+        before, _reweighted(before, "step_expr", 2), sets_the_site=sets_nothing
+    )
 
     assert [(c.criterion_id, c.disposition) for c in diff.changes] == [
         ("step_text", "kept"),

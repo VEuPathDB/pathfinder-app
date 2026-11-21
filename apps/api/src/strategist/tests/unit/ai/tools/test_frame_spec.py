@@ -43,6 +43,7 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.services.strategies import sheet_params
 from strategist.tests._support.catalog_builders import ParamsAt
 from strategist.tests._support.catalog_reads import listing
 from strategist.tests._support.record_classes import list_every_search_under
@@ -76,6 +77,7 @@ def param_info(
         "type": param_type,
         "required": True,
         "is_visible": True,
+        "site_set": False,
         "help": "",
         "value_format": "",
     }
@@ -150,7 +152,7 @@ def serve_catalog(
             ctx.record_type,
         )
 
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _details)
     return seen
 
 

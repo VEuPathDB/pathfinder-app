@@ -90,7 +90,6 @@ async def update_strategy(
         wdk_strategy_id=request.wdk_strategy_id,
         wdk_strategy_id_set="wdk_strategy_id" in fields_set,
         is_saved=request.is_saved,
-        is_saved_set="is_saved" in fields_set,
     )
     return await ConversationService(session).update(strategyId, user_id, patch)
 

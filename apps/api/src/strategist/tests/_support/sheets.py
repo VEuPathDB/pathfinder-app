@@ -17,6 +17,7 @@ def visible_sheet(names: Iterable[str]) -> list[ParameterInfo]:
                 "type": "string",
                 "required": False,
                 "is_visible": True,
+                "site_set": False,
                 "help": "",
                 "value_format": "",
             }

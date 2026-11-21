@@ -88,6 +88,7 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
                 "type": "string",
                 "required": True,
                 "is_visible": True,
+                "site_set": False,
                 "help": "",
                 "value_format": "",
             }
@@ -106,7 +107,7 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del callbacks
         return ValidatedParams(params=dict(parameters))
 
-    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _sheets)
+    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
 
 

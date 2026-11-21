@@ -35,11 +35,7 @@ from strategist.domain.caveats import Caveat, Gap
 from strategist.domain.clipped import list_clipped_to, text_clipped_to
 from strategist.domain.eda_parts import OpenEdaSheet
 from strategist.domain.eda_thread import EdaAnalysisFacts, OpenEdaAnalysis
-from strategist.domain.evidence import (
-    EvidenceCard,
-    NamedControlSet,
-    VerificationReview,
-)
+from strategist.domain.evidence import EvidenceCard, NamedControlSet, VerificationReview
 from strategist.domain.exchanges import Exchange, kept_exchanges
 from strategist.domain.memory import MemoryKind
 from strategist.domain.omitted_from_input import OmittedFromInput
@@ -52,6 +48,7 @@ from strategist.domain.strategy.data_marks import DataMarks
 from strategist.domain.strategy.expression_handles import BuiltPattern
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.revision import strategy_revision
+from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.domain.strategy.spec_tree import renumber_criteria
 from strategist.domain.strategy.staleness import StaleBuild
 from strategist.domain.unmet_requirements import unmet_requirement_ids
@@ -158,6 +155,7 @@ class StrategyDomainState(ThreadRequirements):
     # dispositions against it, and a refusal puts it back.
     spec_before_dispatch: OperationalSpec | None = None
     discovered_searches: dict[str, SearchOverview] = Field(default_factory=dict)
+    site_set: SiteSetReads = Field(default_factory=SiteSetReads, exclude=True)
     site_verdict: Stored[VerificationDigest] = None
     # The revision of the strategy the digest judged. The digest is the verdict
     # only while the strategy holds that revision.

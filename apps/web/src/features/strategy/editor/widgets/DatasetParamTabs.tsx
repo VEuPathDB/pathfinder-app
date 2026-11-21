@@ -147,9 +147,10 @@ export function BasketTab({ value, onChange, name }: BasketTabProps) {
 interface StrategyTabProps {
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
-export function StrategyTab({ value, onChange }: StrategyTabProps) {
+export function StrategyTab({ value, onChange, disabled = false }: StrategyTabProps) {
   const siteId = useSessionStore((s) => s.selectedSite);
   const { data, isPending, isError } = useQuery({
     ...listStrategiesQueryOptions({ siteId }),
@@ -183,6 +184,7 @@ export function StrategyTab({ value, onChange }: StrategyTabProps) {
         placeholder={isPending ? "Loading..." : "Select a strategy..."}
         emptyMessage="No strategy on this site is built yet."
         searchPlaceholder="Search strategies..."
+        disabled={disabled}
       />
       <p className="text-[0.6875rem] text-muted-foreground">
         The site reads the IDs this strategy answers.

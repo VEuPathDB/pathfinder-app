@@ -3,14 +3,17 @@ vocabularies a step's own parent values answer."""
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
+    fetch_search_details,
     format_param_info_typed,
     read_search_definition,
     wdk_fetch_at,
@@ -33,26 +36,33 @@ async def _listed_under(site_id: str, search_name: str) -> str | None:
     return listed[search_name]
 
 
-async def sheet_params_for_searches(
-    *,
-    site_id: str,
-    search_names: Collection[str],
-) -> dict[str, list[ParameterInfo]]:
-    """The visible parameters of every search the catalog reads, each read under
-    the record type the catalog lists it under.
+type DefinitionRead = Callable[[str, str, str], Awaitable[WDKSearch]]
 
-    A search the catalog lists under no record type, or cannot read, is left
-    out, so the caller keeps the values it already holds for that search.
+
+async def catalog_search_definition(
+    site_id: str, record_type: str, search_name: str
+) -> WDKSearch:
+    """The published definition of the search, read through the catalog.
+
+    The structural parameters and the search properties are both dropped from the
+    sheet. The catalog's per-process cache holds site metadata and no user data.
     """
+    response, _ = await fetch_search_details(
+        SearchContext(site_id, record_type, search_name)
+    )
+    return response.search_data
+
+
+async def _parameters_read(
+    site_id: str, search_names: Collection[str], read: DefinitionRead
+) -> dict[str, list[ParameterInfo]]:
     sheets: dict[str, list[ParameterInfo]] = {}
     for search_name in sorted(set(search_names)):
         try:
             listed_under = await _listed_under(site_id, search_name)
             if listed_under is None:
                 continue
-            definition = await read_search_definition(
-                site_id, listed_under, search_name
-            )
+            definition = await read(site_id, listed_under, search_name)
         except (VEuPathDBError, OSError) as exc:
             logger.warning(
                 "search sheet unreadable",
@@ -60,12 +70,42 @@ async def sheet_params_for_searches(
                 error=str(exc),
             )
             continue
-        sheets[search_name] = [
-            info
-            for info in format_param_info_typed(definition.parameters or [])
-            if info.is_visible
-        ]
+        sheets[search_name] = format_param_info_typed(definition.parameters or [])
     return sheets
+
+
+async def parameters_of_searches(
+    *,
+    site_id: str,
+    search_names: Collection[str],
+) -> dict[str, list[ParameterInfo]]:
+    """Every parameter of every search the catalog reads, each read under the
+    record type the catalog lists it under.
+
+    A search the catalog lists under no record type, or cannot read, is left
+    out, so the caller keeps the values it already holds for that search.
+    """
+    return await _parameters_read(site_id, search_names, read_search_definition)
+
+
+async def published_parameters_of_searches(
+    *,
+    site_id: str,
+    search_names: Collection[str],
+) -> dict[str, list[ParameterInfo]]:
+    return await _parameters_read(site_id, search_names, catalog_search_definition)
+
+
+async def sheet_params_for_searches(
+    *,
+    site_id: str,
+    search_names: Collection[str],
+) -> dict[str, list[ParameterInfo]]:
+    """The bindable parameters of each search ``parameters_of_searches`` reads."""
+    read = await parameters_of_searches(site_id=site_id, search_names=search_names)
+    return {
+        name: [info for info in infos if info.bindable] for name, infos in read.items()
+    }
 
 
 def _with_vocabulary(info: ParameterInfo, read: ParameterInfo) -> ParameterInfo:
@@ -88,13 +128,13 @@ async def vocabularies_under(
     """The published sheet with each dependent vocabulary as the bound parents
     answer it. WDK answers each sent value as its parameter's initial value, so
     the read gives vocabularies and nothing else."""
-    if not any(info.vocab_depends_on for info in infos):
+    if not any(info.wire_parents for info in infos):
         return infos
     read = await fetch_at({name: to_wire(value) for name, value in values.items()})
     answered = {info.name: info for info in read}
     return [
         _with_vocabulary(info, answered[info.name])
-        if info.vocab_depends_on and info.name in answered
+        if info.wire_parents and info.name in answered
         else info
         for info in infos
     ]

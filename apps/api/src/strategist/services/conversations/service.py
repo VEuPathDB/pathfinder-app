@@ -186,7 +186,7 @@ class ConversationService:
                 title="Strategy not found",
             )
         updated, strategy = found
-        if patch.is_saved_set and strategy.wdk_strategy_id:
+        if patch.is_saved is not None and strategy.wdk_strategy_id:
             await sync_is_saved_to_wdk(conversation=updated, strategy=strategy)
         return build_conversation_response(
             updated,

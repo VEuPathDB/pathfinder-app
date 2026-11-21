@@ -197,7 +197,7 @@ def refuse_what_the_words_decide(
     carried_to = state.carried_to(call.criterion_id)
     transform = bool(definition.allowed_primary_input_record_class_names)
     for info in infos:
-        if info.organism_param and not info.vocab_depends_on:
+        if info.organism_param and not info.stated_parents:
             _refuse_an_organism_the_request_does_not_name(
                 definition, call, info, state.stated_requirements
             )

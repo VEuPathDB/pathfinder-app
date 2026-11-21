@@ -151,7 +151,6 @@ async def test_clearing_blanks_the_built_strategy_and_keeps_the_links(
                 wdk_strategy_id=777002,
                 wdk_strategy_id_set=True,
                 wdk_strategy_created_here=True,
-                wdk_strategy_created_here_set=True,
                 gene_set_auto_imported=True,
             ),
         )

@@ -6,7 +6,7 @@ the two specs, so no prose can claim a criterion was preserved that was not.
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import computed
@@ -87,11 +87,16 @@ class SpecDiff(CamelModel):
         return f"{counts}, structure rewired" if self.structure_changed else counts
 
 
-def diff_specs(before: OperationalSpec, after: OperationalSpec) -> SpecDiff:
+def diff_specs(
+    before: OperationalSpec,
+    after: OperationalSpec,
+    *,
+    sets_the_site: Callable[[str, str], bool],
+) -> SpecDiff:
     """Compare two specs by criterion id and by bound parameter value."""
     after_by_id = {c.id: c for c in after.criteria}
     changes = [
-        _change_for(criterion, after_by_id.get(criterion.id))
+        _change_for(criterion, after_by_id.get(criterion.id), sets_the_site)
         for criterion in before.criteria
     ]
     before_ids = {c.id for c in before.criteria}
@@ -125,7 +130,11 @@ def steps_only_removed(diff: SpecDiff, built: Collection[str]) -> list[str]:
     ]
 
 
-def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
+def _change_for(
+    before: Criterion,
+    after: Criterion | None,
+    sets_the_site: Callable[[str, str], bool],
+) -> CriterionChange:
     if after is None:
         return CriterionChange(
             criterion_id=before.id,
@@ -142,7 +151,7 @@ def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
         name: value
         for name, value in after_params.items()
         if before_params.get(name) != value
-        and (name in before_params or after.resolved_params[name].visible)
+        and (name in before_params or not sets_the_site(after.search_name, name))
     }
     reweighted = before.weight != after.weight
     if not changed and not removed and not rebound and not reweighted:

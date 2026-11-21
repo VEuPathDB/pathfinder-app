@@ -23,6 +23,7 @@ from strategist.ai.tools.standalone import frame_spec
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.operational_spec import Criterion
+from strategist.services.strategies import sheet_params
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.catalog_builders import serve_search_details
 from strategist.tests._support.tool_returns import returned
@@ -131,7 +132,7 @@ def _serve_the_eda_search(
             response=_eda_response(default, visible=visible), values_were_read=True
         )
 
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _details)
     monkeypatch.setattr(frame_spec, "make_validation_callbacks", _eda_callbacks)
     serve_search_details(monkeypatch, _resolved)
 

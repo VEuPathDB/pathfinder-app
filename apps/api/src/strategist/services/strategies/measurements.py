@@ -367,7 +367,7 @@ async def _readings_of(
             )
         case "not_measurable":
             return [_not_measurable(info.name, rules.reason)]
-        case "site_fixed" | "expression_reading":
+        case "site_set" | "expression_reading":
             return []
 
 
@@ -376,7 +376,7 @@ def _unread(info: ParameterInfo, value: ParamValue) -> list[Measurement]:
     reading against."""
     unread = Measurement(kind="bound_count", param=info.name, reading=to_wire(value))
     match rules_of(info).measurement:
-        case "site_fixed":
+        case "site_set":
             return []
         case _:
             return [unread, *tree_note(info.name, info)]
@@ -412,7 +412,7 @@ async def measure_binding(
         and bound.source in _MEASURED_SOURCES
         and rules_of(by_name[name]).measurement != "expression_reading"
         and _has_readings(by_name[name], bound)
-        and not set(by_name[name].controls_vocab_of or ()) & values.keys()
+        and not set(by_name[name].wire_children) & values.keys()
     }
     if binding.count is None:
         return [

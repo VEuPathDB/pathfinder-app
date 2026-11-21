@@ -360,6 +360,9 @@ def apply_agent_state(deps: LeadDeps, agent_deps: AgentDeps) -> None:
         agent_deps.agent_state.discovered_searches,
     )
     deps.state.domain.built_expressions = dict(agent_deps.agent_state.built_expressions)
+    deps.state.domain.site_set = deps.state.domain.site_set.with_reads(
+        agent_deps.agent_state.site_set_read_this_pass
+    )
     comparisons = agent_deps.agent_state.computed_comparisons
     deps.state.domain.computed_comparisons = dict(comparisons)
     deps.state.domain.record_statistics(held.fact() for held in comparisons.values())

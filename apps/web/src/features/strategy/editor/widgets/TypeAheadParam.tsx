@@ -8,7 +8,13 @@ function toOptions(opts: { value: string; label: string }[]): ComboboxOption[] {
   return opts.map((o) => ({ value: o.value, label: o.label }));
 }
 
-export function TypeAheadParam({ spec, name, options, field }: ParamWidgetProps) {
+export function TypeAheadParam({
+  spec,
+  name,
+  options,
+  field,
+  disabled = false,
+}: ParamWidgetProps) {
   const multi = isMultiParam(spec);
   const errors = field.state.meta.errors;
   const hasError = errors.length > 0;
@@ -28,6 +34,7 @@ export function TypeAheadParam({ spec, name, options, field }: ParamWidgetProps)
           onChange={(next) => field.handleChange(next)}
           placeholder="Type to search..."
           emptyMessage="No matches"
+          disabled={disabled}
           {...triggerClass}
         />
       ) : (
@@ -42,6 +49,7 @@ export function TypeAheadParam({ spec, name, options, field }: ParamWidgetProps)
           onChange={(next) => field.handleChange(next ?? "")}
           placeholder="Type to search..."
           emptyMessage="No matches"
+          disabled={disabled}
           {...triggerClass}
         />
       )}

@@ -45,12 +45,13 @@ def _held_terms(info: ParameterInfo, current_values: Mapping[str, str]) -> list[
 
 
 def _depends_on_another(info: ParameterInfo) -> bool:
-    """Whether the catalog ties this parameter's vocabulary to another value.
+    """Whether this parameter's vocabulary waits on a stated parent, or another
+    value follows it.
 
     The catalog serves a dependent vocabulary under the default parent, so a
     grid over one of these pairs terms that do not belong together.
     """
-    return bool(info.vocab_depends_on or info.controls_vocab_of)
+    return bool(info.stated_parents or info.wire_children)
 
 
 def _is_scalar_number(info: ParameterInfo) -> bool:
@@ -109,7 +110,7 @@ def _spec_for(
     current_values: Mapping[str, str],
 ) -> ParameterSpec | None:
     """The sweep spec this parameter supports, or None when it supports none."""
-    if not info.is_visible or _depends_on_another(info):
+    if info.site_set or _depends_on_another(info):
         return None
     return _categorical_spec(info, current_values) or _numeric_spec(info)
 
@@ -130,16 +131,14 @@ def tunable_parameter_names(parameters: Sequence[ParameterInfo]) -> list[str]:
 
 def _nothing_tunable(search_name: str, parameters: Sequence[ParameterInfo]) -> str:
     """Why this search publishes no parameter a sweep can vary."""
-    visible = [info for info in parameters if info.is_visible]
-    children = [info.name for info in visible if info.vocab_depends_on]
+    bindable = [info for info in parameters if info.bindable]
+    children = [info.name for info in bindable if info.stated_parents]
     parents = [
-        info.name
-        for info in visible
-        if info.controls_vocab_of and not info.vocab_depends_on
+        info.name for info in bindable if info.wire_children and not info.stated_parents
     ]
     unbounded = [
         info.name
-        for info in visible
+        for info in bindable
         if not _depends_on_another(info)
         and _is_scalar_number(info)
         and not _states_bounds(info)

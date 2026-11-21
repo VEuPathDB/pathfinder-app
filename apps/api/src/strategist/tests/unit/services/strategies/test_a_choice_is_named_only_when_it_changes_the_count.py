@@ -64,6 +64,7 @@ def _life_stages() -> list[ParameterInfo]:
             type="single-pick-vocabulary",
             required=True,
             is_visible=False,
+            site_set=True,
             help="",
             value_format="",
             default_value=_PNA,
@@ -354,6 +355,7 @@ async def test_every_option_of_a_large_vocabulary_is_named_with_its_separator() 
         type="multi-pick-vocabulary",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         allowed_values=[

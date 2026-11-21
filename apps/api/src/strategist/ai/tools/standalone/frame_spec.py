@@ -5,12 +5,10 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import to_wire
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
     ResolvedParams,
-    fetch_search_details,
     make_validation_callbacks,
     shortlist_slot,
     validate_parameters,
@@ -87,6 +85,7 @@ from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
 )
+from strategist.services.strategies.sheet_params import catalog_search_definition
 
 
 def _memoized_fetch(site_id: str, record_type: str, search_name: str) -> ParamFetcher:
@@ -105,16 +104,6 @@ def _memoized_fetch(site_id: str, record_type: str, search_name: str) -> ParamFe
         return read[key]
 
     return memoized
-
-
-async def _search_definition(search: SearchContext) -> WDKSearch:
-    """The published definition of the search, read through the catalog.
-
-    The structural parameters and the search properties are both dropped from the
-    sheet. The catalog's per-process cache holds site metadata and no user data.
-    """
-    response, _ = await fetch_search_details(search)
-    return response.search_data
 
 
 async def _canonical_binding(
@@ -296,8 +285,11 @@ async def _bind_the_search(
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
     with an_unserved_search_refused(ctx, criterion_id, search_name, record_type):
-        definition = await _search_definition(search)
+        definition = await catalog_search_definition(
+            ctx.deps.site_id, record_type, search_name
+        )
         infos = await fetch_at({})
+    state.record_site_set(search_name, infos)
     refuse_a_param_the_sheet_lacks(stated.answers, infos)
     await refuse_a_search_the_criterion_cannot_use(
         ctx, record_type, definition, stated, params
@@ -422,7 +414,7 @@ async def _bind_the_search(
             resolved_params={
                 name: shown_wire(name, to_wire(value))
                 for name, value in resolved.params.items()
-                if name in bound and bound[name].visible
+                if name in bound and not state.sets_the_site(search_name, name)
             },
             defaulted_params=sorted(
                 n for n, b in bound.items() if b.source == "default"

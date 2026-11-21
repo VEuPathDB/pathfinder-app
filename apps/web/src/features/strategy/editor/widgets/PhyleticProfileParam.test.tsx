@@ -702,3 +702,32 @@ describe("an included species always reaches the matching branch", () => {
     expect(pattern).not.toMatch(/[<>=]/);
   });
 });
+
+describe("PhyleticProfileParam with a read-only parameter", () => {
+  const readOnlySpecs = makeAllSpecs().map((spec) =>
+    spec.name === "profile_pattern" ? { ...spec, isReadOnly: true } : spec,
+  );
+
+  it("disables every state toggle, so a click writes nothing", () => {
+    render(
+      <TestForm defaultValues={{ profile_pattern: "%hsap:N%" }}>
+        {(form) => (
+          <>
+            <PhyleticProfileParam
+              specs={readOnlySpecs}
+              allSpecs={readOnlySpecs}
+              form={form}
+            />
+            <FormValueReader form={form} name="profile_pattern" />
+          </>
+        )}
+      </TestForm>,
+    );
+    const toggle = screen.getByRole("button", { name: "Toggle P. falciparum" });
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toBeDisabled();
+    expect(screen.getByTestId("form-profile_pattern")).toHaveTextContent("%hsap:N%");
+  });
+});

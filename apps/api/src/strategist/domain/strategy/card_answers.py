@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
@@ -38,11 +38,15 @@ _OBJECT_KINDS: frozenset[ParamKind] = frozenset(
 )
 
 
-def params_held(spec: OperationalSpec) -> dict[str, set[str]]:
-    """The parameters each criterion holds, bound or open, by criterion id."""
+def params_held(
+    spec: OperationalSpec, sets_the_site: Callable[[str, str], bool]
+) -> dict[str, set[str]]:
+    """The parameters each criterion holds, bound or open, by criterion id.
+    A parameter the site sets is held by no criterion."""
     held: dict[str, set[str]] = defaultdict(set)
     for c in spec.criteria:
-        held[c.id] |= set(c.shown_values) | {s.param_name for s in c.open_params}
+        names = set(c.resolved_params) | {s.param_name for s in c.open_params}
+        held[c.id] |= {n for n in names if not sets_the_site(c.search_name, n)}
     for slot in spec.open_slots:
         held[slot.criterion_id].add(slot.param_name)
     return held
@@ -100,11 +104,9 @@ def _card_bound(
     sheet: Sequence[ParameterInfo],
 ) -> Criterion:
     slots = [*criterion.open_params, *slots]
-    hidden = {i.name for i in sheet if not i.is_visible} | {
-        name for name, held in criterion.resolved_params.items() if not held.visible
-    }
+    site_set = {i.name for i in sheet if i.site_set}
     for name, value in binding.params.items():
-        if name in hidden:
+        if name in site_set:
             continue
         kind = _kind_of(criterion, name, slots, sheet)
         criterion = criterion_restated(

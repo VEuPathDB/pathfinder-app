@@ -16,6 +16,7 @@ export function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
     displayType: "",
     allowEmptyValue: true,
     isVisible: true,
+    isReadOnly: false,
     isNumber: false,
     countOnlyLeaves: false,
     initialDisplayValue: "",

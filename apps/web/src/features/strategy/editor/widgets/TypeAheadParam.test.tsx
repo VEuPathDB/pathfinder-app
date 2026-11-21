@@ -105,3 +105,29 @@ describe("TypeAheadParam (multi-pick - shadcn Combobox multi)", () => {
     expect(screen.getByText("Cherry")).toBeTruthy();
   });
 });
+
+describe("TypeAheadParam (read-only)", () => {
+  it("does not open a read-only type-ahead", async () => {
+    const user = userEvent.setup();
+    render(
+      <WidgetTestForm name="test_param" defaultValue="apple">
+        {(field) => (
+          <TypeAheadParam
+            spec={makeSpec({ isReadOnly: true })}
+            name="test_param"
+            options={sampleOptions}
+            vocabTree={null}
+            field={field}
+            disabled
+          />
+        )}
+      </WidgetTestForm>,
+    );
+
+    const trigger = screen.getByRole("combobox");
+    await user.click(trigger);
+
+    expect(trigger).toBeDisabled();
+    expect(screen.queryByText("Banana")).toBe(null);
+  });
+});

@@ -317,7 +317,13 @@ def spec_of(root: StrategyStepNode) -> OperationalSpec:
 def plan(
     before: OperationalSpec, after: OperationalSpec, graph: StrategyGraph
 ) -> list[GraphOperation]:
-    return list(operations_for(diff_specs(before, after), after=after, graph=graph))
+    return list(
+        operations_for(
+            diff_specs(before, after, sets_the_site=sets_nothing),
+            after=after,
+            graph=graph,
+        )
+    )
 
 
 def applied(root: StrategyStepNode, ops: list[GraphOperation]) -> StrategyGraph:
@@ -355,3 +361,7 @@ def spec_joined(operator: CombineOp, *inputs: StructureNode) -> StructureNode:
 
 def spec_transform(criterion_id: str, input_: StructureNode) -> StructureNode:
     return StructureNode(kind="transform", criterion_id=criterion_id, inputs=[input_])
+
+
+def sets_nothing(_search_name: str, _param: str) -> bool:
+    return False

@@ -24,7 +24,7 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.spec_hydration import (
-    hidden_params_dropped,
+    site_set_params_dropped,
     spec_from_ast,
 )
 from strategist.domain.strategy.spec_tree import (
@@ -244,7 +244,7 @@ class TestTheReconstructionClaimsNothingItCannotKnow:
 
 
 class TestTheSheetDecidesWhichParamsTheSpecStates:
-    def test_a_parameter_the_sheet_hides_is_not_stated(self) -> None:
+    def test_a_parameter_the_site_sets_is_not_stated(self) -> None:
         root = StrategyStepNode(
             id="step_7c2e770b",
             search_name="GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC",
@@ -257,7 +257,7 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
         )
         ast = StrategyAst(record_type="transcript", root=root)
 
-        spec = hidden_params_dropped(
+        spec = site_set_params_dropped(
             spec_from_ast(ast, goal="g", listed={}),
             sheet_params={
                 "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC": visible_sheet(
@@ -273,7 +273,7 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
         )
 
     def test_a_search_the_mapping_does_not_name_keeps_its_values(self) -> None:
-        spec = hidden_params_dropped(
+        spec = site_set_params_dropped(
             spec_from_ast(_three_leaf_ast(), goal="g", listed={}), sheet_params={}
         )
 
@@ -285,7 +285,7 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
     def test_the_hydrated_spec_is_left_alone(self) -> None:
         hydrated = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
-        hidden_params_dropped(hydrated, sheet_params={"GenesByTaxon": []})
+        site_set_params_dropped(hydrated, sheet_params={"GenesByTaxon": []})
 
         criterion = next(c for c in hydrated.criteria if c.id == "step_taxon")
         assert "organism" in criterion.resolved_params

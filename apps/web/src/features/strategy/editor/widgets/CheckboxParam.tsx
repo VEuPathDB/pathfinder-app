@@ -6,7 +6,13 @@ import { cn } from "@/lib/utils/cn";
 import { isMultiParam } from "@/features/strategy/parameters/spec";
 import type { ParamWidgetProps } from "./types";
 
-export function CheckboxParam({ spec, name, options, field }: ParamWidgetProps) {
+export function CheckboxParam({
+  spec,
+  name,
+  options,
+  field,
+  disabled = false,
+}: ParamWidgetProps) {
   const multi = isMultiParam(spec);
   const errors = field.state.meta.errors;
   const hasError = errors.length > 0;
@@ -19,6 +25,7 @@ export function CheckboxParam({ spec, name, options, field }: ParamWidgetProps) 
         <RadioGroup
           value={value}
           onValueChange={(next) => field.handleChange(next)}
+          disabled={disabled}
           aria-invalid={hasError ? "true" : undefined}
           aria-describedby={hasError ? `${name}-error` : undefined}
           className={cn(
@@ -81,6 +88,7 @@ export function CheckboxParam({ spec, name, options, field }: ParamWidgetProps) 
           <label className="flex items-center gap-2 text-xs text-muted-foreground mb-1 pb-1 border-b border-border">
             <Checkbox
               checked={allSelected}
+              disabled={disabled}
               onCheckedChange={toggleAll}
               aria-label="Select all"
             />
@@ -91,6 +99,7 @@ export function CheckboxParam({ spec, name, options, field }: ParamWidgetProps) 
           <label key={opt.value} className="flex items-center gap-2 text-sm py-0.5">
             <Checkbox
               checked={currentValue.includes(opt.value)}
+              disabled={disabled}
               onCheckedChange={() => toggle(opt.value)}
               onBlur={field.handleBlur}
               aria-label={opt.label}

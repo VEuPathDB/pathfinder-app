@@ -149,7 +149,6 @@ def import_write(spec: WdkChatSpec, *, name: str) -> ConversationUpdate:
         wdk_strategy_id=spec.wdk_id,
         wdk_strategy_id_set=True,
         is_saved=spec.is_saved,
-        is_saved_set=True,
         step_count=spec.step_count,
         estimated_size=root_count(spec.strategy_ast),
         estimated_size_set=True,
@@ -194,7 +193,6 @@ async def upsert_chat(
             replace(
                 write,
                 wdk_strategy_created_here=created_here,
-                wdk_strategy_created_here_set=True,
             ),
         )
         conversation = await conv_repo.get_by_id(created.id)
@@ -233,7 +231,6 @@ async def lazy_fetch_wdk_detail(
                 estimated_size=root_count(payload),
                 estimated_size_set=True,
                 is_saved=is_saved,
-                is_saved_set=True,
                 touch_updated_at=False,
             ),
         )

@@ -56,7 +56,6 @@ async def _write(
                 record_type="transcript",
                 step_count=3,
                 is_saved=saved,
-                is_saved_set=True,
             ),
         )
         await session.commit()

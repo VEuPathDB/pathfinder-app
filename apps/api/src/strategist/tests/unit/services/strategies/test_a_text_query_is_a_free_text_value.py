@@ -41,6 +41,7 @@ def _info(name: str, param_type: str = "string", **fields: object) -> ParameterI
             "type": param_type,
             "required": True,
             "is_visible": True,
+            "site_set": False,
             "help": "",
             "value_format": "",
             **fields,

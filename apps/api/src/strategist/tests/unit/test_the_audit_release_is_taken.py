@@ -68,7 +68,7 @@ _AUDIT_NAMES = {
 }
 _GENE_LOOKUP_NAMES = {"GeneIdFound", "list_organisms", "read_each_gene_id"}
 _CATALOG_NAMES = {
-    "HiddenParameterError",
+    "SiteSetParameterError",
     "NoGeneRecordsError",
     "PhyleticExpressionResult",
     "PhyleticPattern",
@@ -120,4 +120,4 @@ def test_the_pinned_releases_are_installed() -> None:
         veupathdb_mcp.__version__,
         version("veupathdb-py"),
         version("assistant-core"),
-    ) == ("0.9.0b10", "0.9.0b10", "0.9.0b6", "0.9.0b4")
+    ) == ("0.9.0b12", "0.9.0b12", "0.9.0b7", "0.9.0b4")

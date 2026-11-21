@@ -31,6 +31,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.reading_choices import reading_choice_lines
+from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.domain.strategy.spec_diff import SpecDiff, diff_specs
 from strategist.domain.strategy.staleness import StaleBuild
 from strategist.domain.strategy.value_binding import plain_value
@@ -123,6 +124,7 @@ class FrameSection(CamelModel):
     open_questions: list[OpenQuestion] = Field(default_factory=list, exclude=True)
     named_readings: list[ChosenReading] = Field(default_factory=list, exclude=True)
     picked_readings: list[str] = Field(default_factory=list, exclude=True)
+    site_set: SiteSetReads = Field(default_factory=SiteSetReads, exclude=True)
 
     @computed
     def present(self) -> bool:
@@ -138,7 +140,7 @@ class FrameSection(CamelModel):
         before = self.spec_before_turn
         if self.spec is None or before is None or not before.criteria:
             return None
-        return diff_specs(before, self.spec)
+        return diff_specs(before, self.spec, sets_the_site=self.site_set.sets_the_site)
 
     @computed
     def diff(self) -> SpecDiff | None:

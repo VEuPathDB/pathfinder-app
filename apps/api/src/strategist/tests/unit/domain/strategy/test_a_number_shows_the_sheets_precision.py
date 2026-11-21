@@ -25,6 +25,7 @@ _FLOOR = ParameterInfo(
     type="single-pick-vocabulary",
     required=True,
     is_visible=True,
+    site_set=False,
     help="",
     value_format="",
     default_value=_TEN_READS,
@@ -42,6 +43,7 @@ def _number(initial: str | None) -> ParameterInfo:
         type="string",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         is_number=True,
@@ -90,6 +92,7 @@ def test_a_text_is_no_number_to_round() -> None:
         type="string",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
     )

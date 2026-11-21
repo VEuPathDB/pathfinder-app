@@ -53,6 +53,7 @@ def _domains(lookup: VocabLookup | None) -> ParameterInfo:
         type="multi-pick-vocabulary",
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
         allowed_values=[

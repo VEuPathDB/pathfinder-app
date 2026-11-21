@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ParamSpec } from "@strategist/shared";
 import { DatasetParam } from "./DatasetParam";
+import { http, HttpResponse } from "msw";
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
+import { useSessionStore } from "@/state/useSessionStore";
+import { server } from "../../../../../vitest.msw-setup";
 import { WidgetTestForm } from "./testUtils";
 
 afterEach(cleanup);
@@ -348,5 +352,51 @@ describe("DatasetParam - default id list", () => {
       ),
     ).toBeVisible();
     expect(screen.queryByText(/DatasetConfig/)).toBeNull();
+  });
+});
+
+describe("DatasetParam - read-only", () => {
+  it("does not open the strategy list when the widget is disabled", async () => {
+    useSessionStore.getState().setSelectedSite("plasmodb");
+    server.use(
+      http.get("*/api/v1/conversations", () =>
+        HttpResponse.json([
+          {
+            id: "5b0c1d2e-0000-4000-8000-000000000001",
+            name: "Kinases",
+            siteId: "plasmodb",
+            recordType: "transcript",
+            createdAt: "2026-09-24T00:00:00Z",
+            updatedAt: "2026-09-24T00:00:00Z",
+            wdkStrategyId: 330713643,
+          },
+        ]),
+      ),
+    );
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WidgetTestForm name="test_dataset" defaultValue="">
+        {(field) => (
+          <DatasetParam
+            spec={makeSpec({ isReadOnly: true })}
+            name="test_dataset"
+            options={[]}
+            vocabTree={null}
+            field={{ ...field, handleChange: onChange }}
+            disabled
+          />
+        )}
+      </WidgetTestForm>,
+      { wrapper: appQueryClientWrapper() },
+    );
+
+    await user.click(screen.getByRole("tab", { name: /strategy/i }));
+    const trigger = await screen.findByRole("combobox");
+    await user.click(trigger);
+
+    expect(trigger).toBeDisabled();
+    expect(screen.queryByText("Kinases")).toBe(null);
+    expect(onChange.mock.calls).toEqual([]);
   });
 });

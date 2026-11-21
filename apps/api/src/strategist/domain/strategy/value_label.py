@@ -69,10 +69,10 @@ def term_labels(
     value: ParamValue, info: ParameterInfo, sheet: Sequence[ParameterInfo]
 ) -> list[tuple[str, str]]:
     """Each term of the value the sheet labels, with its label, in the value's
-    order. Only the site sets a read-only value, so the sheet labels none."""
+    order. The sheet labels no value the site sets."""
     if info.name in PHYLETIC_PARAM_NAMES:
         return _tree_labels(value, sheet)
-    if info.is_read_only:
+    if info.site_set:
         return []
     match value:
         case SinglePickValue(value=term):

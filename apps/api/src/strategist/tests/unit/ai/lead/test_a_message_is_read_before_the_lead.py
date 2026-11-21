@@ -316,24 +316,32 @@ async def test_the_files_of_the_message_reach_every_model_call() -> None:
 
 
 class _SlowDecisions(_Decisions):
-    def __init__(self, order: list[str], *answers: DecisionResponse | None) -> None:
+    def __init__(
+        self,
+        order: list[str],
+        modeled: asyncio.Event,
+        *answers: DecisionResponse | None,
+    ) -> None:
         super().__init__(*answers)
         self.order = order
+        self.modeled = modeled
 
     async def __call__(self, request: DecisionRequest) -> DecisionResponse | None:
-        await asyncio.sleep(0.05)
+        await asyncio.wait_for(self.modeled.wait(), timeout=10)
         self.order.append("decided")
         return await super().__call__(request)
 
 
 async def test_the_model_reading_starts_before_the_decision_answers() -> None:
     order: list[str] = []
-    ask = _SlowDecisions(order, _answer(("none", 0.4), ("status", 0.4)), None)
+    modeled = asyncio.Event()
+    ask = _SlowDecisions(order, modeled, _answer(("none", 0.4), ("status", 0.4)), None)
     script = _Model(STATED, {"effect": "add", "wants": "nothing"})
 
     def _recorded(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         if "effect" in info.output_tools[0].parameters_json_schema["properties"]:
             order.append("modeled")
+            modeled.set()
         return script(messages, info)
 
     reading, _ = await read_message(

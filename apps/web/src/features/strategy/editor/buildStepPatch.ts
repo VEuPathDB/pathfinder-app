@@ -1,5 +1,6 @@
 import type { ColocationParams, Step } from "@strategist/shared";
-import { isInputStepParam, type ParamSpec } from "@/features/strategy/parameters/spec";
+import type { ParamSpec } from "@/features/strategy/parameters/spec";
+import { isInputStepParam } from "@/lib/parameters/visibility";
 import {
   paramValueToRaw,
   rawToParamValue,

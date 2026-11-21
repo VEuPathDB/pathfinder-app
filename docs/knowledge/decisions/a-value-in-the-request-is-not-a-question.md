@@ -32,7 +32,7 @@ default rather than picking a side.
 
 ## 2. An identifier with no vocabulary to check it against
 
-`GenesByEcNumber.ec_wildcard` is a visible required `string` with no vocabulary
+`GenesByEcNumber.ec_wildcard` is a bindable required `string` with no vocabulary
 and the placeholder default `'N/A'`. Refusing that default is right. Asking the
 user to confirm the `2.7.-.-` they had already written is not.
 

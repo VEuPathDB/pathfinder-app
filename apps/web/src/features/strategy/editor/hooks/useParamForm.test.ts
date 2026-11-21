@@ -155,6 +155,27 @@ describe("useParamForm", () => {
   });
 });
 
+describe("extractDefaults visibility", () => {
+  it("seeds the site's value of a read-only parameter", () => {
+    const specs: ParamSpec[] = [
+      {
+        name: "organism",
+        type: "string",
+        displayName: "Organism",
+        displayType: "",
+        allowEmptyValue: false,
+        isVisible: true,
+        isReadOnly: true,
+        isNumber: false,
+        countOnlyLeaves: false,
+        initialDisplayValue: "P. falciparum 3D7",
+      },
+    ];
+
+    expect(extractDefaults(specs)).toEqual({ organism: "P. falciparum 3D7" });
+  });
+});
+
 describe("extractDefaults override", () => {
   it("uses override value when present (multi-pick array)", () => {
     const specs = [

@@ -138,15 +138,15 @@ def extract_gene_id(record: WDKRecordInstance) -> str | None:
     return None
 
 
-async def visible_parameter_names(
+async def bindable_parameter_names(
     site_id: str, *, record_type: str, search_name: str
 ) -> frozenset[str]:
-    """The parameters of a search that WDK shows a user.
+    """The parameters of a search a researcher sets.
 
-    A hidden parameter is WDK's own default and records no choice of the
-    researcher, so a save keeps the visible ones.
+    A parameter the site sets records no choice of the researcher, so a save
+    keeps only the bindable ones.
     """
     found = await get_search_parameters(
         SearchContext(site_id=site_id, search_name=search_name, record_type=record_type)
     )
-    return frozenset(p.name for p in found.parameters if p.is_visible)
+    return frozenset(p.name for p in found.parameters if p.bindable)

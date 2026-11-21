@@ -46,13 +46,16 @@ def aggregation_under_samples(context: dict[str, str]) -> list[ParameterInfo]:
             "samples_generic",
             "multi-pick-vocabulary",
             vocab_leaves=[VocabOption(value="sampleA", display="sampleA")],
+            stated_children=["min_max_avg_ref"],
+            wire_children=["min_max_avg_ref"],
         ),
         param_info(
             "min_max_avg_ref",
             "single-pick-vocabulary",
             vocab_leaves=_EVERY_AGGREGATION if bound else _AVERAGE_ONLY,
             default_value="average1",
-            vocab_depends_on=["samples_generic"],
+            stated_parents=["samples_generic"],
+            wire_parents=["samples_generic"],
         ),
     ]
 
@@ -229,6 +232,8 @@ def _profilesets_under_organism(context: dict[str, str]) -> list[ParameterInfo]:
             VocabOption(value=_PF, display="P. falciparum 3D7"),
             VocabOption(value=_PV, display="P. vivax P01"),
         ],
+        stated_children=["profileset"],
+        wire_children=["profileset"],
     )
     under_vivax = _PV in context.get("organism", "")
     allowed = (
@@ -246,7 +251,8 @@ def _profilesets_under_organism(context: dict[str, str]) -> list[ParameterInfo]:
             "single-pick-vocabulary",
             default_value=_ZHU if under_vivax else _DERISI_SET,
             allowed_values=allowed,
-            vocab_depends_on=["organism"],
+            stated_parents=["organism"],
+            wire_parents=["organism"],
         ),
     ]
 

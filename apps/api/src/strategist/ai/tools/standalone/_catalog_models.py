@@ -11,18 +11,14 @@ from strategist.ai.agents.state import AgentToolState, SearchOverview
 
 def _search_overview_of(search: WDKSearch, record_type: str) -> SearchOverview:
     """The discovery-gate entry for a search, from its expanded WDK definition."""
-    visible = [p for p in search.parameters or [] if p.is_visible]
+    bindable = [p for p in search.parameters or [] if p.bindable]
     return SearchOverview(
         search_name=search.url_segment,
         display_name=search.display_name or search.url_segment,
         record_type=record_type,
         description=search.description or search.summary,
-        parameter_names=[p.name for p in visible],
-        required_params=[
-            p.name
-            for p in visible
-            if not p.allow_empty_value or p.min_selected_count >= 1
-        ],
+        parameter_names=[p.name for p in bindable],
+        required_params=[p.name for p in bindable if p.required],
     )
 
 

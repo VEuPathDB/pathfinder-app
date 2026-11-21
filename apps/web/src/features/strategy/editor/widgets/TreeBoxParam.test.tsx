@@ -436,3 +436,50 @@ describe("TreeBoxParam -- carets during a search", () => {
     expect(screen.getByRole("checkbox", { name: "D" })).toBeTruthy();
   });
 });
+
+describe("TreeBoxParam -- disabled", () => {
+  it("disables every checkbox of the flat fallback", () => {
+    render(
+      <WidgetTestForm name="test_tree" defaultValue={["leaf-1"]}>
+        {(field) => (
+          <TreeBoxParam
+            spec={makeSpec({ multiPick: true })}
+            name="test_tree"
+            options={flatOptions}
+            vocabTree={null}
+            field={field}
+            disabled
+          />
+        )}
+      </WidgetTestForm>,
+    );
+
+    const boxes = screen.getAllByRole("checkbox");
+    expect(boxes).toHaveLength(5);
+    for (const box of boxes) expect(box).toBeDisabled();
+  });
+
+  it("disables every radio of a single-pick tree and keeps expand usable", () => {
+    render(
+      <WidgetTestForm name="test_tree" defaultValue="leaf-1">
+        {(field) => (
+          <TreeBoxParam
+            spec={makeSpec({ multiPick: false })}
+            name="test_tree"
+            options={flatOptions}
+            vocabTree={sampleTree}
+            field={field}
+            disabled
+          />
+        )}
+      </WidgetTestForm>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(4);
+    for (const radio of radios) expect(radio).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "Leaf 1" })).toBeChecked();
+  });
+});

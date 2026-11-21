@@ -21,6 +21,7 @@ def _info(name: str, param_type: str) -> ParameterInfo:
         type=param_type,
         required=True,
         is_visible=True,
+        site_set=False,
         help="",
         value_format="",
     )
@@ -31,15 +32,16 @@ def _vocab(
     options: list[str],
     *,
     kind: str = "single-pick-vocabulary",
-    is_visible: bool = True,
+    hidden: bool = False,
     depends_on: list[str] | None = None,
     controls: list[str] | None = None,
 ) -> ParameterInfo:
     info = _info(name, kind)
-    info.is_visible = is_visible
+    info.is_visible = not hidden
+    info.site_set = hidden
     info.allowed_values = [VocabOption(value=o, display=o) for o in options]
-    info.vocab_depends_on = depends_on
-    info.controls_vocab_of = controls
+    info.stated_parents = info.wire_parents = depends_on or []
+    info.stated_children = info.wire_children = controls or []
     return info
 
 
@@ -106,7 +108,7 @@ def test_a_hidden_parameter_is_never_swept() -> None:
     with pytest.raises(ValueError, match="no tunable parameters"):
         parameter_space_for_search(
             "GenesByText",
-            [_vocab("timestamp", ["a", "b"], is_visible=False)],
+            [_vocab("timestamp", ["a", "b"], hidden=True)],
             budget=30,
         )
 
@@ -241,6 +243,17 @@ def test_a_parameter_that_decides_another_vocabulary_is_never_swept() -> None:
     ]
 
     assert tunable_parameter_names(parameters) == []
+
+
+def test_a_parameter_whose_only_child_is_site_set_is_never_swept() -> None:
+    organism = _vocab("organism", ["pf", "pv"], kind="multi-pick-vocabulary")
+    organism.wire_children = ["sample_table"]
+    parameters = [
+        organism,
+        _vocab("sample_table", ["s1", "s2"], hidden=True, depends_on=["organism"]),
+    ]
+
+    assert (organism.stated_children, tunable_parameter_names(parameters)) == ([], [])
 
 
 def test_a_search_whose_only_enum_is_dependent_is_refused() -> None:

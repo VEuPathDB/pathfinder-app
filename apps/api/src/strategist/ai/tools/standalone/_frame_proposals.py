@@ -26,7 +26,6 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
     RADIO_OFF,
-    HiddenParameterError,
     OverrideMap,
     ParameterInfo,
     ParamFetcher,
@@ -34,6 +33,7 @@ from veupathdb_mcp.catalog import (
     PhyleticListError,
     RadioPairIssue,
     ResolvedParams,
+    SiteSetParameterError,
     UnknownParameterError,
     UnreadableValueError,
     check_radio_pairs,
@@ -53,7 +53,6 @@ from strategist.ai.tools.standalone._catalog_elsewhere import (
 from strategist.ai.tools.standalone._qualifier_words import proposal_values
 from strategist.ai.tools.standalone._vocab_resolution import bound_proposal
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
-from strategist.services.strategies.parameter_rules import site_fixed
 from strategist.services.strategies.user_dataset_searches import (
     dataset_parameter,
     user_dataset_offers,
@@ -127,32 +126,20 @@ class CriterionCall:
 
 
 def _bindable(infos: list[ParameterInfo]) -> list[str]:
-    return sorted(i.name for i in infos if not site_fixed(i))
+    return sorted(i.name for i in infos if i.bindable)
 
 
 def left_to_the_site(
     call: CriterionCall, infos: list[ParameterInfo]
 ) -> tuple[CriterionCall, list[str]]:
-    """The call without the parameters only the site sets that it proposes at
-    the site's value, and one correction for each.
-
-    A proposal of another value is refused with the value the site holds.
-    """
-    fixed = {i.name: i for i in infos if site_fixed(i) and i.name in call.params}
-    corrections: list[str] = []
-    for name, info in fixed.items():
-        held = info.default_value or ""
-        if call.params[name] not in (None, _proposed(name, held)):
-            msg = (
-                f"{name} on {call.search_name} is set by the site to {held!r} and "
-                f"takes no other value; leave it out of params. The names params "
-                f"takes: {_bindable(infos)}."
-            )
-            raise ModelRetry(msg)
-        corrections.append(
-            f"{name} is set by the site to {held!r}, so the proposal was left out"
-        )
-    params = {n: v for n, v in call.params.items() if n not in fixed}
+    """The call without the parameters the site sets, and one correction for
+    each proposal of one, whatever its value."""
+    set_by_site = {i.name for i in infos if i.site_set}
+    site_set = [name for name in call.params if name in set_by_site]
+    corrections = [
+        f"{name} is set by the site, so the proposal was left out" for name in site_set
+    ]
+    params = {n: v for n, v in call.params.items() if n not in site_set}
     return replace(call, params=params), corrections
 
 
@@ -179,12 +166,12 @@ def refuse_unknown_names(call: CriterionCall, infos: list[ParameterInfo]) -> Non
 
 
 def refuse_undecided(call: CriterionCall, infos: list[ParameterInfo]) -> None:
-    """Every visible required parameter needs a value or a null."""
-    required = {i.name for i in infos if i.is_visible and i.required}
+    """Every bindable required parameter needs a value or a null."""
+    required = {i.name for i in infos if i.bindable and i.required}
     undecided = sorted(required - set(call.params))
     if undecided:
         msg = (
-            f"Decide every visible required parameter of {call.search_name}: missing "
+            f"Decide every required parameter of {call.search_name}: missing "
             f"{undecided}. Pass a value from the sheet, or null for the default. "
             f"The valid names are listed above; do not request the sheet again."
         )
@@ -251,7 +238,7 @@ async def bound_vocabulary_values(
         skip = (
             info.name in derived
             or info.name == owned
-            or info.vocab_depends_on
+            or info.stated_parents
             or info.param_kind == "filter"
             or not options
         )
@@ -415,6 +402,7 @@ async def resolve_proposals(
         return await resolve_params_with_intent(
             fetch_at=fetch_at,
             intent=ParamIntent(text=call.text),
+            search_name=call.search_name,
             overrides=overrides,
             definition=definition.parameters or [],
         )
@@ -432,8 +420,8 @@ async def resolve_proposals(
             f"lookup_phyletic_codes(query). Nothing was recorded."
         )
         raise ModelRetry(msg) from exc
-    except HiddenParameterError as exc:
-        msg = f"{call.search_name}: {exc.detail} Nothing was recorded."
+    except SiteSetParameterError as exc:
+        msg = f"{exc.detail} Nothing was recorded."
         raise ModelRetry(msg) from exc
     except UnreadableValueError as exc:
         raise ModelRetry(str(exc)) from exc

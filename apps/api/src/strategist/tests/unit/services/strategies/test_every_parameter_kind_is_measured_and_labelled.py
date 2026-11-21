@@ -33,7 +33,6 @@ from strategist.services.strategies.parameter_rules import (
     PARAMETER_RULES,
     parameter_class,
     rules_of,
-    site_fixed,
 )
 from strategist.services.strategies.value_labels import vocabulary_labels
 from strategist.tests._support.recorded_counts import (
@@ -121,7 +120,7 @@ def test_every_parameter_class_has_a_source_rule() -> None:
         name: rules.source
         for name, rules in PARAMETER_RULES.items()
         if rules.source != "words"
-    } == {"site_fixed": "site"}
+    } == {"site_set": "site"}
 
 
 def test_a_read_only_parameter_is_set_by_the_site() -> None:
@@ -143,7 +142,7 @@ def test_each_recorded_parameter_has_its_class() -> None:
     assert classes == {
         "text_search_organism": "tree_pick",
         "text_expression": "string",
-        "document_type": "site_fixed",
+        "document_type": "site_set",
         "text_fields": "multi-pick-vocabulary",
         "profileset_generic": "single-pick-vocabulary",
         "samples_percentile_generic": "multi-pick-vocabulary",
@@ -151,7 +150,7 @@ def test_each_recorded_parameter_has_its_class() -> None:
         "max_expression_percentile": "numeric_string",
         "any_or_all": "single-pick-vocabulary",
         "protein_coding_only": "single-pick-vocabulary",
-        "channel": "site_fixed",
+        "channel": "site_set",
         "profile_pattern": "phyletic_pattern",
         "included_species": "phyletic_list",
         "excluded_species": "phyletic_list",
@@ -163,15 +162,14 @@ def test_a_read_only_or_a_hidden_parameter_is_the_sites() -> None:
     text = _sheet(_TEXT)
     channel = next(info for info in _sheet(_PCT) if info.name == "channel")
 
-    assert [(i.name, i.is_read_only) for i in text if site_fixed(i)] == [
+    assert [(i.name, i.is_read_only) for i in text if i.site_set] == [
         ("document_type", True)
     ]
-    assert (channel.is_visible, len(channel.vocabulary()), site_fixed(channel)) == (
-        False,
-        2,
-        True,
-    )
-    assert site_fixed(channel.model_copy(update={"is_visible": True})) is False
+    assert (
+        channel.is_visible,
+        len(channel.vocabulary()),
+        parameter_class(channel),
+    ) == (False, 2, "site_set")
 
 
 def _spore_wall_count(_search: str, params: Mapping[str, ParamValue]) -> int:

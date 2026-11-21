@@ -15738,6 +15738,11 @@
             "title": "Isvisible",
             "default": true
           },
+          "isReadOnly": {
+            "type": "boolean",
+            "title": "Isreadonly",
+            "default": false
+          },
           "group": {
             "anyOf": [
               {

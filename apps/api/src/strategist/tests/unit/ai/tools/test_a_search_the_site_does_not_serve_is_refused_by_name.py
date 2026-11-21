@@ -12,12 +12,12 @@ from strategist.ai.agents.state import AgentToolState
 from strategist.ai.agents.unserved import SearchNotServedError
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult
-from strategist.ai.tools.standalone import frame_spec
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
 )
+from strategist.services.strategies import sheet_params
 from strategist.tests._support.catalog_reads import listing
 from strategist.tests._support.orthomcl_site import TYPED_GENE_ID, recorded_refusal
 from strategist.tests._support.record_classes import list_searches_under
@@ -196,7 +196,7 @@ async def test_a_404_the_catalog_wraps_is_the_sites_refusal_too(
             detail=f"reading {ctx.search_name} failed: {cause}",
         ) from cause
 
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _wrapped)
+    monkeypatch.setattr(sheet_params, "fetch_search_details", _wrapped)
     state = AgentToolState(request_messages=[_TEXT])
 
     message = await _name_it(group_strategy_ctx(state), 1)

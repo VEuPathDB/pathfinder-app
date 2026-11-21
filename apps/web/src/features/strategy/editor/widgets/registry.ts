@@ -5,21 +5,16 @@
  * 0. The EDA analysis spec, a JSON string param, routes by its name.
  * 1. Composite widgets claim groups of params (e.g., PhyleticProfile).
  * 2. Unclaimed visible params route by displayType first, then spec.type.
- * 3. Hidden unclaimed params -> skip rendering, collect defaults.
+ * 3. Unshown unclaimed params -> skip rendering, collect defaults.
  */
 
-import { isInputStepParam, type ParamSpec } from "@/features/strategy/parameters/spec";
+import type { ParamSpec } from "@/features/strategy/parameters/spec";
 
 import { EDA_ANALYSIS_SPEC_PARAM } from "./edaSpecLogic";
 
 /** Resolve the canonical displayType string from a param spec. */
 function resolveDisplayType(spec: ParamSpec): string {
   return (spec.displayType ?? "").trim().toLowerCase();
-}
-
-/** Check if a param is hidden (should not render UI). */
-export function isHiddenParam(spec: ParamSpec): boolean {
-  return spec.isVisible === false || spec.group === "_hidden" || isInputStepParam(spec);
 }
 
 /** Check if a param belongs to the "advancedParams" group. */

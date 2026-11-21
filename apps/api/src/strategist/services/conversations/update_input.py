@@ -16,7 +16,6 @@ class ConversationUpdateInput:
     wdk_strategy_id: int | None
     wdk_strategy_id_set: bool
     is_saved: bool | None
-    is_saved_set: bool
 
 
 def strategy_write_of(
@@ -36,8 +35,6 @@ def strategy_write_of(
         name=patch.name,
         wdk_strategy_id=patch.wdk_strategy_id,
         wdk_strategy_id_set=patch.wdk_strategy_id_set,
-        wdk_strategy_created_here=False,
-        wdk_strategy_created_here_set=gives_up_the_claim,
+        wdk_strategy_created_here=False if gives_up_the_claim else None,
         is_saved=patch.is_saved,
-        is_saved_set=patch.is_saved_set,
     )

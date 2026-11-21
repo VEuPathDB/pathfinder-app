@@ -36,6 +36,7 @@ from strategist.domain.strategy.stated_shape import (
     stated_shape,
 )
 from strategist.tests._support.bound_values import bound
+from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
 _EXPRESSION = "gametocyte_expression"
 _OPTION = "gametocyte_timecourse_option"
@@ -128,7 +129,9 @@ def _built() -> tuple[OperationalSpec, StrategyGraph]:
 def _plan(
     before: OperationalSpec, after: OperationalSpec, graph: StrategyGraph
 ) -> list[str]:
-    ops = operations_for(diff_specs(before, after), after=after, graph=graph)
+    ops = operations_for(
+        diff_specs(before, after, sets_the_site=sets_nothing), after=after, graph=graph
+    )
     return [op.kind for op in ops]
 
 

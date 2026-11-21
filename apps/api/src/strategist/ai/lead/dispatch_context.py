@@ -236,7 +236,9 @@ def the_edit_the_strategy_owes(
     """
     answered = state.domain.answered_spec or found
     return answered, diff_specs(
-        spec_without_pending_analyses(answered), spec_without_pending_analyses(found)
+        spec_without_pending_analyses(answered),
+        spec_without_pending_analyses(found),
+        sets_the_site=state.domain.site_set.sets_the_site,
     )
 
 

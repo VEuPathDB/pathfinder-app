@@ -128,7 +128,7 @@ async def test_a_typed_card_answer_leaves_no_retired_row(
     async def _unread(**_kwargs: object) -> dict[str, list[ParameterInfo]]:
         return {}
 
-    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _unread)
+    monkeypatch.setattr(lead_consult, "parameters_of_searches", _unread)
     question = _comparison_question()
     deps = _deps(question)
     [card] = card_questions([question])

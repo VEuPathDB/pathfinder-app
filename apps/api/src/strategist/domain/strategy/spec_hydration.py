@@ -36,10 +36,10 @@ __all__ = [
     "analysis_criteria_stated",
     "criteria_listed_under",
     "criterion_analysing",
-    "hidden_params_dropped",
     "read_under_their_parents",
     "sheet_bound",
     "sheet_marked",
+    "site_set_params_dropped",
     "spec_from_ast",
     "spec_stating_the_live_tree",
     "steps_stated_by",
@@ -262,15 +262,16 @@ def _role_of(node_id: str, kind: str, seed_id: str) -> CriterionRole:
     return "filter"
 
 
-def hidden_params_dropped(
+def site_set_params_dropped(
     spec: OperationalSpec, *, sheet_params: Sheets
 ) -> OperationalSpec:
-    """A copy of the spec where each criterion states only the sheet's parameters.
+    """A copy of the spec where each criterion states only the parameters its
+    bindable sheet names.
 
-    A hidden or computed parameter is WDK's, and a criterion that states one
-    offers the model a value the parameter sheet then refuses. A search the
-    mapping does not name keeps its values, because nothing says which of
-    them the sheet shows.
+    A hidden or read-only parameter is set by the site, and a criterion that
+    states one offers the model a value it may not bind. A search the mapping
+    does not name keeps its values, because nothing says which of them the
+    site sets.
     """
     criteria = [_sheet_stated(criterion, sheet_params) for criterion in spec.criteria]
     return spec.model_copy(update={"criteria": criteria})

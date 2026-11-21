@@ -20,4 +20,5 @@ export type ParamWidgetProps = {
   options: VocabOption[];
   vocabTree: VocabNode[] | null;
   field: ParamFieldApi;
+  disabled?: boolean;
 };

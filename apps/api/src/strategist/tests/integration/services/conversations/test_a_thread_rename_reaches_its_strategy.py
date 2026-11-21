@@ -50,7 +50,6 @@ async def test_a_rename_writes_the_thread_and_its_stored_strategy(
                 wdk_strategy_id=None,
                 wdk_strategy_id_set=False,
                 is_saved=None,
-                is_saved_set=False,
             ),
         )
         await session.commit()

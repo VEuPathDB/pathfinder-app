@@ -53,7 +53,7 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del site_id
         return dict.fromkeys(search_names, sheet)
 
-    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _sheets)
+    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
 
 
 def _criterion(**fields: object) -> Criterion:

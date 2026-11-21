@@ -61,7 +61,6 @@ async def _write_strategy(
                 wdk_strategy_id=330534153,
                 wdk_strategy_id_set=True,
                 wdk_strategy_created_here=created_here,
-                wdk_strategy_created_here_set=True,
             ),
         )
         await session.commit()

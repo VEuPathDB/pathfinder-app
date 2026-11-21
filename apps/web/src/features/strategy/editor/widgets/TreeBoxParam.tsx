@@ -8,8 +8,11 @@ import { cn } from "@/lib/utils/cn";
 import { isMultiParam } from "@/features/strategy/parameters/spec";
 import {
   ancestorsOfSelected,
+  branchValues,
   derivedExpansion,
+  nodeMatchesSearch,
   nodeStates,
+  searchExpansion,
   summarizeSelection,
   summaryLabel,
   toLeaves,
@@ -17,32 +20,6 @@ import {
 import type { VocabNode } from "@/lib/utils/vocab";
 import type { ParamWidgetProps, ParamFieldApi } from "./types";
 import { CheckboxParam } from "./CheckboxParam";
-
-function nodeMatchesSearch(node: VocabNode, term: string): boolean {
-  if (node.label.toLowerCase().includes(term)) return true;
-  return node.children?.some((child) => nodeMatchesSearch(child, term)) ?? false;
-}
-
-/** Every branch with a search match below it; a search shows each match. */
-function searchExpansion(nodes: VocabNode[], term: string): Set<string> {
-  const out = new Set<string>();
-  const visit = (node: VocabNode): void => {
-    if (node.children?.some((child) => nodeMatchesSearch(child, term)) === true) {
-      out.add(node.value);
-    }
-    node.children?.forEach(visit);
-  };
-  nodes.forEach(visit);
-  return out;
-}
-
-function branchValues(nodes: VocabNode[]): string[] {
-  return nodes.flatMap((node) =>
-    node.children != null && node.children.length > 0
-      ? [node.value, ...branchValues(node.children)]
-      : [],
-  );
-}
 
 const MAX_CHIPS = 12;
 
@@ -52,6 +29,7 @@ export function TreeBoxParam({
   options,
   vocabTree,
   field,
+  disabled = false,
 }: ParamWidgetProps) {
   if (!vocabTree) {
     return (
@@ -61,11 +39,20 @@ export function TreeBoxParam({
         options={options}
         vocabTree={null}
         field={field}
+        disabled={disabled}
       />
     );
   }
 
-  return <TreeBoxInner spec={spec} name={name} vocabTree={vocabTree} field={field} />;
+  return (
+    <TreeBoxInner
+      spec={spec}
+      name={name}
+      vocabTree={vocabTree}
+      field={field}
+      disabled={disabled}
+    />
+  );
 }
 
 function TreeBoxInner({
@@ -73,11 +60,13 @@ function TreeBoxInner({
   name,
   vocabTree,
   field,
+  disabled,
 }: {
   spec: ParamWidgetProps["spec"];
   name: string;
   vocabTree: VocabNode[];
   field: ParamFieldApi;
+  disabled: boolean;
 }) {
   const multi = isMultiParam(spec);
 
@@ -196,10 +185,16 @@ function TreeBoxInner({
           ) : (
             <span className="w-4" />
           )}
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <label
+            className={cn(
+              "flex items-center gap-2 text-sm",
+              disabled ? "cursor-default" : "cursor-pointer",
+            )}
+          >
             {multi ? (
               <Checkbox
                 checked={checked}
+                disabled={disabled}
                 onCheckedChange={() => {
                   pinOpenState(isBranch ? [...path, node.value] : path);
                   if (isBranch) toggleBranch(state?.leaves ?? [], checked === true);
@@ -209,7 +204,11 @@ function TreeBoxInner({
                 aria-label={node.label}
               />
             ) : !isBranch ? (
-              <RadioGroupItem value={node.value} aria-label={node.label} />
+              <RadioGroupItem
+                value={node.value}
+                aria-label={node.label}
+                disabled={disabled}
+              />
             ) : null}
             {node.label}
           </label>
@@ -281,6 +280,7 @@ function TreeBoxInner({
         <RadioGroup
           value={singleValue}
           onValueChange={(next) => field.handleChange(next)}
+          disabled={disabled}
         >
           {treeBody}
         </RadioGroup>

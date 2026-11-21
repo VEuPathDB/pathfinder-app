@@ -158,7 +158,7 @@ def _criterion(
     sheet = [
         info
         for info in format_param_info_typed(definition.parameters or [])
-        if info.is_visible
+        if info.bindable
     ]
     return Criterion(
         id=spec.label,

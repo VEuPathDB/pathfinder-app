@@ -57,7 +57,7 @@ async def reconcile_dependents(
     call: CriterionCall,
     state: AgentToolState,
 ) -> list[str]:
-    """Visible dependent params to decide again under the parents' vocabulary.
+    """Bindable dependent params to decide again under the parents' vocabulary.
 
     The sheet was read under the search defaults, so a proposal made from it does
     not decide the vocabulary the bound parents produce. A param already handed
@@ -69,7 +69,7 @@ async def reconcile_dependents(
     on_the_sheet = {
         info.name: {option.value for option in info.vocabulary()}
         for info in infos
-        if info.is_visible and info.vocab_depends_on
+        if info.stated_parents
     }
     if not on_the_sheet:
         return []
@@ -99,10 +99,9 @@ def open_parameter_sheet(
     state: AgentToolState, criterion_id: str, search_name: str, definition: WDKSearch
 ) -> dict[str, None]:
     """Pin the parameter sheet for one criterion and answer with its template."""
-    entries = build_sheet(
-        format_param_info_typed(definition.parameters or []),
-        query=state.operational_spec_draft.goal,
-    )
+    infos = format_param_info_typed(definition.parameters or [])
+    state.record_site_set(search_name, infos)
+    entries = build_sheet(infos, query=state.operational_spec_draft.goal)
     runs = f"{search_display_name(definition)}: {what_it_finds(definition)}"
     return state.pin_sheet(
         criterion_id, search_name, entries, what_runs=runs

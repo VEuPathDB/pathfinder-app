@@ -46,6 +46,7 @@ TURN_FIELDS = {
 }
 
 DOMAIN_FIELDS = {
+    "site_set",
     "user_intent",
     "turn_markers",
     "lead_next_state",
