@@ -44,6 +44,7 @@ class CriterionChange(CamelModel):
     removed_params: list[str] = Field(default_factory=list)
     rebound_search: bool = False
     reason: str = ""
+    reweighted: bool = Field(default=False, exclude_if=lambda moved: not moved)
 
 
 class SpecDiff(CamelModel):
@@ -143,7 +144,8 @@ def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
         if before_params.get(name) != value
         and (name in before_params or after.resolved_params[name].visible)
     }
-    if not changed and not removed and not rebound:
+    reweighted = before.weight != after.weight
+    if not changed and not removed and not rebound and not reweighted:
         return CriterionChange(criterion_id=before.id, disposition="kept")
     return CriterionChange(
         criterion_id=before.id,
@@ -151,6 +153,7 @@ def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
         changed_params=changed,
         removed_params=removed,
         rebound_search=rebound,
+        reweighted=reweighted,
     )
 
 

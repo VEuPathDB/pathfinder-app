@@ -84,6 +84,7 @@ def node_for(criterion: Criterion) -> StrategyStepNode:
         search_name=criterion.search_name,
         parameters=criterion.step_parameters,
         display_name=criterion_title(criterion).name,
+        wdk_weight=criterion.weight,
     )
 
 

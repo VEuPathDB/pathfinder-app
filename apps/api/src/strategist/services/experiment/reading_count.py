@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Annotated, Self
 
 from pydantic import Field, model_validator
 from veupathdb import strip_html_tags
+from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import format_param_info_typed, read_search_definition
@@ -15,6 +17,7 @@ from strategist.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from strategist.domain.strategy.ranking import gene_scores
 from strategist.domain.strategy.reading_plan import (
     combined_ids,
     reading_label,
@@ -42,6 +45,16 @@ class ReadingTooLargeError(ValueError):
         )
 
 
+class ProposedSearch(VariantInput):
+    weight: int | None = Field(
+        default=None,
+        description=(
+            "Set on every search of a ranking plan: 1 each, unless the researcher "
+            "says one kind of evidence matters more. Leave it out of a filter plan."
+        ),
+    )
+
+
 class ProposedReading(CamelModel):
     title: str = Field(
         min_length=3,
@@ -52,12 +65,14 @@ class ProposedReading(CamelModel):
         ),
     )
     searches: Annotated[
-        list[VariantInput],
+        list[ProposedSearch],
         Field(
             min_length=1,
             description=(
                 "Each catalog search of the plan with its parameter values. Its "
-                "label is a short id the structure names it by."
+                "label is a short id the structure names it by. In a ranking "
+                "plan each search carries a weight, and a gene scores the sum of "
+                "the weights of the searches that find it."
             ),
         ),
     ]
@@ -66,7 +81,8 @@ class ProposedReading(CamelModel):
         description=(
             "How the searches combine: leaves name a search by its label, and a "
             'combine is {"kind": "combine", "operator": "INTERSECT" | "UNION" | '
-            '"MINUS", "inputs": [<left>, <right>]}. Leave it out for one search.'
+            '"MINUS", "inputs": [<left>, <right>]}. Leave it out for one search, '
+            "and for a ranking plan, which is the UNION of its searches."
         ),
     )
     also: str = Field(
@@ -79,10 +95,19 @@ class ProposedReading(CamelModel):
     )
 
     @property
+    def weights(self) -> dict[str, int]:
+        return {s.label: s.weight for s in self.searches if s.weight is not None}
+
+    @property
     def root(self) -> StructureNode:
         if self.structure is not None:
             return self.structure
-        return StructureNode(kind="leaf", criterion_id=self.searches[0].label)
+        leaves = [
+            StructureNode(kind="leaf", criterion_id=s.label) for s in self.searches
+        ]
+        if len(leaves) == 1:
+            return leaves[0]
+        return StructureNode(kind="combine", operator=CombineOp.UNION, inputs=leaves)
 
     @model_validator(mode="after")
     def _states_a_countable_plan(self) -> Self:
@@ -90,7 +115,7 @@ class ProposedReading(CamelModel):
         if len(set(names)) < len(names):
             msg = f"Each search of a proposal has its own label; these repeat: {names}."
             raise ValueError(msg)
-        if self.structure is None and len(names) > 1:
+        if self.structure is None and len(names) > 1 and not self.weights:
             msg = (
                 f"A proposal states how its {len(names)} searches combine in structure."
             )
@@ -106,6 +131,7 @@ class CountedReading(CamelModel):
     gene_count: int | None
     spec: OperationalSpec
     not_counted: str = ""
+    scores: dict[int, int] = Field(default_factory=dict)
 
 
 type _RecordKey = tuple[str, ...]
@@ -127,7 +153,7 @@ async def _ids(site_id: str, spec: VariantSpec) -> frozenset[_RecordKey]:
 
 
 def _criterion(
-    spec: VariantSpec, definition: WDKSearch, role: CriterionRole
+    spec: VariantSpec, definition: WDKSearch, role: CriterionRole, weight: int | None
 ) -> Criterion:
     sheet = [
         info
@@ -146,21 +172,31 @@ def _criterion(
         radio_pairs=radio_halves(definition),
         resolved_params=bind_values(spec.parameters, "card", sheet),
         confidence=1.0,
+        weight=weight,
     )
 
 
 async def _count(
-    site_id: str, searches: list[VariantSpec], root: StructureNode
-) -> tuple[int | None, str]:
+    site_id: str,
+    searches: list[VariantSpec],
+    root: StructureNode,
+    weights: Mapping[str, int],
+) -> tuple[int | None, dict[int, int], str]:
     try:
         ids = {spec.label: await _ids(site_id, spec) for spec in searches}
     except ReadingTooLargeError as too_large:
-        return None, str(too_large)
-    return len(_genes(combined_ids(root, ids))), ""
+        return None, {}, str(too_large)
+    kept = _genes(combined_ids(root, ids))
+    held = {label: _genes(keys) for label, keys in ids.items()}
+    scores = gene_scores(held, weights, kept) if weights else {}
+    return len(kept), scores, ""
 
 
 async def count_reading(
-    site_id: str, searches: list[VariantSpec], root: StructureNode
+    site_id: str,
+    searches: list[VariantSpec],
+    root: StructureNode,
+    weights: Mapping[str, int],
 ) -> CountedReading:
     roles = reading_roles(root)
     criteria = [
@@ -168,18 +204,20 @@ async def count_reading(
             spec,
             await read_search_definition(site_id, spec.record_type, spec.search_name),
             roles[spec.label],
+            weights.get(spec.label),
         )
         for spec in searches
     ]
     spec = OperationalSpec(criteria=criteria, structure=SpecStructure(root=root))
     label = reading_label(spec)
-    gene_count, not_counted = await _count(site_id, searches, root)
+    gene_count, scores, not_counted = await _count(site_id, searches, root, weights)
     return CountedReading(
         label=label,
         gene_count=gene_count,
         spec=spec.model_copy(update={"goal": label}),
         not_counted=not_counted,
+        scores=scores,
     )
 
 
-__all__ = ["CountedReading", "ProposedReading", "count_reading"]
+__all__ = ["CountedReading", "ProposedReading", "ProposedSearch", "count_reading"]

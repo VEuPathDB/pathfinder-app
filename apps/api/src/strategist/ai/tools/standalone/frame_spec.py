@@ -80,6 +80,7 @@ from strategist.ai.tools.standalone._frame_unserved import (
     listed_record_type,
 )
 from strategist.ai.tools.standalone._frame_values import proposed_call, sourced_values
+from strategist.ai.tools.standalone._frame_weight import held_weight
 from strategist.ai.tools.standalone._validation_helpers import validation_model_retry
 from strategist.domain.strategy.expression_handles import shown_wire
 from strategist.domain.strategy.operational_spec import (
@@ -150,6 +151,7 @@ async def set_criterion(
     why: SearchChoice | None = None,
     reading: str = "",
     answers: list[AnsweredRequirement] | None = None,
+    weight: int | None = None,
 ) -> ToolReturn[SetCriterionResult]:
     """Bind a criterion to a WDK search, in two calls.
 
@@ -234,6 +236,10 @@ async def set_criterion(
     there, or against the cut of the analysis the criterion runs. An empty list says it answers none; leaving it out keeps what the
     criterion already answers.
 
+    ``weight`` makes the criterion one search of a ranking plan, a UNION whose
+    genes score the weights of the criteria they meet: 1 unless the researcher
+    says this evidence matters more. Leaving it out keeps the criterion's weight.
+
     ``result_count`` is how many records the binding you just made matches,
     and is null for a search that runs on another step or a count that did
     not arrive in time. A binding the site refuses to count is not recorded
@@ -257,6 +263,7 @@ async def set_criterion(
         text=text,
         role=role,
         answers=linked_requirements(state, criterion_id, answers),
+        weight=held_weight(state, criterion_id, weight),
     )
     if gene_set or computed_groups or saved_strategy:
         refuse_a_param_the_sheet_lacks(stated.answers, [])
@@ -266,14 +273,6 @@ async def set_criterion(
         return await set_computed_criterion(ctx, stated, handle=computed_groups)
     if saved_strategy:
         return await set_saved_criterion(ctx, stated, reference=saved_strategy)
-    if not search_name:
-        msg = (
-            "set_criterion needs a search_name, a saved_strategy when the "
-            "criterion starts from a strategy the user saved "
-            "(list_saved_strategies names them), or a gene_set when it starts "
-            "from a gene set the user saved (list_gene_sets names them)."
-        )
-        raise ModelRetry(msg)
     record_type = await listed_record_type(ctx, criterion_id, search_name)
     if params is None:
         return await open_the_sheet(ctx, stated, search_name, record_type)
@@ -407,6 +406,7 @@ async def _bind_the_search(
             open_params=open_params,
             rationale=chosen.rationale,
             accepted_reading=accepted,
+            weight=stated.weight,
         ),
         record_type=record_type,
         definition=definition,

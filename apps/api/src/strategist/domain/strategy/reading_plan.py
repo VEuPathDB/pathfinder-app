@@ -27,6 +27,7 @@ class OfferedReading(CamelModel):
     spec: OperationalSpec
     not_counted: str = ""
     also: str = Field(default="")
+    scores: dict[int, int] = Field(default_factory=dict)
 
 
 _BUILD_MESSAGE: Final = re.compile(r'Build "(?P<label>.+)"\.')
@@ -190,8 +191,13 @@ def plan_lines(spec: OperationalSpec) -> list[str]:
     searches = [
         f"- {c.id}: {c.search_name} ({c.search_display_name}), "
         + ", ".join(
-            f"{name}={bound.value.to_wire()}"
-            for name, bound in c.resolved_params.items()
+            [
+                *(
+                    f"{name}={bound.value.to_wire()}"
+                    for name, bound in c.resolved_params.items()
+                ),
+                *([] if c.weight is None else [f"weight {c.weight}"]),
+            ]
         )
         for c in spec.criteria
     ]

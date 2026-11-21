@@ -11,6 +11,7 @@ from strategist.ai.explore.readings_card import proposal_counts
 from strategist.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from strategist.ai.models.mock.site_values import SiteValues
 from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
+from strategist.domain.comparison_facts import ComparedVariant
 from strategist.services.experiment.reading_count import ProposedReading
 from strategist.tests._support.explore_turns import (
     GENE_TYPE_REPORT,
@@ -178,3 +179,26 @@ async def test_one_title_for_two_plans_is_refused(
                 _proposal(title="signal", searches=[_CODING]),
             ],
         )
+
+
+async def test_a_ranking_proposal_counts_its_genes_by_score(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_recorded_readings(monkeypatch)
+    ctx = lead_run_context(site_id=SITE)
+    ranked = [{**_CODING, "weight": 1}, {**_PEPTIDE, "weight": 1}]
+
+    result = await propose_readings(ctx, [_proposal(title="Ranked", searches=ranked)])
+
+    coding = recorded_count(GENE_TYPE_REPORT)
+    peptide = recorded_count(SIGNAL_PEPTIDE_REPORT)
+    [proposed] = _PROPOSED.validate_python(result.return_value)
+    assert (proposed.gene_count, proposed.scores) == (
+        coding,
+        {2: peptide, 1: coding - peptide},
+    )
+    assert ctx.deps.state.turn_markers.comparisons[-1].variants == [
+        ComparedVariant(label="Ranked", gene_count=coding),
+        ComparedVariant(label="Ranked: score 2 of 2", gene_count=peptide),
+        ComparedVariant(label="Ranked: score 1 of 2", gene_count=coding - peptide),
+    ]

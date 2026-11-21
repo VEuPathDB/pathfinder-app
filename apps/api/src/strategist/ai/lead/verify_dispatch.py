@@ -33,6 +33,7 @@ from strategist.ai.lead.sample_by_steps import (
     sampled_by_their_steps,
     steps_decide,
 )
+from strategist.ai.lead.score_counts import record_score_counts
 from strategist.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -166,6 +167,7 @@ async def run_verification(
     )
     columns = await read_the_columns(deps, agent_deps)
     checks = [*await site_checks(deps), *columns.unanswered]
+    await record_score_counts(deps)
     steps = steps_decide(deps)
     run = PhaseRun(
         "verification",

@@ -13,11 +13,19 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.services.strategies.record_classes import search_record_types
 
 _ANY_RECORD_TYPE = "any record type"
+_NO_SEARCH = (
+    "set_criterion needs a search_name, a saved_strategy when the "
+    "criterion starts from a strategy the user saved "
+    "(list_saved_strategies names them), or a gene_set when it starts "
+    "from a gene set the user saved (list_gene_sets names them)."
+)
 
 
 async def listed_record_type(
     ctx: RunContext[AgentDeps], criterion_id: str, search_name: str
 ) -> str:
+    if not search_name:
+        raise ModelRetry(_NO_SEARCH)
     unserved = ctx.deps.agent_state.unserved_searches
     if search_name in unserved:
         raise _refusal(ctx, criterion_id, search_name)

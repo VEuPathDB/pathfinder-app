@@ -30,6 +30,7 @@ from strategist.domain.strategy.constraints import (
 )
 from strategist.domain.strategy.operations import (
     GraphOperation,
+    ReplaceSubtreeOp,
     UpdateCombineOperatorOp,
 )
 from strategist.domain.strategy.revision import strategy_revision
@@ -310,21 +311,17 @@ async def test_an_undo_that_withdraws_and_states_an_organism_is_framed(
     assert undo.framed is True
 
 
-async def test_an_undo_no_criterion_can_state_changes_nothing(
+async def test_an_undo_restores_a_previous_weight(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A previous tree that differs only in a weight is not an edit, and the
-    spec the dispatch found stands."""
     weighted = _tree(CombineOp.UNION)
     expression = weighted.root.primary_input
     assert expression is not None
     weighted.root.primary_input = expression.model_copy(update={"wdk_weight": 10})
     undo = _Undo(monkeypatch, stored=weighted, intent=_undo_intent())
 
-    with pytest.raises(ToolFailed) as failed:
-        await undo.run()
+    await undo.run()
 
-    assert failed.value.message.startswith("Nothing to undo that an edit can state")
-    assert undo.deps.state.domain.operational_spec == (
-        undo.deps.state.domain.spec_before_dispatch
-    )
+    [op] = undo.ops
+    assert isinstance(op, ReplaceSubtreeOp)
+    assert (op.step_id, op.subtree.wdk_weight) == ("expression", 10)

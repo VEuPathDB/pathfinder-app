@@ -76,6 +76,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "saved_strategy",
                 "search_name",
                 "text",
+                "weight",
                 "why",
             }
         ),

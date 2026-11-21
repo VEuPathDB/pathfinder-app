@@ -24625,6 +24625,17 @@
             "default": "",
             "title": "Absenceof",
             "type": "string"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
           }
         },
         "required": [
@@ -24674,6 +24685,11 @@
             "default": "",
             "title": "Reason",
             "type": "string"
+          },
+          "reweighted": {
+            "default": false,
+            "title": "Reweighted",
+            "type": "boolean"
           }
         },
         "required": [

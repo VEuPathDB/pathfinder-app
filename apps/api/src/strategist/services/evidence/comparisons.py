@@ -1,6 +1,8 @@
 """The comparison part of the evidence facade: running search variants with
 and without a control set."""
 
+from collections.abc import Mapping
+
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb_mcp.catalog import ParameterInfo
@@ -25,10 +27,11 @@ async def run_reading_count(
     site_id: str,
     specs: list[variant_comparison.VariantSpec],
     root: StructureNode,
+    weights: Mapping[str, int],
 ) -> reading_count.CountedReading:
     """A proposal's spec and the genes its plan holds, counted from each search's
     ids when it can be. No step is created."""
-    return await reading_count.count_reading(site_id, specs, root)
+    return await reading_count.count_reading(site_id, specs, root, weights)
 
 
 async def run_search_membership(

@@ -102,6 +102,7 @@ def _node_to_step(
             search_name=crit.search_name,
             parameters=crit.step_parameters,
             display_name=criterion_title(crit).name,
+            wdk_weight=crit.weight,
         )
         minted[crit.id] = step.id
         return step
@@ -111,6 +112,7 @@ def _node_to_step(
             search_name=crit.search_name,
             parameters=crit.step_parameters,
             display_name=criterion_title(crit).name,
+            wdk_weight=crit.weight,
             primary_input=_node_to_step(node.inputs[0], by_id, minted),
         )
         minted[crit.id] = step.id

@@ -106,3 +106,7 @@ def test_a_question_the_sites_answer_starts_from_the_site() -> None:
         "the literature then supports, explains or extends",
     )
     assert _missing(*named) == []
+
+
+def test_explore_ranks_every_kind_of_evidence_in_one_proposal() -> None:
+    assert _missing("rank or prioritise", "one ranking proposal", "weight") == []

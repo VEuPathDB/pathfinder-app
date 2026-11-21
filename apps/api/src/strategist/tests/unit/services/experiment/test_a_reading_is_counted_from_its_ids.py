@@ -9,7 +9,11 @@ from strategist.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from strategist.ai.models.mock.site_values import SiteValues
 from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from strategist.services.experiment import reading_count, variant_comparison
-from strategist.services.experiment.reading_count import count_reading
+from strategist.services.experiment.reading_count import (
+    ProposedReading,
+    ProposedSearch,
+    count_reading,
+)
 from strategist.services.experiment.variant_comparison import VariantSpec
 from strategist.tests._support.explore_turns import SITE, RecordedReports
 from strategist.tests._support.record_classes import recorded_searches
@@ -86,7 +90,7 @@ async def test_a_minus_counts_the_genes_of_the_left_the_right_lacks(
     del reports
     root = spec_joined(CombineOp.MINUS, spec_leaf("coding"), spec_leaf("peptide"))
 
-    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root)
+    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
 
     assert counted.gene_count == 6
 
@@ -97,7 +101,7 @@ async def test_the_counted_spec_states_both_searches_under_the_structure(
     del reports
     root = spec_joined(CombineOp.MINUS, spec_leaf("coding"), spec_leaf("peptide"))
 
-    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root)
+    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
 
     spec = counted.spec
     assert [(c.id, c.search_name, c.role) for c in spec.criteria] == [
@@ -114,7 +118,7 @@ async def test_a_search_that_fills_the_read_is_offered_not_counted(
     monkeypatch.setattr(variant_comparison, "READ_CAP", 10)
     reports.answers[GENE_TYPE] = _answer(_CODING_IDS, total=50_001)
 
-    counted = await count_reading(SITE, [_CODING], spec_leaf("coding"))
+    counted = await count_reading(SITE, [_CODING], spec_leaf("coding"), {})
 
     assert (counted.gene_count, counted.not_counted) == (
         None,
@@ -130,7 +134,7 @@ async def test_a_reading_reads_every_transcript_of_its_searches(
 ) -> None:
     root = spec_joined(CombineOp.MINUS, spec_leaf("coding"), spec_leaf("peptide"))
 
-    await count_reading(SITE, [_PEPTIDE, _CODING], root)
+    await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
 
     assert reports.filters == [None, None]
 
@@ -142,6 +146,35 @@ async def test_a_gene_whose_transcripts_fall_apart_is_not_intersected(
     reports.answers[SIGNAL_PEPTIDE] = _answer(_CODING_IDS[:2], transcript="2")
     root = spec_joined(CombineOp.INTERSECT, spec_leaf("coding"), spec_leaf("peptide"))
 
-    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root)
+    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
 
     assert counted.gene_count == 0
+
+
+async def test_a_ranking_reading_counts_the_genes_of_each_score(
+    reports: RecordedReports,
+) -> None:
+    del reports
+    root = spec_joined(CombineOp.UNION, spec_leaf("coding"), spec_leaf("peptide"))
+
+    counted = await count_reading(
+        SITE, [_PEPTIDE, _CODING], root, {"peptide": 1, "coding": 1}
+    )
+
+    weights = [c.weight for c in counted.spec.criteria]
+    assert (counted.gene_count, counted.scores, weights) == (11, {2: 4, 1: 7}, [1, 1])
+
+
+def test_a_ranking_proposal_unions_its_searches() -> None:
+    proposal = ProposedReading(
+        title="Ranked",
+        searches=[
+            ProposedSearch(label="a", search_name=GENE_TYPE, parameters={}, weight=1),
+            ProposedSearch(label="b", search_name=GENE_TYPE, parameters={}, weight=2),
+        ],
+    )
+
+    assert (proposal.root, proposal.weights) == (
+        spec_joined(CombineOp.UNION, spec_leaf("a"), spec_leaf("b")),
+        {"a": 1, "b": 2},
+    )

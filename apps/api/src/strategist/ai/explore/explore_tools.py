@@ -20,6 +20,7 @@ from strategist.ai.tools.standalone import catalog, catalog_discovery
 from strategist.ai.tools.standalone.record_reads import record_columns_block
 from strategist.ai.tools.standalone.search_reads import resolved_search
 from strategist.domain.comparison_facts import ComparedVariant, ComparisonFact
+from strategist.domain.strategy.ranking import score_rows
 from strategist.domain.strategy.reading_plan import OfferedReading
 from strategist.services.evidence.comparisons import run_reading_count
 from strategist.services.experiment.reading_count import ProposedReading
@@ -35,6 +36,7 @@ class ProposedCount(CamelModel):
     gene_count: int | None
     not_counted: str = ""
     also: str = ""
+    scores: dict[int, int] = Field(default_factory=dict)
 
 
 async def _offered(
@@ -44,7 +46,9 @@ async def _offered(
         await resolved_search(ctx, search, record_type=_GENES)
         for search in proposal.searches
     ]
-    counted = await run_reading_count(ctx.deps.site_id, specs, proposal.root)
+    counted = await run_reading_count(
+        ctx.deps.site_id, specs, proposal.root, proposal.weights
+    )
     return OfferedReading(
         label=proposal.title,
         plan=counted.label,
@@ -52,12 +56,15 @@ async def _offered(
         spec=counted.spec,
         not_counted=counted.not_counted,
         also=proposal.also,
+        scores=counted.scores,
     )
 
 
 def _fact(offered: OfferedReading, gene_count: int) -> ComparisonFact:
     counted = ComparedVariant(label=offered.label, gene_count=gene_count)
-    return ComparisonFact(variants=[counted], on_its_card=False)
+    top = sum(c.weight for c in offered.spec.criteria if c.weight is not None)
+    scored = score_rows(offered.scores, top=top, title=offered.label)
+    return ComparisonFact(variants=[counted, *scored], on_its_card=False)
 
 
 async def propose_readings(
@@ -71,8 +78,11 @@ async def propose_readings(
     title; Strategist writes its plan from its searches, values and operators
     and shows it under the title. A
     plan of searches joined by INTERSECT, UNION or MINUS is counted from each
-    search's gene ids, and no step is added. A plan it cannot count is
-    proposed as not counted yet. A later call replaces this turn's proposals,
+    search's gene ids, and no step is added. A ranking plan gives each search
+    a weight, 1 each unless the researcher says one kind of evidence matters
+    more. It keeps every gene any search finds, scores each gene by the
+    weights of the searches that find it, and is counted by score. A plan it
+    cannot count is proposed as not counted yet. A later call replaces this turn's proposals,
     so propose alternatives together. Offer two or more proposals on one
     ``consult_user`` card, each option labelled exactly as returned here. One
     proposal takes no card.
@@ -102,6 +112,7 @@ async def propose_readings(
             gene_count=reading.gene_count,
             not_counted=reading.not_counted,
             also=reading.also,
+            scores=reading.scores,
         )
         for reading in offered
     ]

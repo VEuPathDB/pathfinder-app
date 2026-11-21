@@ -281,17 +281,18 @@ def _change_op(
     A value the edit does not name stays as the step holds it, so a value the
     researcher set on the canvas survives an edit of another value.
     """
-    if not change.rebound_search and not change.removed_params:
+    if not (change.rebound_search or change.removed_params or change.reweighted):
         return UpdateStepParamsOp(
             step_id=after.id, parameters=_moved_values(change, after)
         )
-    # An update merges, so a search change and a removed value both need the
-    # node restated. The inputs come from the live subtree and stay attached.
+    # An update merges, so a search change, a removed value and a new weight
+    # each need the node restated. The inputs come from the live subtree.
     live = rebuild_tree(after.id, graph.steps)
     subtree = live.model_copy(
         update={
             "search_name": after.search_name,
             "parameters": _restated_params(graph, change, after),
+            "wdk_weight": after.weight if change.reweighted else live.wdk_weight,
         }
     )
     return ReplaceSubtreeOp(step_id=after.id, subtree=subtree)

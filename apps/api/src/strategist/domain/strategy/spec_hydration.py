@@ -241,6 +241,7 @@ def _structure_of(node: StrategyStepNode, reading: _Reading) -> StructureNode:
         role=_role_of(node.id, kind, reading.seed_id),
         resolved_params=bind_values(node.parameters, "held", ()),
         rationale=reading.words.rationale_of(node.id, node.search_name),
+        weight=node.wdk_weight,
     )
     binding = reading.analyses.get(node.id)
     if binding is not None:

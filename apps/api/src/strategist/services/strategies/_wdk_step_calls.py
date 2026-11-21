@@ -1,9 +1,14 @@
 """The WDK calls that create or patch one step of a strategy."""
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy import CombineOp, StrategyStep, wdk_search_name
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StrategyStep,
+    subtree_ids,
+    wdk_search_name,
+)
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
     CombinedStepSpec,
@@ -16,6 +21,7 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
 from strategist.domain.strategy.combine_naming import combine_name
+from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies.step_search import (
     COLOCATION_SEARCH,
     refuse_a_set_operation,
@@ -23,6 +29,20 @@ from strategist.services.strategies.step_search import (
 from strategist.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
+
+_SORTED_BY_WEIGHT = PatchStepSpec.model_validate(
+    {
+        "displayPreferences": {
+            "sortColumns": [{"name": "wdk_weight", "direction": "DESC"}]
+        }
+    }
+)
+
+
+def _search_config(str_params: dict[str, str], step: StrategyStep) -> WDKSearchConfig:
+    if step.wdk_weight is None:
+        return WDKSearchConfig(parameters=str_params)
+    return WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight)
 
 
 def _refuse_an_empty_eda_analysis(str_params: Mapping[str, str]) -> None:
@@ -57,7 +77,7 @@ async def _push_leaf_step(
     wdk_result = await api.create_step(
         NewStepSpec(
             search_name=search_name,
-            search_config=WDKSearchConfig(parameters=str_params),
+            search_config=_search_config(str_params, step),
             custom_name=step.display_name,
         ),
         record_type=record_type,
@@ -165,7 +185,7 @@ async def _push_transform_step(
     wdk_result = await api.create_transform_step(
         NewStepSpec(
             search_name=search_name,
-            search_config=WDKSearchConfig(parameters=str_params),
+            search_config=_search_config(str_params, step),
             custom_name=step.display_name,
         ),
         input_wdk_id,
@@ -185,13 +205,9 @@ async def _put_search_config(
     str_params: dict[str, str] = encode_params(step.parameters)
     _refuse_an_empty_eda_analysis(str_params)
 
-    # A weight the graph does not hold stays whatever the site holds.
-    config = WDKSearchConfig(parameters=str_params)
-    if step.wdk_weight is not None:
-        config = WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight)
     await api.update_step_search_config(
         step_id=sync_state.wdk_step_ids[step.id],
-        search_config=config,
+        search_config=_search_config(str_params, step),
         record_type=record_type,
         search_name=wdk_search_name(step),
     )
@@ -211,3 +227,23 @@ async def _patch_name(
             expanded_name=step.expanded_name or None,
         ),
     )
+
+
+async def _sort_a_ranking(
+    api: StrategyAPI,
+    sync_state: WDKSyncState,
+    graph: StrategyGraph,
+    pushed: Collection[str],
+) -> None:
+    root_id = graph.primary_root_id()
+    if root_id is None or root_id not in sync_state.wdk_step_ids:
+        return
+    weighted = {
+        step_id
+        for step_id in subtree_ids(root_id, graph.steps)
+        if graph.steps[step_id].wdk_weight is not None
+    }
+    if weighted and not (weighted | {root_id}).isdisjoint(pushed):
+        await api.update_step_properties(
+            step_id=sync_state.wdk_step_ids[root_id], spec=_SORTED_BY_WEIGHT
+        )

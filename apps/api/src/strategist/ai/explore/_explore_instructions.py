@@ -48,6 +48,9 @@ with no proposal.
 combine. A request of two criteria is one proposal of two searches, never two proposals. Put \
 what the searches cannot state, such as a map to orthologs, a study analysis or a saved \
 strategy, in the proposal's ``also``.
+- A request to rank or prioritise genes across kinds of evidence is one ranking proposal: \
+each kind of evidence is a search with a weight, and a gene scores the weights of the searches \
+that find it. It is not a filter with the other evidence in ``also``.
 - When the site can state the question's concept in more than one way, propose each way as \
 an alternative.
 - Strategist names each proposal from its searches, values and operators. Use that name, and \

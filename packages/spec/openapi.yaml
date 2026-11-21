@@ -16187,6 +16187,11 @@ components:
           default: ''
           title: Absenceof
           type: string
+        weight:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Weight
       required:
       - id
       - text
@@ -16235,6 +16240,10 @@ components:
           default: ''
           title: Reason
           type: string
+        reweighted:
+          default: false
+          title: Reweighted
+          type: boolean
       required:
       - criterionId
       - disposition

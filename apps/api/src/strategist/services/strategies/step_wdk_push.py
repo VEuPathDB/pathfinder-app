@@ -35,6 +35,7 @@ from strategist.services.strategies._wdk_step_calls import (
     _push_leaf_step,
     _push_transform_step,
     _put_search_config,
+    _sort_a_ranking,
 )
 from strategist.services.strategies.record_classes import (
     fill_record_classes,
@@ -343,7 +344,8 @@ async def push_steps_with_plan(
     A failed step does not stop the plan. A combine whose input failed has no
     input id, so it also fails.
     """
-    if graph.primary_root_id() is None:
+    root_id = graph.primary_root_id()
+    if root_id is None:
         return PushOutcome(succeeded=[], failures=[])
 
     steps_by_id: dict[str, StrategyStep] = dict(graph.steps)
@@ -384,6 +386,14 @@ async def push_steps_with_plan(
             succeeded.append(step.id)
         else:
             failures.append(failure)
+    try:
+        await _sort_a_ranking(get_strategy_api(site_id), sync_state, graph, succeeded)
+    except VEuPathDBError as exc:
+        logger.warning(
+            "The site did not sort the ranked result by score",
+            step_id=root_id,
+            error=str(exc)[:300],
+        )
 
     return PushOutcome(
         succeeded=succeeded, failures=failures, recreated_wdk_ids=recreated

@@ -14,6 +14,7 @@ from strategist.domain.strategy.genome_group import GenomeGroup
 from strategist.domain.strategy.named_taxa import NamedTaxon
 from strategist.domain.strategy.number_precision import rounded_number
 from strategist.domain.strategy.operator_reads import OperatorReading
+from strategist.domain.strategy.ranking import Weight
 from strategist.domain.strategy.readings import AcceptedReading, why_no_readings
 from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from strategist.domain.strategy.step_rationale import (
@@ -318,6 +319,7 @@ class Criterion(CamelModel):
     genome_group: GenomeGroup | None = None
     required_genomes_name: str = ""
     absence_of: str = ""
+    weight: Weight = None
 
     @property
     def unread_text(self) -> str:
