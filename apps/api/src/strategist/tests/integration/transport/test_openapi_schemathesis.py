@@ -9,6 +9,7 @@ the resulting 404.
 from __future__ import annotations
 
 import json
+import zlib
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -126,9 +127,22 @@ def local_oauth_server() -> Iterator[None]:
     get_settings.cache_clear()
 
 
-@pytest.fixture(scope="session")
-def schemathesis_config(patched_app: tuple[FastAPI, UUID]) -> SchemathesisConfig:
-    app, _ = patched_app
+_SHARDS = 4
+
+
+def _in_shard(label: str, shard: int) -> bool:
+    return zlib.crc32(label.encode()) % _SHARDS == shard
+
+
+def _outside_shard(shard: int | None) -> list[OperationConfig]:
+    if shard is None:
+        return []
+    others = FilterSet()
+    others.include(func=lambda ctx: not _in_shard(ctx.operation.label, shard))
+    return [OperationConfig(filter_set=others, enabled=False)]
+
+
+def _schemathesis_config(app: FastAPI, shard: int | None) -> SchemathesisConfig:
     # A negative case draws from the complement of a barred keyword. The
     # canonical form cannot spell the complement of a union whose branches
     # declare one property name at two types, so those operations stay positive.
@@ -147,7 +161,8 @@ def schemathesis_config(patched_app: tuple[FastAPI, UUID]) -> SchemathesisConfig
                 OperationConfig(
                     filter_set=positive_only,
                     generation=GenerationConfig(modes=[GenerationMode.POSITIVE]),
-                )
+                ),
+                *_outside_shard(shard),
             ]
         ),
     )
@@ -162,21 +177,22 @@ def schemathesis_config(patched_app: tuple[FastAPI, UUID]) -> SchemathesisConfig
 
 
 @pytest.fixture(scope="session")
-def api_schema(
-    patched_app: tuple[FastAPI, UUID],
-    schemathesis_config: SchemathesisConfig,
-) -> _SchemaArtifacts:
+def api_schema(patched_app: tuple[FastAPI, UUID]) -> _SchemaArtifacts:
     app, user_id = patched_app
-    schema = from_asgi("/openapi.json", app=app, config=schemathesis_config)
+    schema = from_asgi("/openapi.json", app=app, config=_schemathesis_config(app, None))
     return _SchemaArtifacts(
         schema=schema,
         user_id=user_id,
     )
 
 
-@pytest.fixture(scope="session")
-def api_schema_only(api_schema: _SchemaArtifacts) -> BaseSchema:
-    return api_schema.schema
+@pytest.fixture(scope="session", params=range(_SHARDS))
+def api_schema_only(
+    patched_app: tuple[FastAPI, UUID], request: pytest.FixtureRequest
+) -> BaseSchema:
+    app, _ = patched_app
+    shard: int = request.param
+    return from_asgi("/openapi.json", app=app, config=_schemathesis_config(app, shard))
 
 
 # An exclude on the lazy schema filters at collection time, so the excluded
@@ -301,3 +317,24 @@ async def test_health_ready_is_200_in_conformance_app(
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/health/ready")
     assert resp.status_code == 200, resp.text
+
+
+def _fuzzed_in(app: FastAPI, shard: int) -> list[str]:
+    loaded = from_asgi(
+        "/openapi.json", app=app, config=_schemathesis_config(app, shard)
+    )
+    merged = loaded.config.operations.filter_set_with(include=FilterSet())
+    return [op.label for op in _parsed_operations(loaded.clone(filter_set=merged))]
+
+
+def test_the_shards_fuzz_every_operation_once(
+    patched_app: tuple[FastAPI, UUID], api_schema: _SchemaArtifacts
+) -> None:
+    app, _ = patched_app
+
+    sharded = [label for shard in range(_SHARDS) for label in _fuzzed_in(app, shard)]
+
+    assert sorted(sharded) == sorted(
+        op.label for op in _parsed_operations(api_schema.schema)
+    )
+    assert min(len(_fuzzed_in(app, shard)) for shard in range(_SHARDS)) > 0

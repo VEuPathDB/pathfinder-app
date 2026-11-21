@@ -86,14 +86,11 @@ _CANNED_PARAMS: tuple[dict[str, ParamValue], ...] = (
 @strategies.composite
 def strategy_trees(draw: strategies.DrawFn) -> StrategyStepNode:
     """An arbitrary valid strategy tree whose step ids are unique."""
-    used: set[str] = set()
+    used: list[str] = []
 
     def fresh() -> str:
-        while True:
-            candidate = draw(_IDS)
-            if candidate not in used:
-                used.add(candidate)
-                return candidate
+        used.append(f"{draw(_IDS)}-{len(used)}")
+        return used[-1]
 
     def build(depth: int) -> StrategyStepNode:
         shape = (
