@@ -136,9 +136,16 @@ def pinned_operational_spec(ctx: RunContext[LeadDeps]) -> str | None:
         line = f"  - [{c.id}] {criterion_label(c, 60)} -> {criterion_runs(c)}"
         if slots:
             line += f" | open: {slots}"
+        if c.weight is not None:
+            line += f" | weight {c.weight}"
         lines.append(line)
     if spec.dropped:
         lines.append("  dropped: " + "; ".join(d.text for d in spec.dropped))
+    if any(c.weight is not None for c in spec.criteria):
+        lines.append(
+            "- ranked: a gene scores the sum of the weights of the searches that "
+            "find it, and the result is sorted by score, highest first"
+        )
     return "\n".join(lines)
 
 
