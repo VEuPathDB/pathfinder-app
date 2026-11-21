@@ -55,10 +55,7 @@ from strategist.services.strategies.stated_sides import (
     canonicalize_stated_leaves,
 )
 from strategist.services.strategies.step_search import names_a_wdk_question
-from strategist.services.strategies.step_wdk_push import (
-    push_step_to_wdk,
-    sort_a_ranked_root,
-)
+from strategist.services.strategies.step_wdk_push import push_step_to_wdk
 from strategist.services.strategies.sync import sync_strategy_for_site
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 
@@ -356,10 +353,6 @@ async def _push_tree_to_wdk(
         if wdk_id is not None:
             sync_state.wdk_push_errors.pop(node.id, None)
             outcome.pushed_step_ids.append(node.id)
-    if nodes and not failed_node_ids:
-        await sort_a_ranked_root(
-            site_id, sync_state, steps_by_id, nodes[-1].id, outcome.pushed_step_ids
-        )
 
 
 def _has_failed_descendant(

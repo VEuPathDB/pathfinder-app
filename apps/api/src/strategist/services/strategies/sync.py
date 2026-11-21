@@ -42,6 +42,7 @@ from strategist.services.strategies.record_classes import (
     unclassed_step_failure,
 )
 from strategist.services.strategies.result_list import result_list_url
+from strategist.services.strategies.step_wdk_push import sort_a_ranked_root
 from strategist.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -331,8 +332,15 @@ async def sync_strategy_for_site(
         name=strategy_name or name_for_the_push(graph, user_prompt),
         description=strategy_description(graph, pushable_id),
     )
+    held_root = (
+        None if sync_state.wdk_step_tree is None else sync_state.wdk_step_tree.step_id
+    )
     pushed = await _create_or_update_wdk_strategy(api, step_tree, labels, sync_state)
     wdk_strategy_id = pushed.wdk_strategy_id
+    if step_tree.step_id != held_root:
+        await sort_a_ranked_root(
+            site_id, sync_state, graph.steps, pushable_id, [pushable_id]
+        )
 
     # A filter narrows what its step answers, so the read follows it. Reading
     # first records the size the step had without its decorations.
