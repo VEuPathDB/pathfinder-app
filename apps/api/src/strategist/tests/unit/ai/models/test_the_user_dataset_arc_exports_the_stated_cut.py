@@ -8,11 +8,11 @@ import pytest
 from strategist.tests.unit.ai.models._mock_turns import Scene, args_of, names, play
 
 _MESSAGE = (
-    "On my uploaded RNA-Seq dataset 'pathfinder-uat-deseq', run DESeq2 of treated "
+    "On my uploaded RNA-Seq dataset 'strategist-uat-deseq', run DESeq2 of treated "
     "against control and keep the up-regulated genes with log2 fold change > 5 "
     "and p-value < 1e-10. [[arc:user-dataset-deseq]]"
 )
-_UPLOAD = {"studies": [{"datasetId": "EDAUD_Y518ZRlgBR0Q5"}]}
+_UPLOAD = {"studies": [{"datasetId": "EDAUD_sF88g1cwo00gw"}]}
 
 
 @pytest.mark.parametrize("site_id", ["plasmodb", "vectorbase"])
@@ -35,7 +35,7 @@ def test_the_arc_exports_the_upload_at_the_stated_cut(site_id: str) -> None:
         "final_result",
     ]
     (opened,) = args_of(calls, "open_eda_analysis")
-    assert opened["dataset_id"] == "EDAUD_Y518ZRlgBR0Q5"
+    assert opened["dataset_id"] == "EDAUD_sF88g1cwo00gw"
     (exported,) = args_of(calls, "create_eda_step")
     assert exported == {
         "effect_size_threshold": 5.0,

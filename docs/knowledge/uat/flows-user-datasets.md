@@ -9,7 +9,7 @@ status: draft
 
 # The researcher's own uploaded datasets (UD)
 
-Every count below is genes, measured on build 71 on 2026-09-29 under the dev login, on the three uploads the account holds on each site (`pathfinder-uat-genelist`, `pathfinder-uat-deseq`, `pathfinder-uat-phenotype`; ids in [sites and accounts](sites-and-accounts.md#user-datasets-of-the-dev-account)). The counts table holds 200 genes of the site's reference organism, three `control` and three `treated` samples, 40 genes raised in `treated` (log2 fold change 1 to 8) and none lowered. The phenotype table holds one column, `fitness_score`, over the same 200 genes.
+Every count below is genes, measured on build 71 on 2026-09-29 under the dev login, on the three uploads the account holds on each site (`strategist-uat-genelist`, `strategist-uat-deseq`, `strategist-uat-phenotype`; ids in [sites and accounts](sites-and-accounts.md#user-datasets-of-the-dev-account)). The counts table holds 200 genes of the site's reference organism, three `control` and three `treated` samples, 40 genes raised in `treated` (log2 fold change 1 to 8) and none lowered. The phenotype table holds one column, `fitness_score`, over the same 200 genes.
 
 Each site offers three user-dataset searches. Each one declares the VDI type it reads (`properties.userDatasetType`), and its dataset parameter lists the uploads of that type the signed-in account holds:
 
@@ -39,7 +39,7 @@ Cleanup: F7 step 4 for the conversation. Keep the three uploads: the flows and t
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation, composer | Send `On my uploaded RNA-Seq dataset 'pathfinder-uat-deseq', find the genes differentially expressed between the treated and the control samples with DESeq2, at the default cutoffs.` | The comparison runs (`Run differential expression`); one step `GenesByDESeqUserDataset`, 39 genes; the facts show `Reference group` `control`, `Compared group` `treated`, the two thresholds as `site default` or `chosen` with the note that no other value was measured |
+| 1 | New conversation, composer | Send `On my uploaded RNA-Seq dataset 'strategist-uat-deseq', find the genes differentially expressed between the treated and the control samples with DESeq2, at the default cutoffs.` | The comparison runs (`Run differential expression`); one step `GenesByDESeqUserDataset`, 39 genes; the facts show `Reference group` `control`, `Compared group` `treated`, the two thresholds as `site default` or `chosen` with the note that no other value was measured |
 | 2 | Composer | Send `Set the thresholds for a few tens of up-regulated genes (none down-regulated): log2 fold change > 5 and p-value < 1e-10.` | The same step, 15 genes; the facts show `log2(Fold Change)` `5` and `Significance threshold` `1e-10`, both `stated`, `Effect direction` `upOnly`; the count before this turn's edit (39) beside the new one |
 | 3 | Facts | Read | The step's name says which group is higher (`higher in treated`). A tighter cut that counts more genes than the looser one moved the wrong way: the reply must say so beside both counts, and a reply that does not is a major |
 | 4 | `Open in <Site>` | Read the step | `RNA-Seq Differential Expression (User Datasets)`; its notebook opens on the same groups and cut |
@@ -48,19 +48,19 @@ Cleanup: F7 step 4 for the conversation. Keep the three uploads: the flows and t
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation, composer | Send `Open my uploaded dataset 'pathfinder-uat-deseq' in the analysis view, compare treated against control with DESeq2 and show me the volcano.` | The study card and the volcano (39 retained at 2-fold and 0.05); no step until asked |
+| 1 | New conversation, composer | Send `Open my uploaded dataset 'strategist-uat-deseq' in the analysis view, compare treated against control with DESeq2 and show me the volcano.` | The study card and the volcano (39 retained at 2-fold and 0.05); no step until asked |
 | 2 | Study tab | `Export as step` | One step on `GenesByDESeqUserDataset`, 39 genes, the same as UD1 step 1 |
 
 ## UD3 - An uploaded gene list as a step, intersected with a site search
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation, composer | Send `Take the gene list I uploaded, 'pathfinder-uat-genelist', and keep the genes whose proteins have a predicted signal peptide.` | Layout `(GenesByUserDatasetGeneList INTERSECT GenesWithSignalPeptide)`, 3 steps; `geneListUserDataset` is the upload's id; counts 20 and 479 (plasmodb) or 2,928 (vectorbase), root 6 (plasmodb) or 2 (vectorbase) |
-| 2 | Facts | Read | The gene-list step is named `Gene List (User Datasets)`; its dataset value carries the label `pathfinder-uat-genelist` |
+| 1 | New conversation, composer | Send `Take the gene list I uploaded, 'strategist-uat-genelist', and keep the genes whose proteins have a predicted signal peptide.` | Layout `(GenesByUserDatasetGeneList INTERSECT GenesWithSignalPeptide)`, 3 steps; `geneListUserDataset` is the upload's id; counts 20 and 479 (plasmodb) or 2,928 (vectorbase), root 6 (plasmodb) or 2 (vectorbase) |
+| 2 | Facts | Read | The gene-list step is named `Gene List (User Datasets)`; its dataset value carries the label `strategist-uat-genelist` |
 | 3 | Account B, which holds no gene-list upload, new conversation | Send step 1 | No step on `GenesByUserDatasetGeneList`; the reply says the account holds no gene-list upload on the site and points at My Data Sets |
 
 ## UD4 - A phenotype upload filtered
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation, composer | Send `From my uploaded phenotype dataset 'pathfinder-uat-phenotype', give me the genes with a fitness_score of -2 or lower.` | The subset is set on `fitness_score` and exported: one step `GenesByPhenotypeUserDataset`, 30 genes on either site |
+| 1 | New conversation, composer | Send `From my uploaded phenotype dataset 'strategist-uat-phenotype', give me the genes with a fitness_score of -2 or lower.` | The subset is set on `fitness_score` and exported: one step `GenesByPhenotypeUserDataset`, 30 genes on either site |

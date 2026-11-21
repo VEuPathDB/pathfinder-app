@@ -56,18 +56,18 @@
         "isReadOnly": false,
         "vocabulary": [
           [
-            "EDAUD_hh18RZlcxx0xw",
-            "PathFinder live check counts",
+            "EDAUD_Fd88I49xhR09J",
+            "Strategist live check counts",
             null
           ],
           [
-            "EDAUD_Ed18Aclt0E0xA",
-            "PathFinder live check stranded no label",
+            "EDAUD_to88Zp9gkE09s",
+            "Strategist live check stranded no label",
             null
           ],
           [
-            "EDAUD_Y518ZRlgBR0Q5",
-            "pathfinder-uat-deseq",
+            "EDAUD_sF88g1cwo00gw",
+            "strategist-uat-deseq",
             null
           ],
           [
@@ -88,7 +88,7 @@
         ],
         "allowEmptyValue": false,
         "name": "eda_dataset_id",
-        "initialDisplayValue": "EDAUD_hh18RZlcxx0xw",
+        "initialDisplayValue": "EDAUD_Fd88I49xhR09J",
         "properties": {
           "organisms": [
             "P. falciparum",
@@ -135,7 +135,7 @@
   },
   {
     "urlSegment": "GenesByUserDatasetGeneList",
-    "displayName": "Gene List (User Datasets)",
+    "displayName": "Gene List (My Datasets)",
     "shortDisplayName": "UD Gene List",
     "fullName": "GeneQuestions.GenesByUserDatasetGeneList",
     "queryName": "GenesByUserDatasetGeneList",
@@ -187,8 +187,18 @@
             null
           ],
           [
-            "Ud18NklEhB0wF",
-            "pathfinder-uat-genelist",
+            "8c888994pI014",
+            "strategist-uat-genelist",
+            null
+          ],
+          [
+            "F148kEtEwU0Aw",
+            "UAT G3",
+            null
+          ],
+          [
+            "t94805tYFA0NZ",
+            "UAT G3",
             null
           ]
         ],
@@ -263,14 +273,14 @@
         "isReadOnly": false,
         "vocabulary": [
           [
-            "EDAUD_4d18NklMl80w4",
-            "pathfinder-uat-phenotype",
+            "EDAUD_gE88NE99Ih08s",
+            "strategist-uat-phenotype",
             null
           ]
         ],
         "allowEmptyValue": false,
         "name": "eda_dataset_id",
-        "initialDisplayValue": "EDAUD_4d18NklMl80w4",
+        "initialDisplayValue": "EDAUD_gE88NE99Ih08s",
         "properties": {
           "organisms": [
             "P. falciparum",

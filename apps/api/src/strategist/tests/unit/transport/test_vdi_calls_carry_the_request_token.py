@@ -28,7 +28,7 @@ from strategist.transport.http.routers import eda_datasets
 
 _Handler = Callable[[Request, Exception], Awaitable[Response]]
 _RESEARCHER = "researcher.token"
-_FAILED = "gp184tltg90x4"
+_FAILED = "Fh88oF9Uh005V"
 
 
 def _app(monkeypatch: pytest.MonkeyPatch, vdi: RecordedVdi) -> FastAPI:

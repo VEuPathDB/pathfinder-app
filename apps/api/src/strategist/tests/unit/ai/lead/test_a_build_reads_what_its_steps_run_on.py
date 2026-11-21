@@ -80,8 +80,8 @@ async def test_a_built_step_on_an_upload_grounds_by_the_uploads_type(
         del site_id
         return [
             OwnedUpload(
-                vdi_id="Y518ZRlgBR0Q5",
-                name="pathfinder-uat-deseq",
+                vdi_id="sF88g1cwo00gw",
+                name="strategist-uat-deseq",
                 type_name="rnaseqrc",
             )
         ]
@@ -90,7 +90,7 @@ async def test_a_built_step_on_an_upload_grounds_by_the_uploads_type(
     ctx = _built(
         Criterion(
             id="c_deseq",
-            text="Genes differentially expressed in pathfinder-uat-deseq.",
+            text="Genes differentially expressed in strategist-uat-deseq.",
             search_name="GenesByDESeqUserDataset",
             analysis=AnalysisBinding(
                 dataset_id=UPLOAD_DATASET, method="DESeq", words="DESeq"

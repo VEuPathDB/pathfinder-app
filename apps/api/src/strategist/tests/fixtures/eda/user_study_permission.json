@@ -3,16 +3,16 @@
     "site": "plasmodb",
     "method": "GET",
     "url": "https://qa.plasmodb.org/eda/permissions",
-    "recorded_at": "2026-10-17",
+    "recorded_at": "2026-11-21",
     "reads": "the owner's perDataset entry for an installed rnaseqrc upload, after data: complete"
   },
-  "datasetId": "EDAUD_Ed18Aclt0E0xA",
+  "datasetId": "EDAUD_to88Zp9gkE09s",
   "entry": {
-    "studyId": "STUDY_d908c224b7",
+    "studyId": "STUDY_5d20994a41",
     "sha1Hash": "",
     "isUserStudy": true,
-    "displayName": "PathFinder live check stranded no label",
-    "shortDisplayName": "PathFinder live check stranded no label",
+    "displayName": "Strategist live check stranded no label",
+    "shortDisplayName": "Strategist live check stranded no label",
     "type": "provider",
     "actionAuthorization": {
       "studyMetadata": true,

@@ -237,7 +237,7 @@ class TestAnEdaBackedSearchWaitsForItsAnalysis:
     async def test_the_named_upload_wins_over_the_sheets_default(self) -> None:
         """The dataset default is the site's first choice, not the researcher's."""
         state = AgentToolState()
-        upload = "EDAUD_Y518ZRlgBR0Q5"
+        upload = "EDAUD_sF88g1cwo00gw"
 
         with pytest.raises(ModelRetry) as excinfo:
             await bind(
@@ -384,7 +384,7 @@ async def test_a_hidden_dataset_parameter_still_names_the_dataset_to_wait_on(
 ) -> None:
     _serve_the_eda_search(monkeypatch, default=_DATASET_ID, visible=False)
     state = AgentToolState()
-    upload = "EDAUD_Y518ZRlgBR0Q5"
+    upload = "EDAUD_sF88g1cwo00gw"
 
     with pytest.raises(ModelRetry) as excinfo:
         await bind(

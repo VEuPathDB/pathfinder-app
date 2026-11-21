@@ -72,12 +72,11 @@ What still says `pathfinder`, and why:
 
 - **Former names that are read, never written.** The former helper prefixes above, and the
   migrations that move stored values (they name the old value).
-- **Names the sites store.** The UAT uploads (`pathfinder-uat-*`) and the live-check datasets
-  on the test account keep the names they were uploaded under.
 - **The repository** `VEuPathDB/pathfinder-app`, which the User-Agent, Jenkins, the
   documentation host and the knowledge citation prefix name.
 The [rename backlog item](../backlog/the-identifiers-take-the-strategist-name.md) moves the
-last two.
+last one. The UAT uploads and the live-check datasets on the test account were uploaded again
+under `strategist` names, and the old uploads were deleted.
 
 ## Rejected
 

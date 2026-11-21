@@ -25,10 +25,10 @@ from strategist.tests._support.qa_recording import qa_recording
 _FIXTURES = Path(__file__).parents[3] / "fixtures" / "wdk"
 _UPLOADS = [
     OwnedUpload(
-        vdi_id="Ud18NklEhB0wF", name="pathfinder-uat-genelist", type_name="genelist"
+        vdi_id="8c888994pI014", name="strategist-uat-genelist", type_name="genelist"
     ),
     OwnedUpload(
-        vdi_id="Y518ZRlgBR0Q5", name="pathfinder-uat-deseq", type_name="rnaseqrc"
+        vdi_id="sF88g1cwo00gw", name="strategist-uat-deseq", type_name="rnaseqrc"
     ),
 ]
 
@@ -43,10 +43,10 @@ def _searches() -> dict[str, WDKSearch]:
 # The DESeq flow's step as it was built: the compute export on the upload's study.
 _DESEQ = Criterion(
     id="step_cb47c568",
-    text="Genes differentially expressed in pathfinder-uat-deseq using DESeq2.",
+    text="Genes differentially expressed in strategist-uat-deseq using DESeq2.",
     search_name="GenesByEdaVizWithCompute",
     analysis=AnalysisBinding(
-        dataset_id="EDAUD_Y518ZRlgBR0Q5",
+        dataset_id="EDAUD_sF88g1cwo00gw",
         method="DESeq",
         words="Genes that differ between Control and Treated",
     ),
@@ -56,7 +56,7 @@ _GENE_LIST = Criterion(
     text="genes in my gene list",
     search_name="GenesByUserDatasetGeneList",
     resolved_params=bound(
-        {"geneListUserDataset": SinglePickValue(value="Ud18NklEhB0wF")}
+        {"geneListUserDataset": SinglePickValue(value="8c888994pI014")}
     ),
 )
 
@@ -75,7 +75,7 @@ def test_an_upload_id_in_a_parameter_of_another_kind_is_no_upload() -> None:
         id="c_text",
         text="a text search",
         search_name="GenesByEdaVizWithCompute",
-        resolved_params=bound({"eda_dataset_id": StringValue(value="Ud18NklEhB0wF")}),
+        resolved_params=bound({"eda_dataset_id": StringValue(value="8c888994pI014")}),
     )
     spec = OperationalSpec(goal="text", criteria=[typed])
 

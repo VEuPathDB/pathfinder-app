@@ -1,5 +1,16 @@
 # Log
 
+## 2026-11-21
+
+* **The UAT uploads say strategist.** The test account's gene list, DESeq counts and
+  phenotype uploads on PlasmoDB and VectorBase, and the three live-check datasets on
+  PlasmoDB, were uploaded again under `strategist` names, and the old uploads were deleted.
+  [UAT sites and accounts](uat/sites-and-accounts.md) lists the new ids.
+* **A ranked result is counted by score in one read.** The verdict reads the root step's
+  `wdk_weight` histogram, one row per gene, so a result of any size shows its genes per score.
+* **A weight changed on the site reaches the spec.** The strategy diff reports a step whose
+  weight moved, the replay restates the criterion's weight, and the Lead's briefing names it.
+
 ## 2026-11-14
 
 * **Strategist answers to both names while the website and the estate move.** Jenkins

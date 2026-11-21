@@ -19,7 +19,7 @@ from strategist.tests._support.recorded_vdi import (
 )
 from strategist.tests.integration.http.conftest import client_for, make_user
 
-_INSTALLED = "Ed18Aclt0E0xA"
+_INSTALLED = "to88Zp9gkE09s"
 _URL = "/api/v1/eda/datasets?siteId=plasmodb"
 
 

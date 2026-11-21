@@ -51,14 +51,14 @@
         "isReadOnly": false,
         "vocabulary": [
           [
-            "EDAUD_pM18kcl1Fc0QF",
-            "pathfinder-uat-deseq",
+            "EDAUD_Jl881kcgpQ0gQ",
+            "strategist-uat-deseq",
             null
           ]
         ],
         "allowEmptyValue": false,
         "name": "eda_dataset_id",
-        "initialDisplayValue": "EDAUD_pM18kcl1Fc0QF",
+        "initialDisplayValue": "EDAUD_Jl881kcgpQ0gQ",
         "properties": {
           "organisms": [
             "FILL"
@@ -95,7 +95,7 @@
   },
   {
     "urlSegment": "GenesByUserDatasetGeneList",
-    "displayName": "Gene List (User Datasets)",
+    "displayName": "Gene List (My Datasets)",
     "shortDisplayName": "UD Gene List",
     "fullName": "GeneQuestions.GenesByUserDatasetGeneList",
     "queryName": "GenesByUserDatasetGeneList",
@@ -142,8 +142,8 @@
             null
           ],
           [
-            "gw18YBlpp80w9",
-            "pathfinder-uat-genelist",
+            "gh88UM9hgV08t",
+            "strategist-uat-genelist",
             null
           ]
         ],
@@ -208,14 +208,14 @@
         "isReadOnly": false,
         "vocabulary": [
           [
-            "EDAUD_wt188klxtZ0wY",
-            "pathfinder-uat-phenotype",
+            "EDAUD_AN88MN9AI508w",
+            "strategist-uat-phenotype",
             null
           ]
         ],
         "allowEmptyValue": false,
         "name": "eda_dataset_id",
-        "initialDisplayValue": "EDAUD_wt188klxtZ0wY",
+        "initialDisplayValue": "EDAUD_AN88MN9AI508w",
         "properties": {
           "organisms": [
             "FILL"

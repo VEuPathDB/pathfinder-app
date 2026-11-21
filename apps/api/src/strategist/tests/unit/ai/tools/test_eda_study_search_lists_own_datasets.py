@@ -24,8 +24,8 @@ from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.conftest import summary_of
 
-# The newer upload first, as the owned listing orders them.
-_OWN = ("hh18RZlcxx0xw", "Ed18Aclt0E0xA")
+# The second upload is the newer, and the owned listing puts it first.
+_OWN = ("Fd88I49xhR09J", "to88Zp9gkE09s")
 _RANKED = [f"DS_ranked{rank}" for rank in range(5)]
 
 
@@ -85,8 +85,8 @@ async def test_the_researchers_uploads_come_first_and_the_ranking_is_unchanged(
     assert [
         (study.dataset_id, study.source_type, study.sites) for study in result.studies
     ] == [
-        (f"EDAUD_{_OWN[0]}", "user_submitted", ["plasmodb"]),
         (f"EDAUD_{_OWN[1]}", "user_submitted", ["plasmodb"]),
+        (f"EDAUD_{_OWN[0]}", "user_submitted", ["plasmodb"]),
         *[(dataset_id, "curated", ["plasmodb"]) for dataset_id in _RANKED],
     ]
     assert result.guidance.endswith(
@@ -101,13 +101,13 @@ async def test_an_upload_whose_name_matches_comes_before_one_that_does_not(
     _serve_two_installed_uploads(monkeypatch)
 
     result = returned(
-        await eda_catalog.search_eda_studies(lead_ctx, query="stranded"),
+        await eda_catalog.search_eda_studies(lead_ctx, query="counts"),
         EdaStudySearchResult,
     )
 
     assert [study.dataset_id for study in result.studies[:2]] == [
-        f"EDAUD_{_OWN[1]}",
         f"EDAUD_{_OWN[0]}",
+        f"EDAUD_{_OWN[1]}",
     ]
 
 
@@ -128,7 +128,7 @@ async def test_the_researchers_uploads_answer_when_the_site_ranks_nothing(
 
     result = returned(answer, EdaStudySearchResult)
     assert [study.dataset_id for study in result.studies] == [
-        f"EDAUD_{_OWN[0]}",
         f"EDAUD_{_OWN[1]}",
+        f"EDAUD_{_OWN[0]}",
     ]
     assert summary_of(answer).data["summary"] == "2 of your own studies"

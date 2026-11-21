@@ -23,8 +23,8 @@ from strategist.tests._support.recorded_vdi import (
     vdi_body,
 )
 
-_INSTALLED = "Ed18Aclt0E0xA"
-_INVALID = "gp184tltg90x4"
+_INSTALLED = "to88Zp9gkE09s"
+_INVALID = "Fh88oF9Uh005V"
 _CRASHED = "lIZ5ZVpEVE0FE"
 _GENE_LIST = "dMY5sYJRNl11F"
 
@@ -69,8 +69,8 @@ async def test_an_installed_upload_with_a_permission_entry_is_installed(
     assert found.datasets == [
         OwnDataset(
             vdi_id=_INSTALLED,
-            name="PathFinder live check stranded no label",
-            created=datetime.fromisoformat("2026-10-17T18:56:15.769024-04:00"),
+            name="Strategist live check stranded no label",
+            created=datetime.fromisoformat("2026-11-20T17:48:40.794933-05:00"),
             state="installed",
             message=None,
             dataset_id=dataset_id,
@@ -227,7 +227,7 @@ async def test_the_newest_upload_comes_first(
 
     created = [row.created for row in found.datasets]
     assert created == sorted(created, reverse=True)
-    assert [row.vdi_id for row in found.datasets] == [_INVALID, _INSTALLED]
+    assert [row.vdi_id for row in found.datasets] == [_INSTALLED, _INVALID]
 
 
 async def test_the_list_links_the_sites_own_upload_page(

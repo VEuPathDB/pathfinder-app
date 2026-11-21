@@ -73,7 +73,7 @@ def _session() -> StrategySession:
 def _deseq_state() -> Any:
     state = pipeline_state(
         user_prompt=(
-            "On my uploaded RNA-Seq dataset 'pathfinder-uat-deseq', find the genes "
+            "On my uploaded RNA-Seq dataset 'strategist-uat-deseq', find the genes "
             "differentially expressed between the treated and the control samples "
             "with DESeq2, at the default cutoffs."
         )
@@ -84,7 +84,7 @@ def _deseq_state() -> Any:
             linking_rna_seq(
                 Criterion(
                     id=_STEP,
-                    text="Genes differentially expressed in pathfinder-uat-deseq.",
+                    text="Genes differentially expressed in strategist-uat-deseq.",
                     search_name="GenesByDESeqUserDataset",
                     analysis=AnalysisBinding(
                         dataset_id=UPLOAD_DATASET,
@@ -130,8 +130,8 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
         del site_id
         return [
             OwnedUpload(
-                vdi_id="Y518ZRlgBR0Q5",
-                name="pathfinder-uat-deseq",
+                vdi_id="sF88g1cwo00gw",
+                name="strategist-uat-deseq",
                 type_name="rnaseqrc",
             )
         ]

@@ -51,15 +51,15 @@ describe("YourDatasets", () => {
   it("lists an upload whose creation time carries the site's offset", async () => {
     serve([
       {
-        ...dataset("Y518ZRlgBR0Q5", "installed"),
-        name: "pathfinder-uat-deseq",
+        ...dataset("sF88g1cwo00gw", "installed"),
+        name: "strategist-uat-deseq",
         created: "2026-09-29T09:52:08.771807-04:00",
       },
     ]);
     render(<YourDatasets siteId="plasmodb" onPick={vi.fn()} />);
 
-    const row = await screen.findByTestId("eda-own-dataset-Y518ZRlgBR0Q5");
-    expect(row).toHaveTextContent("pathfinder-uat-deseqYour upload");
+    const row = await screen.findByTestId("eda-own-dataset-sF88g1cwo00gw");
+    expect(row).toHaveTextContent("strategist-uat-deseqYour upload");
     expect(screen.getByRole("link", { name: "Upload on VEuPathDB" })).toHaveAttribute(
       "href",
       UPLOAD_URL,

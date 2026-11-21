@@ -14,7 +14,7 @@ from strategist.services.strategies.user_dataset_searches import OwnedUpload
 from strategist.tests._support.qa_recording import qa_recording
 
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "wdk"
-UPLOAD_DATASET = "EDAUD_Y518ZRlgBR0Q5"
+UPLOAD_DATASET = "EDAUD_sF88g1cwo00gw"
 
 
 def wire_plasmodb_uploads(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
@@ -32,8 +32,8 @@ def wire_plasmodb_uploads(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
     uploads = AsyncMock(
         return_value=[
             OwnedUpload(
-                vdi_id="Y518ZRlgBR0Q5",
-                name="pathfinder-uat-deseq",
+                vdi_id="sF88g1cwo00gw",
+                name="strategist-uat-deseq",
                 type_name="rnaseqrc",
             )
         ]

@@ -9,7 +9,7 @@ from strategist.tests.unit.ai.models._mock_turns import Scene, args_of, play
 def test_the_comparison_opens_the_study_the_message_names() -> None:
     listed = {
         "studies": [
-            {"datasetId": "EDAUD_Y518ZRlgBR0Q5", "displayName": "pathfinder-uat-deseq"},
+            {"datasetId": "EDAUD_sF88g1cwo00gw", "displayName": "strategist-uat-deseq"},
             {
                 "datasetId": "DS_here",
                 "displayName": "5 asexual and sexual stage transcriptomes",
@@ -30,7 +30,7 @@ def test_the_comparison_opens_the_study_the_message_names() -> None:
 def test_the_comparison_opens_the_dataset_id_the_message_names() -> None:
     listed = {
         "studies": [
-            {"datasetId": "EDAUD_Y518ZRlgBR0Q5", "displayName": "pathfinder-uat-deseq"},
+            {"datasetId": "EDAUD_sF88g1cwo00gw", "displayName": "strategist-uat-deseq"},
             {"datasetId": "DS_other", "displayName": "Another study"},
         ]
     }

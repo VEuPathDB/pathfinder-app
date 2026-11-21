@@ -2,7 +2,7 @@
  * UAT flow UD1: DESeq2 on the researcher's own counts upload, exported at the
  * cut the message states. The step runs the site's user-dataset search, and the
  * facts show both thresholds as stated. Every count is read from the site at
- * run time; only the model is mocked. The account holds `pathfinder-uat-deseq`
+ * run time; only the model is mocked. The account holds `strategist-uat-deseq`
  * on each site (docs/knowledge/uat/sites-and-accounts.md).
  */
 
@@ -13,7 +13,7 @@ import { ownDatasets } from "../fixtures/eda-reads";
 import { readNodes, siteCounts } from "../fixtures/site-reads";
 import { nodeBySearch, paramText } from "../fixtures/strategy-builds";
 
-const UPLOAD = "pathfinder-uat-deseq";
+const UPLOAD = "strategist-uat-deseq";
 const DESEQ_USER_DATASET_SEARCH = "GenesByDESeqUserDataset";
 const UD1_TEXT =
   `On my uploaded RNA-Seq dataset '${UPLOAD}', run DESeq2 of treated against ` +

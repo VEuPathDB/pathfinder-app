@@ -1,7 +1,7 @@
 """The site's user-dataset searches on the registered account's own uploads.
 
-The account holds `pathfinder-uat-genelist`, `pathfinder-uat-deseq` and
-`pathfinder-uat-phenotype` on plasmodb and vectorbase (docs/knowledge/uat/
+The account holds `strategist-uat-genelist`, `strategist-uat-deseq` and
+`strategist-uat-phenotype` on plasmodb and vectorbase (docs/knowledge/uat/
 sites-and-accounts.md). The counts table holds 200 genes, 40 of them raised in
 the treated samples and none lowered.
 """
@@ -137,7 +137,7 @@ def _volcano_parameters(
 ) -> dict[str, str]:
     """The comparison with one volcano at this cut, as the notebook stores it."""
     volcano = EdaVisualization(
-        visualization_id="pathfinder-uat-volcano",
+        visualization_id="strategist-uat-volcano",
         descriptor=EdaVolcanoDescriptor(
             configuration=EdaVolcanoConfiguration.model_validate(
                 {**cut.model_dump(), "effect_size_label": "log2(Fold Change)"}
@@ -145,13 +145,13 @@ def _volcano_parameters(
         ),
     )
     computation = EdaComputation(
-        computation_id="pathfinder-uat",
+        computation_id="strategist-uat",
         descriptor=EdaDifferentialExpressionDescriptor(configuration=config),
         visualizations=[volcano],
     )
     analysis = EdaNewAnalysis(
         study_id=dataset_id,
-        display_name="pathfinder-uat",
+        display_name="strategist-uat",
         descriptor=EdaAnalysisDescriptor(computations=[computation]),
     )
     return {"eda_dataset_id": dataset_id, "eda_analysis_spec": serialize_spec(analysis)}
@@ -161,7 +161,7 @@ def _volcano_parameters(
 async def test_the_gene_list_search_counts_the_twenty_uploaded_genes(
     site: str, count: Count
 ) -> None:
-    offer = await _offer(site, "GenesByUserDatasetGeneList", "pathfinder-uat-genelist")
+    offer = await _offer(site, "GenesByUserDatasetGeneList", "strategist-uat-genelist")
 
     counted = await count(site, offer.search_name, {offer.parameter: offer.value})
 
@@ -172,7 +172,7 @@ async def test_the_gene_list_search_counts_the_twenty_uploaded_genes(
 async def test_the_deseq_search_counts_fewer_genes_at_the_stated_cut(
     site: str, count: Count
 ) -> None:
-    offer = await _offer(site, "GenesByDESeqUserDataset", "pathfinder-uat-deseq")
+    offer = await _offer(site, "GenesByDESeqUserDataset", "strategist-uat-deseq")
     config = await _comparison(site, offer.value)
 
     at_default = await count(
@@ -190,7 +190,7 @@ async def test_the_generic_export_counts_the_genes_the_deseq_search_counts(
     site: str, count: Count
 ) -> None:
     """A zero from the export beside a count from the search is a site fault."""
-    offer = await _offer(site, "GenesByDESeqUserDataset", "pathfinder-uat-deseq")
+    offer = await _offer(site, "GenesByDESeqUserDataset", "strategist-uat-deseq")
     config = await _comparison(site, offer.value)
     parameters = _volcano_parameters(offer.value, config, _DEFAULT_CUT)
 
@@ -209,7 +209,7 @@ async def test_the_phenotype_search_counts_the_genes_of_the_subset(
     site: str, count: Count
 ) -> None:
     offer = await _offer(
-        site, "GenesByPhenotypeUserDataset", "pathfinder-uat-phenotype"
+        site, "GenesByPhenotypeUserDataset", "strategist-uat-phenotype"
     )
     entry, study = await get_study_detail_for_dataset(site, offer.value)
     phenotype = describe_study(permission_facts(entry), study, dataset_id=offer.value)
@@ -223,7 +223,7 @@ async def test_the_phenotype_search_counts_the_genes_of_the_subset(
     )
     analysis = EdaNewAnalysis(
         study_id=offer.value,
-        display_name="pathfinder-uat",
+        display_name="strategist-uat",
         descriptor=EdaAnalysisDescriptor(
             subset=EdaSubsetDescriptor(
                 descriptor=[

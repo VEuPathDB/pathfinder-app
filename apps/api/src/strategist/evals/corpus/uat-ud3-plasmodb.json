@@ -1,7 +1,7 @@
 {
   "name": "uat-ud3-plasmodb",
   "turns": [
-    "Take the gene list I uploaded, 'pathfinder-uat-genelist', and keep the genes whose proteins have a predicted signal peptide."
+    "Take the gene list I uploaded, 'strategist-uat-genelist', and keep the genes whose proteins have a predicted signal peptide."
   ],
   "siteId": "plasmodb",
   "assistantId": "strategist",
@@ -15,7 +15,7 @@
     "stepIdsUnchanged": null,
     "parameters": {
       "GenesByUserDatasetGeneList": {
-        "geneListUserDataset": "Ud18NklEhB0wF"
+        "geneListUserDataset": "8c888994pI014"
       }
     },
     "replyMentions": [],

@@ -38,15 +38,15 @@ _CACHED_INFOS = format_param_info_typed(
 )
 _UPLOADS = [
     OwnedUpload(
-        vdi_id="Ud18NklEhB0wF", name="pathfinder-uat-genelist", type_name="genelist"
+        vdi_id="8c888994pI014", name="strategist-uat-genelist", type_name="genelist"
     ),
     OwnedUpload(
-        vdi_id="Y518ZRlgBR0Q5", name="pathfinder-uat-deseq", type_name="rnaseqrc"
+        vdi_id="sF88g1cwo00gw", name="strategist-uat-deseq", type_name="rnaseqrc"
     ),
 ]
 _ONE_UPLOAD = (
     "geneListUserDataset on GenesByUserDatasetGeneList picks one of the "
-    "researcher's own uploads: 'pathfinder-uat-genelist' (Ud18NklEhB0wF). Pass "
+    "researcher's own uploads: 'strategist-uat-genelist' (8c888994pI014). Pass "
     "the value of the upload the request refers to; nothing was recorded."
 )
 
@@ -92,7 +92,7 @@ async def test_the_researchers_upload_binds_though_the_cached_view_lacks_it(
     await bound_vocabulary_values(
         "plasmodb",
         _GENE_LIST,
-        _call("Ud18NklEhB0wF"),
+        _call("8c888994pI014"),
         _CACHED_INFOS,
         frozenset(),
         AgentToolState(),
@@ -119,7 +119,7 @@ async def test_an_account_with_no_upload_of_the_type_is_told_to_upload(
     account: AsyncMock,
 ) -> None:
     account.return_value = [u for u in _UPLOADS if u.type_name != "genelist"]
-    assert await _refusal("Ud18NklEhB0wF") == (
+    assert await _refusal("8c888994pI014") == (
         "GenesByUserDatasetGeneList reads the researcher's own genelist uploads, "
         "and this account has none installed on plasmodb, so it cannot run. Bind "
         "nothing for this criterion, and say that the researcher uploads one in "
@@ -193,13 +193,13 @@ async def test_each_account_binds_only_its_own_upload_in_sequence(
     await bound_vocabulary_values(
         "plasmodb",
         _GENE_LIST,
-        _call("Ud18NklEhB0wF"),
+        _call("8c888994pI014"),
         format_param_info_typed(_GENE_LIST.parameters or []),
         frozenset(),
         AgentToolState(),
     )
     two_accounts.account = "second"
-    assert await _refusal("Ud18NklEhB0wF") == (
+    assert await _refusal("8c888994pI014") == (
         "geneListUserDataset on GenesByUserDatasetGeneList picks one of the "
         "researcher's own uploads: 'second-account-list' (zzZ5secondAcct). Pass "
         "the value of the upload the request refers to; nothing was recorded."

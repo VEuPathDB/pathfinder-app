@@ -47,15 +47,15 @@ _SEARCHES = _recorded()
 _GENE_LIST = next(s for s in _SEARCHES if s.url_segment == "GenesByUserDatasetGeneList")
 _UPLOADS = [
     OwnedUpload(
-        vdi_id="Ud18NklEhB0wF", name="pathfinder-uat-genelist", type_name="genelist"
+        vdi_id="8c888994pI014", name="strategist-uat-genelist", type_name="genelist"
     ),
     OwnedUpload(
-        vdi_id="Y518ZRlgBR0Q5", name="pathfinder-uat-deseq", type_name="rnaseqrc"
+        vdi_id="sF88g1cwo00gw", name="strategist-uat-deseq", type_name="rnaseqrc"
     ),
 ]
 _THE_LIST = UploadedGeneList(
-    name="pathfinder-uat-genelist",
-    value="Ud18NklEhB0wF",
+    name="strategist-uat-genelist",
+    value="8c888994pI014",
     search_name="GenesByUserDatasetGeneList",
     parameter="geneListUserDataset",
 )
@@ -125,8 +125,8 @@ async def test_only_an_upload_of_the_gene_list_type_is_offered(
 
     assert [(o.upload_name, o.value, o.search_name, o.parameter) for o in offers] == [
         (
-            "pathfinder-uat-genelist",
-            "Ud18NklEhB0wF",
+            "strategist-uat-genelist",
+            "8c888994pI014",
             "GenesByUserDatasetGeneList",
             "geneListUserDataset",
         )
@@ -151,7 +151,7 @@ async def test_an_uploaded_list_is_listed_beside_the_saved_sets(
 ) -> None:
     _store(monkeypatch, _saved(1))
     _lists_on_the_site(
-        monkeypatch, [_offer("pathfinder-uat-genelist", "Ud18NklEhB0wF")]
+        monkeypatch, [_offer("strategist-uat-genelist", "8c888994pI014")]
     )
 
     listed = returned(
@@ -199,7 +199,7 @@ async def test_a_listing_names_no_gene_a_set_holds(
 ) -> None:
     _store(monkeypatch, _saved(1))
     _lists_on_the_site(
-        monkeypatch, [_offer("pathfinder-uat-genelist", "Ud18NklEhB0wF")]
+        monkeypatch, [_offer("strategist-uat-genelist", "8c888994pI014")]
     )
 
     listed = returned(

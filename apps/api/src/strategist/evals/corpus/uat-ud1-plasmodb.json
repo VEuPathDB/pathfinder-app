@@ -1,7 +1,7 @@
 {
   "name": "uat-ud1-plasmodb",
   "turns": [
-    "On my uploaded RNA-Seq dataset 'pathfinder-uat-deseq', find the genes differentially expressed between the treated and the control samples with DESeq2, at the default cutoffs.",
+    "On my uploaded RNA-Seq dataset 'strategist-uat-deseq', find the genes differentially expressed between the treated and the control samples with DESeq2, at the default cutoffs.",
     "Set the thresholds for a few tens of up-regulated genes (none down-regulated): log2 fold change > 5 and p-value < 1e-10."
   ],
   "siteId": "plasmodb",
