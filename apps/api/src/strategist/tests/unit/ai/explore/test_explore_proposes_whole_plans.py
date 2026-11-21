@@ -202,3 +202,29 @@ async def test_a_ranking_proposal_counts_its_genes_by_score(
         ComparedVariant(label="Ranked: score 2 of 2", gene_count=peptide),
         ComparedVariant(label="Ranked: score 1 of 2", gene_count=coding - peptide),
     ]
+
+
+async def test_one_refusal_names_every_search_a_plan_gets_wrong(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_recorded_readings(monkeypatch)
+    wrong_organism = {"type": "multi-pick-vocabulary", "values": ["no such organism"]}
+    peptide = {
+        **_PEPTIDE,
+        "parameters": {**_PEPTIDE["parameters"], "organism": wrong_organism},
+    }
+    coding = {
+        **_CODING,
+        "parameters": {**_CODING["parameters"], "organism": wrong_organism},
+    }
+
+    with pytest.raises(ModelRetry) as refused:
+        await propose_readings(
+            lead_run_context(site_id=SITE),
+            [_proposal(searches=[coding, peptide], structure=_MINUS)],
+        )
+
+    assert [line.split(":", 1)[0] for line in refused.value.message.splitlines()] == [
+        "coding",
+        "peptide",
+    ]

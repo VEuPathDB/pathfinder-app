@@ -42,10 +42,15 @@ class ProposedCount(CamelModel):
 async def _offered(
     ctx: RunContext[LeadDeps], proposal: ProposedReading
 ) -> OfferedReading:
-    specs = [
-        await resolved_search(ctx, search, record_type=_GENES)
-        for search in proposal.searches
-    ]
+    specs = []
+    problems = []
+    for search in proposal.searches:
+        try:
+            specs.append(await resolved_search(ctx, search, record_type=_GENES))
+        except ModelRetry as refused:
+            problems.append(f"{search.label}: {refused.message}")
+    if problems:
+        raise ModelRetry("\n".join(problems))
     counted = await run_reading_count(
         ctx.deps.site_id, specs, proposal.root, proposal.weights
     )
