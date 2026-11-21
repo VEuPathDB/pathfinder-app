@@ -3897,7 +3897,7 @@ wheels = [
 
 [[package]]
 name = "strategist-api"
-version = "0.9.1a10"
+version = "0.9.1a11"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
