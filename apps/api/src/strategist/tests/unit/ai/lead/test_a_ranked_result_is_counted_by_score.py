@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections import Counter
-
 import pytest
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
@@ -9,7 +7,6 @@ from strategist.ai.lead import score_counts
 from strategist.ai.lead.score_counts import record_score_counts
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.comparison_facts import ComparedVariant, ComparisonFact
-from strategist.services.experiment.paged_tally import PagedCounts
 from strategist.tests._support.column_reads import ColumnSite, serve_columns
 from strategist.tests._support.recorded_columns import column_catalog
 from strategist.tests._support.run_context import lead_run_context
@@ -51,29 +48,29 @@ def _deps(weight: int | None) -> LeadDeps:
 
 
 def _serve(
-    monkeypatch: pytest.MonkeyPatch, total: int, counts: dict[str, int]
-) -> list[tuple[str, int, str | None, str]]:
-    asked: list[tuple[str, int, str | None, str]] = []
+    monkeypatch: pytest.MonkeyPatch, counts: dict[int, int]
+) -> list[tuple[str, int, str | None]]:
+    asked: list[tuple[str, int, str | None]] = []
 
-    async def _paged(
-        site_id: str, wdk_step_id: int, record_type: str | None, column: str
-    ) -> PagedCounts:
-        asked.append((site_id, wdk_step_id, record_type, column))
-        return PagedCounts(total=total, counts=Counter(counts))
+    async def _counted(
+        site_id: str, wdk_step_id: int, record_type: str | None
+    ) -> dict[int, int]:
+        asked.append((site_id, wdk_step_id, record_type))
+        return counts
 
-    monkeypatch.setattr(score_counts, "count_paged_values", _paged)
+    monkeypatch.setattr(score_counts, "count_weights", _counted)
     return asked
 
 
 async def test_a_ranked_result_shows_its_genes_by_score(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    asked = _serve(monkeypatch, 11, {"1": 7, "2": 4})
+    asked = _serve(monkeypatch, {1: 7, 2: 4})
     deps = _deps(1)
 
     await record_score_counts(deps)
 
-    assert asked == [("plasmodb", _ROOT, "transcript", "wdk_weight")]
+    assert asked == [("plasmodb", _ROOT, "transcript")]
     assert deps.state.turn_markers.comparisons == [
         ComparisonFact(
             variants=[
@@ -85,21 +82,24 @@ async def test_a_ranked_result_shows_its_genes_by_score(
     ]
 
 
-async def test_a_result_read_in_part_shows_no_scores(
+async def test_a_large_ranked_result_is_counted_whole(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _serve(monkeypatch, 4_200, {"1": 1_500, "2": 500})
+    _serve(monkeypatch, {1: 3_100, 2: 1_900, 3: 291})
     deps = _deps(1)
 
     await record_score_counts(deps)
 
-    assert deps.state.turn_markers.comparisons == []
+    assert [
+        variant.gene_count
+        for variant in deps.state.turn_markers.comparisons[0].variants
+    ] == [291, 1_900, 3_100]
 
 
 async def test_an_unweighted_result_is_not_counted_by_score(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    asked = _serve(monkeypatch, 11, {"0": 11})
+    asked = _serve(monkeypatch, {0: 11})
     deps = _deps(None)
 
     await record_score_counts(deps)
@@ -115,7 +115,7 @@ async def test_the_check_counts_a_ranked_result_by_score(
     serve_columns(monkeypatch, ColumnSite({}, {}))
     organisms = ToolServer(counts=_organisms(("<i>Plasmodium falciparum</i> 3D7", 3)))
     serve(monkeypatch, TallySite(column_catalog(), step_count=4200), organisms)
-    asked = _serve(monkeypatch, 3, {"1": 3})
+    asked = _serve(monkeypatch, {1: 3})
     deps = _exported_deps()
     graph = deps.runtime.strategy_session.get_graph(None)
     assert graph is not None
@@ -123,7 +123,7 @@ async def test_the_check_counts_a_ranked_result_by_score(
 
     await verify(monkeypatch, deps, UNANSWERED_DIGEST)
 
-    assert asked == [("plasmodb", _EXPORTED, "transcript", "wdk_weight")]
+    assert asked == [("plasmodb", _EXPORTED, "transcript")]
     assert deps.state.turn_markers.comparisons[-1].variants == [
         ComparedVariant(label="Score 1 of 1", gene_count=3)
     ]
