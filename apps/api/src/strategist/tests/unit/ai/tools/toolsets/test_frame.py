@@ -13,6 +13,9 @@ from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.ai.tools.toolsets.frame import _frame_enum_overrides, build_toolset
 from strategist.tests._support.catalog_reads import listing
+from strategist.tests._support.declared_record_types import (
+    serve_unanswered_record_types,
+)
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 from strategist.tests.unit.ai.tools.test_catalog_discovery import serve_go_overview
 
@@ -87,8 +90,10 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
 }
 
 
-async def _mounted_tools() -> dict[str, ToolsetTool[AgentDeps]]:
-    return await build_toolset().get_tools(agent_run_context())
+async def _mounted_tools(
+    site_id: str = "orthomcl",
+) -> dict[str, ToolsetTool[AgentDeps]]:
+    return await build_toolset().get_tools(agent_run_context(site_id=site_id))
 
 
 def _shape(tool: ToolsetTool[AgentDeps]) -> tuple[frozenset[str], frozenset[str]]:
@@ -102,6 +107,30 @@ def _shape(tool: ToolsetTool[AgentDeps]) -> tuple[frozenset[str], frozenset[str]
 @pytest.mark.asyncio
 async def test_the_toolset_mounts_exactly_the_declared_tools() -> None:
     assert set(await _mounted_tools()) == set(_MOUNTED)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("site_id", ["plasmodb", "toxodb", "veupathdb"])
+async def test_a_site_with_no_expression_search_is_offered_no_builder(
+    site_id: str,
+) -> None:
+    assert set(await _mounted_tools(site_id)) == set(_MOUNTED) - {
+        "build_phyletic_expression"
+    }
+
+
+@pytest.mark.asyncio
+async def test_a_site_whose_record_types_are_unread_is_offered_no_builder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    site = serve_unanswered_record_types(monkeypatch)
+
+    first = await _mounted_tools("orthomcl")
+    second = await _mounted_tools("orthomcl")
+
+    assert "build_phyletic_expression" not in first
+    assert set(first) == set(second) == set(_MOUNTED) - {"build_phyletic_expression"}
+    assert site.reads == 2
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,7 @@ import pytest
 from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import lead_consult
@@ -25,6 +25,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.question_options import SetValues, TypedOption
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.services.strategies import sheet_params
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -69,9 +70,7 @@ def _criterion() -> Criterion:
 async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    sheet = format_param_info_typed(
-        suite_search("search_genes_by_interpro_domain").parameters or []
-    )
+    sheet = sheet_of(suite_search("search_genes_by_interpro_domain").parameters or [])
     read: list[list[str]] = []
 
     async def _sheets(

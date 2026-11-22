@@ -3,11 +3,9 @@ chain returns the sibling's records, so it leaves the structure."""
 
 from __future__ import annotations
 
-import json
 from collections.abc import Collection, Iterator
 
 from pydantic import ConfigDict
-from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
@@ -87,7 +85,7 @@ class _DuplicateReading:
         self.dropped: list[DuplicateDrop] = []
 
     def shape(self, node: StructureNode) -> list[object]:
-        """The subtree as its operators, searches and wire values, never its ids.
+        """The subtree as its operators, searches and parameter values, never its ids.
 
         A criterion whose values are not all decided answers only for itself.
         """
@@ -99,19 +97,23 @@ class _DuplicateReading:
         c = self.by_id.get(node.named_criterion)
         if c is None or not c.search_name or c.open_params or c.analysis is not None:
             return ["criterion", node.named_criterion]
-        values = {name: to_wire(value) for name, value in c.param_values.items()}
-        return [node.kind, c.search_name, values, below]
+        return [node.kind, c.search_name, c.param_values, below]
 
     def folded(self, node: StructureNode) -> StructureNode:
         if not _intersects(node):
             inputs = [self.folded(child) for child in node.inputs]
             return node.model_copy(update={"inputs": inputs})
-        groups: dict[str, list[StructureNode]] = {}
+        groups: list[list[tuple[list[object], StructureNode]]] = []
         for operand in _operands(node):
-            key = json.dumps(self.shape(operand), sort_keys=True)
-            groups.setdefault(key, []).append(operand)
+            shape = self.shape(operand)
+            group = next((g for g in groups if all(s == shape for s, _ in g)), None)
+            if group is None:
+                groups.append([(shape, operand)])
+            else:
+                group.append((shape, operand))
         redundant: set[int] = set()
-        for same in groups.values():
+        for members in groups:
+            same = [operand for _, operand in members]
             keeper = next((o for o in same if self._live(o)), same[0])
             for other in same:
                 if other is not keeper:

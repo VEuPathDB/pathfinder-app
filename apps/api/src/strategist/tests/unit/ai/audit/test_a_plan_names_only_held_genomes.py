@@ -81,8 +81,9 @@ async def test_the_recorded_site_name_is_refused_with_what_to_send() -> None:
         )
 
     assert refused.value.message == (
-        "The planner starts no audit: the site holds no genome named FungiDB. "
-        "A genome is one of the site's organism names, written in full. For gene "
+        "The planner starts no audit: the site holds no genome named FungiDB; the "
+        "organisms nearest it are Otherus gamma G, Examplea alpha F, Examplea alpha "
+        "D, Examplea alpha B, Examplea beta S. A genome is one of the site's organism names, written in full. For gene "
         "targets alone, send genomes: [] with the same targets. Nothing was "
         "started and no card was shown."
     )

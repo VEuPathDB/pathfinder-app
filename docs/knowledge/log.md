@@ -2,6 +2,66 @@
 
 ## 2026-11-22
 
+* **Every value shown to an agent reads back.** A filter with no clauses is shown `[]`
+  and `[]` binds `{"filters":[]}`, the text WDK's no-filter value is; a value stated back
+  as shown is the held value, by one rule in the reader that knows the held values, for
+  FRAME, variants, edits and typed operations; the strategy graph BUILD and VERIFY read
+  shows every value whole, and the turn briefing says when it cuts one. The left step of an
+  at-least-one genome reading is shown and held for a rebind as the census its reading came
+  from, under a line that states the reading in full, so a rebind on its organism keeps the
+  reading. `build_phyletic_expression` is offered only where the site's declared record
+  types list OrthoMCL's `helper` record, the one rule veupathdb-mcp reads
+  (`serves_ortho_taxonomy`); a site whose record types cannot be read is offered no
+  builder, and the next call reads them again. A value given back stands only while its
+  parents keep their read value, and a held child, given back or left out, under a parent
+  whose read value moved is read again and refused in one wording (`MovedParentError`:
+  the parent old to new, what the child held, at most five ranked entries, state it again).
+  An options read never refuses for a held sibling: it notes it in the result's `note` in
+  the same words and binds nothing. A parent moves only when its read value is not the same
+  value as WDK reads it (a multi-pick is its set of terms), and every binding path (FRAME
+  rebind, variant, edit, typed operation, options read, card pick, build, control test)
+  reads through the one reader with the held values, so a held child left out of a FRAME
+  rebind or a card pick is read again too. Every comparison of two parameter values, the
+  site's outside changes included, is `==` on the value types (veupathdb-py `KindValue`),
+  or `same_param_value(name, kind, ...)` for two held values or the phyletic expression.
+  The reader returns `BoundValues`, whose sentinel ruff's banned-api rule guards; the
+  param-equality gate reads wire text only; the binding test derives its binders and
+  entries, maps tool functions to eight paths of five cases, and names the already-bound
+  writers. See
+  [a value is read by its parameter](decisions/a-value-is-read-by-its-parameter.md) and
+  [a required genome list is asked from its counts](decisions/a-required-genome-list-is-asked-from-its-counts.md).
+* **One resolver names a vocabulary entry, and a search's organism parameter is read
+  from its declaration.** With veupathdb-py 0.9.0b12 and veupathdb-mcp 0.9.0b17, a text
+  binds an entry only by the exact step; every other text is refused with the five
+  entries `rank_entries` holds nearest, led by the entry one Decisions choice picks, which
+  never binds (at most five choices per refusal, none from a served tool). The organism
+  parameter is the one marked `highlightReferenceOrganisms`, or else the one with
+  `organismProperties` whose every leaf is an entry of the site's organism list
+  (`veupathdb_mcp.catalog.organism_parameter_of`), so FRAME's organism refusals hold on
+  `GenesWithAlphafold` and a mass-spec assay is never read as an organism. Every sheet
+  Strategist formats names its organism parameter that way, and `list_organisms` is read
+  from `veupathdb_mcp.catalog`. See
+  [one resolver names a vocabulary entry](decisions/one-resolver-names-a-vocabulary-entry.md)
+  and [type correspondence](wdk/strategist/type-correspondence.md).
+* **A shown value is stated back unchanged, and a vocabulary text binds only by an exact
+  entry.** Every value a work order, tool result or pinned line shows an agent is the
+  stated form of its kind, a value no form reads back to is marked as kept, and a re-bind
+  on the same search keeps the values it leaves out. A text that names no entry exactly is
+  refused with ranked candidates on FRAME, edits, variants, `count_search` and readings
+  alike; the FRAME vocabulary pick and its card are gone, with the decision that recorded
+  them. See [WDK-MAP-002](wdk/strategist/rules/strategist-mapping.md).
+* **An organism, an audit genome and a plan's organism name an entry only exactly.** The
+  organism gate binds the entry a message states whole or one the words name exactly
+  (folded), and asks every other requirement on the card over five ranked entries that a
+  Decisions choice may lead; no choice binds an organism, and the floor it read is gone. A
+  picked plan names an open organism only by an exact entry, and an audit genome name
+  resolves the same way, else is unresolved with ranked suggestions. The ordered ortholog
+  organisms of a gene record read are led by a Decisions choice under the turn's words.
+  A Decisions call is bounded by `DECISIONS_TIMEOUT_SECONDS`; the combine-operator floor
+  is `DECISIONS_OPERATOR_MIN_CONFIDENCE`. The ledger's frame and constraint sections, a
+  card answer, a control test result and `get_strategy` (under `parameters`) show stated
+  values, and a sweep level is read by its parameter's declaration. See
+  [an organism requirement holds a site entry](decisions/an-organism-requirement-holds-a-site-entry.md).
 * **An empty value is read as its parameter allows it.** With veupathdb-py 0.9.0b9 and
   veupathdb-mcp 0.9.0b14, `""` (and `[]` for a multi-pick) reads as the parameter's empty
   value only where it publishes `allowEmptyValue: true`, and is refused elsewhere; an
@@ -1136,7 +1196,7 @@
   it. The hold now opens the slot, so the build waits for the card. A PlasmoDB card asked
   FRAME's InterPro question and a Lead question naming the same criterion; the card now
   keeps the recorded question alone, decided by the criterion and parameter the recorded
-  options bind. See [the decision](decisions/an-unsettled-vocabulary-pick-is-asked.md).
+  options bind. That decision is deleted on 2026-11-22, when a vocabulary text binds only by an exact entry.
 * **A turn that a site ends names the site.** A turn that died on a VEuPathDB
   site that did not answer read "This turn stopped before it could answer. Ask
   again." with no site named. The reply now names the site, found from the
@@ -1160,7 +1220,7 @@
   as it was. The unit and integration tiers install `offline_decisions`
   (`tests/_support/decisions.py`), so no test reaches the service. The check that some
   model backend is configured is gone with it: the OpenAI key always is.
-  See [the decision](decisions/an-unsettled-vocabulary-pick-is-asked.md).
+  That decision is deleted on 2026-11-22, when a vocabulary text binds only by an exact entry.
 * **A value the site expands is the value pushed, and a card pick is a binding.** On QA
   VEuPathDB a `GenesByGoTerm` step pushed with organism `["Plasmodium"]` is stored as its
   61 strains, because the client sends a `countOnlyLeaves` tree value as its leaves. The
@@ -1236,7 +1296,7 @@
   names the requirement it serves (`get_parameter_options(requirement=...)`), the read's
   Decisions pick is recorded with a note FRAME reads, and a value FRAME chose under a pick
   that is not settled becomes a slot question with the pick and the kept entries
-  ([decision](decisions/an-unsettled-vocabulary-pick-is-asked.md)). `search_for_searches`
+  (a decision deleted on 2026-11-22). `search_for_searches`
   shows `decisionProbability`. The import contract names the modules veupathdb-mcp
   0.2.0b53 and 0.2.0b54 added.
 * **The tools a turn reaches follow its typed state.** The classification withholds no

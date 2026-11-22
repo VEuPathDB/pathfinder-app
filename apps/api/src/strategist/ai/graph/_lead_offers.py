@@ -15,7 +15,6 @@ from typing import Any
 from assistant_core.graph import approvals
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.turn_state import ParkedCall, PendingApproval
-from pydantic import JsonValue
 from pydantic_ai.tools import (
     DeferredToolApprovalResult,
     DeferredToolResults,
@@ -37,7 +36,7 @@ from strategist.ai.lead.proposal import (
     AdoptionArgs,
     DeclinedProposal,
 )
-from strategist.domain.strategy.expression_handles import shown_params
+from strategist.domain.strategy.expression_handles import stated_values
 
 _DECLINED_BY_REPLY = "The researcher sent a new message instead of answering the card."
 # A no on a removal is a no to the message that asked for it.
@@ -76,7 +75,7 @@ def _declined_offer(
             AddCriterionChange(
                 sentence=f"{criterion.text} ({criterion.role})",
                 search_name=criterion.search_name,
-                params=dict[str, JsonValue](shown_params(criterion.param_values)),
+                params=stated_values(criterion.param_values),
             )
             for criterion in offer.spec.criteria
         ],

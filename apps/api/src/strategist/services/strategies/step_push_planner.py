@@ -92,7 +92,7 @@ def _decide_leaf_or_transform(
     moved = [
         what
         for what, differs in (
-            ("params", dict(new_step.parameters) != dict(old_step.parameters)),
+            ("params", new_step.parameters != old_step.parameters),
             ("wdk weight", new_step.wdk_weight != old_step.wdk_weight),
             ("display name", _renamed(new_step, old_step)),
         )

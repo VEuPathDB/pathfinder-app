@@ -41,7 +41,8 @@ input is `""` or digits. The rules are WDK's:
   offers `""` and it reads as the kind's empty value (`empty_value`: no number,
   no date, no range end, `""` or `[]`); elsewhere it is refused, by the reader
   and by the canonicalizer on the typed path. A filter's empty value goes out as
-  `""` and is not `{"filters": []}`, the value with no clauses the editor writes. `GenesByNgsSnps.occurrences_upper` takes `""` for no upper bound,
+  `""` and is not `{"filters":[]}`, the value with no clauses the editor writes and
+  `FilterParamNew` defaults to; that one is stated `[]`, and `[]` reads back to it. `GenesByNgsSnps.occurrences_upper` takes `""` for no upper bound,
   and a required multi-pick refuses `[]`; a value left out runs at the site's
   default. A multi-pick holds `minSelectedCount` to `maxSelectedCount` terms,
   so `GenesByLocation.organismSinglePick` takes exactly one.
@@ -72,7 +73,66 @@ step's values as the step holds them. A curated seed or gold tree is a statement
 too, canonicalized where it becomes steps (`materialize_classed_tree`). A step
 stored earlier that holds a stated branch is not migrated: it is pushed as held. The agent reads a held
 value as "kept as the site holds it", no stated schema offers the kind, and the
-editor shows its raw text and leaves it out of a patch until it is edited.
+editor shows its raw text and leaves it out of a patch until it is edited. A value
+stated back as shown, its stated form or a kept value's marked text or wire, is the held
+value: the one reader that knows the held values (`read_under_parents`, through `bound`)
+takes it without reading it, for a FRAME rebind, a variant, an edit and a typed operation
+alike, while no parent of it reads to a new value. A parent moves only when its read value
+is not `==` to the held one, so the same organism stated in another case, or the same
+organisms in another order, moves nothing. Every path that binds a value reads it through
+`read_under_parents` with the held values as `bound`, and the reader returns
+`BoundValues`, an mcp mapping whose constructor takes a sentinel only the reader module
+holds and checks by identity, and whose values cannot change; ruff's banned-api rule
+(`TID251`) refuses an import or attribute read of the sentinel here and in mcp. The type
+ends at three named sinks: `CriterionCall.with_read`, the variant builder `_variant_spec`
+and the control-test `control_config` take `BoundValues`, so a raw dict there fails mypy and
+pyright. The reader module's own writers (`typed_tree`, `typed_operation`) and the edit tool
+copy a reading into `StrategyStepNode`, `UpdateStepParamsOp` and `AddLeafOp`, and those
+models take plain maps, because the already-bound writers below feed them too.
+`CriterionCall.with_values` takes plain maps for the same reason: it is called with held
+values (`with_held`) and with read values rewritten to the site's scale or open ends
+(`_frame_sources`, `_frame_values`), never with stated values, which reach the call through
+`with_read`. Held, replayed and measured values are
+already bound, so their writers keep plain mappings; the binding test names each one with
+its reason (`ALREADY_BOUND`) and fails when another writer of `bind_values` appears. One
+parametrized test drives eight paths (a FRAME rebind, a variant, an edit, a typed
+operation, an options read, a card pick, a build and a control test) through five cases.
+
+Equality is on the value types (veupathdb-py `KindValue`): `==`, `in`, sets, dict keys and
+model equality compare a value by its identity in its own kind, and a held value meets a
+typed one in the typed value's kind. `same_param_value(name, kind, ...)` is the one
+function that takes a kind, for two held values or the phyletic expression; Strategist uses
+it where a site-held value meets the step's (`site_changes`) and where two offered wires
+meet (`AcceptedReading.same_reading`), with the kind of the bound value. Strategist holds no
+equality of its own.
+
+The bar is that an honest change cannot regress silently: the value types (`==` on each
+kind) and the `BoundValues` sinks enforce equality and binding. Deliberate circumvention
+(`vars()`, `getattr` with a built name, an `Any` reaching the sentinel, a lambda) is outside
+the bar, and nothing chases it. Two gates are best-effort first lines, not proofs.
+`python -m veupathdb.devtools.param_equality` runs in
+pre-commit and CI here and in both libraries; it fails on the forms of comparing wire text
+it names (`==`, `!=`, a wire on the left of `in`, a count of distinct wires, a set, a local,
+`str()`, `model_dump()` or `.get` of one) outside the client's equality module, and each repository lists its allowed text
+comparisons in `scripts/param-equality-allowed.txt`. The unit test
+`test_every_binding_reads_through_the_one_reader.py` derives the mcp functions that bind
+from mcp's source and the reader entries from the three reader modules (`_stated_values.py`,
+`_frame_proposals.py`, `sheet_params.py`); it fails when another module reaches a binder by
+import, attribute or `getattr`, when a tool function that calls a reader entry is not mapped
+to a path, and when a mapped tool no longer binds. The build and the control test hold no
+value, so their paths assert that every stated value is read under the stated parent. A held
+value whose parent moved is read again under the new parent, whether the call gives it back
+or leaves it out, so an edit that moves an organism refuses a filter the new organism does
+not hold instead of pushing it unread. That refusal (`MovedParentError`) names the parent and
+its old and new value, the child and what it held, the reader's own refusal, at most five
+ranked entries under the new parent the refusal did not already list, and asks to state the
+child again or leave it out. A child the call states anew is read and refused in the reader's
+own words. An options read never refuses for a held sibling: it reads its context with
+`read_stated_context` (`typed_context_read`), answers the asked parameter under it, and
+appends each held value that no longer reads there to the result's `note` in the same words,
+binding nothing; a context value the agent states wrongly is refused, and the write that
+keeps the stale value still refuses it. Every value an agent may state back is shown whole; a summary that cuts a value says
+it was cut and how long it was.
 
 The rejected alternative kept held values in a second map beside `parameters`
 and merged them at the push. Every path that copies, compares, validates or
@@ -96,8 +156,9 @@ reads the values whose parents are bound, adds the site-set values those
 parents give, and fetches the declarations again under the new context. A
 caller that holds a step's values passes them as `bound`, so an edit reads a
 dependent value under the step's own parents. The FRAME card check, the edit
-tools, the options read and the served reads all call it; none reads a value
-against the published sheet.
+tools and the served reads call it; the options read calls it with `stale`, through
+`read_stated_context`, so a held sibling that no longer reads is noted rather than
+refused. None reads a value against the published sheet.
 
 # A seed keeps WDK's wire value
 
@@ -143,8 +204,9 @@ in veupathdb-py `domain/parameters/stated.py`; `ISODate` in
 `domain/parameters/decimals.py`; `stated_schema`, `read_stated` and
 `stated_example` on `WDKBaseParameter` in `wdk/wdk_parameters.py`;
 `ParameterInfo.stated_schema` in veupathdb-mcp `catalog/param_formatting.py`;
-`read_under_parents` and `read_declared` in `catalog/param_dag.py`;
-`read_stated_parameters` in `catalog/search_inspection.py`; `typed_values` and
+`read_under_parents`, `MovedParentError` and `read_declared` in `catalog/param_dag.py`;
+`read_stated_parameters` and `read_stated_context` in `catalog/search_inspection.py`;
+`typed_values`, `typed_context_read` and
 the stated node types in `ai/tools/standalone/_stated_values.py`;
 `name_the_open_sheets` in `ai/tools/standalone/_frame_schema.py`; the dataset
 route in `transport/http/routers/sites/datasets.py`; `DatasetParam.tsx` in

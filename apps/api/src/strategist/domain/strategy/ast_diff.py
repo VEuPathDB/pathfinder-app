@@ -8,8 +8,9 @@ one of them was added or removed.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
+
+from strategist.domain.strategy.expression_handles import stated_text
 
 __all__ = [
     "ParamChange",
@@ -23,7 +24,7 @@ __all__ = [
 
 
 class ParamChange(BaseModel):
-    """One parameter's value on both sides, in wire form."""
+    """One parameter's value on both sides, in the form it is stated."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -83,21 +84,24 @@ def nodes_of(ast: StrategyAst | None) -> dict[str, StrategyStepNode]:
     return {node.id: node for node in walked}
 
 
-def _wire_params(node: StrategyStepNode) -> dict[str, str]:
-    return {name: to_wire(value) for name, value in node.parameters.items()}
-
-
 def _param_changes(
     before: StrategyStepNode,
     after: StrategyStepNode,
 ) -> list[ParamChange]:
-    old = _wire_params(before)
-    new = _wire_params(after)
     return [
-        ParamChange(name=name, before=old.get(name), after=new.get(name))
-        for name in sorted(old.keys() | new.keys())
-        if old.get(name) != new.get(name)
+        ParamChange(
+            name=name,
+            before=_stated(before, name),
+            after=_stated(after, name),
+        )
+        for name in sorted(before.parameters.keys() | after.parameters.keys())
+        if before.parameters.get(name) != after.parameters.get(name)
     ]
+
+
+def _stated(node: StrategyStepNode, name: str) -> str | None:
+    value = node.parameters.get(name)
+    return None if value is None else stated_text(name, value)
 
 
 def _step_change(

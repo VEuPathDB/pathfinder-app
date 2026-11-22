@@ -153,6 +153,13 @@ repos:
         pass_filenames: false
         types: [python]
         files: ^apps/api/.*
+      - id: param-equality-api
+        name: param-equality (api)
+        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run python -m veupathdb.devtools.param_equality src --allow scripts/param-equality-allowed.txt"
+        language: system
+        pass_filenames: false
+        types: [python]
+        files: ^apps/api/.*
       - id: vulture-api
         name: vulture (api)
         entry: bash -c "cd apps/api && $HOME/.local/bin/uv run vulture"

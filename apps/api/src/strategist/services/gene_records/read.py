@@ -16,9 +16,10 @@ from pydantic import (
 )
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import (
-    MAX_NEAREST_ENTRIES,
+    SHOWN_CANDIDATES,
     VocabOption,
-    nearest_entries,
+    exact_entry,
+    rank_entries,
 )
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import (
@@ -27,6 +28,7 @@ from veupathdb.wdk import (
     get_site,
     get_strategy_api,
 )
+from veupathdb_mcp.catalog import NamedVocabulary, ResolveContext, ordered_terms
 from veupathdb_mcp.wdk import get_gene_expression_summary, order_primary_key
 
 from strategist.platform.errors import NotFoundError
@@ -281,7 +283,11 @@ def _attribute_texts(record: WDKRecordInstance) -> dict[str, str]:
 
 
 async def read_gene_record(
-    site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+    site_id: str,
+    gene_id: str,
+    *,
+    ortholog_organism: str | None = None,
+    about: ResolveContext | None = None,
 ) -> GeneRecordSummary:
     """The record ``site_id`` holds for ``gene_id``, under the caller's token."""
     return await read_the_gene_record(
@@ -289,31 +295,40 @@ async def read_gene_record(
         site_id,
         gene_id,
         ortholog_organism=ortholog_organism,
+        about=about,
     )
+
+
+def _held_organisms(rows: list[_OrthologTableRow]) -> list[VocabOption]:
+    held = dict.fromkeys(row.organism for row in rows)
+    return [VocabOption(value=entry, display=entry) for entry in held]
 
 
 def _shown_orthologs(
     rows: list[_OrthologTableRow], organism: str | None
 ) -> list[OrthologRow]:
     """Every row of the asked organism, else the first rows."""
-    kept = (
-        rows[:MAX_ORTHOLOG_ROWS]
-        if organism is None
-        else [row for row in rows if row.organism == organism]
-    )
+    if organism is None:
+        kept = rows[:MAX_ORTHOLOG_ROWS]
+    else:
+        entry = exact_entry(_held_organisms(rows), organism)
+        kept = [] if entry is None else [r for r in rows if r.organism == entry.value]
     return [
         OrthologRow(organism=r.organism, gene_id=r.ortho_gene_source_id) for r in kept
     ]
 
 
-def _nearest_organisms(
-    rows: list[_OrthologTableRow], organism: str | None
+async def _nearest_organisms(
+    rows: list[_OrthologTableRow], organism: str | None, about: ResolveContext | None
 ) -> list[str]:
-    held = list(dict.fromkeys(row.organism for row in rows))
-    if organism is None or organism in held:
+    options = _held_organisms(rows)
+    if organism is None or exact_entry(options, organism) is not None:
         return []
-    options = [VocabOption(value=entry, display=entry) for entry in held]
-    return nearest_entries(options, organism, MAX_NEAREST_ENTRIES)
+    if about is None:
+        return [o.value for o in rank_entries(options, organism, SHOWN_CANDIDATES)]
+    vocabulary = NamedVocabulary(display="ortholog organism", options=options)
+    [ordered] = await ordered_terms(about, [(vocabulary, organism)])
+    return [o.value for o in ordered]
 
 
 async def read_the_gene_record(
@@ -322,6 +337,7 @@ async def read_the_gene_record(
     gene_id: str,
     *,
     ortholog_organism: str | None = None,
+    about: ResolveContext | None = None,
 ) -> GeneRecordSummary:
     """The gene record one site's API answers, as a summary.
 
@@ -363,7 +379,9 @@ async def read_the_gene_record(
         orthologs=_shown_orthologs(rows, ortholog_organism),
         ortholog_count=len(rows),
         ortholog_organism=ortholog_organism,
-        nearest_ortholog_organisms=_nearest_organisms(rows, ortholog_organism),
+        nearest_ortholog_organisms=await _nearest_organisms(
+            rows, ortholog_organism, about
+        ),
         ortholog_site=None if home is None else get_site(home).name,
         ortholog_group=stated.orthomcl_name,
         expression=await _expression_of(site_id, gene_id),

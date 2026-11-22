@@ -17,11 +17,13 @@ from strategist.ai.agents._instructions import (
     pinned_user_memories,
 )
 from strategist.ai.agents.frame_expression_checks import hold_the_taxa_to_their_scope
+from strategist.ai.agents.frame_genome_checks import (
+    hold_the_genome_reading_to_a_question,
+)
 from strategist.ai.agents.frame_option_checks import (
     hold_an_option_to_a_held_expression,
     hold_an_option_to_its_parameter,
 )
-from strategist.ai.agents.frame_pick_checks import hold_an_unsettled_pick_to_a_question
 from strategist.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from strategist.ai.agents.frame_result_checks import (
     hold_an_organism_to_a_step,
@@ -375,5 +377,5 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_an_option_to_its_parameter)
     agent.output_validator(hold_the_readings_to_the_site)
     agent.output_validator(hold_the_taxa_to_their_scope)
-    agent.output_validator(hold_an_unsettled_pick_to_a_question)
+    agent.output_validator(hold_the_genome_reading_to_a_question)
     return agent

@@ -34,6 +34,8 @@ from strategist.tests._support.eda_step_doubles import DE_DATASET
 from strategist.tests.fixtures.builders import add_step_to_graph
 from strategist.tests.unit.ai.lead._analysis_thread import document
 
+_STRAINS = ("3D7", "IT", "NF54")
+
 
 def _ctx(spec: OperationalSpec) -> Any:
     ctx = MagicMock()
@@ -74,7 +76,7 @@ def test_workspace_renders_a_multi_pick_in_wire_form() -> None:
 
     assert rendered is not None
     assert 'organism=["Plasmodium"]' in rendered
-    assert "any_or_all=any" in rendered
+    assert 'any_or_all="any"' in rendered
 
 
 def test_workspace_says_the_values_are_preserved_unless_the_request_changes_them() -> (
@@ -198,7 +200,7 @@ class TestTheRenderedGraph:
         assert rendered is not None
         assert "a: GenesByText [leaf]" in rendered
         assert '"kinase text"' in rendered
-        assert "text_expression=kinase" in rendered
+        assert 'text_expression="kinase"' in rendered
 
     def test_a_combine_names_its_operator_and_both_inputs(self) -> None:
         rendered = pinned_graph_state(_graph_ctx(_session(_graph_with_a_combine())))
@@ -297,7 +299,7 @@ def test_an_analysis_step_reads_as_what_it_selects_beside_a_search_step() -> Non
     assert lines[step + 1] == (
         "  selects: Genes higher in 24h than in 18h (DESeq, |effect| >= 1, p <= 0.05)"
     )
-    assert "text_expression=kinase" in rendered
+    assert 'text_expression="kinase"' in rendered
     assert '{"' not in rendered
 
 
@@ -305,3 +307,29 @@ def test_the_context_package_is_gone() -> None:
     """The one live renderer moved here; nothing else in the package was used."""
     with pytest.raises(ModuleNotFoundError):
         importlib.import_module("strategist.ai.context")
+
+
+def test_a_long_step_value_is_shown_whole_as_its_stated_form() -> None:
+    codes = ", ".join(f"p{n:03d}" for n in range(61))
+    graph = StrategyGraph("g1", "orthologs", "plasmodb")
+    graph.record_type = "transcript"
+    add_step_to_graph(
+        graph,
+        StrategyStep(
+            id="a",
+            kind=StepKind.SEARCH,
+            search_name="GenesByOrthologPattern",
+            parameters={
+                "included_species": StringValue(value=codes),
+                "organism": MultiPickValue(
+                    values=[f"Plasmodium falciparum {n}" for n in _STRAINS]
+                ),
+            },
+        ),
+    )
+
+    rendered = pinned_graph_state(_graph_ctx(_session(graph))) or ""
+
+    assert f'included_species="{codes}"' in rendered
+    assert '"Plasmodium falciparum IT", "Plasmodium falciparum NF54"]' in rendered
+    assert "..." not in rendered

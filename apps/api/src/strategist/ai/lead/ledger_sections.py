@@ -6,9 +6,6 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import Field
-from veupathdb.domain.parameters import (
-    to_wire,
-)
 from veupathdb_mcp.catalog import contrast_role_of, is_direction_param
 
 from strategist.ai.graph.state import VerificationDigest
@@ -23,6 +20,7 @@ from strategist.domain.strategy.constraints import (
     GroundedConstraint,
     is_blocking,
 )
+from strategist.domain.strategy.expression_handles import stated_text
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -267,13 +265,13 @@ def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstra
         GroundedConstraint(
             constraint=Constraint(
                 kind=ConstraintKind.UNTYPED,
-                requested_value=to_wire(chosen.value),
+                requested_value=stated_text(name, chosen.value),
                 label=name,
                 source=ConstraintSource.ASSUMED,
                 hard=False,
             ),
             status=ConstraintStatus.GROUNDED,
-            realized_value=to_wire(chosen.value),
+            realized_value=stated_text(name, chosen.value),
             note=chosen.basis,
         )
         for criterion in spec.criteria

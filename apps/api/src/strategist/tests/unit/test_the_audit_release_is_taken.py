@@ -66,8 +66,9 @@ _AUDIT_NAMES = {
     "relatives_median",
     "tie_break",
 }
-_GENE_LOOKUP_NAMES = {"GeneIdFound", "list_organisms", "read_each_gene_id"}
+_GENE_LOOKUP_NAMES = {"GeneIdFound", "read_each_gene_id"}
 _CATALOG_NAMES = {
+    "list_organisms",
     "SiteSetParameterError",
     "NoGeneRecordsError",
     "PhyleticExpressionResult",
@@ -120,4 +121,4 @@ def test_the_pinned_releases_are_installed() -> None:
         veupathdb_mcp.__version__,
         version("veupathdb-py"),
         version("assistant-core"),
-    ) == ("0.9.0b14", "0.9.0b14", "0.9.0b9", "0.9.0b4")
+    ) == ("0.9.0b18", "0.9.0b18", "0.9.0b13", "0.9.0b4")

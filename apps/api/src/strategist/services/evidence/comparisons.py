@@ -5,7 +5,7 @@ from collections.abc import Mapping
 
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst
-from veupathdb_mcp.catalog import ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo, ResolveContext
 
 from strategist.domain.strategy.operational_spec import StructureNode
 from strategist.services.experiment import (
@@ -50,11 +50,11 @@ async def run_variant_comparison(
 
 
 async def variant_phyletic_values(
-    site_id: str, record_type: str, search_name: str, lists: dict[str, str]
+    about: ResolveContext, record_type: str, search_name: str, lists: dict[str, str]
 ) -> dict[str, ParamValue]:
     """The orthology profile values the two species lists derive."""
     return await variant_comparison.phyletic_values(
-        site_id, record_type, search_name, lists
+        about, record_type, search_name, lists
     )
 
 

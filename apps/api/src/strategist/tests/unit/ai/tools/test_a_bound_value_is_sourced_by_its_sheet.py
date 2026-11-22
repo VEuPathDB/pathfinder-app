@@ -5,13 +5,14 @@ by its values and by its labels alike."""
 from __future__ import annotations
 
 from veupathdb.domain.parameters import ParamValue, SinglePickValue, StringValue
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.tools.standalone._frame_sources import (
     bound_values,
     stated_by_their_labels,
 )
 from strategist.domain.strategy.operational_spec import Measurement
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 # Researcher messages the values below are bound under.
@@ -30,7 +31,7 @@ _KNOWLESI = (
 
 
 def _sheet(fixture: str) -> list[ParameterInfo]:
-    return format_param_info_typed(suite_search(fixture).parameters or [])
+    return sheet_of(suite_search(fixture).parameters or [])
 
 
 def _sources(

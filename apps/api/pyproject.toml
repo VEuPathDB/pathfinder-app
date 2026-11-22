@@ -57,8 +57,8 @@ constraint-dependencies = [
 ]
 [tool.uv.sources]
 assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.9.0b4" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.9.0b9" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.9.0-b14" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.9.0b13" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.9.0-b18" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.9.0b3" }
 
 [build-system]
@@ -137,6 +137,10 @@ ignore = [
     # We don't use TYPE_CHECKING imports.
     "TC001", "TC002", "TC003",
 ]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"veupathdb_mcp.catalog.param_dag._Reader".msg = "Only the reader binds values; call read_under_parents."
+"veupathdb_mcp.catalog.param_dag._READER".msg = "Only the reader binds values; call read_under_parents."
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
@@ -430,6 +434,7 @@ forbidden_modules = [
     "veupathdb_mcp.catalog.semantic_matching",
     "veupathdb_mcp.catalog.shortlist",
     "veupathdb_mcp.catalog.site_cost",
+    "veupathdb_mcp.catalog.site_record_types",
     "veupathdb_mcp.catalog.sites",
     "veupathdb_mcp.catalog.taxonomy",
     "veupathdb_mcp.catalog.validation_callbacks",
@@ -549,9 +554,11 @@ forbidden_modules = [
 # to the checker.
 ignore_imports = [
     "strategist.ai.tools.standalone._frame_proposals -> veupathdb_mcp.catalog.radio_pairs",
-    # The one test-support seam: serve_search_details patches validate_parameters
-    # through its own module globals, which the package surface cannot reach.
+    # The test-support seams: each patches a module global of the library (here
+    # validate_parameters, then the site record types read) that the package
+    # surface cannot reach.
     "strategist.tests._support.catalog_builders -> veupathdb_mcp.catalog.param_validation",
+    "strategist.tests._support.declared_record_types -> veupathdb_mcp.catalog.site_record_types",
     "strategist.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.param_discovery",
     "strategist.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.searches",
     "strategist.tests.unit.ai.tools.conftest -> veupathdb_mcp.catalog.search_inspection",

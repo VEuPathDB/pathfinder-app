@@ -3,20 +3,19 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb_mcp.catalog import build_sheet, format_param_info_typed
+from veupathdb_mcp.catalog import build_sheet
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
 from strategist.ai.models.mock.sheets import alt_organism
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 
 def _pinned(fixture: str, search_name: str, criterion_id: str) -> str:
     definition = suite_search(fixture)
-    entries = build_sheet(
-        format_param_info_typed(definition.parameters or []), query="orthologs"
-    )
+    entries = build_sheet(sheet_of(definition.parameters or []), query="orthologs")
     state = AgentToolState()
     state.pin_sheet(criterion_id, search_name, entries, what_runs=search_name)
     return pinned_frame_sheets(agent_run_context(agent_state=state)) or ""

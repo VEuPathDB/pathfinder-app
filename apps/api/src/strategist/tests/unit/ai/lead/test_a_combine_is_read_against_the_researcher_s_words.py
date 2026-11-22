@@ -218,6 +218,20 @@ async def test_an_unsure_or_unstated_read_is_the_assistant_s() -> None:
     assert sources == [("chosen", []), ("chosen", [])]
 
 
+async def test_a_read_below_the_operator_floor_is_the_assistant_s(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "decisions_operator_min_confidence", 0.9)
+    deps = _deps(_spec())
+
+    read = await _read(deps, _Service(_answering("intersect", 0.88)))
+
+    assert (
+        operator_source(read, _BOTH),
+        questions_for_the_card(deps, FrameResult(), []),
+    ) == ("chosen", [])
+
+
 async def test_no_answer_records_no_read_and_asks_nothing() -> None:
     deps = _deps(_spec())
     read = await _read(deps, _Service(None))

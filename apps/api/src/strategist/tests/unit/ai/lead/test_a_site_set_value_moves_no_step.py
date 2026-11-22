@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from veupathdb.domain.parameters import StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.lead.derive import derive_ledger
@@ -13,6 +12,7 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.site_set_reads import SiteSetReads
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
@@ -49,9 +49,7 @@ def test_a_pass_hands_its_site_set_names_to_the_turn() -> None:
     state = AgentToolState()
     state.record_read(
         "GenesByText",
-        format_param_info_typed(
-            list(suite_search("search_genes_by_text").parameters or [])
-        ),
+        sheet_of(list(suite_search("search_genes_by_text").parameters or [])),
     )
 
     apply_agent_state(deps, agent_run_context(agent_state=state).deps)

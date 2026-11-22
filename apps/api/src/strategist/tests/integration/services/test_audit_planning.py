@@ -95,11 +95,19 @@ async def test_an_empty_check_list_screens_what_the_planner_chooses() -> None:
 
 
 @pytest.mark.usefixtures("site")
-async def test_the_words_of_one_organism_resolve_it() -> None:
-    proposal = await propose_scope(plan_request("beta s"))
+async def test_spaced_words_of_one_organism_resolve_it() -> None:
+    proposal = await propose_scope(plan_request("examplea  BETA s"))
 
     assert proposal.scope is not None
     assert proposal.scope.genomes == (BETA_S,)
+
+
+@pytest.mark.usefixtures("site")
+async def test_words_short_of_an_organism_are_unresolved_with_it_first() -> None:
+    proposal = await propose_scope(plan_request("beta s"))
+
+    assert (proposal.scope, proposal.unresolved) == (None, ("beta s",))
+    assert proposal.suggestions["beta s"][0] == BETA_S
 
 
 async def test_a_name_in_another_case_resolves_before_the_word_match(
@@ -204,7 +212,7 @@ async def test_the_proposal_states_why_it_screens_no_pseudogene_calls() -> None:
 
 
 @pytest.mark.usefixtures("site")
-async def test_a_name_held_by_several_organisms_is_unresolved_with_suggestions() -> (
+async def test_a_name_no_organism_holds_exactly_is_unresolved_with_ranked_ones() -> (
     None
 ):
     several = await propose_scope(plan_request("alpha"))
@@ -212,7 +220,9 @@ async def test_a_name_held_by_several_organisms_is_unresolved_with_suggestions()
 
     assert (several.scope, several.unresolved) == (None, ("alpha",))
     assert several.suggestions == {"alpha": STRAINS[:5]}
-    assert none.suggestions == {"alpha zeta": ()}
+    assert none.suggestions == {
+        "alpha zeta": (BETA_S, BETA_R, ALPHA_R, STRAINS[8], STRAINS[7])
+    }
 
 
 @pytest.mark.usefixtures("site")

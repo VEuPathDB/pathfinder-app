@@ -8,8 +8,7 @@ import re
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
-from veupathdb.domain.parameters import MultiPickValue
-from veupathdb_mcp.catalog import VocabLookup
+from veupathdb.domain.parameters import MultiPickValue, VocabLookup
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,

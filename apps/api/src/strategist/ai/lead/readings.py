@@ -4,14 +4,18 @@ a reading a card picks."""
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping, Sequence
 
 from assistant_core.graph.turn_state import UserQuestionAnswer
-from veupathdb.errors import ValidationError
+from pydantic import JsonValue
+from veupathdb.domain.parameters import shown_stated
+from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.domain.strategy.card_answers import option_value
+from strategist.domain.strategy.card_answers import option_value, spec_bound_by_card
 from strategist.domain.strategy.expression_handles import (
     UnknownExpressionError,
     held_expressions,
@@ -24,6 +28,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.services.strategies.measurements import MEASUREMENT_BUDGET_SECONDS
 from strategist.services.strategies.reading_check import site_spelling
+from strategist.services.strategies.sheet_params import read_card_values
 
 
 async def _counted(
@@ -95,6 +100,49 @@ async def count_readings(deps: LeadDeps, result: FrameResult) -> None:
             "criteria": [_with_counts(c, counted.get(c.id, [])) for c in spec.criteria]
         }
     )
+
+
+async def picks_their_criteria_refuse(
+    state: PipelineState,
+    answers: list[UserQuestionAnswer],
+    sheets: Mapping[str, Sequence[ParameterInfo]],
+) -> dict[str, str]:
+    domain = state.domain
+    spec = domain.operational_spec
+    if spec is None:
+        return {}
+    recorded = {q.question: q for q in domain.open_questions}
+    criteria = {c.id: c for c in spec.criteria}
+    refused: dict[str, str] = {}
+    for answer in answers:
+        question = recorded.get(answer.prompt)
+        for option in [] if question is None else question.options:
+            values = option.values_bound()
+            if values is None or option.label not in answer.chosen_labels:
+                continue
+            criterion = criteria.get(values.criterion_id)
+            if criterion is None or not criterion.search_name:
+                continue
+            bound = spec_bound_by_card(
+                spec,
+                values,
+                option_id=option.id,
+                sheets=sheets,
+                expressions=domain.built_expressions,
+            )
+            [picked] = [c for c in bound.criteria if c.id == criterion.id]
+            stated: dict[str, JsonValue] = {
+                name: shown_stated(value)
+                for name, value in picked.param_values.items()
+                if name in values.params
+            }
+            try:
+                await read_card_values(
+                    state.site_id, criterion, stated, sheets.get(criterion.id, [])
+                )
+            except VEuPathDBError as refusal:
+                refused[option.label] = refusal.detail or refusal.title
+    return refused
 
 
 async def refused_picks(

@@ -10090,7 +10090,10 @@ components:
           title: Includeunknown
         value:
           items:
-            type: number
+            anyOf:
+            - type: integer
+            - type: number
+            - type: string
           type: array
           title: Value
       type: object
@@ -10472,11 +10475,6 @@ components:
           type: boolean
           title: Countonlyleaves
           default: false
-        initialDisplayValue:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Initialdisplayvalue
         vocabulary:
           anyOf:
           - items:
@@ -10561,12 +10559,17 @@ components:
           - type: string
           - type: 'null'
           title: Recordclassname
+        initialDisplayValue:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Initialdisplayvalue
       type: object
       required:
       - name
       - type
       title: ParamSpecResponse
-      description: Normalized parameter spec (UI-friendly) with typed vocab/ontology/parsers.
+      description: Normalized parameter spec (UI-friendly) with the default as WDK holds it.
     ParamSpecsRequest:
       properties:
         contextValues:
@@ -11939,7 +11942,7 @@ components:
           title: Sources
         derivedFrom:
           additionalProperties:
-            type: string
+            $ref: '#/components/schemas/JsonValue'
           type: object
           title: Derivedfrom
         short:
@@ -12613,40 +12616,6 @@ components:
           - type: string
           - type: 'null'
           title: Recordtype
-        parameters:
-          anyOf:
-          - additionalProperties:
-              oneOf:
-              - $ref: '#/components/schemas/StringValue'
-              - $ref: '#/components/schemas/NumberValue'
-              - $ref: '#/components/schemas/NumberRangeValue'
-              - $ref: '#/components/schemas/DateValue'
-              - $ref: '#/components/schemas/DateRangeValue'
-              - $ref: '#/components/schemas/TimestampValue'
-              - $ref: '#/components/schemas/SinglePickValue'
-              - $ref: '#/components/schemas/MultiPickValue'
-              - $ref: '#/components/schemas/FilterValue'
-              - $ref: '#/components/schemas/InputDatasetValue'
-              - $ref: '#/components/schemas/InputStepValue'
-              - $ref: '#/components/schemas/HeldValue'
-              discriminator:
-                propertyName: type
-                mapping:
-                  date: '#/components/schemas/DateValue'
-                  date-range: '#/components/schemas/DateRangeValue'
-                  filter: '#/components/schemas/FilterValue'
-                  held: '#/components/schemas/HeldValue'
-                  input-dataset: '#/components/schemas/InputDatasetValue'
-                  input-step: '#/components/schemas/InputStepValue'
-                  multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                  number: '#/components/schemas/NumberValue'
-                  number-range: '#/components/schemas/NumberRangeValue'
-                  single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                  string: '#/components/schemas/StringValue'
-                  timestamp: '#/components/schemas/TimestampValue'
-            type: object
-          - type: 'null'
-          title: Parameters
         operator:
           anyOf:
           - type: string
@@ -12716,6 +12685,40 @@ components:
           - type: string
           - type: 'null'
           title: Expandedname
+        parameters:
+          anyOf:
+          - additionalProperties:
+              oneOf:
+              - $ref: '#/components/schemas/StringValue'
+              - $ref: '#/components/schemas/NumberValue'
+              - $ref: '#/components/schemas/NumberRangeValue'
+              - $ref: '#/components/schemas/DateValue'
+              - $ref: '#/components/schemas/DateRangeValue'
+              - $ref: '#/components/schemas/TimestampValue'
+              - $ref: '#/components/schemas/SinglePickValue'
+              - $ref: '#/components/schemas/MultiPickValue'
+              - $ref: '#/components/schemas/FilterValue'
+              - $ref: '#/components/schemas/InputDatasetValue'
+              - $ref: '#/components/schemas/InputStepValue'
+              - $ref: '#/components/schemas/HeldValue'
+              discriminator:
+                propertyName: type
+                mapping:
+                  date: '#/components/schemas/DateValue'
+                  date-range: '#/components/schemas/DateRangeValue'
+                  filter: '#/components/schemas/FilterValue'
+                  held: '#/components/schemas/HeldValue'
+                  input-dataset: '#/components/schemas/InputDatasetValue'
+                  input-step: '#/components/schemas/InputStepValue'
+                  multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
+                  number: '#/components/schemas/NumberValue'
+                  number-range: '#/components/schemas/NumberRangeValue'
+                  single-pick-vocabulary: '#/components/schemas/SinglePickValue'
+                  string: '#/components/schemas/StringValue'
+                  timestamp: '#/components/schemas/TimestampValue'
+            type: object
+          - type: 'null'
+          title: Parameters
       type: object
       required:
       - id

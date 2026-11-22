@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue, to_wire
+from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaDateRangeFilter,
@@ -35,7 +35,10 @@ from strategist.domain.strategy.analysis_binding import SubsetBasis
 from strategist.domain.strategy.operational_spec import ValueSource
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.domain.strategy.value_source import stated_words, value_source
+from strategist.domain.strategy.value_source import (
+    stated_words,
+    value_source,
+)
 from strategist.services.eda.catalog import get_study_detail_for_dataset
 from strategist.services.eda.compute import VolcanoThresholds, analysis_comparison
 from strategist.services.eda.cut_offer import counted_noun, study_tail_edges
@@ -182,7 +185,7 @@ def _bound_source(
         placeholder=False,
         unset=False,
         request_texts=said,
-        card_value=to_wire(value) if picked else None,
+        card_value=value if picked else None,
         display_name=name,
     )
     return source, picked

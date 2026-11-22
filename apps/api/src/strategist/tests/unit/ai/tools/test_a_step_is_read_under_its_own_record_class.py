@@ -250,7 +250,7 @@ async def test_a_refused_value_names_the_steps_class_not_the_strategys(
     assert graph is not None
     graph.record_type = "group"
     edit: dict[str, ParamValue] = {
-        "organism": MultiPickValue(values=["Plasmodium nowhere"])
+        "organism": MultiPickValue(values=["Plasmodium vivax P01"])
     }
 
     with pytest.raises(ModelRetry) as batch:

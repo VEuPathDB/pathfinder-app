@@ -9,7 +9,7 @@ from veupathdb.domain.parameters import (
     NumberValue,
     StringValue,
 )
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.named_taxa import NamedTaxon
 from strategist.domain.strategy.operational_spec import (
@@ -17,27 +17,24 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.value_binding import bind_values, read_again
 from strategist.services.strategies.parameter_rules import text_query
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 from strategist.tests.unit.domain.strategy.test_a_taxon_the_message_names_takes_its_organisms import (
     BABESIA_LEAVES,
 )
 
 # plasmodb GenesByText as WDK publishes it: text_expression starts at "*reductase".
-_TEXT = format_param_info_typed(
-    list(suite_search("search_genes_by_text").parameters or [])
-)
-_LOCATION = format_param_info_typed(
-    list(client_search("search_genes_by_location").parameters or [])
-)
+_TEXT = sheet_of(list(suite_search("search_genes_by_text").parameters or []))
+_LOCATION = sheet_of(list(client_search("search_genes_by_location").parameters or []))
 # plasmodb P. vivax IDC percentile as WDK publishes it: channel is hidden with
 # two entries. GenesByOrthologPattern: profile_pattern is hidden with none.
-_PERCENTILE = format_param_info_typed(
+_PERCENTILE = sheet_of(
     list(
         suite_search("search_genes_by_rnaseq_pviv_patient_idc_percentile").parameters
         or []
     )
 )
-_ORTHOLOGS = format_param_info_typed(
+_ORTHOLOGS = sheet_of(
     list(suite_search("search_genes_by_ortholog_pattern").parameters or [])
 )
 _PHRASE = "cysteine-rich protein"
@@ -205,7 +202,7 @@ def test_an_organism_pick_read_again_keeps_the_taxon_that_named_it() -> None:
         basis="Babesia",
         taxon=taxon,
     )
-    sheet = format_param_info_typed(
+    sheet = sheet_of(
         list(suite_search("search_genes_by_taxon_piroplasmadb").parameters or [])
     )
 

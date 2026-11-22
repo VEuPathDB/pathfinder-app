@@ -16,7 +16,11 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import CombineOp
 
-from strategist.domain.strategy.genome_group import PROFILE_PATTERN, GenomeGroup
+from strategist.domain.strategy.genome_group import (
+    PROFILE_PATTERN,
+    GenomeGroup,
+    genome_words,
+)
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
@@ -76,10 +80,6 @@ def _with_binding(
     }
 
 
-def _wire_of(criterion: Criterion) -> dict[str, str]:
-    return {name: to_wire(value) for name, value in criterion.param_values.items()}
-
-
 def _left_of(criterion: Criterion, group: GenomeGroup) -> Criterion:
     states = _census(criterion) or {}
     kept: dict[str, TriState] = {
@@ -87,7 +87,7 @@ def _left_of(criterion: Criterion, group: GenomeGroup) -> Criterion:
     }
     params = _with_binding(criterion.resolved_params, _binding_of(kept))
     left = criterion.model_copy(update={"resolved_params": params})
-    if _wire_of(left) == _wire_of(criterion):
+    if left.param_values == criterion.param_values:
         return criterion
     return left.model_copy(update={"result_count": None, "required_genomes_name": ""})
 
@@ -119,6 +119,34 @@ def _right_of(left: Criterion, group: GenomeGroup, right_id: str) -> Criterion:
     )
 
 
+def criterion_as_stated(criterion: Criterion) -> Criterion:
+    group = _group_at_least_one(criterion)
+    states = _census(criterion)
+    if group is None or states is None:
+        return criterion
+    stated: dict[str, TriState] = {
+        **states,
+        **dict.fromkeys(group.genomes, "include"),
+    }
+    if stated == states:
+        return criterion
+    params = _with_binding(criterion.resolved_params, _binding_of(stated))
+    return criterion.model_copy(update={"resolved_params": params})
+
+
+def reading_line(criterion: Criterion) -> str | None:
+    group = _group_at_least_one(criterion)
+    if group is None or criterion_as_stated(criterion) is criterion:
+        return None
+    name = group.name or f"{len(group.genomes):,} genomes"
+    return (
+        f"reading: an ortholog in {genome_words(group.reading, name)}. The values "
+        "below are the census this reading was read from, not the step as built: "
+        "the step runs it with these genomes removed, minus the genes with no "
+        "ortholog in any of them. Stating the census back keeps the reading."
+    )
+
+
 def _rights_held(spec: OperationalSpec) -> dict[str, Criterion]:
     return {c.absence_of: c for c in spec.criteria if c.absence_of}
 
@@ -128,7 +156,7 @@ def _derived_right(
 ) -> Criterion:
     right_id = kept.id if kept is not None else _free_id(left.id, taken)
     right = _right_of(left, group, right_id)
-    if kept is not None and _wire_of(kept) == _wire_of(right):
+    if kept is not None and kept.param_values == right.param_values:
         return right.model_copy(update={"result_count": kept.result_count})
     return right
 
@@ -222,7 +250,7 @@ def _holds_every_genome(criterion: Criterion, group: GenomeGroup) -> bool:
 
 def criterion_keeping_its_reading(held: Criterion, bound: Criterion) -> Criterion:
     group = held.genome_group
-    same = _wire_of(bound) == _wire_of(held)
+    same = bound.param_values == held.param_values
     if (
         group is None
         or bound.search_name != held.search_name
@@ -264,7 +292,7 @@ def _reading_stands(
         and _subtracted(spec.structure.root, left.id, right.id)
         and not set(group.genomes) & set(states)
         and right.search_name == left.search_name
-        and _wire_of(right) == _wire_of(_right_of(left, group, right.id))
+        and right.param_values == _right_of(left, group, right.id).param_values
     )
 
 

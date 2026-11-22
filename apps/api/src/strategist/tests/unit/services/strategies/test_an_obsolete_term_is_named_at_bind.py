@@ -6,11 +6,11 @@ from __future__ import annotations
 from pydantic import TypeAdapter
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.services.strategies.obsolete_terms import ObsoletePick, obsolete_picks
 from strategist.services.strategies.value_labels import vocabulary_labels
+from strategist.tests._support.param_infos import sheet_of
 
 # The go_typeahead parameter of TriTrypDB's GenesByGoTerm as the site serves
 # it, its vocabulary cut to the entries these cases read.
@@ -43,7 +43,7 @@ def _read(term: str) -> list[ObsoletePick]:
     bound = {
         "go_typeahead": BoundValue(value=MultiPickValue(values=[term]), source="chosen")
     }
-    infos = format_param_info_typed([_GO_TYPEAHEAD])
+    infos = sheet_of([_GO_TYPEAHEAD])
     return obsolete_picks(vocabulary_labels(bound, infos).labels, infos)
 
 
@@ -54,9 +54,9 @@ def test_a_term_the_site_labels_obsolete_is_named_with_the_current_entries() -> 
             term="GO:0009296",
             label="obsolete flagellum assembly",
             nearest=[
-                "GO:0060271 : cilium assembly : 7",
-                "GO:0044458 : motile cilium assembly : 8",
                 "GO:0120316 : sperm flagellum assembly : 4",
+                "GO:0044458 : motile cilium assembly : 8",
+                "GO:0060271 : cilium assembly : 7",
                 "GO:0042255 : ribosome assembly : 8",
             ],
         )

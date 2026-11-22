@@ -34,7 +34,7 @@ def recorded_searches() -> dict[str, WDKSearch]:
     for path in sorted(_SUITE.glob("search_*.json")):
         body = RecordedWDKResponse.model_validate_json(path.read_text()).json_body()
         search = WDKSearchResponse.model_validate(body).search_data
-        found[search.url_segment] = search
+        found.setdefault(search.url_segment, search)
     return found
 
 

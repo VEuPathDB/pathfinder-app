@@ -127,6 +127,8 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     default_provider: ModelProvider = "openai"
     default_tier: TierName = "default"
 
+    decisions_operator_min_confidence: float = Field(default=0.5, ge=0, le=1)
+
     # VEuPathDB
     strategist_site: str = "veupathdb"
     wdk_dev_email: str = Field(default="", repr=False)

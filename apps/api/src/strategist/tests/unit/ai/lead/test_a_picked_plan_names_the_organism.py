@@ -71,34 +71,48 @@ def _plan(organism: str) -> OfferedReading:
     return OfferedReading(label=_TITLE, plan=_TITLE, gene_count=479, spec=spec)
 
 
-def _intent() -> UserIntent:
+def _intent(words: str) -> UserIntent:
     return UserIntent(
         classification=IntentClassification.NEW_STRATEGY,
         inferred_goal="[test] organism",
         explicit_constraints=[
             Constraint(
                 kind=ConstraintKind.ORGANISM,
-                requested_value=_SPECIES,
+                requested_value=words,
                 label="organism",
                 source=ConstraintSource.USER_EXPLICIT,
-                quote=_SPECIES,
-                value=OrganismValue(organism=_SPECIES),
+                quote=words,
+                value=OrganismValue(organism=words),
             )
         ],
     )
 
 
 @pytest.mark.usefixtures("recorded_site_organisms", "_unanswered_service")
-async def test_the_picked_plan_names_the_organism_the_request_left_open() -> None:
-    message = build_message(_TITLE)
+async def test_the_picked_plan_names_the_organism_its_words_name_exactly() -> None:
+    words = "Plasmodium  falciparum 3D7"
+    message = build_message(f"{words} genes with a signal peptide")
     deps = lead_deps(pipeline_state("plasmodb", user_prompt=message))
     deps.state.domain.offer_reading(_plan(_STRAIN))
 
-    await hold_the_intent(deps, _intent(), message)
+    await hold_the_intent(deps, _intent(words), message)
 
     domain = deps.state.domain
     assert [c.organism for c in domain.requirements] == [_STRAIN]
     assert organism_questions(domain.requirements, domain.organism_picks) == []
+
+
+@pytest.mark.usefixtures("recorded_site_organisms", "_unanswered_service")
+async def test_a_species_the_picked_plan_holds_a_strain_of_is_asked() -> None:
+    message = build_message(_TITLE)
+    deps = lead_deps(pipeline_state("plasmodb", user_prompt=message))
+    deps.state.domain.offer_reading(_plan(_STRAIN))
+
+    await hold_the_intent(deps, _intent(_SPECIES), message)
+
+    domain = deps.state.domain
+    assert [c.organism for c in domain.requirements] == [None]
+    assert len(organism_questions(domain.requirements, domain.organism_picks)) == 1
 
 
 @pytest.mark.usefixtures("recorded_site_organisms", "_unanswered_service")
@@ -107,7 +121,7 @@ async def test_without_a_picked_plan_the_organism_is_asked() -> None:
     deps = lead_deps(pipeline_state("plasmodb", user_prompt=message))
     deps.state.domain.offer_reading(_plan(_STRAIN))
 
-    await hold_the_intent(deps, _intent(), message)
+    await hold_the_intent(deps, _intent(_SPECIES), message)
 
     domain = deps.state.domain
     assert [c.organism for c in domain.requirements] == [None]

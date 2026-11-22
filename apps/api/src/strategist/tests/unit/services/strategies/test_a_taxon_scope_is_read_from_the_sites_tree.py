@@ -36,7 +36,11 @@ _DEFINITION = WDKSearch.model_validate(
                 "type": "multi-pick-vocabulary",
                 "displayType": "treeBox",
                 "properties": {
-                    "organismProperties": ["pruneNodesWithSingleExtendingChild"]
+                    "organismProperties": [
+                        "pruneNodesWithSingleExtendingChild",
+                        "showOnlyPreferredOrganisms",
+                        "highlightReferenceOrganisms",
+                    ]
                 },
                 "vocabulary": _entry(
                     "@@fake@@",

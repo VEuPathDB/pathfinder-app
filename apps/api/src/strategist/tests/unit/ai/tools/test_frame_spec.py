@@ -453,7 +453,7 @@ async def test_set_criterion_binds_when_resolved_params_valid(
     assert result.search_name == "GenesWithSignalPeptide"
     # Report the bound VALUE, not just the name: a silently wrong binding is
     # invisible when only names come back.
-    assert result.resolved_params == {"organism": '["Pf3D7"]'}
+    assert result.resolved_params == {"organism": ["Pf3D7"]}
     assert result.open_slots == []
     # A proposal already carries the names, so the template would only repeat them.
     assert result.params_template == {}

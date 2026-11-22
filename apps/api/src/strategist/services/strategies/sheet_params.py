@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Collection, Iterable, Mapping, Sequence
 
 from assistant_core.platform.logging import get_logger
+from pydantic import JsonValue
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb.errors import VEuPathDBError
@@ -13,9 +14,12 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
+    WDKFilterReads,
     fetch_search_details,
     format_param_info_typed,
+    organism_parameter_of,
     read_search_definition,
+    read_under_parents,
     wdk_fetch_at,
 )
 
@@ -71,7 +75,10 @@ async def _parameters_read(
                 error=str(exc),
             )
             continue
-        sheets[search_name] = format_param_info_typed(definition.parameters or [])
+        declarations = definition.parameters or []
+        sheets[search_name] = format_param_info_typed(
+            declarations, organism=await organism_parameter_of(site_id, declarations)
+        )
     return sheets
 
 
@@ -134,7 +141,10 @@ async def vocabularies_under(
     if not any(info.wire_parents for info in infos):
         return infos
     read = await fetch_at({name: to_wire(value) for name, value in values.items()})
-    answered = {info.name: info for info in format_param_info_typed(read)}
+    organism = next((info.name for info in infos if info.organism_param), None)
+    answered = {
+        info.name: info for info in format_param_info_typed(read, organism=organism)
+    }
     return [
         _with_vocabulary(info, answered[info.name])
         if info.wire_parents and info.name in answered
@@ -167,6 +177,28 @@ async def _sheet_under(
             "step vocabulary unreadable", search_name=search_name, error=str(exc)
         )
         return None
+
+
+async def read_card_values(
+    site_id: str,
+    criterion: Criterion,
+    stated: Mapping[str, JsonValue],
+    sheet: Sequence[ParameterInfo],
+) -> None:
+    if not sheet:
+        return
+    listed_under = criterion.record_class or await _listed_under(
+        site_id, criterion.search_name
+    )
+    if listed_under is None:
+        return
+    await read_under_parents(
+        wdk_fetch_at(site_id, listed_under, criterion.search_name),
+        stated,
+        WDKFilterReads(site_id, listed_under, criterion.search_name),
+        about=None,
+        bound=criterion.param_values,
+    )
 
 
 async def criterion_sheets(

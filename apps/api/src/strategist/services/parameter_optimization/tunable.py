@@ -5,15 +5,21 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from math import prod
 
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
+from pydantic import BaseModel, Field, JsonValue, field_validator
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import ParamKind, ParamValue, from_wire
-from veupathdb_mcp.catalog import ParameterInfo, get_search_parameters
+from veupathdb.domain.parameters import ParamKind, from_wire
+from veupathdb.wdk import WDKParameter
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    fetch_search_details,
+    format_param_info_typed,
+    get_search_parameters,
+)
 
 from strategist.services.parameter_optimization.config import (
     SWEEP_BUDGET_MIN,
     ParameterSpec,
+    SweepPlan,
 )
 from strategist.services.parameter_optimization.sweep import enumerate_spec_values
 
@@ -85,7 +91,6 @@ def _categorical_spec(
             "name": info.name,
             "type": "categorical",
             "choices": ordered,
-            "wdkKind": info.param_kind,
         }
     )
 
@@ -100,7 +105,6 @@ def _numeric_spec(info: ParameterInfo) -> ParameterSpec | None:
             "type": "numeric",
             "min": info.min,
             "max": info.max,
-            "wdkKind": info.param_kind,
         }
     )
 
@@ -242,24 +246,17 @@ async def search_parameter_metadata(
     return list(resolved.parameters)
 
 
-class SweepPlan(CamelModel):
-    """The grid one sweep varies and the values it holds fixed."""
-
-    model_config = ConfigDict(frozen=True)
-
-    parameter_space: list[ParameterSpec] = Field(default_factory=list)
-    fixed_parameters: dict[str, ParamValue] = Field(default_factory=dict)
-
-
 def sweep_plan(
     search_name: str,
-    parameters: Sequence[ParameterInfo],
+    declarations: Sequence[WDKParameter],
     step_values: Mapping[str, str],
     *,
     names: Sequence[str] | None = None,
     budget: int,
+    organism: str | None,
 ) -> SweepPlan:
     """The grid for a built step, around the values that step already holds."""
+    parameters = format_param_info_typed(list(declarations), organism=organism)
     space = parameter_space_for_search(
         search_name,
         parameters,
@@ -268,6 +265,7 @@ def sweep_plan(
         current_values=step_values,
     )
     kinds: dict[str, ParamKind] = {info.name: info.param_kind for info in parameters}
+    swept = {spec.name for spec in space}
     return SweepPlan(
         parameter_space=space,
         fixed_parameters={
@@ -275,4 +273,16 @@ def sweep_plan(
             for name, wire in step_values.items()
             if name in kinds
         },
+        declarations={d.name: d for d in declarations if d.name in swept},
     )
+
+
+async def search_declarations(
+    site_id: str,
+    record_type: str,
+    search_name: str,
+) -> list[WDKParameter]:
+    response, _ = await fetch_search_details(
+        SearchContext(site_id, record_type, search_name)
+    )
+    return list(response.search_data.parameters or [])

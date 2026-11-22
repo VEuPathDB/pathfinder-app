@@ -8,7 +8,6 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
@@ -16,6 +15,7 @@ from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.orthology_request import OrthologyRequest
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import (
     client_search,
     no_count,
@@ -49,7 +49,7 @@ def _bind(definition: WDKSearch, carried_to: str, organisms: list[str]) -> list[
             "isSyntenic": SinglePickValue(value="yes"),
         }
     )
-    infos = format_param_info_typed(definition.parameters or [])
+    infos = sheet_of(definition.parameters or [])
     refuse_what_the_words_decide(definition, call, infos, _carrying(carried_to))
     return organisms
 
@@ -114,7 +114,7 @@ def test_a_search_that_takes_no_input_is_no_carry() -> None:
         text="genes with a signal peptide",
         params={},
     ).with_values({"organism": MultiPickValue(values=[_PF3D7])})
-    infos = format_param_info_typed(_SIGNAL.parameters or [])
+    infos = sheet_of(_SIGNAL.parameters or [])
 
     refuse_what_the_words_decide(_SIGNAL, call, infos, _carrying(_P01))
 

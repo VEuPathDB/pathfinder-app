@@ -7,6 +7,7 @@ import pytest
 from pydantic_ai.messages import (
     ToolReturnPart,
 )
+from veupathdb_mcp.catalog import ResolveContext
 
 from strategist.ai.lead.intent import IntentClassification
 from strategist.ai.lead.intent_gate import BUILDING_TOOLS, tools_the_turn_offers
@@ -54,9 +55,13 @@ async def test_the_read_again_arc_on_the_real_lead_reads_each_record_once(
     asked: list[str] = []
 
     async def _read(
-        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+        site_id: str,
+        gene_id: str,
+        *,
+        ortholog_organism: str | None = None,
+        about: ResolveContext | None = None,
     ) -> GeneRecordSummary:
-        del ortholog_organism
+        del ortholog_organism, about
         asked.append(gene_id)
         return GeneRecordSummary(
             site_id=site_id,

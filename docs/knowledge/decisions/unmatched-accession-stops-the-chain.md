@@ -93,10 +93,9 @@ Three things changed together, because each one alone leaves the loop open:
 
 # Anchor
 
-`ai/tools/standalone/frame_spec.py:_refuse_unmatched_value`, ranking through
-`domain/parameters/wdk_vocab.py:nearest_entries`, which is the one ranker every
-did-you-mean uses, guarded by
-`veupathdb-py: tests/unit/domain/parameters/test_wdk_vocab.py`.
+`ai/tools/standalone/_frame_proposals.py:read_call`, refusing through
+`veupathdb-py: src/veupathdb/domain/parameters/vocab_lookup.py:entries_or_refusal`,
+whose candidates come from `rank_entries`, the one ranker every refusal uses.
 Guarded by `TestAProposedValueMustBeOnTheSheet::test_a_substring_of_an_entry_is_not_a_match`
 and `tests/unit/ai/tools/test_frame_proposals.py`.
 Matching is `veupathdb/domain/parameters/wdk_vocab.py:match_exact_option` over

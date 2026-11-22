@@ -8,9 +8,8 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.tasks.progress import TaskProgressEmitter
-from veupathdb.domain.parameters import VocabOption
-from veupathdb.wdk import WDKSearchConfig, WDKStep
-from veupathdb_mcp.catalog import ParameterInfo
+from pydantic import TypeAdapter
+from veupathdb.wdk import WDKParameter, WDKSearchConfig, WDKStep
 
 from strategist.ai.graph.runtime import Context
 from strategist.domain.strategy.session import StrategySession
@@ -47,21 +46,22 @@ def _emitter() -> TaskProgressEmitter:
     )
 
 
+_DECLARED: TypeAdapter[WDKParameter] = TypeAdapter(WDKParameter)
+
+
 def _param(
     name: str,
     param_type: str,
     *,
     options: list[str] | None = None,
-) -> ParameterInfo:
-    return ParameterInfo(
-        name=name,
-        display_name=name,
-        type=param_type,
-        required=True,
-        is_visible=True,
-        site_set=False,
-        help="",
-        allowed_values=[VocabOption(value=o, display=o) for o in options or []] or None,
+) -> WDKParameter:
+    return _DECLARED.validate_python(
+        {
+            "name": name,
+            "type": param_type,
+            "displayType": "select",
+            "vocabulary": [[o, o, None] for o in options or []] or None,
+        }
     )
 
 
@@ -105,14 +105,14 @@ def swept_variants(monkeypatch: pytest.MonkeyPatch) -> list[SweepVariantSpec]:
     return tried
 
 
-def _catalog(monkeypatch: pytest.MonkeyPatch, parameters: list[ParameterInfo]) -> None:
+def _catalog(monkeypatch: pytest.MonkeyPatch, parameters: list[WDKParameter]) -> None:
     async def read(
         site_id: str, record_type: str, search_name: str
-    ) -> list[ParameterInfo]:
+    ) -> list[WDKParameter]:
         del site_id, record_type, search_name
         return parameters
 
-    monkeypatch.setattr(tunable, "search_parameter_metadata", read)
+    monkeypatch.setattr(tunable, "search_declarations", read)
 
 
 async def _run(**kwargs: Any) -> dict[str, Any]:
@@ -275,7 +275,7 @@ def _serve_a_step(
 
     async def read(
         site_id: str, record_type: str, search_name: str
-    ) -> list[ParameterInfo]:
+    ) -> list[WDKParameter]:
         del site_id, search_name
         read_under.append(record_type)
         return [
@@ -283,7 +283,7 @@ def _serve_a_step(
         ]
 
     monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
-    monkeypatch.setattr(tunable, "search_parameter_metadata", read)
+    monkeypatch.setattr(tunable, "search_declarations", read)
     return read_under
 
 

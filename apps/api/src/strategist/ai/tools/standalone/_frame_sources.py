@@ -12,7 +12,6 @@ from veupathdb.domain.parameters import (
     StringValue,
     UnboundParameter,
     decimal_text,
-    to_wire,
 )
 from veupathdb.wdk import WDKSearch, WDKStringParam
 from veupathdb_mcp.catalog import ParameterInfo
@@ -21,6 +20,7 @@ from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone._frame_rationale import ChosenWhy, SearchChoice
 from strategist.domain.log2_scale import in_the_sites_scale, on_scale, scale_of
 from strategist.domain.strategy.constraints import Constraint
+from strategist.domain.strategy.expression_handles import stated_text
 from strategist.domain.strategy.named_taxa import OrganismTree
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -71,7 +71,7 @@ def bound_values(
     """Each resolved value read on the published sheet, with who set it. A value
     the site supplied or only the site sets is the default; a text whose words
     no quote linked to its parameter writes is chosen."""
-    card_wire = {name: to_wire(held.value) for name, held in card_values.items()}
+    card_held = {name: held.value for name, held in card_values.items()}
     by_name = {info.name: info for info in infos}
     bound: dict[str, BoundValue] = {}
     for name, held in bind_values(values, "default", infos).items():
@@ -84,7 +84,7 @@ def bound_values(
                 placeholder=held.placeholder,
                 unset=unset,
                 request_texts=request_texts,
-                card_value=card_wire.get(name),
+                card_value=card_held.get(name),
                 display_name=held.display_name,
             )
         )
@@ -149,7 +149,7 @@ def on_the_sites_scale(
         converted[name] = _on_scale(value, on_scale(stated.number, stated.scale, site))
         corrections.append(
             f"{name} ({shown[name]}) takes a {site} value, so {stated.words!r} "
-            f"binds as {converted[name].to_wire()}"
+            f"binds as {stated_text(name, converted[name])}"
         )
     return call.with_values(converted), corrections
 

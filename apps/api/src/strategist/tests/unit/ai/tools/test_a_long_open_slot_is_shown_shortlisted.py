@@ -6,10 +6,11 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, VocabOption
 from veupathdb.wdk import WDKSearchResponse
-from veupathdb_mcp.catalog import format_param_info_typed, shortlist
+from veupathdb_mcp.catalog import shortlist
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.domain.strategy.operational_spec import OpenSlot
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.qa_recording import client_recording
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     bind,
@@ -23,7 +24,7 @@ _TEXT = "falciparum 3D7 genes with many exons"
 
 def _organisms(fixture: str, param: str) -> list[VocabOption]:
     body = client_recording(fixture).json_body()
-    infos = format_param_info_typed(
+    infos = sheet_of(
         WDKSearchResponse.model_validate(body).search_data.parameters or []
     )
     return next(info for info in infos if info.name == param).vocabulary()

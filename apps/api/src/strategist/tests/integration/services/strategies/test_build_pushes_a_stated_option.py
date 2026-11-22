@@ -101,8 +101,9 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         context: Any,
         held_validation: Any,
         callbacks: Any,
+        about: Any,
     ) -> ValidatedParams:
-        del context, held_validation, callbacks
+        del context, held_validation, callbacks, about
         return ValidatedParams(params=stated)
 
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:

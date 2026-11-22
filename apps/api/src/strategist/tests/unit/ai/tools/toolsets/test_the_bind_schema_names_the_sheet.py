@@ -14,6 +14,7 @@ from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_sheet import open_parameter_sheet
 from strategist.ai.tools.toolsets.frame import build_toolset
+from strategist.tests._support.param_infos import organism_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -60,7 +61,13 @@ async def test_with_no_sheet_open_params_names_no_parameter() -> None:
 @pytest.mark.asyncio
 async def test_an_open_sheet_names_its_parameters_and_their_display_names() -> None:
     state = AgentToolState()
-    open_parameter_sheet(state, "c_ves", _TEXT.url_segment, _TEXT)
+    open_parameter_sheet(
+        state,
+        "c_ves",
+        _TEXT.url_segment,
+        _TEXT,
+        organism=organism_of(_TEXT.parameters or []),
+    )
 
     schema = await _bind_schema(state)
 
@@ -80,8 +87,20 @@ async def test_an_open_sheet_names_its_parameters_and_their_display_names() -> N
 @pytest.mark.asyncio
 async def test_two_open_sheets_name_every_parameter_either_holds() -> None:
     state = AgentToolState()
-    open_parameter_sheet(state, "c_ves", _TEXT.url_segment, _TEXT)
-    open_parameter_sheet(state, "c_blood", _PERCENTILE.url_segment, _PERCENTILE)
+    open_parameter_sheet(
+        state,
+        "c_ves",
+        _TEXT.url_segment,
+        _TEXT,
+        organism=organism_of(_TEXT.parameters or []),
+    )
+    open_parameter_sheet(
+        state,
+        "c_blood",
+        _PERCENTILE.url_segment,
+        _PERCENTILE,
+        organism=organism_of(_PERCENTILE.parameters or []),
+    )
 
     schema = await _bind_schema(state)
 
@@ -102,7 +121,13 @@ async def test_two_open_sheets_name_every_parameter_either_holds() -> None:
 @pytest.mark.asyncio
 async def test_the_model_reads_the_open_sheets_parameters_at_the_step() -> None:
     state = AgentToolState()
-    open_parameter_sheet(state, "c_ves", _TEXT.url_segment, _TEXT)
+    open_parameter_sheet(
+        state,
+        "c_ves",
+        _TEXT.url_segment,
+        _TEXT,
+        organism=organism_of(_TEXT.parameters or []),
+    )
     seen: list[dict[str, Any]] = []
 
     def respond(_messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
@@ -128,7 +153,13 @@ async def test_the_model_reads_the_open_sheets_parameters_at_the_step() -> None:
 async def test_a_parameter_term_is_one_name_of_the_open_sheet() -> None:
     """Two names joined in one term is no parameter, so the schema offers none."""
     state = AgentToolState()
-    open_parameter_sheet(state, "c_ves", _TEXT.url_segment, _TEXT)
+    open_parameter_sheet(
+        state,
+        "c_ves",
+        _TEXT.url_segment,
+        _TEXT,
+        organism=organism_of(_TEXT.parameters or []),
+    )
 
     schema = await _bind_schema(state)
 
@@ -147,7 +178,13 @@ async def test_a_parameter_term_is_one_name_of_the_open_sheet() -> None:
 @pytest.mark.asyncio
 async def test_every_other_basis_keeps_a_free_term() -> None:
     state = AgentToolState()
-    open_parameter_sheet(state, "c_ves", _TEXT.url_segment, _TEXT)
+    open_parameter_sheet(
+        state,
+        "c_ves",
+        _TEXT.url_segment,
+        _TEXT,
+        organism=organism_of(_TEXT.parameters or []),
+    )
 
     schema = await _bind_schema(state)
 

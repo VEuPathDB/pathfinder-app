@@ -17,7 +17,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from veupathdb.wdk import WDKParameter, WDKSearch
-from veupathdb_mcp.catalog import ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
@@ -36,6 +36,7 @@ from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone.catalog_discovery import get_parameter_options
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.tests._support.options_reads import serve_options_reads
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_searches import (
     no_count,
@@ -79,7 +80,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
     serve_options_reads(
         monkeypatch,
-        lambda name: format_param_info_typed(_SHEETS[name].parameters or []),
+        lambda name: sheet_of(_SHEETS[name].parameters or []),
     )
     no_validation(monkeypatch)
     no_count(monkeypatch)

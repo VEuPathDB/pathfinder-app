@@ -28,6 +28,11 @@ def visible_sheet(names: Iterable[str]) -> list[ParameterInfo]:
 
 
 _DECLARED: TypeAdapter[WDKParameter] = TypeAdapter(WDKParameter)
+_PUBLISHED_ORGANISM_PROPERTIES = [
+    "pruneNodesWithSingleExtendingChild",
+    "showOnlyPreferredOrganisms",
+    "highlightReferenceOrganisms",
+]
 
 
 def _declared(info: ParameterInfo, children: list[str]) -> WDKParameter:
@@ -46,7 +51,9 @@ def _declared(info: ParameterInfo, children: list[str]) -> WDKParameter:
             "min": info.min,
             "max": info.max,
             "dependentParams": children,
-            "properties": {"organismProperties": []} if info.organism_param else {},
+            "properties": {"organismProperties": _PUBLISHED_ORGANISM_PROPERTIES}
+            if info.organism_param
+            else {},
             "displayType": "select",
             "vocabulary": [[o.value, o.display, None] for o in info.vocabulary()]
             if info.param_kind.endswith("vocabulary") and info.vocabulary()

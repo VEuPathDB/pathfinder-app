@@ -18,7 +18,7 @@ from strategist.ai.tools.standalone.graph_helpers import counted_noun
 from strategist.domain.caveats import Caveat, ControlsCaveat
 from strategist.domain.evidence import NamedControlSet, VerificationReview
 from strategist.domain.reading_caveats import reading_line
-from strategist.domain.strategy.expression_handles import shown_value
+from strategist.domain.strategy.expression_handles import stated_text
 from strategist.domain.strategy.measurement_clauses import measurement_clauses
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -147,7 +147,7 @@ def _render_criterion(
             f"{crit.weight} more; the result is sorted by score, highest first"
         )
     out.extend(
-        f"    {crit.display_name_of(name)} ({name}) = {shown_value(name, bound.value)} "
+        f"    {crit.display_name_of(name)} ({name}) = {stated_text(name, bound.value)} "
         f"({VALUE_SET_BY[bound.source]})"
         for name, bound in crit.shown_values.items()
     )

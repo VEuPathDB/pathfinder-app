@@ -42,7 +42,7 @@ def test_a_value_set_on_a_step_is_one_changed_parameter() -> None:
 
     assert [c.step_id for c in changes.changed] == ["expr"]
     assert [(p.name, p.before, p.after) for p in changes.changed[0].params] == [
-        ("min_expression_percentile", "80", "48")
+        ("min_expression_percentile", "80.0", "48.0")
     ]
     assert not changes.structure_moved
     assert changes.moved

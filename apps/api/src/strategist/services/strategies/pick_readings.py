@@ -85,12 +85,12 @@ def _other_options(value: ParamValue, info: ParameterInfo) -> list[ParamValue]:
     """The options a single pick is counted at, the site default first."""
     default = site_default(info)
     others = [from_wire(info.param_kind, o.value) for o in info.vocabulary()]
-    seen = {to_wire(value)}
+    seen: list[ParamValue] = [value]
     found: list[ParamValue] = []
     for other in [default, *others]:
-        if other is None or to_wire(other) in seen:
+        if other is None or other in seen:
             continue
-        seen.add(to_wire(other))
+        seen.append(other)
         found.append(other)
     return found[:COUNTED_OPTIONS]
 
@@ -119,7 +119,7 @@ async def _single_pick(
     if (
         default is not None
         and others
-        and to_wire(others[0]) == to_wire(default)
+        and others[0] == default
         and counts[0] is not None
     ):
         found.append(

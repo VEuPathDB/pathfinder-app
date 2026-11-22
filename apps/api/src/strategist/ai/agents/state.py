@@ -2,15 +2,21 @@ from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    field_validator,
+)
 from veupathdb import strip_html_tags
-from veupathdb.domain.parameters import ParamValue, VocabOption
+from veupathdb.domain.parameters import ParamValue, VocabLookup, VocabOption
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import (
     ExperimentCard,
     ParameterInfo,
     SheetEntry,
-    VocabLookup,
 )
 
 from strategist.ai.agents.unserved import UnservedSearch
@@ -35,7 +41,6 @@ from strategist.domain.strategy.orthology_request import OrthologyRequest
 from strategist.domain.strategy.readings import ReadValues
 from strategist.domain.strategy.site_set_reads import site_set_names
 from strategist.domain.strategy.spec_reconciliation import spec_without_steps
-from strategist.domain.strategy.vocab_picks import PickRead
 from strategist.services.strategies.cut_picks import OptionsRead
 from strategist.services.strategies.measurements import TurnCounts
 
@@ -54,7 +59,7 @@ class ParamVocabSnapshot(BaseModel):
     param_type: str = Field(validation_alias=AliasChoices("param_type", "type"))
     required: bool
     help: str = ""
-    default_value: str | None = None
+    default: JsonValue = None
     allowed_values: list[VocabOption] | None = None
     # The count the shown list was cut from. None when the list travelled whole.
     allowed_values_total: int | None = None
@@ -202,7 +207,6 @@ class AgentToolState:
     read_param_options: set[str] = field(default_factory=set)
     # The entries the lookups of each (search, parameter) matched this pass.
     looked_up: dict[tuple[str, str], LookupRecord] = field(default_factory=dict)
-    vocab_picks: dict[tuple[str, str], PickRead] = field(default_factory=dict)
     operational_spec_draft: OperationalSpec = field(default_factory=OperationalSpec)
     # The organisms this investigation states. A capped vocabulary renders the
     # branches that match them first.
@@ -451,9 +455,6 @@ class AgentToolState:
         """Add the entries a query of the parameter matched to its lookups."""
         key = (search_name, parameter_id)
         self.looked_up[key] = self.looked_up.get(key, LookupRecord()).merged(lookup)
-
-    def record_pick(self, read: PickRead) -> None:
-        self.vocab_picks[(read.search_name, read.param_name)] = read
 
     def mark_param_read(self, key: str) -> None:
         self.read_param_options.add(key)

@@ -93,7 +93,7 @@ async def test_the_criterion_keeps_the_term_the_request_named(
 
     stored = state.operational_spec_draft.criteria[0].param_values
     assert to_wire(stored["text_search_organism"]) == f'["{_BRANCH}"]'
-    assert result.resolved_params["text_search_organism"] == f'["{_BRANCH}"]'
+    assert result.resolved_params["text_search_organism"] == [_BRANCH]
 
 
 @pytest.mark.asyncio

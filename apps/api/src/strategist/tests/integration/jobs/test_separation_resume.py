@@ -22,7 +22,6 @@ from fastapi import FastAPI
 from langchain_core.runnables import RunnableConfig
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
-from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb_mcp.separation import (
     SeparationProgress,
@@ -36,6 +35,7 @@ from strategist.ai.lead.proposal import AddCriterionChange, DeclinedProposal
 from strategist.assistants.registry import get_assistant_registry
 from strategist.domain.separation import SeparationOffer
 from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.session import StrategySession
 from strategist.jobs.impls import register_all_tools
 from strategist.persistence.models import ControlSet
@@ -313,10 +313,7 @@ async def test_a_no_keeps_the_offer_and_builds_nothing(
             AddCriterionChange(
                 sentence=f"{criterion.text} ({criterion.role})",
                 search_name=criterion.search_name,
-                params={
-                    name: to_wire(bound.value)
-                    for name, bound in criterion.resolved_params.items()
-                },
+                params=stated_values(criterion.param_values),
             )
             for criterion in offer.spec.criteria
         ],

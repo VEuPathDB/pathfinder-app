@@ -209,7 +209,10 @@ _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     (
         "GenesByText",
         _ORGANISM_MISS,
-        ("text_search_organism takes a list of terms", "Plasmodium falciprum 3D7"),
+        (
+            "text_search_organism has no entry 'Plasmodium falciprum 3D7'",
+            "Candidates: P. falciparum 3D7 (Plasmodium falciparum 3D7)",
+        ),
     ),
     # "falciparum" reads as either organism under substring matching, so the
     # binding it would produce is decided by vocabulary order.
@@ -223,7 +226,10 @@ _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     (
         "GenesBySharedDomain",
         {"domain_typeahead": "PF00069"},
-        ("share the accession", "PF00069 : Pkinase_C"),
+        (
+            "domain_typeahead has no entry 'PF00069'",
+            "Candidates: PF00069 : Pkinase, PF00069 : Pkinase_C",
+        ),
     ),
     (
         "GenesByExpressionPercentile",
@@ -278,7 +284,7 @@ _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     (
         "GenesByEcNumber",
         {"ec_number_pattern": None, "ec_wildcard": "*protease*"},
-        ("ec_number_pattern default 2.7.11.1 would still contribute",),
+        ('ec_number_pattern default "2.7.11.1" would still contribute',),
     ),
 ]
 

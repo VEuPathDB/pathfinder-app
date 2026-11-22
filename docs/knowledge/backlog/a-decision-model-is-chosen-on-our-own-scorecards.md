@@ -9,11 +9,11 @@ status: proposed
 
 # A decision model is chosen on our own scorecards
 
-**Parked.** The OpenAI Decisions API is wired in veupathdb-mcp since 0.2.0b56 for
-search candidates and the vocabulary-pick confidence (use 3 below and part of use 4), and
-Jev through OpenRouter was rejected there
-(`veupathdb-mcp: docs/knowledge/decisions/a-decisions-choice-widens-the-candidates-and-doubts-a-vocabulary-pick.md`).
-Uses 1, 2 and 5 are not wired, and Clef was never measured. A decision model answers typed questions
+**Parked.** The OpenAI Decisions API is wired in veupathdb-mcp for search candidates
+(use 3 below) and for the order of a vocabulary refusal's candidates, which it never binds,
+and Jev through OpenRouter was rejected there
+(`veupathdb-mcp: docs/knowledge/decisions/a-decisions-choice-widens-the-search-candidates.md`).
+Uses 1, 2, 4 and 5 are not wired, and Clef was never measured. A decision model answers typed questions
 (yes or no, one of a list, a point on a scale) with a probability for each
 answer. Two exist: TypeSafe's Jev (`typesafe/jev-1.13`, reached through
 OpenRouter's `POST /api/alpha/decisions`), and Cloudflare's Clef (27B, on

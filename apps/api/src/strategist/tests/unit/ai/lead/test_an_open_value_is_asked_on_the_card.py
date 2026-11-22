@@ -7,7 +7,6 @@ from uuid import uuid4
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import DeferredToolRequests
 from veupathdb.wdk import WDKSearchResponse
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from strategist.ai.lead.card_contract import hold_the_contract_on_a_card
@@ -26,6 +25,7 @@ from strategist.domain.strategy.questions import (
     OpenQuestion,
     SlotQuestion,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.qa_recording import client_recording
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -208,7 +208,7 @@ def test_the_ledger_prints_the_values_frame_s_card_offers_for_a_slot() -> None:
     """The VectorBase organism slot lists ticks first; the card offers mosquitoes."""
     organisms = [
         option.value
-        for info in format_param_info_typed(
+        for info in sheet_of(
             WDKSearchResponse.model_validate(
                 client_recording("search_genes_by_gene_model_chars").json_body()
             ).search_data.parameters

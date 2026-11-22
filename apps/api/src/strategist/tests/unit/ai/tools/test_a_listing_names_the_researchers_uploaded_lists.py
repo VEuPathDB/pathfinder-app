@@ -11,11 +11,10 @@ from veupathdb.domain.parameters import SinglePickValue
 from veupathdb.wdk import WDKSearch
 from veupathdb.wdk.vdi.client import VdiServiceError
 
-from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_gene_set, gene_sets
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    bound_vocabulary_values,
+    refuse_an_upload_the_researcher_lacks,
 )
 from strategist.ai.tools.standalone.gene_set_models import (
     LISTING_PAGE,
@@ -280,7 +279,7 @@ async def test_a_refused_upload_names_one_page_of_uploads(
     )
 
     with pytest.raises(ModelRetry) as refused:
-        await bound_vocabulary_values(
+        await refuse_an_upload_the_researcher_lacks(
             "plasmodb",
             search,
             CriterionCall(
@@ -289,9 +288,6 @@ async def test_a_refused_upload_names_one_page_of_uploads(
                 text="my list",
                 params={},
             ).with_values({"geneListUserDataset": SinglePickValue(value="bla")}),
-            [],
-            frozenset(),
-            AgentToolState(),
         )
 
     message = str(refused.value)

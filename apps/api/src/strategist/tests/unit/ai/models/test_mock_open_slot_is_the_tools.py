@@ -20,7 +20,7 @@ from pydantic_ai.messages import (
 )
 from veupathdb.wdk import WDKParameter
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog import ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.agents.strategy_instructions import (
@@ -37,6 +37,7 @@ from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.question_options import SetValues
 from strategist.tests._support.catalog_reads import listing
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import (
     no_count,
     serve_recorded,
@@ -156,7 +157,7 @@ async def test_the_question_offers_the_sheet_values_of_the_slot_the_tool_opens(
 
     published = [
         option.value
-        for info in format_param_info_typed(_SIGNAL.parameters or [])
+        for info in sheet_of(_SIGNAL.parameters or [])
         if info.name == _OPEN
         for option in info.vocabulary()
     ]

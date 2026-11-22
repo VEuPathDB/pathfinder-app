@@ -8,7 +8,6 @@ from collections.abc import Mapping
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
 from veupathdb.wdk import SiteSearchResponse
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.tools.standalone._frame_sources import bound_values, quotes_by_param
 from strategist.domain.strategy.constraints import Constraint, ConstraintKind
@@ -19,6 +18,7 @@ from strategist.services.strategies.measurements import (
     TurnCounts,
     measure_binding,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     serve_counts,
     serve_site_search,
@@ -30,9 +30,7 @@ _MESSAGE = (
     "Babesia bovis T2Bo genes with a variant erythrocyte surface antigen annotation."
 )
 _QUOTE = "variant erythrocyte surface antigen"
-_SHEET = format_param_info_typed(
-    suite_search("search_giardiadb_genes_by_text").parameters or []
-)
+_SHEET = sheet_of(suite_search("search_giardiadb_genes_by_text").parameters or [])
 
 
 def _source(text: str, message: str, quotes: list[str]) -> str:

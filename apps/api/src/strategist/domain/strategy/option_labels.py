@@ -8,6 +8,7 @@ from types import MappingProxyType
 
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
+    HeldValue,
     PhyleticTree,
     to_wire,
 )
@@ -121,7 +122,7 @@ def count_at(criterion: Criterion | None, param: str, value: str) -> int | None:
     if criterion is None:
         return None
     held = criterion.resolved_params.get(param)
-    if held is not None and to_wire(held.value) == value:
+    if held is not None and held.value == HeldValue(wire=value):
         return criterion.result_count
     return next(
         (

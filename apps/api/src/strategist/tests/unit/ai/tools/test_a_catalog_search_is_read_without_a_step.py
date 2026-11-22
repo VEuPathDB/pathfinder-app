@@ -14,7 +14,12 @@ from veupathdb.domain.parameters import VocabOption
 from veupathdb.testing.wdk_fixtures import RecordedWDKResponse
 from veupathdb.wdk import WDKAnswer, WDKSearchConfig
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog import ParameterInfo, SearchMatch, format_param_info_typed
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    ResolveContext,
+    SearchMatch,
+    SearchNarrowing,
+)
 
 from strategist.ai.tools.standalone import search_reads
 from strategist.ai.tools.standalone.search_reads import count_search, genes_in_search
@@ -31,13 +36,18 @@ from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.search_reads import SearchCount, SearchMembership
 from strategist.services.experiment.variant_comparison import VariantInput, VariantSpec
 from strategist.services.gene_records.read import gene_record_url
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.qa_recording import qa_recording
 from strategist.tests._support.record_classes import (
     list_searches_under,
     recorded_searches,
     serve_record_classes,
 )
-from strategist.tests._support.recorded_searches import serve_stated_reads
+from strategist.tests._support.recorded_searches import (
+    declaring,
+    serve_stated_reads,
+    suite_search,
+)
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
 
@@ -138,7 +148,7 @@ async def _recorded_parameters(
     site_id: str, record_type: str, search_name: str, context: dict[str, str]
 ) -> list[ParameterInfo]:
     del site_id, record_type, context
-    infos = format_param_info_typed(recorded_searches()[search_name].parameters or [])
+    infos = sheet_of(recorded_searches()[search_name].parameters or [])
     if search_name != "GenesWithSignalPeptide":
         return infos
     return [_il3000_organism(i) if i.name == "organism" else i for i in infos]
@@ -154,7 +164,16 @@ def reports(monkeypatch: pytest.MonkeyPatch) -> _Reports:
     )
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: served)
     monkeypatch.setattr(variant_comparison, "search_parameters", _recorded_parameters)
-    serve_stated_reads(monkeypatch, list(recorded_searches().values()))
+    serve_stated_reads(
+        monkeypatch,
+        [
+            suite_search("search_giardiadb_genes_by_text"),
+            declaring(
+                recorded_searches()["GenesWithSignalPeptide"],
+                {"organism": [VocabOption(value=_IL3000, display=_IL3000)]},
+            ),
+        ],
+    )
     serve_record_classes(monkeypatch)
     return served
 
@@ -198,9 +217,9 @@ async def test_a_search_the_strategy_does_not_run_is_counted_with_its_values(
         label="VSP in product",
         search_name="GenesByText",
         values={
-            "text_search_organism": f'["{_WB}"]',
+            "text_search_organism": [_WB],
             "text_expression": "VSP",
-            "text_fields": '["product"]',
+            "text_fields": ["product"],
             "document_type": "gene",
         },
         gene_count=196,
@@ -244,12 +263,12 @@ async def test_a_search_the_catalog_does_not_list_names_what_the_lookup_finds(
         record_type: str | list[str] | None,
         query: str,
         *,
-        keywords: list[str] | None = None,
-        category: str | None = None,
+        about: ResolveContext | None,
+        narrowing: SearchNarrowing,
         limit: int = 20,
     ) -> list[SearchMatch]:
-        del record_type, category, limit
-        asked.append((query, keywords))
+        del record_type, about, limit
+        asked.append((query, narrowing.keywords))
         return [
             SearchMatch(
                 name="GenesByInterproDomain",
@@ -302,7 +321,7 @@ async def test_the_signal_peptide_search_holds_six_of_the_eight_sampled_genes(
     assert returned(result, SearchMembership) == SearchMembership(
         label="Signal peptide",
         search_name="GenesWithSignalPeptide",
-        values={"organism": f'["{_IL3000}"]', "signalp_version": "SignalP-6.0"},
+        values={"organism": [_IL3000], "signalp_version": "SignalP-6.0"},
         gene_count=1094,
         held=_HELD,
         not_held=_NOT_HELD,
@@ -391,7 +410,7 @@ async def test_a_protein_search_links_each_asked_protein_to_its_sequence_page(
     list_searches_under(monkeypatch, "sequence", ["ByMotif"])
 
     async def _under_sequence(
-        _session: StrategySession, stated: list[VariantInput]
+        _session: StrategySession, stated: list[VariantInput], _about: ResolveContext
     ) -> list[VariantSpec]:
         return [VariantSpec(**s.model_dump(), record_type="sequence") for s in stated]
 

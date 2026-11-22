@@ -25,6 +25,7 @@ from strategist.domain.strategy.orthology import (
     round_trip_refusal,
 )
 from strategist.domain.strategy.spec_tree import build_step_tree
+from strategist.tests._support.bound_values import bound
 
 from ._orthology import (
     ORGANISM_PARAMS,
@@ -289,3 +290,51 @@ def test_a_copy_beside_its_own_subtree_is_refused() -> None:
     )
 
     assert round_trip_refusal(round_trip_spec(root)) == _COPY_BESIDE_ITS_SOURCE
+
+
+def _with_terms(criterion: Criterion, terms: list[str]) -> Criterion:
+    values = {name: held.value for name, held in criterion.resolved_params.items()}
+    return criterion.model_copy(
+        update={
+            "resolved_params": bound(
+                {**values, "domains": MultiPickValue(values=terms)}
+            )
+        }
+    )
+
+
+def test_a_copy_that_states_the_same_picks_in_another_order_passes() -> None:
+    seed = [
+        _with_terms(c, ["TM", "SP"]) if c.id == "c_tm" else c for c in seed_criteria()
+    ]
+    restated = restate_copies(round_trip_spec(seed=seed))
+    clone = next(
+        c
+        for c in restated.criteria
+        if c.search_name == "GenesByTransmembraneDomains" and c.id != "c_tm"
+    )
+    reordered = restated.model_copy(
+        update={
+            "criteria": [
+                _with_terms(c, ["SP", "TM"]) if c.id == clone.id else c
+                for c in restated.criteria
+            ]
+        }
+    )
+
+    assert (round_trip_refusal(restated), round_trip_refusal(reordered)) == (None, None)
+
+
+def test_legs_that_state_the_same_picks_in_another_order_pass() -> None:
+    spec = round_trip_spec()
+    legs = {"c_to": ["TM", "SP"], "c_back": ["SP", "TM"]}
+
+    reordered = spec.model_copy(
+        update={
+            "criteria": [
+                _with_terms(c, legs[c.id]) if c.id in legs else c for c in spec.criteria
+            ]
+        }
+    )
+
+    assert (round_trip_refusal(spec), round_trip_refusal(reordered)) == (None, None)

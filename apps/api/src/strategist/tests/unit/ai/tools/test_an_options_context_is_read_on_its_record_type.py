@@ -14,8 +14,8 @@ from strategist.tests.unit.ai.tools.conftest import agent_run_context
 async def test_the_record_type_reaches_the_context_read(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    context = AsyncMock(return_value={})
-    monkeypatch.setattr(_stated_values, "read_stated_parameters", context)
+    context = AsyncMock(return_value=({}, []))
+    monkeypatch.setattr(_stated_values, "read_stated_context", context)
     read = AsyncMock(
         return_value=ParameterInfo(
             name="ms_assay",

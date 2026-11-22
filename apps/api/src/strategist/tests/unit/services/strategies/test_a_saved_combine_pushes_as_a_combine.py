@@ -207,9 +207,15 @@ def validated(monkeypatch: pytest.MonkeyPatch) -> _Validations:
     seen = _Validations()
 
     async def _validate(
-        search: Any, *, stated: Any, context: Any, held_validation: Any, callbacks: Any
+        search: Any,
+        *,
+        stated: Any,
+        context: Any,
+        held_validation: Any,
+        callbacks: Any,
+        about: Any,
     ) -> ValidatedParams:
-        del context, held_validation, callbacks
+        del context, held_validation, callbacks, about
         seen.names.append(search.search_name)
         if search.search_name == _BOOLEAN:
             raise ValidationError(title="invalid parameters", detail=_BQ_REFUSAL)

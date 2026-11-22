@@ -18,8 +18,8 @@ its `type` and `isRange` come from the ontology term, never from the
 statement (`FilterFacet.clause`). A range facet takes `{"min": .., "max": ..}`
 with either bound left out, and a member facet takes a list of its members. A
 member the facet does not hold is refused with the members it holds. A facet
-with no member under the current parent values is refused. An empty list is
-refused.
+with no member under the current parent values is refused. An empty list of
+clauses states no clause and binds `{"filters":[]}`, the text of the value WDK defaults to.
 
 `FilterValue` holds the strict clause union WDK's `FilterParamNewStableValue`
 parses: `StringMembers`, `NumberMembers`, `NumberRange`, `DateRange` and

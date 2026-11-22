@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping, Sequence
 
 from pydantic import ConfigDict
-from veupathdb.domain.parameters import to_wire
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStepNode,
@@ -42,23 +42,18 @@ class FoldedSpec(CamelModel):
     unplaced: tuple[str, ...] = ()
 
 
-def stated_wire_values(spec: OperationalSpec | None) -> dict[str, dict[str, str]]:
-    """The wire values each criterion of a spec states, by criterion id."""
+def stated_values(spec: OperationalSpec | None) -> dict[str, dict[str, ParamValue]]:
+    """The values each criterion of a spec states, by criterion id."""
     if spec is None:
         return {}
-    return {
-        criterion.id: {
-            name: to_wire(value) for name, value in criterion.param_values.items()
-        }
-        for criterion in spec.criteria
-    }
+    return {criterion.id: criterion.param_values for criterion in spec.criteria}
 
 
 def fold_option_criteria(
     spec: OperationalSpec,
     *,
     live_step_ids: Collection[str] = (),
-    answered_values: Mapping[str, Mapping[str, str]] | None = None,
+    answered_values: Mapping[str, Mapping[str, ParamValue]] | None = None,
 ) -> FoldedSpec:
     """Move an option onto the step that runs its search.
 
@@ -76,7 +71,7 @@ def fold_option_criteria(
 def _options_folded(
     spec: OperationalSpec,
     live_step_ids: Collection[str],
-    answered: Mapping[str, Mapping[str, str]],
+    answered: Mapping[str, Mapping[str, ParamValue]],
 ) -> FoldedSpec:
     named = structure_criteria(spec.structure)
     answers_to_a_step = named | frozenset(live_step_ids)
@@ -113,17 +108,17 @@ def _options_folded(
     return FoldedSpec(spec=folded, unplaced=tuple(unplaced))
 
 
-def carried_values(carrier: Criterion) -> dict[str, str]:
-    """The wire values a fold has already carried onto this criterion."""
+def carried_values(carrier: Criterion) -> dict[str, ParamValue]:
+    """The values a fold has already carried onto this criterion."""
     return {
-        name: to_wire(bound.value)
+        name: bound.value
         for name, bound in carrier.resolved_params.items()
         if bound.carried_from
     }
 
 
 def _carry_the_option(
-    carrier: Criterion, option: Criterion, answered: Mapping[str, str]
+    carrier: Criterion, option: Criterion, answered: Mapping[str, ParamValue]
 ) -> bool:
     """Carry the option's values onto the carrier; False when one contradicts a
     value the fold carried. A defaulted value, a wire value the carrier holds, and
@@ -134,16 +129,16 @@ def _carry_the_option(
         if bound.source == "default":
             continue
         if name in carried:
-            if carried[name] != to_wire(bound.value):
+            if carried[name] != bound.value:
                 return False
             continue
         held = carrier.resolved_params.get(name)
-        if held is not None and to_wire(held.value) == to_wire(bound.value):
+        if held is not None and held.value == bound.value:
             continue
         if (
             held is not None
             and held.source not in ("default", "chosen")
-            and answered.get(name) != to_wire(held.value)
+            and not (name in answered and answered[name] == held.value)
         ):
             continue
         stated[name] = bound.carried(option.id)

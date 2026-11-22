@@ -18,8 +18,11 @@ from strategist.ai.prompts.loader import load_system_prompt
 from strategist.domain.strategy.analysis_binding import AnalysisKind
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.expression_handles import (
-    shown_param,
-    shown_params,
+    stated_text,
+)
+from strategist.domain.strategy.genome_group_steps import (
+    criterion_as_stated,
+    reading_line,
 )
 from strategist.domain.strategy.requirement_reports import requirements_block
 from strategist.domain.strategy.types import SyncStateProtocol
@@ -117,7 +120,8 @@ def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:
         "# FRAME workspace (in-progress spec)",
         (
             "Values shown here are already bound and are preserved unless the "
-            "request changes them."
+            "request changes them, except under a reading line, which says what "
+            "they are."
         ),
     ]
     for c in spec.criteria:
@@ -126,9 +130,10 @@ def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:
         if slots:
             line += f" | open: {slots}"
         lines.append(line)
+        lines.extend(f"    {note}" for note in [reading_line(c)] if note)
         lines.extend(
-            f"    {name}={value}"
-            for name, value in shown_params(c.param_values).items()
+            f"    {name}={stated_text(name, value)}"
+            for name, value in criterion_as_stated(c).param_values.items()
         )
     if spec.dropped:
         lines.append("dropped: " + "; ".join(d.text for d in spec.dropped))
@@ -137,9 +142,6 @@ def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:
         f"ready_to_build={spec.ready_to_build}"
     )
     return "\n".join(lines)
-
-
-_MAX_PARAM_VAL_LEN = 40
 
 
 def _render_step_header(step_id: str, step: StrategyStep) -> list[str]:
@@ -205,12 +207,9 @@ def _render_step_params(step: StrategyStep, kind: AnalysisKind | None) -> str:
         return f"\n  selects: {binding.words}"
     if not step.parameters:
         return ""
-    param_strs: list[str] = []
-    for name, value in step.parameters.items():
-        wire = shown_param(name, value)
-        if len(wire) > _MAX_PARAM_VAL_LEN:
-            wire = wire[: _MAX_PARAM_VAL_LEN - 3] + "..."
-        param_strs.append(f"{name}={wire}")
+    param_strs = [
+        f"{name}={stated_text(name, value)}" for name, value in step.parameters.items()
+    ]
     return "\n  " + ", ".join(param_strs)
 
 

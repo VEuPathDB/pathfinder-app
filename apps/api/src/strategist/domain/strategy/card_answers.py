@@ -8,6 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
     FilterValue,
+    HeldValue,
     MultiPickValue,
     ParamKind,
     ParamValue,
@@ -114,11 +115,15 @@ def _card_bound(
     for name, value in binding.params.items():
         if name in site_set:
             continue
-        kind = _kind_of(criterion, name, slots, sheet)
+        held = criterion.resolved_params.get(name)
         criterion = criterion_restated(
             criterion,
             name,
-            _card_value(name, kind, value, sheet),
+            held.value
+            if held is not None and held.value == HeldValue(wire=value)
+            else _card_value(
+                name, _kind_of(criterion, name, slots, sheet), value, sheet
+            ),
             sheet=sheet,
             source="card",
             basis=option_id,

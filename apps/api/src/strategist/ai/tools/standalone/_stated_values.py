@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Mapping, Sequence
 from types import MappingProxyType
 from typing import Annotated, Literal, Self
 
@@ -18,7 +18,13 @@ from veupathdb.domain.strategy import (
     generate_step_id,
 )
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.catalog import read_stated_parameters
+from veupathdb_mcp.catalog import (
+    BoundValues,
+    MovedParentError,
+    ResolveContext,
+    read_stated_context,
+    read_stated_parameters,
+)
 
 from strategist.domain.strategy.operations import (
     AddCombineOp,
@@ -38,21 +44,56 @@ from strategist.domain.strategy.session import StrategyGraph
 _NOTHING_BOUND: Mapping[str, ParamValue] = MappingProxyType({})
 
 
+async def _retrying[T](search_name: str, done: str, read: Awaitable[T]) -> T:
+    try:
+        return await read
+    except VEuPathDBError as exc:
+        msg = f"{search_name}: {exc.detail or exc.title} Nothing was {done}."
+        raise ModelRetry(msg) from exc
+
+
 async def typed_values(
-    site_id: str,
+    about: ResolveContext,
     search_name: str,
     stated: Mapping[str, JsonValue],
     *,
     record_type: str | None = None,
     bound: Mapping[str, ParamValue] = _NOTHING_BOUND,
-) -> dict[str, ParamValue]:
-    try:
-        return await read_stated_parameters(
-            site_id, search_name, stated, record_type=record_type, bound=bound
-        )
-    except VEuPathDBError as exc:
-        msg = f"{search_name}: {exc.detail or exc.title} Nothing was written."
-        raise ModelRetry(msg) from exc
+) -> BoundValues:
+    return await _retrying(
+        search_name,
+        "written",
+        read_stated_parameters(
+            about.site_id,
+            search_name,
+            stated,
+            about=about,
+            record_type=record_type,
+            bound=bound,
+        ),
+    )
+
+
+async def typed_context_read(
+    about: ResolveContext,
+    search_name: str,
+    stated: Mapping[str, JsonValue],
+    *,
+    record_type: str | None = None,
+    bound: Mapping[str, ParamValue] = _NOTHING_BOUND,
+) -> tuple[BoundValues, list[MovedParentError]]:
+    return await _retrying(
+        search_name,
+        "read",
+        read_stated_context(
+            about.site_id,
+            search_name,
+            stated,
+            about=about,
+            record_type=record_type,
+            bound=bound,
+        ),
+    )
 
 
 class StatedStepNode(CamelModel):
@@ -79,18 +120,18 @@ class StatedStepNode(CamelModel):
         return [*below, *([self.search_name] if self.search_name else [])]
 
 
-async def typed_tree(site_id: str, node: StatedStepNode) -> StrategyStepNode:
+async def typed_tree(about: ResolveContext, node: StatedStepNode) -> StrategyStepNode:
     primary, secondary = [
-        None if child is None else await typed_tree(site_id, child)
+        None if child is None else await typed_tree(about, child)
         for child in (node.primary_input, node.secondary_input)
     ]
     search_name = node.search_name or COMBINE_SEARCH_NAME
-    parameters = await typed_values(site_id, search_name, node.parameters)
+    parameters = await typed_values(about, search_name, node.parameters)
     try:
         return StrategyStepNode(
             id=node.id,
             search_name=search_name,
-            parameters=parameters,
+            parameters=dict(parameters),
             primary_input=primary,
             secondary_input=secondary,
             operator=node.operator,
@@ -143,34 +184,34 @@ StatedOperation = Annotated[
 
 
 async def typed_operation(
-    site_id: str,
+    about: ResolveContext,
     op: StatedOperation,
     searches: Mapping[str, str],
     held: Mapping[str, Mapping[str, ParamValue]],
 ) -> EditableOperation:
     match op:
         case StatedAddLeafOp(step=step, attach=attach):
-            return AddLeafOp(step=await typed_tree(site_id, step), attach=attach)
+            return AddLeafOp(step=await typed_tree(about, step), attach=attach)
         case StatedAddCombineOp(step=step, left_id=left_id, right_id=right_id):
-            tree = await typed_tree(site_id, step)
+            tree = await typed_tree(about, step)
             return AddCombineOp(step=tree, left_id=left_id, right_id=right_id)
         case StatedAddTransformOp(step=step, input_id=input_id, mode=mode):
-            tree = await typed_tree(site_id, step)
+            tree = await typed_tree(about, step)
             return AddTransformOp(step=tree, input_id=input_id, mode=mode)
         case StatedUpdateStepParamsOp(step_id=step_id, parameters=stated):
             if step_id not in searches:
                 msg = f"No step {step_id!r} runs a search. Steps: {sorted(searches)}."
                 raise ModelRetry(msg)
             values = await typed_values(
-                site_id, searches[step_id], stated, bound=held.get(step_id, {})
+                about, searches[step_id], stated, bound=held.get(step_id, {})
             )
-            return UpdateStepParamsOp(step_id=step_id, parameters=values)
+            return UpdateStepParamsOp(step_id=step_id, parameters=dict(values))
         case _:
             return op
 
 
 async def typed_operations(
-    site_id: str, graph: StrategyGraph, ops: Sequence[StatedOperation]
+    about: ResolveContext, graph: StrategyGraph, ops: Sequence[StatedOperation]
 ) -> list[EditableOperation]:
     searches = {
         step_id: step.search_name
@@ -180,7 +221,7 @@ async def typed_operations(
     held = {step_id: step.parameters for step_id, step in graph.steps.items()}
     typed: list[EditableOperation] = []
     for op in ops:
-        read = await typed_operation(site_id, op, searches, held)
+        read = await typed_operation(about, op, searches, held)
         match read:
             case AddLeafOp(step=step) | AddTransformOp(step=step):
                 searches[step.id] = step.search_name

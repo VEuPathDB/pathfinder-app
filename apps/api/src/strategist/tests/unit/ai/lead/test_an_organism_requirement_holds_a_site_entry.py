@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -29,37 +27,18 @@ from strategist.domain.strategy.constraints import (
 )
 from strategist.domain.strategy.organism_picks import OrganismPick, asks_an_organism
 from strategist.platform.config import get_settings
+from strategist.tests._support.decisions_wire import ChoosingService
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
-_DECISIONS = Path(__file__).parents[3] / "fixtures" / "decisions"
 PEST = (
     "Find Anopheles gambiae PEST genes with a predicted signal peptide and 2 to 99 "
     "transmembrane domains."
 )
 NEOSPORA = "Carry these to their orthologs in Neospora caninum Liverpool."
-STRAIN_ALONE = "How many protein-coding genes does 3D7 have?"
+MALARIA = "Which genes of malaria have a signal peptide?"
 SPECIES = "I'm investigating stage-specific expression in Plasmodium falciparum."
-MISSPELLED = "Plasmodium falciparium 3D7 genes with a kinase annotation."
+SPACED = "Kinases of plasmodium  FALCIPARUM 3d7."
 PF = "Plasmodium falciparum 3D7"
-
-
-def _recorded(name: str) -> list[dict[str, Any]]:
-    exchanges: list[dict[str, Any]] = json.loads(
-        (_DECISIONS / f"{name}.json").read_text()
-    )["exchanges"]
-    return exchanges
-
-
-class _Service:
-    def __init__(self, exchanges: list[dict[str, Any]]) -> None:
-        self.exchanges = list(exchanges)
-        self.asked: list[DecisionRequest] = []
-
-    async def __call__(self, request: DecisionRequest) -> DecisionResponse | None:
-        self.asked.append(request)
-        exchange = self.exchanges.pop(0)
-        assert request.model_dump(mode="json") == exchange["request"]
-        return DecisionResponse.model_validate(exchange["response"])
 
 
 async def _unanswered(request: DecisionRequest) -> DecisionResponse | None:
@@ -125,49 +104,63 @@ async def test_words_that_complete_to_a_stated_entry_hold_that_entry(
     assert deps.state.domain.organism_picks == []
 
 
-@pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
-async def test_a_choice_the_service_settles_holds_its_entry() -> None:
-    service = _Service(_recorded("organism_3d7_settles"))
-    use_decisions_transport(service)
-    deps = _deps("plasmodb", STRAIN_ALONE)
+@pytest.mark.usefixtures("recorded_site_organisms")
+async def test_words_that_fold_to_an_entry_hold_that_entry() -> None:
+    deps = _deps("plasmodb", SPACED)
+    words = "plasmodium  FALCIPARUM 3d7"
 
-    await hold_the_intent(deps, _intent(_organism("3D7", PF)), STRAIN_ALONE)
-
-    assert _held(deps) == [(PF, PF)]
-    assert (len(service.asked), deps.state.domain.organism_picks) == (1, [])
-
-
-@pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
-async def test_a_misspelled_organism_the_choice_settles_holds_its_entry() -> None:
-    use_decisions_transport(_Service(_recorded("organism_misspelled_settles")))
-    deps = _deps("plasmodb", MISSPELLED)
-    words = "Plasmodium falciparium 3D7"
-
-    await hold_the_intent(deps, _intent(_organism(words, words)), MISSPELLED)
+    await hold_the_intent(deps, _intent(_organism(words, words)), SPACED)
 
     assert _held(deps) == [(PF, PF)]
     assert deps.state.domain.organism_picks == []
 
 
 @pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
-async def test_a_choice_below_the_floor_is_asked_with_its_pick(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(get_settings(), "decisions_vocab_min_confidence", 0.96)
-    use_decisions_transport(_Service(_recorded("organism_misspelled_settles")))
-    deps = _deps("plasmodb", MISSPELLED)
-    words = "Plasmodium falciparium 3D7"
+async def test_the_entry_the_service_picks_leads_the_card_and_binds_nothing() -> None:
+    service = ChoosingService(PF)
+    use_decisions_transport(service)
+    deps = _deps("plasmodb", MALARIA)
 
-    await hold_the_intent(deps, _intent(_organism(words, words)), MISSPELLED)
+    await hold_the_intent(deps, _intent(_organism("malaria", "malaria")), MALARIA)
+
+    assert _held(deps) == [("malaria", None)]
+    assert len(service.asked) == 1
+    assert deps.state.domain.organism_picks == [
+        OrganismPick(
+            quote="malaria",
+            offered=[
+                PF,
+                "Plasmodium malariae UG01",
+                "Plasmodium vivax PAM",
+                "Plasmodium vivax P01",
+                "Plasmodium vivax PvW1",
+            ],
+        )
+    ]
+
+
+@pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
+@pytest.mark.parametrize(
+    ("words", "first"),
+    [("P. falciparum", PF), ("malaria", "Plasmodium malariae UG01"), ("3D7", PF)],
+)
+async def test_no_answer_from_the_service_is_asked_with_the_ranked_entries(
+    words: str, first: str
+) -> None:
+    use_decisions_transport(_unanswered)
+    message = f"Which genes of {words} have a signal peptide?"
+    deps = _deps("plasmodb", message)
+
+    await hold_the_intent(deps, _intent(_organism(words, words)), message)
 
     assert _held(deps) == [(words, None)]
     [pick] = deps.state.domain.organism_picks
-    assert (pick.picked, pick.confidence, pick.offered[0]) == (PF, 0.95, PF)
+    assert pick.offered[0] == first
 
 
 @pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
 async def test_a_species_of_several_strains_is_asked_on_the_card() -> None:
-    use_decisions_transport(_Service(_recorded("organism_species_unsettled")))
+    use_decisions_transport(_unanswered)
     deps = _deps("plasmodb", SPECIES)
     words = "Plasmodium falciparum"
 
@@ -209,30 +202,6 @@ async def test_a_species_of_several_strains_is_asked_on_the_card() -> None:
     assert questions_for_the_card(deps, FrameResult(), []) == []
 
 
-@pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
-async def test_no_answer_from_the_service_is_asked_with_the_nearest_entries() -> None:
-    use_decisions_transport(_unanswered)
-    deps = _deps("plasmodb", STRAIN_ALONE)
-
-    await hold_the_intent(deps, _intent(_organism("3D7", PF)), STRAIN_ALONE)
-
-    assert _held(deps) == [(PF, None)]
-    [pick] = deps.state.domain.organism_picks
-    assert (pick.picked, pick.offered[0]) == (None, PF)
-
-
-@pytest.mark.usefixtures("recorded_site_organisms")
-async def test_a_mock_deployment_asks_no_service() -> None:
-    service = _Service([])
-    use_decisions_transport(service)
-    deps = _deps("plasmodb", STRAIN_ALONE)
-
-    await hold_the_intent(deps, _intent(_organism("3D7", PF)), STRAIN_ALONE)
-    use_decisions_transport(post_decision)
-
-    assert (service.asked, _held(deps)) == ([], [(PF, None)])
-
-
 @pytest.mark.usefixtures("recorded_site_organisms")
 async def test_a_requirement_with_no_organism_value_is_held_untyped() -> None:
     deps = _deps("plasmodb", SPECIES)
@@ -261,7 +230,7 @@ async def test_an_intent_with_no_requirement_reads_no_organism_list(
 
 @pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
 async def test_no_build_runs_while_the_card_asks_the_organism() -> None:
-    use_decisions_transport(_Service(_recorded("organism_species_unsettled")))
+    use_decisions_transport(_unanswered)
     deps = _deps("plasmodb", SPECIES)
     words = "Plasmodium falciparum"
     await hold_the_intent(deps, _intent(_organism(words, words)), SPECIES)

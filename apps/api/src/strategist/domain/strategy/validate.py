@@ -3,8 +3,7 @@
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 
-from pydantic import JsonValue
-from veupathdb.domain.parameters import to_decoded_map
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
 from strategist.domain.strategy.organism_remedy import remedy_for, scope_text
@@ -162,27 +161,27 @@ class StrategyValidator:
         A reference and comparison name pair holds the two sides of the contrast. WDK
         runs an identical pair, so the check must happen here.
         """
-        decoded = to_decoded_map(node.parameters)
-        pairs: list[tuple[str, JsonValue, JsonValue]] = []
-        for ref_name, ref_value in decoded.items():
+        values = node.parameters
+        pairs: list[tuple[str, ParamValue, ParamValue]] = []
+        for ref_name, ref_value in values.items():
             if "_ref_" not in ref_name:
                 continue
-            comp_value = decoded.get(ref_name.replace("_ref_", "_comp_"))
+            comp_value = values.get(ref_name.replace("_ref_", "_comp_"))
             if comp_value is not None:
                 pairs.append((ref_name, ref_value, comp_value))
-        percentile = decoded.get("samples_percentile_generic")
-        comp = decoded.get("samples_fc_comp_generic")
+        percentile = values.get("samples_percentile_generic")
+        comp = values.get("samples_fc_comp_generic")
         if percentile is not None and comp is not None:
             pairs.append(("samples_percentile_generic", percentile, comp))
 
         for param_name, ref_value, comp_value in pairs:
-            if ref_value and comp_value and str(ref_value) == str(comp_value):
+            if ref_value.to_decoded() and ref_value == comp_value:
                 errors.append(
                     StepValidationIssue(
                         path=f"{path}.parameters.{param_name}",
                         message=(
                             "Reference and comparison samples are identical "
-                            f"({ref_value}) - this contrasts a group against "
+                            f"({ref_value.to_decoded()}) - this contrasts a group against "
                             "itself and produces meaningless differential "
                             "results. Set different samples for reference vs "
                             "comparison."

@@ -6,17 +6,18 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from pydantic import ConfigDict, Field
+from veupathdb.domain.parameters import VocabOption, exact_entry
 from veupathdb.model import CamelModel
 from veupathdb_mcp.audit import GeneIdRefusal, TooManyIdsError
-from veupathdb_mcp.catalog import NoGeneRecordsError
+from veupathdb_mcp.catalog import NoGeneRecordsError, list_organisms
 from veupathdb_mcp.gene_lookup import (
     GeneIdFound,
     GeneIdReading,
-    list_organisms,
     read_each_gene_id,
 )
 
 from strategist.ai.graph.state import PipelineState
+from strategist.ai.graph.thread_requirements import ThreadRequirements
 from strategist.ai.graph.turn_records import ReadRecord
 from strategist.ai.lead.intent import (
     ANSWERING_INTENTS,
@@ -28,6 +29,7 @@ from strategist.ai.lead.intent import (
 from strategist.ai.lead.organism_reader import named_organisms
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.constraints import Constraint
+from strategist.domain.strategy.organism_picks import unnamed_organisms
 from strategist.domain.strategy.reading_plan import plan_organisms
 from strategist.domain.strategy.requirement_reports import numbered_requirements
 from strategist.services.gene_records.read import gene_record_url
@@ -165,6 +167,14 @@ def _withdrawn_ids(intent: UserIntent, held: Sequence[Constraint]) -> list[str]:
     return [numbered[w.requirement].id for w in taken_back if w.requirement in numbered]
 
 
+def _name_from_the_plan(domain: ThreadRequirements, organisms: Sequence[str]) -> None:
+    options = [VocabOption(value=o, display=o) for o in organisms]
+    for requirement in unnamed_organisms(domain.requirements):
+        entry = exact_entry(options, requirement.requested_value)
+        if entry is not None:
+            domain.name_organism(requirement.id, entry.value)
+
+
 async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> UserIntent:
     state = deps.state
     markers = state.turn_markers
@@ -190,7 +200,7 @@ async def hold_the_intent(deps: LeadDeps, intent: UserIntent, said: str) -> User
     state.domain.hold_organism_picks(named.picks)
     picked = state.domain.picked_offer(state.user_prompt)
     if picked is not None:
-        state.domain.name_organisms_from(plan_organisms(picked.spec))
+        _name_from_the_plan(state.domain, plan_organisms(picked.spec))
     if intent.classification in ANSWERING_INTENTS:
         state.domain.answer_the_questions_at_arrival(said)
     return intent

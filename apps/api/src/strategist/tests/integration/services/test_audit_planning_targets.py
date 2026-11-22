@@ -14,7 +14,10 @@ from strategist.domain.audit.scope import AuditScope, MissingGeneTarget, Organel
 from strategist.services.audit import planning
 from strategist.services.audit.planning import propose_scope, unresolved_names
 from strategist.tests._support.audit_planning import (
+    ALPHA_R,
     BETA_R,
+    BETA_S,
+    OUTGROUP,
     RNA_KEPT,
     RNA_REFUSED,
     SEC_KEPT,
@@ -237,7 +240,9 @@ async def test_an_unresolved_target_genome_draws_no_scope() -> None:
     proposal = await propose_scope(plan_request(targets=(missing,)))
 
     assert (proposal.scope, proposal.unresolved) == (None, ("beta",))
-    assert proposal.suggestions == {"beta": ("Examplea beta R", "Examplea beta S")}
+    assert proposal.suggestions == {
+        "beta": (BETA_R, BETA_S, OUTGROUP, ALPHA_R, STRAINS[8])
+    }
 
 
 @pytest.mark.usefixtures("site")

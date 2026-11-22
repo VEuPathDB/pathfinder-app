@@ -290,7 +290,7 @@ class TestTheParamVocabSnapshot:
             is_visible=True,
             site_set=False,
             help="Tier-quantile floor",
-            default_value="6772.93",
+            default="6772.93",
             allowed_values=[
                 VocabOption(value="1693.23", display="1693 reads"),
                 VocabOption(value="3386.46", display="3386 reads"),
@@ -317,7 +317,7 @@ class TestTheParamVocabSnapshot:
         assert snap.param_type == "number-enum"
         assert snap.required is True
         assert snap.help == "Tier-quantile floor"
-        assert snap.default_value == "6772.93"
+        assert snap.default == "6772.93"
         assert snap.allowed_values is not None
         assert [v.value for v in snap.allowed_values] == [
             "1693.23",
@@ -345,7 +345,7 @@ class TestTheParamVocabSnapshot:
                 is_visible=True,
                 site_set=False,
                 help="",
-                default_value="6772.93",
+                default="6772.93",
                 allowed_values=[VocabOption(value="6772.93", display="6772 reads")],
             ),
             "fold_change": ParameterInfo(
@@ -356,7 +356,7 @@ class TestTheParamVocabSnapshot:
                 is_visible=True,
                 site_set=False,
                 help="",
-                default_value="2",
+                default="2",
             ),
         }
         monkeypatch.setattr(
@@ -389,7 +389,7 @@ class TestTheParamVocabSnapshot:
                         param_type="number-enum",
                         required=True,
                         help="Tier-quantile floor for read counts",
-                        default_value="6772.93",
+                        default="6772.93",
                         allowed_values=[
                             VocabOption(value="1693.23", display="1693 reads"),
                             VocabOption(value="6772.93", display="6772 reads"),

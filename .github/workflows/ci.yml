@@ -194,6 +194,10 @@ jobs:
         working-directory: apps/api
         run: uv run python scripts/check_max_lines.py
 
+      - name: Check parameter comparisons
+        working-directory: apps/api
+        run: uv run python -m veupathdb.devtools.param_equality src --allow scripts/param-equality-allowed.txt
+
       - name: Audit dependencies
         working-directory: apps/api
         run: uv run pip-audit

@@ -5,13 +5,15 @@ the value the site sets, one it names replaced."""
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters import StringValue
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb.domain.parameters import HeldValue, ParamValue, StringValue, shown_stated
+from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+from veupathdb_mcp.catalog import ParameterInfo, ResolveContext
 
 from strategist.ai.tools.standalone._variant_targets import resolved_variants
-from strategist.domain.strategy.session import StrategySession
+from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.variant_comparison import VariantInput
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import (
     list_searches_under,
     serve_record_classes,
@@ -34,7 +36,7 @@ async def _text_parameters(
 ) -> list[ParameterInfo]:
     del site_id, record_type, context
     search = _LOCATION if search_name == "GenesByLocation" else _TEXT
-    return format_param_info_typed(list(search.parameters or []))
+    return sheet_of(list(search.parameters or []))
 
 
 @pytest.fixture(autouse=True)
@@ -63,7 +65,9 @@ async def test_a_hidden_parameter_the_variant_leaves_out_runs_at_the_sites_value
     None
 ):
     (spec,) = await resolved_variants(
-        StrategySession(site_id="plasmodb"), [_text_search()]
+        StrategySession(site_id="plasmodb"),
+        [_text_search()],
+        ResolveContext(site_id="plasmodb"),
     )
 
     assert spec.parameters["document_type"] == StringValue(value="gene")
@@ -72,7 +76,9 @@ async def test_a_hidden_parameter_the_variant_leaves_out_runs_at_the_sites_value
 async def test_a_value_named_for_a_hidden_parameter_is_replaced_by_the_sites() -> None:
     named = _text_search(document_type="transcript")
 
-    (spec,) = await resolved_variants(StrategySession(site_id="plasmodb"), [named])
+    (spec,) = await resolved_variants(
+        StrategySession(site_id="plasmodb"), [named], ResolveContext(site_id="plasmodb")
+    )
 
     assert spec.parameters["document_type"] == StringValue(value="gene")
 
@@ -92,7 +98,9 @@ def _location(**values: object) -> VariantInput:
 
 async def test_a_parameter_the_variant_leaves_out_runs_at_the_sheets_value() -> None:
     (spec,) = await resolved_variants(
-        StrategySession(site_id="plasmodb"), [_location()]
+        StrategySession(site_id="plasmodb"),
+        [_location()],
+        ResolveContext(site_id="plasmodb"),
     )
 
     assert {
@@ -108,6 +116,37 @@ async def test_a_parameter_the_variant_leaves_out_runs_at_the_sheets_value() -> 
 async def test_a_value_the_variant_names_is_sent_as_named() -> None:
     named = _location(start_point="100000")
 
-    (spec,) = await resolved_variants(StrategySession(site_id="plasmodb"), [named])
+    (spec,) = await resolved_variants(
+        StrategySession(site_id="plasmodb"), [named], ResolveContext(site_id="plasmodb")
+    )
 
     assert spec.parameters["start_point"] == StringValue(value="100000")
+
+
+def _held_text_step(fields: ParamValue) -> StrategySession:
+    session = StrategySession(site_id="plasmodb")
+    graph = StrategyGraph("g1", "text", "plasmodb")
+    graph.steps = flatten_tree(
+        StrategyStepNode(
+            id="text",
+            search_name="GenesByText",
+            parameters={
+                "text_expression": StringValue(value="kinase"),
+                "text_fields": fields,
+            },
+        )
+    )
+    graph.recompute_roots()
+    session.graph = graph
+    return session
+
+
+async def test_a_kept_value_stated_back_as_shown_is_sent_as_held() -> None:
+    held = HeldValue(wire="product,notes")
+    variant = _text_search(text_fields=shown_stated(held))
+
+    (spec,) = await resolved_variants(
+        _held_text_step(held), [variant], ResolveContext(site_id="plasmodb")
+    )
+
+    assert spec.parameters["text_fields"] == held

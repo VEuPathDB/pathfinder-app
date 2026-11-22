@@ -83,7 +83,9 @@ async def compare_search_variants(
         raise ModelRetry(msg)
     reject_combine_variants(variants)
     site_id = ctx.deps.runtime.site_id
-    specs = await checked_variants(ctx.deps.runtime.strategy_session, variants)
+    specs = await checked_variants(
+        ctx.deps.runtime.strategy_session, variants, ctx.deps.resolving()
+    )
 
     comparison = await run_variant_comparison(site_id, specs)
     if all(v.error is not None for v in comparison.variants):

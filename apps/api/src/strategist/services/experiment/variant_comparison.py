@@ -38,8 +38,11 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     PhyleticListError,
+    ResolveContext,
     derive_phyletic_overrides,
     format_param_info_typed,
+    ordered_phyletic_refusal,
+    organism_parameter_of,
     read_search_definition,
     wdk_fetch_at,
 )
@@ -134,25 +137,30 @@ async def search_parameters(
 ) -> list[ParameterInfo]:
     """The parameters the site's search takes, each with the vocabulary the
     parent values in ``context`` give it."""
-    fetch_at = wdk_fetch_at(site_id, record_type, search_name)
-    return format_param_info_typed(await fetch_at(context))
+    declarations = await wdk_fetch_at(site_id, record_type, search_name)(context)
+    return format_param_info_typed(
+        declarations, organism=await organism_parameter_of(site_id, declarations)
+    )
 
 
 async def phyletic_values(
-    site_id: str, record_type: str, search_name: str, lists: dict[str, str]
+    about: ResolveContext, record_type: str, search_name: str, lists: dict[str, str]
 ) -> dict[str, ParamValue]:
     """The pattern and the two species lists of an orthology profile search,
     derived from the lists as a step of the search derives them. Raises
     ``PhyleticListError`` for lists that select nothing or name no entry."""
-    definition = await read_search_definition(site_id, record_type, search_name)
-    match derive_phyletic_overrides(list(definition.parameters or []), lists):
+    definition = await read_search_definition(about.site_id, record_type, search_name)
+    declarations = list(definition.parameters or [])
+    match derive_phyletic_overrides(declarations, lists):
         case PhyleticBinding() as binding:
             return {
                 name: StringValue(value=value)
                 for name, value in binding.model_dump().items()
             }
         case refused:
-            raise PhyleticListError(refused)
+            raise await ordered_phyletic_refusal(
+                PhyleticListError(refused), declarations, about
+            )
 
 
 def _in_place(ast: StrategyAst, step_id: str, spec: VariantSpec) -> StrategyAst:
@@ -280,7 +288,13 @@ def _differs_by(specs: list[VariantSpec]) -> list[dict[str, str]]:
         for spec in specs
     ]
     names = dict.fromkeys(name for wire in wires for name in wire)
-    differing = [name for name in names if len({wire.get(name) for wire in wires}) > 1]
+    differing = [
+        name
+        for name in names
+        if any(
+            spec.parameters.get(name) != specs[0].parameters.get(name) for spec in specs
+        )
+    ]
     return [{name: wire[name] for name in differing if name in wire} for wire in wires]
 
 

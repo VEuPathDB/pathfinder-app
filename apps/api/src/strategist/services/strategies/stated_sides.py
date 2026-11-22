@@ -11,7 +11,7 @@ from types import MappingProxyType
 from typing import NamedTuple
 
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     StepValidation,
     StrategyStepNode,
@@ -86,9 +86,7 @@ def _needs_a_second_look(
     """
     for name, value in criterion.values.items():
         carried = held.get(name)
-        if name in names_sent or (
-            carried is not None and to_wire(carried) != to_wire(value)
-        ):
+        if name in names_sent or (carried is not None and carried != value):
             return True
     return False
 
@@ -105,7 +103,7 @@ def _moves_a_stated_value(
         after = written.get(name)
         if before is None or after is None:
             continue
-        if to_wire(before) != to_wire(after):
+        if before != after:
             return True
     return False
 
@@ -131,6 +129,7 @@ async def _canonical_stated(
             stated=dict(criterion.values),
             context=write.written,
             callbacks=callbacks,
+            about=None,
         )
     except ValidationError:
         return criterion
@@ -156,7 +155,7 @@ async def _canonical_entry(
         return entry
     try:
         overlay = await validate_parameters(
-            write.search, stated=entry, context=held, callbacks=callbacks
+            write.search, stated=entry, context=held, callbacks=callbacks, about=None
         )
     except ValidationError:
         return entry
@@ -228,14 +227,14 @@ async def canonicalize_stated_leaves(
             for name, value in node.parameters.items()
             if name not in context
         }
-        # A leaf that states no value has none to put in the catalog's form.
+        node.parameters = {**node.parameters, **context}
         if not stated_now:
             continue
         search = SearchContext(
             site_id, listed.get(node.search_name, ""), node.search_name
         )
         validated = await validate_parameters(
-            search, stated=stated_now, context=context, callbacks=callbacks
+            search, stated=stated_now, context=context, callbacks=callbacks, about=None
         )
         node.parameters = {**context, **validated.params}
         writes.append(
@@ -252,11 +251,11 @@ async def canonicalize_stated_leaves(
 def unmoved(
     values: Mapping[str, ParamValue], held: Mapping[str, ParamValue]
 ) -> dict[str, ParamValue]:
-    """The values a node carries exactly as the step already holds them."""
+    """The values a node carries that the step already holds, in the held form."""
     return {
-        name: value
+        name: held[name]
         for name, value in values.items()
-        if name in held and to_wire(held[name]) == to_wire(value)
+        if name in held and held[name] == value
     }
 
 
@@ -285,6 +284,7 @@ async def _canonical_params_op(
         context=step.parameters,
         held_validation=validations.get(step.id),
         callbacks=callbacks,
+        about=None,
     )
     return _CanonicalOp(
         op=op.model_copy(

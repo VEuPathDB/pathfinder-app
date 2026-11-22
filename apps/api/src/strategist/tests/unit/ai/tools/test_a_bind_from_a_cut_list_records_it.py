@@ -4,8 +4,7 @@ of the matching entries it took."""
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters import MultiPickValue
-from veupathdb_mcp.catalog import VocabLookup
+from veupathdb.domain.parameters import MultiPickValue, VocabLookup
 
 from strategist.ai.agents.state import (
     AgentToolState,

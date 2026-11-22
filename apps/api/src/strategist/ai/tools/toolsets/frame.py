@@ -36,6 +36,7 @@ from strategist.ai.tools.standalone.gene_sets import list_gene_sets
 from strategist.ai.tools.standalone.memory_tools import search_memory
 from strategist.ai.tools.standalone.orthomcl_expressions import (
     build_phyletic_expression,
+    offered_where_the_taxonomy_is,
 )
 from strategist.ai.tools.standalone.saved_strategies import list_saved_strategies
 from strategist.ai.tools.standalone.strategy_graph import get_strategy
@@ -83,7 +84,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             get_search_overview,
             get_parameter_options,
             lookup_phyletic_codes,
-            build_phyletic_expression,
+            Tool(build_phyletic_expression, prepare=offered_where_the_taxonomy_is),
             list_saved_strategies,
             list_gene_sets,
             Tool(set_criterion, prepare=name_the_open_sheets),

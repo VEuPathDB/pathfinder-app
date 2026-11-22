@@ -7,7 +7,6 @@ from veupathdb.wdk import WDKParameter, WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamIntent,
-    format_param_info_typed,
     resolve_params_with_intent,
 )
 
@@ -16,6 +15,7 @@ from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.tests._support.filter_reads import NoFilterReads
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.qa_recording import client_recording
 from strategist.tests._support.sheets import declarations
 
@@ -43,9 +43,7 @@ _MOSQUITOES = [
 
 def _sheet(name: str) -> list[ParameterInfo]:
     body = client_recording(name).json_body()
-    return format_param_info_typed(
-        WDKSearchResponse.model_validate(body).search_data.parameters or []
-    )
+    return sheet_of(WDKSearchResponse.model_validate(body).search_data.parameters or [])
 
 
 def _vectorbase_exon_count_sheet() -> list[ParameterInfo]:
@@ -69,6 +67,7 @@ async def _criterion(infos: list[ParameterInfo], text: str) -> Criterion:
         return declarations(infos)
 
     resolved = await resolve_params_with_intent(
+        about=None,
         fetch_at=fetch_at,
         filter_reads=NoFilterReads(),
         intent=ParamIntent(text=text),

@@ -7,7 +7,6 @@ from collections.abc import Mapping
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.caveats import PhraseCaveat, phrase_caveats
 from strategist.domain.strategy.operational_spec import (
@@ -22,6 +21,7 @@ from strategist.services.strategies.measurements import (
     measure_binding,
 )
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import serve_counts, wire
 from strategist.tests._support.recorded_searches import suite_search
 
@@ -59,7 +59,7 @@ async def _measure(expression: str) -> list[Measurement]:
             name: BoundValue(value=value, source="stated")
             for name, value in params.items()
         },
-        infos=format_param_info_typed(list(_TEXT.parameters or [])),
+        infos=sheet_of(list(_TEXT.parameters or [])),
     )
 
 

@@ -11,7 +11,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import StringValue
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog import VagueSearchQueryError
+from veupathdb_mcp.catalog import SearchNarrowing, VagueSearchQueryError
 
 from strategist.ai.lead.intent_gate import unmet_preconditions
 from strategist.ai.lead.sub_agent_tools import LeadDeps
@@ -57,7 +57,12 @@ async def _refuse_an_unlisted_search(
     query = _WORD_START.sub(" ", name)
     try:
         found = await catalog.search_for_searches(
-            site_id, record_type, query, keywords=[name], limit=_LOOKUP_LIMIT
+            site_id,
+            record_type,
+            query,
+            about=ctx.deps.resolving(),
+            narrowing=SearchNarrowing(keywords=[name]),
+            limit=_LOOKUP_LIMIT,
         )
     except VagueSearchQueryError:
         found = []
@@ -105,7 +110,9 @@ async def resolved_search(
     looked up among the searches of ``record_type``."""
     reject_combine_variants([search])
     await _refuse_an_unlisted_search(ctx, search, record_type, framing=framing)
-    [spec] = await resolved_variants(ctx.deps.runtime.strategy_session, [search])
+    [spec] = await resolved_variants(
+        ctx.deps.runtime.strategy_session, [search], ctx.deps.resolving()
+    )
     _refuse_an_unquoted_phrase(ctx, spec)
     return spec
 
@@ -125,7 +132,7 @@ async def count_search(
     This answers "how many genes would this search find" for a search the
     strategy runs or not. The search runs as an anonymous WDK report, so no
     step is added and the strategy keeps its root and its count. The answer
-    names the wire value of each parameter it ran; a pick left out runs at
+    names the value of each parameter it ran as you state it; a pick left out runs at
     the site's default. The facts beside the reply show the count.
 
     A search name the catalog does not list is refused with the searches the

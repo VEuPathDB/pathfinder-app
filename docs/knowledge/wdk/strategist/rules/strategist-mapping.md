@@ -82,6 +82,12 @@ browser only after `veupathdb_mcp.catalog` has normalized it into
 `ParamSpecResponse`. On 2026-09-08 `openapi.json` held 308 schemas and not one of
 them was a `WDKParameter` member.
 
+A value shown to an agent (a work order, a tool result, a pinned line) is the stated
+form of its kind, and a value no stated form reads back to is shown marked as kept and
+is never restated
+(WDK-PARAM-017, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`;
+`domain/strategy/expression_handles.py:stated_value`).
+
 The named test enforces one half, and it runs in the client's own suite: it reads
 the import statements of every `veupathdb.domain` module and fails on `httpx`,
 and its sibling `test_the_domain_names_no_client_module_that_opens_a_connection`

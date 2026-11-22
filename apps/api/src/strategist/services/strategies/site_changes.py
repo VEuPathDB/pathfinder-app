@@ -15,7 +15,12 @@ from uuid import UUID
 from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import (
+    HeldValue,
+    ParamValue,
+    same_param_value,
+    value_kind,
+)
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
@@ -33,7 +38,6 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStep,
     WDKStrategyDetails,
-    encode_params,
     get_strategy_api,
 )
 from veupathdb_mcp.wdk import (
@@ -42,7 +46,6 @@ from veupathdb_mcp.wdk import (
     canonicalize_synced_parameters,
 )
 
-from strategist.domain.strategy.expression_handles import same_wire_value
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
 from strategist.services.strategies.context import StrategyMutationContext
@@ -275,12 +278,11 @@ async def _take_the_parameters(
 async def _differing(
     step: StrategyStep, search_name: str, wire: WireStep, site_id: str
 ) -> dict[str, ParamValue]:
-    held = encode_params(step.parameters)
     names = [
         name
-        for name, value in held.items()
+        for name, value in step.parameters.items()
         if name in wire.parameters
-        and not same_wire_value(name, value, wire.parameters[name])
+        and not _held_alike(name, value, HeldValue(wire=wire.parameters[name]))
     ]
     if not names:
         return {}
@@ -289,10 +291,12 @@ async def _differing(
         name: decoded[name]
         for name in names
         if name in decoded
-        and not same_wire_value(
-            name, to_wire(decoded[name]), to_wire(step.parameters[name])
-        )
+        and not _held_alike(name, step.parameters[name], decoded[name])
     }
+
+
+def _held_alike(name: str, held: ParamValue, read: ParamValue) -> bool:
+    return same_param_value(name, value_kind(held), held, read)
 
 
 async def values_the_site_holds_otherwise(

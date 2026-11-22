@@ -7,10 +7,17 @@ from collections.abc import Mapping
 import pytest
 from pydantic import JsonValue
 from pydantic_ai import ModelRetry, Tool
-from veupathdb.domain.parameters import MultiPickValue, ParamValue
+from veupathdb.domain.parameters import (
+    FilterFacets,
+    FilterProposals,
+    MultiPickValue,
+    ParamValue,
+    shown_stated,
+    shown_stated_text,
+)
 from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import read_under_parents
+from veupathdb_mcp.catalog import BoundValues, ResolveContext, read_under_parents
 
 from strategist.ai.tools.standalone import _stated_values, strategy_edits
 from strategist.ai.tools.standalone.strategy import apply_operations
@@ -45,9 +52,10 @@ def _reads(monkeypatch: pytest.MonkeyPatch) -> None:
         _search_name: str,
         stated: Mapping[str, JsonValue] | None,
         *,
+        about: ResolveContext | None,
         record_type: str | None = None,
         bound: Mapping[str, ParamValue],
-    ) -> dict[str, ParamValue]:
+    ) -> BoundValues:
         del record_type
 
         async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
@@ -55,7 +63,7 @@ def _reads(monkeypatch: pytest.MonkeyPatch) -> None:
             return list(_UNDER[organism].parameters or [])
 
         return await read_under_parents(
-            fetch_at, stated or {}, NoFilterReads(), bound=bound
+            fetch_at, stated or {}, NoFilterReads(), about=about, bound=bound
         )
 
     monkeypatch.setattr(_stated_values, "read_stated_parameters", _read)
@@ -165,3 +173,72 @@ async def test_a_batch_refuses_a_filter_set_before_its_organism_moves(
 
     with pytest.raises(ModelRetry, match="WGS of Patient Isolates from Peru"):
         await _batch(monkeypatch, _PF, edits)
+
+
+def _peru_on_vivax() -> ParamValue:
+    [samples] = [
+        p for p in _UNDER[f'["{_VIVAX}"]'].parameters or [] if p.name == _SAMPLES
+    ]
+    return FilterFacets.of(samples).bind(FilterProposals.model_validate(_PERU))
+
+
+def _vivax_with_peru() -> StrategyStepNode:
+    step = _snps(_VIVAX)
+    return step.model_copy(
+        update={"parameters": {**step.parameters, _SAMPLES: _peru_on_vivax()}}
+    )
+
+
+@pytest.mark.parametrize("given_back", [True, False])
+async def test_a_filter_under_a_new_organism_is_refused_in_plain_words(
+    monkeypatch: pytest.MonkeyPatch, given_back: bool
+) -> None:
+    ops = _committed_edits(monkeypatch)
+    ctx, _ = context_and_commit(graph_with(_vivax_with_peru()), [])
+    held = _peru_on_vivax()
+    stated: dict[str, JsonValue] = {"organismSinglePick": [_PF]}
+    if given_back:
+        stated[_SAMPLES] = shown_stated(held)
+
+    with pytest.raises(ModelRetry) as refused:
+        await update_leaf_params(ctx, "step_s", stated)
+
+    text = refused.value.message
+    assert text.startswith(
+        f'GenesByNgsSnps: organismSinglePick moved from ["{_VIVAX}"] to ["{_PF}"], '
+        f"so {_SAMPLES}, which held {shown_stated_text(held)}, was read again "
+        "under it and refused: "
+    )
+    assert "has no member WGS of Patient Isolates from Peru; its members are" in text
+    assert text.count("Geographically dispersed P. falciparum isolates") == 1
+    assert text.endswith(
+        f"State {_SAMPLES} again under the new organismSinglePick, or leave it out "
+        "if a reader can keep it. Nothing was written."
+    )
+    assert ops == []
+
+
+async def test_a_filter_left_out_under_its_own_organism_is_not_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ops = _committed_edits(monkeypatch)
+    ctx, _ = context_and_commit(graph_with(_vivax_with_peru()), [])
+
+    await update_leaf_params(ctx, "step_s", {"organismSinglePick": [_VIVAX]})
+
+    [op] = ops
+    assert op.model_dump()["parameters"].keys() == {"organismSinglePick"}
+
+
+async def test_the_same_organism_in_another_case_moves_no_held_filter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ops = _committed_edits(monkeypatch)
+    ctx, _ = context_and_commit(graph_with(_vivax_with_peru()), [])
+
+    await update_leaf_params(ctx, "step_s", {"organismSinglePick": [_VIVAX.lower()]})
+
+    [op] = ops
+    assert op.model_dump()["parameters"] == {
+        "organismSinglePick": MultiPickValue(values=[_VIVAX]).model_dump()
+    }

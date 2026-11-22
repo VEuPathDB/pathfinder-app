@@ -5,7 +5,8 @@ from typing import Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
 from pydantic import ConfigDict, Field, model_validator
-from veupathdb.domain.parameters import ParamKind, ParamValue
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.controls import (
     ControlValueFormat,
     NegativeControls,
@@ -44,9 +45,6 @@ class ParameterSpec(CamelModel):
     log_scale: bool = False
     step: float | None = None
     choices: list[str] | None = None
-    wdk_kind: ParamKind = "string"
-    """The WDK kind of the parameter, which decides the wire shape of a
-    swept value."""
 
     @model_validator(mode="after")
     def _validate_constraints(self) -> Self:
@@ -57,6 +55,17 @@ class ParameterSpec(CamelModel):
             msg = f"'step' must be positive, got {self.step}"
             raise ValueError(msg)
         return self
+
+
+class SweepPlan(CamelModel):
+    """The grid one sweep varies, the values it holds fixed, and the declaration
+    that reads each swept parameter's levels."""
+
+    model_config = ConfigDict(frozen=True)
+
+    parameter_space: list[ParameterSpec] = Field(default_factory=list)
+    fixed_parameters: dict[str, ParamValue] = Field(default_factory=dict)
+    declarations: dict[str, WDKParameter] = Field(default_factory=dict)
 
 
 @dataclass(slots=True)

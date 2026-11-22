@@ -8,13 +8,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import TypeAdapter
-from veupathdb.domain.parameters import VocabOption
+from veupathdb.domain.parameters import PhrasingMatch, VocabLookup, VocabOption
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,
     ParentContextRequired,
-    PhrasingMatch,
-    VocabLookup,
 )
 
 from strategist.ai.agents.state import AgentToolState, LookupRecord

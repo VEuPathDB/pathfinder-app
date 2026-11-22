@@ -4,6 +4,7 @@ read is a source the turn retrieved."""
 from __future__ import annotations
 
 import pytest
+from veupathdb_mcp.catalog import ResolveContext
 
 from strategist.ai.graph.turn_records import ReadRecord
 from strategist.ai.tools.standalone import gene_record
@@ -29,9 +30,13 @@ async def test_a_sampled_genes_record_is_read_and_recorded(
     asked: list[tuple[str, str]] = []
 
     async def _read(
-        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+        site_id: str,
+        gene_id: str,
+        *,
+        ortholog_organism: str | None = None,
+        about: ResolveContext | None = None,
     ) -> GeneRecordSummary:
-        del ortholog_organism
+        del ortholog_organism, about
         asked.append((site_id, gene_id))
         return _RECORD
 
@@ -75,9 +80,13 @@ def _with_one_ortholog(monkeypatch: pytest.MonkeyPatch, asked: str | None) -> No
     )
 
     async def _read(
-        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+        site_id: str,
+        gene_id: str,
+        *,
+        ortholog_organism: str | None = None,
+        about: ResolveContext | None = None,
     ) -> GeneRecordSummary:
-        del site_id, gene_id, ortholog_organism
+        del site_id, gene_id, ortholog_organism, about
         return record
 
     monkeypatch.setattr(read, "read_gene_record", _read)

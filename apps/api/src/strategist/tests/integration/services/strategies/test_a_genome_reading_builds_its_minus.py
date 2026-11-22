@@ -27,9 +27,11 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStep,
 )
-from veupathdb_mcp.catalog import ValidatedParams, format_param_info_typed
+from veupathdb_mcp.catalog import ValidatedParams
 
-from strategist.ai.agents.frame_pick_checks import hold_an_unsettled_pick_to_a_question
+from strategist.ai.agents.frame_genome_checks import (
+    hold_the_genome_reading_to_a_question,
+)
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
 from strategist.ai.lead.deltas import FrameResult
@@ -52,6 +54,7 @@ from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.options_reads import serve_options_reads
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_counts import wire
 from strategist.tests._support.recorded_searches import serve_recorded, suite_search
@@ -131,8 +134,9 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         context: Any,
         held_validation: Any,
         callbacks: Any,
+        about: Any,
     ) -> ValidatedParams:
-        del context, held_validation, callbacks
+        del context, held_validation, callbacks, about
         return ValidatedParams(params=stated)
 
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
@@ -216,7 +220,7 @@ def _context(
 
 def _serve_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_DEFINITION])
-    sheet = format_param_info_typed(_DEFINITION.parameters or [])
+    sheet = sheet_of(_DEFINITION.parameters or [])
     serve_params(monkeypatch, declared=_DEFINITION.parameters or [])
     serve_options_reads(monkeypatch, lambda _name: sheet)
     no_validation(monkeypatch)
@@ -300,7 +304,7 @@ async def test_an_answered_card_pushes_the_minus_with_no_model_in_between(
     conversation_id = await _conversation(db_session)
     state = await _framed_by_the_mock_model()
 
-    held = hold_an_unsettled_pick_to_a_question(
+    held = hold_the_genome_reading_to_a_question(
         frame_ctx(state), FrameResult(summary="framed")
     )
 

@@ -16,6 +16,7 @@ from veupathdb_mcp.controls import run_step_control_tests
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from strategist.ai.graph.runtime import Context
+from strategist.ai.tools.standalone.control_counts import stated_counts
 from strategist.domain.evidence import NamedControlSet
 from strategist.services.evidence.control_sets import saved_control_set
 from strategist.services.evidence.optimization import tunable_parameters_of_search
@@ -134,19 +135,19 @@ async def run_control_tests_on_step_impl(
         ControlOutcome.model_validate(result), f"step_{wdk_step_id}_control_tests"
     )
     await progress.update(percent=1.0, message="Control tests complete", data=None)
-    # The library's outcome carries the numbers; only WDK names the step and
-    # its parameters, so the worker reports those names beside them.
-    reported = exported.model_dump(by_alias=True, exclude_none=True, mode="json")
-    reported["targetLabel"] = tested.label
-    reported["parameterLabels"] = tested.parameter_labels
-    reported["controlSet"] = NamedControlSet(
-        id=saved.control_set_id, name=saved.name
-    ).model_dump(mode="json")
-    reported["tunableParameters"] = (
-        await tunable_parameters_of_search(
-            context.site_id, tested.record_type, tested.search_name
-        )
-        if tested.search_name
-        else []
+    counts = stated_counts(
+        exported,
+        {
+            "target_label": tested.label,
+            "parameter_labels": tested.parameter_labels,
+            "control_set": NamedControlSet(id=saved.control_set_id, name=saved.name),
+            "tunable_parameters": (
+                await tunable_parameters_of_search(
+                    context.site_id, tested.record_type, tested.search_name
+                )
+                if tested.search_name
+                else []
+            ),
+        },
     )
-    return reported
+    return counts.model_dump(by_alias=True, exclude_none=True, mode="json")

@@ -141,7 +141,7 @@ async def read_the_operators(
     ask: DecisionsTransport = (
         scripted_operators(state) if is_mock_deployment() else _ask_the_service
     )
-    floor = get_settings().decisions_vocab_min_confidence
+    floor = get_settings().decisions_operator_min_confidence
     messages = state.researcher_messages()
     read = await asyncio.gather(
         *(_newest_first(b, messages, ask, floor) for b in asked)

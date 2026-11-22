@@ -1,4 +1,16 @@
+import json
+
+from pydantic import JsonValue
+
 from strategist.ai.agents.state import ParamVocabSnapshot
+
+
+def _default_text(default: JsonValue) -> str:
+    match default:
+        case str() as text:
+            return text
+        case _:
+            return json.dumps(default)
 
 
 def render_param_vocab(
@@ -15,8 +27,8 @@ def render_param_vocab(
     head = f"{head_pad}- `{name}` ({snap.param_type})"
     if snap.required:
         head += " [required]"
-    if snap.default_value is not None:
-        head += f" default={snap.default_value!r}"
+    if snap.default is not None:
+        head += f" default={_default_text(snap.default)}"
     out = [head]
     if snap.help:
         out.append(f"{detail_pad}{snap.help}")

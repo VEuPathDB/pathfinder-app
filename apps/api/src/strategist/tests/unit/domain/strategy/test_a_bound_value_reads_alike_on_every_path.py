@@ -16,7 +16,7 @@ from veupathdb.domain.parameters import (
     StringValue,
 )
 from veupathdb.wdk import WDKParameter, WDKSearch
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.tools.standalone._frame_sources import bound_values
 from strategist.domain.strategy.operational_spec import (
@@ -26,6 +26,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.spec_hydration import sheet_marked
 from strategist.domain.strategy.spec_replay import criterion_restated
 from strategist.domain.strategy.value_binding import bind_values
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 
 _TEXT_SEARCH = suite_search("search_genes_by_text")
@@ -44,7 +45,7 @@ _MESSAGE = "Aspergillus nidulans genes annotated with lipase activity."
 
 
 def _sheet(search: WDKSearch) -> list[ParameterInfo]:
-    return format_param_info_typed(list(search.parameters or []))
+    return sheet_of(list(search.parameters or []))
 
 
 def _go_sheet() -> list[ParameterInfo]:
@@ -59,7 +60,7 @@ def _go_sheet() -> list[ParameterInfo]:
         "initialDisplayValue": "[]",
     }
     param: WDKParameter = type(typeahead).model_validate(body)
-    return format_param_info_typed([param])
+    return sheet_of([param])
 
 
 _TEXT = _sheet(_TEXT_SEARCH)

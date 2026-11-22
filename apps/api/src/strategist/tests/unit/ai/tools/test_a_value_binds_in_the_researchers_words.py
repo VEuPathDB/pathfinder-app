@@ -89,7 +89,11 @@ async def test_a_95th_percentile_the_researcher_wrote_is_stated(
     )
 
     held = bound["min_expression_percentile"]
-    assert (to_wire(held.value), held.source, held.basis) == ("95", "stated", "95th")
+    assert (to_wire(held.value), held.source, held.basis) == (
+        "95",
+        "stated",
+        "95th",
+    )
 
 
 @pytest.mark.asyncio

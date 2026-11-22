@@ -1,8 +1,13 @@
-"""Every seed value a recorded definition declares reads by its parameter's rule."""
+"""Every seed value a recorded definition declares reads by its parameter's rule,
+and every plasmodb seed value names an entry of the plasmodb recording."""
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters import StatedValuesError, read_stated_values
+from veupathdb.domain.parameters import (
+    StatedValuesError,
+    VocabularyEntryError,
+    read_stated_values,
+)
 from veupathdb.domain.strategy import walk
 
 from strategist.services.experiment.seed.catalog import (
@@ -10,6 +15,8 @@ from strategist.services.experiment.seed.catalog import (
     seed_databases,
 )
 from strategist.tests._support.record_classes import recorded_searches
+
+_RECORDED_SITE = "plasmodb"
 
 
 def _faults() -> list[str]:
@@ -28,6 +35,9 @@ def _faults() -> list[str]:
                     faults.extend(
                         f"{site_id} {seed.name}: {f.text}" for f in refused.faults
                     )
+                except VocabularyEntryError as refused:
+                    if site_id == _RECORDED_SITE:
+                        faults.append(f"{site_id} {seed.name}: {refused.detail}")
     return faults
 
 

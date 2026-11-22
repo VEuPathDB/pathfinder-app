@@ -4,24 +4,22 @@ import hashlib
 import re
 from collections.abc import Mapping
 
-from pydantic import ConfigDict, ValidationError
+from pydantic import ConfigDict, JsonValue
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
-    HeldValue,
     ParamValue,
     PhyleticExpression,
     PhyleticTree,
-    StringValue,
+    shown_stated,
+    shown_stated_text,
     to_wire,
 )
-from veupathdb.errors import VEuPathDBError
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import PhyleticPattern
 
 from strategist.domain.strategy.computed_groups import COMPARISON_PREFIX
 from strategist.domain.strategy.expression_folds import condensed_reading
 from strategist.domain.strategy.operational_spec import OperationalSpec
-from strategist.domain.strategy.value_binding import agent_wire, plain_value
 
 READING_LIMIT = 2_000
 _DESCRIBED_LIMIT = 200
@@ -68,42 +66,25 @@ def shown_wire(name: str, wire: str) -> str:
     return wire
 
 
-def shown_value(name: str, value: ParamValue) -> str:
-    return shown_wire(name, plain_value(value))
+def _handle(name: str, value: ParamValue) -> str | None:
+    wire = to_wire(value)
+    if name == PHYLETIC_EXPRESSION_PARAM and wire:
+        return shown_wire(name, wire)
+    return None
 
 
-def shown_param(name: str, value: ParamValue) -> str:
-    match value:
-        case HeldValue():
-            return agent_wire(value)
-        case _:
-            return shown_wire(name, to_wire(value))
+def stated_value(name: str, value: ParamValue) -> JsonValue:
+    handle = _handle(name, value)
+    return shown_stated(value) if handle is None else handle
 
 
-def shown_params(values: Mapping[str, ParamValue]) -> dict[str, str]:
-    return {name: shown_param(name, value) for name, value in values.items()}
+def stated_values(values: Mapping[str, ParamValue]) -> dict[str, JsonValue]:
+    return {name: stated_value(name, value) for name, value in values.items()}
 
 
-def shown_parameters(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:
-    return {
-        name: StringValue(value=shown_wire(name, to_wire(value)))
-        if name == PHYLETIC_EXPRESSION_PARAM
-        else value
-        for name, value in values.items()
-    }
-
-
-def _same_expression(left: str, right: str) -> bool:
-    try:
-        return PhyleticExpression.parse(left) == PhyleticExpression.parse(right)
-    except VEuPathDBError, ValidationError, RecursionError:
-        return False
-
-
-def same_wire_value(name: str, left: str, right: str) -> bool:
-    if left == right:
-        return True
-    return name == PHYLETIC_EXPRESSION_PARAM and _same_expression(left, right)
+def stated_text(name: str, value: ParamValue) -> str:
+    handle = _handle(name, value)
+    return shown_stated_text(value) if handle is None else handle
 
 
 def _bound_texts(spec: OperationalSpec | None) -> list[tuple[str, str]]:
@@ -171,11 +152,10 @@ __all__ = [
     "held_readings",
     "is_handle",
     "resolved_params",
-    "shown_param",
-    "shown_parameters",
-    "shown_params",
-    "shown_value",
     "shown_wire",
     "site_values",
     "spec_handles",
+    "stated_text",
+    "stated_value",
+    "stated_values",
 ]

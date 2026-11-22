@@ -36,7 +36,7 @@ runs over the draft, never inside FRAME's own tool loop (`ai/lead/frame_dispatch
   it, and the order is enforced by code, not by asking the model which message won.
 - The answer is typed on the spec as an `OperatorReading` keyed by the combine's
   criteria and the operator FRAME built: `agrees`, `disagrees` (an other operator
-  at or above `DECISIONS_VOCAB_MIN_CONFIDENCE`), `unsure` (below it), `not_stated`
+  at or above `DECISIONS_OPERATOR_MIN_CONFIDENCE`), `unsure` (below it), `not_stated`
   (not stated or not combined directly), or `picked`.
 - A disagreement adds one question to the pass's card
   (`domain/strategy/operator_questions.py`): keep FRAME's operator or use the read
@@ -91,7 +91,7 @@ settle.
 
 The batch replay measures FRAME's operator accuracy and how often the reader
 disagrees with a correct tree. A false-disagreement rate that asks the researcher on
-correct trees, at the threshold the vocabulary pick uses, means the threshold or the
+correct trees, at `DECISIONS_OPERATOR_MIN_CONFIDENCE`, means the floor or the
 question is wrong. `tests/unit/ai/lead/test_a_combine_is_read_against_the_researcher_s_words.py`
 holds the request, the card, the pick and the no-answer path;
 `tests/unit/domain/strategy/test_operators_come_from_the_tree.py` the chains, the

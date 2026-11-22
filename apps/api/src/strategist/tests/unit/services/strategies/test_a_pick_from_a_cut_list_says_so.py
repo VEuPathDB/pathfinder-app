@@ -3,8 +3,7 @@ records how many of the matching entries it took, and the facts show it."""
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters import MultiPickValue
-from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup
+from veupathdb.domain.parameters import MultiPickValue, PhrasingMatch, VocabLookup
 
 from strategist.domain.strategy.measurement_clauses import measurement_clauses
 from strategist.domain.strategy.operational_spec import (

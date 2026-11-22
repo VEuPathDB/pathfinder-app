@@ -10,13 +10,14 @@ import pytest
 from pydantic import JsonValue
 from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.wdk import SiteSearchResponse, WDKParameter
-from veupathdb_mcp.catalog import ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count, frame_spec
 from strategist.domain.caveats import phrase_caveats
 from strategist.domain.strategy.operational_spec import Measurement
 from strategist.services.strategies.sheet_params import vocabularies_under
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     serve_counts,
     serve_site_search,
@@ -76,12 +77,10 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_the_context_read_answers_the_bound_text_as_its_initial_value() -> None:
     published = {
-        i.name: i.default_value
-        for i in format_param_info_typed(list(_PUBLISHED.parameters or []))
+        i.name: i.default_value for i in sheet_of(list(_PUBLISHED.parameters or []))
     }
     under = {
-        i.name: i.default_value
-        for i in format_param_info_typed(list(_UNDER_CONTEXT.parameters or []))
+        i.name: i.default_value for i in sheet_of(list(_UNDER_CONTEXT.parameters or []))
     }
 
     assert (published["text_expression"], under["text_expression"]) == (
@@ -94,8 +93,8 @@ def test_the_context_read_answers_the_bound_text_as_its_initial_value() -> None:
 async def test_a_context_read_gives_the_published_sheet_its_dependent_vocabularies() -> (
     None
 ):
-    published = format_param_info_typed(list(_PUBLISHED.parameters or []))
-    under = format_param_info_typed(list(_UNDER_CONTEXT.parameters or []))
+    published = sheet_of(list(_PUBLISHED.parameters or []))
+    under = sheet_of(list(_UNDER_CONTEXT.parameters or []))
 
     async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
         return list((_UNDER_CONTEXT if context else _PUBLISHED).parameters or [])

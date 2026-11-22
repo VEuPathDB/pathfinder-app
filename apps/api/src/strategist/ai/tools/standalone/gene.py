@@ -33,6 +33,9 @@ async def lookup_gene_records(
     Use this to resolve human-readable gene names (from literature or user input)
     to VEuPathDB gene IDs.
 
+    ``implied_organism`` names an organism the query's words suggest when no
+    ``organism`` is given: its genes rank first, and no gene is filtered out.
+
     Args:
         ctx: Agent run context.
         query: Free-text query to search for gene records -- gene name, symbol,
@@ -47,6 +50,7 @@ async def lookup_gene_records(
         query,
         organism=organism,
         limit=max(1, min(limit, 50)),
+        about=ctx.deps.resolving(),
     )
     return with_summary(
         found,

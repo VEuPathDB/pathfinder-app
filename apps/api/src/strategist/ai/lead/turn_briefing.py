@@ -20,7 +20,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintStatus,
 )
 from strategist.domain.strategy.data_marks import DataMarks
-from strategist.domain.strategy.expression_handles import shown_wire
 from strategist.domain.strategy.operational_spec import RequirementLink
 from strategist.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from strategist.domain.strategy.realized_spec import RealizedSpec
@@ -130,11 +129,7 @@ def _clipped(value: str | None, limit: int = _MAX_VALUE_CHARS) -> str:
         return "(unset)"
     if len(value) <= limit:
         return value
-    return f"{value[:limit]}..."
-
-
-def _shown(name: str, value: str | None) -> str:
-    return _clipped(None if value is None else shown_wire(name, value))
+    return f"{value[:limit]} (cut from {len(value):,} characters)"
 
 
 def _step_line(change: StepChange) -> str:
@@ -142,8 +137,7 @@ def _step_line(change: StepChange) -> str:
     if change.search_after is not None:
         parts.append(f"search {change.search_before} -> {change.search_after}")
     parts.extend(
-        f"{param.name} {_shown(param.name, param.before)} -> "
-        f"{_shown(param.name, param.after)}"
+        f"{param.name} {_clipped(param.before)} -> {_clipped(param.after)}"
         for param in change.params[:_MAX_PARAMS_PER_STEP]
     )
     dropped = len(change.params) - _MAX_PARAMS_PER_STEP

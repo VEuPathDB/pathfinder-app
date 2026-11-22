@@ -7,13 +7,8 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import pytest
-from veupathdb.domain.parameters import VocabOption
-from veupathdb_mcp.catalog import (
-    ParameterInfo,
-    PhrasingMatch,
-    VocabLookup,
-    VocabNarrowing,
-)
+from veupathdb.domain.parameters import PhrasingMatch, VocabLookup, VocabOption
+from veupathdb_mcp.catalog import ParameterInfo, VocabNarrowing
 
 from strategist.ai.tools.standalone import catalog_discovery
 

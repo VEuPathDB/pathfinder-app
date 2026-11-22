@@ -10,7 +10,6 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
 )
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.outside_changes import outside_changes
@@ -20,14 +19,13 @@ from strategist.domain.strategy.spec_hydration import (
 )
 from strategist.domain.strategy.spec_replay import steps_the_replay_reads
 from strategist.domain.strategy.value_binding import bind_values
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 from ._builders import combine
 
-_PUBLISHED = format_param_info_typed(
-    suite_search("search_genes_by_interpro_domain").parameters or []
-)
-_UNDER_PF3D7 = format_param_info_typed(
+_PUBLISHED = sheet_of(suite_search("search_genes_by_interpro_domain").parameters or [])
+_UNDER_PF3D7 = sheet_of(
     suite_search("search_genes_by_interpro_domain_under_pf3d7_pfam").parameters or []
 )
 _EXPRESSION = "GenesByRNASeqEvidence"

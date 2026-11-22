@@ -13,8 +13,8 @@ status: stable
 census pattern marks each one `Y`. A site's tree often has no node for a group, so a
 list of genomes can mean each of them or any of them, and the search has one form.
 
-The FRAME output check `hold_an_unsettled_pick_to_a_question`
-(`ai/agents/frame_pick_checks.py`) adds one question when a settled criterion of that
+The FRAME output check `hold_the_genome_reading_to_a_question`
+(`ai/agents/frame_genome_checks.py`) adds one question when a settled criterion of that
 search requires two genomes or more and its `any_strain` measurement differs from its
 bound count (`domain/strategy/genome_questions.py`). The check reads the bound values
 and the measurements `services/strategies/species_readings.py` already records. Equal
@@ -67,6 +67,15 @@ new text. A retired reading takes its words out of the text. An edit that gives 
 reading deletes the right. A replay keeps a reading its steps still state; when an outside change
 moves a step, the reading retires, its strain measurements go, and both steps stay as
 plain steps.
+
+When the group is every genome the census requires, left holds `profile_pattern="%"`,
+which WDK runs as every gene of the organism and which the species reader refuses from an
+agent because two empty lists state no criterion. Left is therefore never shown or held
+for a rebind as it is built: the FRAME workspace, the edit work order and the values a
+rebind keeps show it as the census its reading came from, the group's genomes required
+again (`criterion_as_stated`), under a reading line that states the reading in full and says
+the values are that census, not the step as built (`reading_line`). Stated back, that census holds every genome of the group,
+so the rebind keeps the reading and the fold derives the same left and right.
 
 The facts part states the reading built and the other reading's count when known, on
 the `included_species` row. A settled reading is no assumed value, so no caveat widens

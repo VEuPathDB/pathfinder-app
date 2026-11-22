@@ -9,7 +9,7 @@ from collections.abc import Mapping
 import pytest
 from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -21,6 +21,7 @@ from strategist.services.strategies.measurements import (
     TurnCounts,
     measure_binding,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     recorded_site_search,
     serve_counts,
@@ -30,7 +31,7 @@ from strategist.tests._support.recorded_searches import client_search, suite_sea
 
 
 def _sheet(search: WDKSearch) -> list[ParameterInfo]:
-    return format_param_info_typed(list(search.parameters or []))
+    return sheet_of(list(search.parameters or []))
 
 
 def _defaults(

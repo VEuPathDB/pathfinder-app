@@ -18,7 +18,7 @@ from strategist.ai.tools.standalone.graph_helpers import (
     serialize_step,
 )
 from strategist.domain.strategy.build_outcome import built_counts
-from strategist.domain.strategy.expression_handles import shown_parameters
+from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.strategy_description import shown_description
@@ -31,7 +31,7 @@ from strategist.services.eda.analysis_kinds import (
 from strategist.services.eda.export import (
     exported_analysis,
 )
-from strategist.services.strategies.schemas import StepResponse
+from strategist.services.strategies.schemas import StepFields, StepResponse
 
 logger = get_logger(__name__)
 
@@ -41,6 +41,10 @@ def _root_count(
 ) -> int | None:
     """The strategy root's WDK count, or nothing when it carries none."""
     return built_counts(graph, sync_state).root_count
+
+
+class ShownStep(StepFields):
+    parameters: dict[str, JsonValue] | None = None
 
 
 class StrategySummaryResponse(CamelModel):
@@ -53,7 +57,7 @@ class StrategySummaryResponse(CamelModel):
     is_built: bool = False
     step_count: int = 0
     description: str | None = None
-    steps: list[StepResponse] | None = None
+    steps: list[ShownStep] | None = None
     revision: str = ""
     """Fingerprint of the strategy's inputs; pass to ``apply_operations``.
 
@@ -66,10 +70,14 @@ class StrategySummaryResponse(CamelModel):
     unread_analyses: list[str] = Field(default_factory=list)
 
 
-def shown_step(step: StepResponse) -> StepResponse:
-    if step.parameters is None:
-        return step
-    return step.model_copy(update={"parameters": shown_parameters(step.parameters)})
+def shown_step(step: StepResponse) -> ShownStep:
+    held = step.parameters
+    return ShownStep.model_validate(
+        {
+            **step.model_dump(exclude={"parameters"}),
+            "parameters": None if held is None else stated_values(held),
+        }
+    )
 
 
 async def get_strategy(
@@ -98,7 +106,7 @@ async def get_strategy(
     wdk_strategy_id = sync_state.wdk_strategy_id if sync_state else None
     await read_the_unread_kinds(site_id=deps.site_id, graph=graph)
 
-    steps: list[StepResponse] | None = None
+    steps: list[ShownStep] | None = None
     if not summary_only:
         steps = [
             shown_step(serialize_step(graph, step, sync_state))

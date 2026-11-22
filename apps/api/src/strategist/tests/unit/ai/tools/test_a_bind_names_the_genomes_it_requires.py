@@ -3,11 +3,11 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters import PhyleticTree, StringValue
 from veupathdb.wdk import phyletic_tree_of
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.tools.standalone._frame_measure import record_measurements
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -41,7 +41,7 @@ async def test_a_profile_bind_records_the_name_of_its_required_genomes() -> None
         params=criterion.param_values,
         count=None,
         definition=_PATTERN,
-        infos=format_param_info_typed(list(_PATTERN.parameters or [])),
+        infos=sheet_of(list(_PATTERN.parameters or [])),
     )
 
     [stored] = ctx.deps.agent_state.operational_spec_draft.criteria

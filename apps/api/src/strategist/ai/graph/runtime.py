@@ -12,6 +12,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pydantic_ai.usage import RunUsage
+from veupathdb_mcp.catalog import ResolveContext
 
 from strategist.ai.agents.state import AgentToolState, CatalogRead
 from strategist.ai.agents.tool_vocabulary import build_tool_repetition_guard
@@ -118,6 +119,11 @@ class AgentDeps(AssistantDeps):
     # The conversation's last exchanges, as the researcher read them.
     exchanges: list[Exchange] = Field(default_factory=list)
     meter: SkipValidation[Callable[[RunUsage, Model], None]] | None = None
+
+    def resolving(self) -> ResolveContext:
+        return ResolveContext(
+            site_id=self.site_id, message="\n".join(self.agent_state.request_messages)
+        )
 
     def record_catalog_read(self, read: CatalogRead) -> None:
         """Keep a catalog read for this agent."""

@@ -13,9 +13,7 @@ from assistant_core.persistence.repositories.background_tasks import (
 from assistant_core.platform.db import async_session_factory
 from assistant_core.tasks.declaration import durable_impl
 from assistant_core.tasks.runner import run_durable_task
-from veupathdb.domain.parameters import VocabOption
-from veupathdb.wdk import WDKSearchConfig, WDKStep
-from veupathdb_mcp.catalog import ParameterInfo
+from veupathdb.wdk import WDKEnumParam, WDKParameter, WDKSearchConfig, WDKStep
 
 from strategist.jobs.impls import optimize_params_impl, register_all_tools
 from strategist.jobs.impls.optimize_params_impl import (
@@ -47,21 +45,16 @@ class _Api:
 
 async def _two_term_knob(
     site_id: str, record_type: str, search_name: str
-) -> list[ParameterInfo]:
+) -> list[WDKParameter]:
     del site_id, record_type, search_name
     return [
-        ParameterInfo(
-            name="knob",
-            display_name="knob",
-            type="single-pick-vocabulary",
-            required=True,
-            is_visible=True,
-            site_set=False,
-            help="",
-            allowed_values=[
-                VocabOption(value="a", display="a"),
-                VocabOption(value="b", display="b"),
-            ],
+        WDKEnumParam.model_validate(
+            {
+                "name": "knob",
+                "type": "single-pick-vocabulary",
+                "displayType": "select",
+                "vocabulary": [["a", "a", None], ["b", "b", None]],
+            }
         )
     ]
 
@@ -160,7 +153,7 @@ async def test_run_durable_task_wiring_optimize(
         optimize_params_impl, "run_single_trial", _fake_run_single_trial
     )
     monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
-    monkeypatch.setattr(tunable, "search_parameter_metadata", _two_term_knob)
+    monkeypatch.setattr(tunable, "search_declarations", _two_term_knob)
     register_all_tools()
 
     user_id = uuid4()

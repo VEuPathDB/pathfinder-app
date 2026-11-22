@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from veupathdb.domain.parameters import ParamValue
 
 from strategist.ai.graph.stored_requirement_keys import (
     ids_by_stored_key,
@@ -296,14 +297,17 @@ class ThreadRequirements(BaseModel):
         self, before: OperationalSpec | None, after: OperationalSpec | None
     ) -> OperationalSpec | None:
         was, now = _held_readings(before), _held_readings(after)
+        was_values, now_values = _bound_values(before), _bound_values(after)
         ended = {
             r.stand_in
             for cid, r in was.items()
-            if r.stand_in and not r.same_reading(now.get(cid))
+            if r.stand_in and not r.same_reading(now.get(cid), was_values[cid])
         }
         self.withdraw(c for c in self.requirements if c.id in ended)
         for cid, held in now.items():
-            if after is not None and not held.same_reading(was.get(cid)):
+            if after is not None and not held.same_reading(
+                was.get(cid), now_values[cid]
+            ):
                 after = self.accept_reading(after, cid, held)
         return after
 
@@ -352,15 +356,6 @@ class ThreadRequirements(BaseModel):
             if p.quote in unnamed
         ]
 
-    def name_organisms_from(self, organisms: Sequence[str]) -> None:
-        """Name each organism the request left open by the one entry of
-        ``organisms`` its words lead."""
-        for requirement in unnamed_organisms(self.requirements):
-            words = requirement.requested_value.casefold()
-            named = {o for o in organisms if o.casefold().startswith(words)}
-            if len(named) == 1:
-                self.name_organism(requirement.id, named.pop())
-
     def name_organism(self, requirement_id: str, organism: str) -> None:
         self.requirements = [
             c.model_copy(
@@ -379,6 +374,10 @@ class ThreadRequirements(BaseModel):
 
     def _turn_id(self) -> str:
         return str(self.turn_markers.message_id or "")
+
+
+def _bound_values(spec: OperationalSpec | None) -> dict[str, dict[str, ParamValue]]:
+    return {c.id: c.param_values for c in ([] if spec is None else spec.criteria)}
 
 
 def _held_readings(spec: OperationalSpec | None) -> dict[str, AcceptedReading]:

@@ -12,7 +12,7 @@ from veupathdb.domain.parameters import (
     NumberBounds,
     ParamValue,
     SinglePickValue,
-    from_wire_as,
+    shown_stated_text,
     to_wire,
 )
 from veupathdb_mcp.catalog import ParameterInfo
@@ -27,15 +27,8 @@ from strategist.domain.strategy.value_text import (
 )
 
 
-def _at_default(value: ParamValue, published: str | None) -> bool:
-    """Whether the value is the published initial value, read in its own kind."""
-    if published is None:
-        return False
-    try:
-        initial = from_wire_as(value, published)
-    except ValueError:
-        return False
-    return to_wire(initial) == to_wire(value)
+def _at_default(name: str, value: ParamValue, published: str | None) -> bool:
+    return published is not None and value == HeldValue(wire=published)
 
 
 # The kinds of parameter a long decimal can bind: a number, or a pick of terms.
@@ -69,7 +62,7 @@ def _bound(
         display_name=info.display_name,
         label=value_label(value, info, sheet),
         placeholder=info.is_placeholder(to_wire(value)),
-        at_default=_at_default(value, info.default_value),
+        at_default=_at_default(info.name, value, info.default_value),
         visible=info.is_visible,
         number=info.is_number or info.param_kind in _NUMBER_KINDS,
         decimals=shown_decimals(info.default_value),
@@ -136,7 +129,7 @@ def parents_moved(
     return any(
         parent in values
         and parent in by_name
-        and not _at_default(values[parent], by_name[parent].default_value)
+        and not _at_default(parent, values[parent], by_name[parent].default_value)
         for parent in parents
     )
 
@@ -152,10 +145,10 @@ def pick_terms(value: ParamValue) -> list[str]:
             return []
 
 
-def agent_wire(value: ParamValue) -> str:
+def _wire_text(value: ParamValue) -> str:
     match value:
-        case HeldValue(wire=wire):
-            return f"{wire!r} (kept as the site holds it)"
+        case HeldValue():
+            return shown_stated_text(value)
         case _:
             return to_wire(value)
 
@@ -174,4 +167,4 @@ def plain_value(value: ParamValue) -> str:
         case _ if value.type == "date-range":
             return bounds_text(DateBounds.model_validate_json(to_wire(value)))
         case _:
-            return agent_wire(value)
+            return _wire_text(value)

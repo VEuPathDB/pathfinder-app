@@ -8,7 +8,13 @@ from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field
-from veupathdb.domain.parameters import ParamKind, ParamValue, from_wire_as
+from veupathdb.domain.parameters import (
+    HeldValue,
+    ParamKind,
+    ParamValue,
+    same_param_value,
+    value_kind,
+)
 from veupathdb.model import CamelModel
 
 from strategist.domain.clipped import text_clipped_to
@@ -85,14 +91,25 @@ class AcceptedReading(CamelModel):
         return [
             name
             for name, wire in self.params.items()
-            if name not in values or from_wire_as(values[name], wire) != values[name]
+            if name not in values or values[name] != HeldValue(wire=wire)
         ]
 
-    def same_reading(self, other: AcceptedReading | None) -> bool:
+    def same_reading(
+        self, other: AcceptedReading | None, values: Mapping[str, ParamValue]
+    ) -> bool:
         return (
             other is not None
             and other.reading == self.reading
-            and other.params == self.params
+            and other.params.keys() == self.params.keys()
+            and all(
+                same_param_value(
+                    name,
+                    value_kind(values[name]) if name in values else None,
+                    HeldValue(wire=wire),
+                    HeldValue(wire=other.params[name]),
+                )
+                for name, wire in self.params.items()
+            )
         )
 
 

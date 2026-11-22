@@ -8,7 +8,7 @@ from collections.abc import Mapping
 
 from veupathdb import get_logger
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import to_wire
+from veupathdb.domain.parameters import HeldValue, to_wire
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
@@ -40,11 +40,12 @@ async def site_spelling(
                 stated=stated,
                 context=held,
                 callbacks=make_validation_callbacks(site_id),
+                about=None,
             )
     except ValidationError:
         raise
     except (VEuPathDBError, TimeoutError) as unanswered:
         logger.warning("Reading check did not answer", error=str(unanswered))
         return None
-    spelled = to_wire(validated.params[param])
-    return wire if spelled == sent else spelled
+    read = validated.params[param]
+    return wire if read == HeldValue(wire=sent) else to_wire(read)

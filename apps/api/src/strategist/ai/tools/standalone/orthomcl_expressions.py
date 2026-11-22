@@ -6,12 +6,19 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
+from pydantic_ai.tools import ToolDefinition
 from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_SEARCH
-from veupathdb.errors import DataParsingError, ValidationError, WDKError
+from veupathdb.errors import (
+    DataParsingError,
+    ValidationError,
+    VEuPathDBError,
+    WDKError,
+)
 from veupathdb_mcp.catalog import (
     PhyleticExpressionResult,
     PhyleticPattern,
     ortho_taxonomy,
+    serves_ortho_taxonomy,
 )
 from veupathdb_mcp.wdk import (
     ComparisonOutOfTimeError,
@@ -140,6 +147,16 @@ def _computed(
     return with_summary(
         shown, f"{count_noun(shown.groups, 'group')}, {COMPUTED_ROUTE}", ctx=ctx
     )
+
+
+async def offered_where_the_taxonomy_is(
+    ctx: RunContext[AgentDeps], tool_def: ToolDefinition
+) -> ToolDefinition | None:
+    try:
+        served = await serves_ortho_taxonomy(ctx.deps.site_id)
+    except VEuPathDBError:
+        return None
+    return tool_def if served else None
 
 
 async def build_phyletic_expression(

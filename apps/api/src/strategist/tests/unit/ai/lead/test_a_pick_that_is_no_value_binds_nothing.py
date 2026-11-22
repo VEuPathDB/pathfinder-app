@@ -8,7 +8,7 @@ from pydantic import TypeAdapter
 from pydantic_ai.messages import ToolReturn, ToolReturnPart
 from veupathdb.domain.parameters import ParamKind, from_wire
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import lead_consult
@@ -26,6 +26,7 @@ from strategist.domain.strategy.question_options import SetValues, TypedOption
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.readings import ReadValues
 from strategist.services.strategies import sheet_params
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -49,7 +50,7 @@ _BINDS_NOTHING = (
 @pytest.fixture(autouse=True)
 def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
     declared = list(client_search("search_genes_by_gene_model_chars").parameters or [])
-    sheet = format_param_info_typed(declared)
+    sheet = sheet_of(declared)
 
     def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
         async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:

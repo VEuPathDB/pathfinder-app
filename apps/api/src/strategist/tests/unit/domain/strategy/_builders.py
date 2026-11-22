@@ -143,7 +143,7 @@ _param_values: strategies.SearchStrategy[ParamValue] = strategies.one_of(
     strategies.builds(
         MultiPickValue,
         values=strategies.lists(
-            strategies.text(min_size=1, max_size=8), min_size=1, max_size=3
+            strategies.text(min_size=1, max_size=8), min_size=1, max_size=3, unique=True
         ),
     ),
 )

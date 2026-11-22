@@ -6,16 +6,13 @@ from __future__ import annotations
 from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
+    PhrasingMatch,
     SinglePickValue,
+    VocabLookup,
     VocabOption,
 )
 from veupathdb.domain.strategy import CombineOp
-from veupathdb_mcp.catalog import (
-    ParameterInfo,
-    PhrasingMatch,
-    VocabLookup,
-    format_param_info_typed,
-)
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import (
     AgentToolState,
@@ -32,6 +29,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.services.strategies.cut_picks import OptionsRead
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 
@@ -411,9 +409,7 @@ def test_a_parameter_read_as_site_set_this_pass_is_set_by_the_site() -> None:
     state = AgentToolState()
     state.record_read(
         "GenesByText",
-        format_param_info_typed(
-            list(suite_search("search_genes_by_text").parameters or [])
-        ),
+        sheet_of(list(suite_search("search_genes_by_text").parameters or [])),
     )
 
     assert (

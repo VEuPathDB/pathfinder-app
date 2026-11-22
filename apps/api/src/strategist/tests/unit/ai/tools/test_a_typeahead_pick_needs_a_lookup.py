@@ -7,12 +7,12 @@ from __future__ import annotations
 import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, LookupRecord
 from strategist.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 _INTERPRO = "GenesByInterproDomain"
@@ -47,7 +47,7 @@ def _state(message: str = _MESSAGE) -> AgentToolState:
 
 def _refuse(state: AgentToolState, picks: list[str]) -> None:
     definition = suite_search("search_genes_by_interpro_domain")
-    infos = format_param_info_typed(definition.parameters or [])
+    infos = sheet_of(definition.parameters or [])
     refuse_a_pick_no_lookup_read(state, definition, _call(picks), infos)
 
 

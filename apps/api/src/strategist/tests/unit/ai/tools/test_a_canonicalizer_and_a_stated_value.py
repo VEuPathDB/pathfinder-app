@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters import ParamValue, StringValue
+from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, leaves
 
 from strategist.ai.tools.standalone._stated_values import StatedUpdateStepParamsOp
@@ -46,7 +46,7 @@ from ._strategy_edit_stubs import (
 )
 
 _SIZE = {"ProfileNumToReturn": StringValue(value="100")}
-_DEPARTED_AS_READ = {PERCENTILE: StringValue(value="80.0")}
+_DEPARTED_AS_READ = {PERCENTILE: NumberValue(value=80.0)}
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
             await update_leaf_params(ctx(deps), MIC2, stated(dict(DEPARTED_PERCENTILE)))
 
         assert "set_criterion" in str(excinfo.value)
-        assert "90.0" in str(excinfo.value)
+        assert "min_expression_percentile = '90'" in str(excinfo.value)
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[MIC2].parameters == STATED_PERCENTILE
@@ -109,7 +109,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
             await update_leaf_params(ctx(deps), MIC2, {PERCENTILE: 70})
 
         assert "set_criterion" in str(excinfo.value)
-        assert "90.0" in str(excinfo.value)
+        assert "min_expression_percentile = '90'" in str(excinfo.value)
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[MIC2].parameters == DEPARTED_PERCENTILE

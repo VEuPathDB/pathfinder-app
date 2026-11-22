@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Collection
 
+from veupathdb.domain.parameters import HeldValue
 from veupathdb.domain.strategy import StrategyAst
 
 from strategist.domain.strategy.ast_diff import nodes_of
@@ -25,10 +26,14 @@ def name_seed(ast: StrategyAst | None) -> NameSeed:
 
 def name_outdated(seed: NameSeed, now: StrategyAst | None) -> bool:
     """Whether a seed step is gone, or holds another value than its seed."""
-    live = name_seed(now)
+    live = nodes_of(now)
     return any(
         step_id not in live
-        or any(live[step_id].get(name) != wire for name, wire in values.items())
+        or any(
+            name not in live[step_id].parameters
+            or live[step_id].parameters[name] != HeldValue(wire=wire)
+            for name, wire in values.items()
+        )
         for step_id, values in seed.items()
     )
 

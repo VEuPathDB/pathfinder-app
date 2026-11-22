@@ -15,7 +15,11 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
-from veupathdb_mcp.catalog import UnlistedSearchError, resolve_search_record_type
+from veupathdb_mcp.catalog import (
+    BoundValues,
+    UnlistedSearchError,
+    resolve_search_record_type,
+)
 from veupathdb_mcp.controls import (
     IntersectionConfig,
     run_positive_negative_controls,
@@ -26,7 +30,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.stream_events import control_test_results_event
 from strategist.ai.graph.turn_records import ControlTestRun, ControlTestTarget
 from strategist.ai.tools.standalone._stated_values import typed_values
-from strategist.ai.tools.standalone.control_counts import ControlCounts
+from strategist.ai.tools.standalone.control_counts import ControlCounts, stated_counts
 from strategist.ai.tools.standalone.control_repeats import (
     RepeatedControlTest,
     every_step_tested,
@@ -189,10 +193,9 @@ def _answered_from_this_message(
             )
             # A repeat past the failure spends the tool's retries, so a loop ends.
             raise CallRefused(msg) if asked == 1 else ModelRetry(msg)
-        counts = ControlCounts.model_validate(held.model_dump())
         return with_summary(
             RepeatedControlTest(outcome=held),
-            f"Already tested on this step: {_control_scores(counts)}",
+            f"Already tested on this step: {_control_scores(held)}",
             ctx=ctx,
         )
 
@@ -222,8 +225,8 @@ async def run_control_tests_on_step(
     the strategy when it ends; the dataset stays, because WDK deletes no
     dataset. A protein (sequence) step is tested with protein ids, and a gene
     id there is filed as not returned. Durable: the worker runs the test and
-    the turn ends while it runs. You are called again with a dict
-    matching :class:`ControlOutcome`'s serialised shape. A set this message
+    the turn ends while it runs. You are called again with a dict of the
+    test's counts and the values it tested, as stated. A set this message
     already tested on the step is answered from that test, with no new task.
 
     For a standalone (not-yet-built) search, use
@@ -242,13 +245,29 @@ async def run_control_tests_on_step(
     raise NotImplementedError(msg)
 
 
+def control_config(
+    site_id: str, record_type: str, search_name: str, values: BoundValues
+) -> IntersectionConfig:
+    controls = controls_search(record_type)
+    return IntersectionConfig(
+        site_id=site_id,
+        record_type=record_type,
+        target_search_name=search_name,
+        target_parameters=dict(values),
+        controls_search_name=controls.search_name,
+        controls_param_name=controls.param_name,
+        controls_value_format=controls.value_format,
+        internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
+    )
+
+
 async def run_control_tests_on_search(
     ctx: RunContext[AgentDeps],
     target_search_name: str,
     target_parameters: dict[str, JsonValue],
     control_set_id: str,
     record_type: str | None = None,
-) -> ToolReturn[ControlOutcome]:
+) -> ToolReturn[ControlCounts]:
     """Test a standalone WDK search (not a built strategy) against a saved
     control set.
 
@@ -279,20 +298,13 @@ async def run_control_tests_on_search(
     except UnlistedSearchError as exc:
         raise ModelRetry(exc.detail or exc.title) from exc
     values = await typed_values(
-        ctx.deps.site_id, target_search_name, target_parameters, record_type=record_type
+        ctx.deps.resolving(),
+        target_search_name,
+        target_parameters,
+        record_type=record_type,
     )
-    controls = controls_search(record_type)
     measured = await run_positive_negative_controls(
-        IntersectionConfig(
-            site_id=ctx.deps.site_id,
-            record_type=record_type,
-            target_search_name=target_search_name,
-            target_parameters=values,
-            controls_search_name=controls.search_name,
-            controls_param_name=controls.param_name,
-            controls_value_format=controls.value_format,
-            internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
-        ),
+        control_config(ctx.deps.site_id, record_type, target_search_name, values),
         positive_controls=saved.positive_ids or None,
         negative_controls=saved.negative_ids or None,
     )
@@ -301,16 +313,16 @@ async def run_control_tests_on_search(
         f"{target_search_name}_control_tests",
     )
     published = await published_names(ctx.deps.site_id, record_type, target_search_name)
-    counts = ControlCounts.model_validate(
-        outcome.model_dump()
-        | {
+    counts = stated_counts(
+        outcome,
+        {
             "target_label": published.label,
             "parameter_labels": published.parameter_labels,
             "tunable_parameters": await tunable_parameters_of_search(
                 ctx.deps.site_id, record_type, target_search_name
             ),
             "control_set": NamedControlSet(id=saved.control_set_id, name=saved.name),
-        }
+        },
     )
     tool_call_id = ctx.tool_call_id or ""
     # A search test reads a step it creates and deletes, so no step id is kept.
@@ -320,7 +332,7 @@ async def run_control_tests_on_search(
             [ControlTestRun(tool_call_id=tool_call_id, evidence=evidence)]
         )
     return with_summary(
-        outcome,
+        counts,
         controls_summary(counts),
         ctx=ctx,
         extra=[control_test_results_event(counts.exhibit(tool_call_id))],

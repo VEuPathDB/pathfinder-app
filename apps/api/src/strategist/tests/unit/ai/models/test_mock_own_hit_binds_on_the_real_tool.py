@@ -24,7 +24,6 @@ from veupathdb_mcp.catalog import (
     ParamFetcher,
     SearchMatch,
     build_sheet,
-    format_param_info_typed,
 )
 
 from strategist.ai.agents.state import AgentToolState
@@ -39,6 +38,7 @@ from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone.catalog import search_for_searches
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.tests._support.catalog_reads import listing
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import (
     no_count,
     serve_recorded,
@@ -208,9 +208,7 @@ async def test_a_percentile_hit_sends_only_the_parameters_its_sheet_lists(
 
     listed = {
         e.name
-        for e in build_sheet(
-            format_param_info_typed(list(_PERCENTILE.parameters or [])), query=""
-        )
+        for e in build_sheet(sheet_of(list(_PERCENTILE.parameters or [])), query="")
     }
     (criterion,) = state.operational_spec_draft.criteria
     assert played.refusals == []

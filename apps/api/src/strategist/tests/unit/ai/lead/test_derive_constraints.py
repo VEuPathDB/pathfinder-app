@@ -265,9 +265,9 @@ def test_an_assumed_value_is_a_grounded_non_blocking_constraint() -> None:
     assert grounded.constraint.source is ConstraintSource.ASSUMED
     assert grounded.constraint.hard is False
     assert grounded.constraint.label == "samples_percentile_generic"
-    assert grounded.constraint.requested_value == "17-30h"
+    assert grounded.constraint.requested_value == '"17-30h"'
     assert grounded.status is ConstraintStatus.GROUNDED
-    assert grounded.realized_value == "17-30h"
+    assert grounded.realized_value == '"17-30h"'
     assert grounded.note == _ASSUMPTION_REASON
     assert ledger.constraints.blocking is False
 

@@ -10,7 +10,7 @@ from collections.abc import Mapping
 
 from assistant_core.models.scripted import scripted_call
 from pydantic_ai.messages import ModelMessage, ToolCallPart
-from veupathdb_mcp.catalog import VocabLookup
+from veupathdb.domain.parameters import VocabLookup
 
 from strategist.ai.models.mock.history import acted_tool_names
 from strategist.ai.models.mock.reads import (

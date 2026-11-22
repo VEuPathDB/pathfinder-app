@@ -328,6 +328,7 @@ async def _validate_plan_params(
                 stated={},
                 context=step.parameters,
                 callbacks=callbacks,
+                about=None,
             )
         except ValidationError:
             if entry.step_id in existing_wdk_ids:

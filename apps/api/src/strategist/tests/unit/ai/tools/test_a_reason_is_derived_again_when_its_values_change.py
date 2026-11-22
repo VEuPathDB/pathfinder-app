@@ -7,11 +7,12 @@ from __future__ import annotations
 import pytest
 from pydantic import JsonValue
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue, to_wire
+from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone.frame_spec import set_criterion
+from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
@@ -54,7 +55,7 @@ _HELD = SearchRationale(
     query="rhoptry annotation",
     tool_call_id="call_turn1_read",
     sources=["https://example.org/rhoptry-review"],
-    derived_from={name: to_wire(value) for name, value in _HELD_VALUES.items()},
+    derived_from=stated_values(_HELD_VALUES),
 )
 _REQUEST = "Only the Plasmodium falciparum 3D7 rhoptry genes, please."
 
@@ -136,7 +137,7 @@ async def test_an_organism_edit_keeps_a_reason_that_names_the_old_organism() -> 
         result.rationale.derived_from["text_search_organism"],
     ) == (
         _HELD.reason,
-        '["Plasmodium falciparum 3D7"]',
+        ["Plasmodium falciparum 3D7"],
     )
 
 
@@ -175,12 +176,7 @@ async def test_a_binding_of_the_same_values_keeps_the_reason() -> None:
     state = _state("Plasmodium falciparum 3D7")
     [criterion] = state.operational_spec_draft.criteria
     held = _HELD.model_copy(
-        update={
-            "derived_from": {
-                name: to_wire(bound.value)
-                for name, bound in criterion.resolved_params.items()
-            }
-        }
+        update={"derived_from": stated_values(criterion.param_values)}
     )
     criterion.rationale = held
 
@@ -207,15 +203,15 @@ def test_the_glycosome_reason_no_longer_holds_once_the_organism_narrows() -> Non
                 "and the Trypanosomatida taxon-wide scope."
             ),
             "derived_from": {
-                "organism": '["Trypanosomatida"]',
-                "GoTermId": '["GO:0020015"]',
+                "organism": ["Trypanosomatida"],
+                "GoTermId": ["GO:0020015"],
             },
         }
     )
 
-    narrowed = {
-        "organism": '["Leishmania donovani BPK282A1"]',
-        "GoTermId": '["GO:0020015"]',
+    narrowed: dict[str, JsonValue] = {
+        "organism": ["Leishmania donovani BPK282A1"],
+        "GoTermId": ["GO:0020015"],
     }
     assert held.changed_by(narrowed) == ["organism"]
 
@@ -241,6 +237,6 @@ async def test_an_organism_edit_keeps_a_reason_that_names_no_organism() -> None:
 
     assert result.rationale is not None
     assert (result.rationale.term, result.rationale.reason) == (held.term, held.reason)
-    assert result.rationale.derived_from["text_search_organism"] == (
-        '["Plasmodium falciparum 3D7"]'
-    )
+    assert result.rationale.derived_from["text_search_organism"] == [
+        "Plasmodium falciparum 3D7"
+    ]

@@ -7,7 +7,7 @@ from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import ParamValue, from_wire
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_answers import AnsweredRequirement
@@ -22,6 +22,7 @@ from strategist.domain.strategy.constraints import (
 )
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.tests._support.catalog_reads import listing
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.test_frame_spec import (
@@ -40,9 +41,7 @@ def _range(low: float, high: float) -> ParamValue:
 
 
 def _recorded_sheet() -> list[ParameterInfo]:
-    return format_param_info_typed(
-        suite_search("search_genes_by_intron_junctions").parameters or []
-    )
+    return sheet_of(suite_search("search_genes_by_intron_junctions").parameters or [])
 
 
 def _no_limit_sheet() -> list[ParameterInfo]:

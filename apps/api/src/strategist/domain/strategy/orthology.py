@@ -3,7 +3,6 @@ tree's records belong to."""
 
 from __future__ import annotations
 
-import json
 from collections.abc import Collection, Iterator, Mapping
 
 from pydantic import ConfigDict
@@ -325,9 +324,9 @@ def _unequal_legs(
     other value the two legs share asks the same question both ways.
     """
     for name in sorted(set(there.parameters) & set(back.parameters)):
-        values = [_wire(there, name), _wire(back, name)]
-        if values[0] == values[1]:
+        if there.parameters[name] == back.parameters[name]:
             continue
+        values = [_wire(there, name), _wire(back, name)]
         if _names(there, name, mapped) and _names(back, name, organisms):
             continue
         return (
@@ -372,16 +371,14 @@ def _with_parents(
         yield from _with_parents(child, node)
 
 
-def _shape(node: StrategyStepNode) -> str:
+def _shape(node: StrategyStepNode) -> list[object]:
     """The node's searches, values and operators, without its ids."""
-    return json.dumps(
-        [
-            node.search_name,
-            None if node.operator is None else node.operator.value,
-            sorted((name, to_wire(value)) for name, value in node.parameters.items()),
-            [_shape(child) for child in node.inputs()],
-        ]
-    )
+    return [
+        node.search_name,
+        node.operator,
+        dict(node.parameters),
+        [_shape(child) for child in node.inputs()],
+    ]
 
 
 def stated_steps(spec: OperationalSpec) -> StrategyStepNode | None:

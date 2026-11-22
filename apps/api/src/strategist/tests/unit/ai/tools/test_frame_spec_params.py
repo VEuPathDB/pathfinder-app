@@ -166,7 +166,7 @@ class TestARedecidedParamIsDecidedOnce:
         with pytest.raises(ModelRetry) as info:
             await aggregate(st, "median9")
 
-        assert "min_max_avg_ref takes one of" in str(info.value)
+        assert "min_max_avg_ref has no entry 'median9'" in str(info.value)
         assert st.operational_spec_draft.criteria == []
 
     @pytest.mark.asyncio
@@ -286,8 +286,8 @@ class TestAnOrganismSwapRedecidesItsDependents:
             await _profile(state, {"organism": [_PV], "profileset": _DERISI_SET})
 
         assert refused.value.message == (
-            f"profileset takes one of {_ZHU!r}, for example {_ZHU!r}; it read "
-            f"{_DERISI_SET!r}. Nothing was recorded."
+            f"profileset has no entry {_DERISI_SET!r}. Candidates: Zhu P01 "
+            f"({_ZHU}). Nothing was recorded."
         )
         assert state.operational_spec_draft.criteria == []
 
@@ -299,7 +299,7 @@ class TestAnOrganismSwapRedecidesItsDependents:
 
         assert result.redecide == []
         assert result.resolved_params["profileset"] == _ZHU
-        assert result.resolved_params["organism"] == f'["{_PV}"]'
+        assert result.resolved_params["organism"] == [_PV]
         assert state.operational_spec_draft.criteria[0].id == "step_expr"
 
     @pytest.mark.asyncio

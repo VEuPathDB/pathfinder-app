@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An organism requirement holds a site entry
-description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared. The gate binds the entry the researcher's message states whole, else the one a Decisions choice over the site's entries settles; otherwise the requirement holds no entry and the card asks which entry the researcher means. Binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
+description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared. The gate binds the entry the researcher's message states whole or the one the words name exactly; otherwise the requirement holds no entry and the card asks which entry the researcher means, over ranked entries a Decisions choice may lead but never binds. Settling a Decisions choice at a floor, binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
 tags: [requirements, verification, frame, decisions, organisms]
 generated: { by: claude-code/opus-5.5, at: 2026-11-03T00:00:00Z }
 status: stable
@@ -10,8 +10,8 @@ status: stable
 # What was decided
 
 `OrganismValue` (`domain/strategy/constraints.py`) holds `organism`, one entry
-of the site's organism list (`veupathdb_mcp.gene_lookup.list_organisms`, the
-leaves of the organism vocabulary). The message reading writes the organism as
+of the site's organism list (`veupathdb_mcp.catalog.list_organisms`, the
+leaves of the marked organism parameter of `SequencesByTaxon`). The message reading writes the organism as
 words (`StatedOrganism.organism` in `domain/message_reading.py`), and
 `hold_the_intent` turns them into an entry before the thread records the
 requirement (`ai/lead/organism_reader.py::named_organisms`):
@@ -20,20 +20,21 @@ requirement (`ai/lead/organism_reader.py::named_organisms`):
    initial, that the words are or begin, binds
    (`domain/strategy/organism_phrases.py::completed_entry`). The words alone
    never bind: an entry the message does not state goes to step 2.
-2. Else one Decisions choice over the site's entries (the 254 nearest the words
-   on a site that lists more) and `none_fits` reads the researcher's message and
-   the requirement's quote. A picked entry binds when the choice reaches
-   `DECISIONS_VOCAB_MIN_CONFIDENCE`. The call goes through the installed Decisions
-   transport, which meters it.
+2. Else the entry the words name exactly, folded as every vocabulary text is
+   (`veupathdb.domain.parameters.exact_entry`), binds.
 3. Else the requirement holds no value and the thread holds the pick
-   (`ThreadRequirements.organism_picks`, an `OrganismPick` with the picked entry
-   and the nearest entries). The next framing pass's card asks "Which organism of
-   this site do you mean by ...?", one `SetOrganism` option per offered entry,
-   the pick recommended, the note as the free-text route; the pass ends
-   `needs_user` and no build runs until the question is answered. A picked
-   option names the requirement's entry in place. A service that does not answer
-   gives the same question over the nearest entries. The mock deployment asks no
-   service, and its arcs write entries their prompts state.
+   (`ThreadRequirements.organism_picks`, an `OrganismPick` with the offered
+   entries): the five entries `rank_entries` ranks nearest the words, led by the
+   entry one Decisions choice over the site's entries picks under the
+   researcher's message (`veupathdb_mcp.catalog.ordered_by_vocabulary`). The
+   choice orders the offer and never binds; a service that does not answer leaves
+   the ranked order. The next framing pass's card asks "Which organism of this
+   site do you mean by ...?", one `SetOrganism` option per offered entry, the
+   note as the free-text route; the pass ends `needs_user` and no build runs
+   until the question is answered. A picked option names the requirement's entry
+   in place. A plan the researcher picks names an open requirement only when the
+   words name one of the plan's organisms exactly. The mock deployment installs a
+   transport that answers no choice.
 
 The entry is compared by equality:
 
@@ -48,7 +49,8 @@ The entry is compared by equality:
 - the organism drop is met when the dropped criterion links only organism
   requirements, each with an entry;
 - `gene_record`'s `ortholog_organism` reads the rows whose organism is that
-  name; when none is, the answer names the nearest organisms the table holds.
+  name; when none is, the answer names the organisms the table holds nearest
+  it, led by the one a Decisions choice picks under the turn's words.
 
 # Why
 
@@ -58,23 +60,19 @@ text, and the gate rewrote the value by a word prefix (`complete_organisms`). A
 value written another way grounded another way. An entry of the site's list is
 data both sides hold, so equality decides.
 
-On 49 labelled corpus turns that state organisms on sites with a recorded
-organism list (51 requirements; 45 name one entry, 6 a genus, a species of
-several strains or a family), two runs of the wired reading and this
-validation on Luna resolved every requirement they extracted to the hand
-label: 50 of 50 and 49 of 49, each run asking all 6 that name no single entry.
-The reading left out one requirement in each run, a strain named in a
-question, and the provider refused one message of the second run. 11 and 9
-turns needed the Decisions step; 4 and 3 of them settled an entry the words
-did not complete to, one over a reading that wrote another genus ("E. bieneusi
-H348" read as Encephalitozoon, settled as Enterocytozoon bieneusi H348).
-
-The choice alone settled all 51 of those requirements to the hand label. Over 14
-misspelled names on nine sites it picked the right entry every time, and over 32
-names that state no single entry it answered `none_fits` for 31; the other,
-"Trypanosoma cruzi CL Brener", bound the site's entry for that strain.
+A Decisions choice that settles an entry binds on a guess. On the 229 held-out
+rows of the frozen vocabulary set (2026-11-22), binding the choice at a 0.80
+floor read 208 right with one confidently wrong binding; refusing every
+inexact text with the choice's pick first among the offered entries read 219
+right (95.6%, 92.1 to 97.6) with none wrong, because it never binds. Plain rank
+order read 197.
 
 # What was rejected
+
+**Binding the entry a Decisions choice settles at or above a floor.** It is the one
+route that binds an entry the researcher did not state, and the held-out rows
+above hold a confidently wrong binding under it. The organism reader's choice,
+its floor and the vocabulary pick card are deleted.
 
 **A fit predicate after the choice, the lower of the two reaching the floor.**
 Over the same names it refused no wrong entry, and it refused 7 of the 14 misspelled
@@ -97,12 +95,14 @@ be the site's own, so the table is the list the name is compared with.
 
 # What would prove this wrong
 
-`tests/unit/ai/lead/test_an_organism_requirement_holds_a_site_entry.py` replays
-the recorded Decisions exchanges (`tests/fixtures/decisions/organism_*.json`:
-"3D7" settled at 0.99; "Plasmodium falciparium 3D7" settled at 0.95; "Plasmodium
-falciparum" answered `none_fits` at 0.96) over the recorded PlasmoDB list, and holds the completion,
-the settled entry, the card question, its answer, the unanswered service, the
-mock deployment and the build hold.
+`tests/unit/ai/lead/test_an_organism_requirement_holds_a_site_entry.py` reads the
+recorded PlasmoDB list (64 entries) and holds the completion, a folded exact
+entry, the card led by the choice's pick with nothing bound ("malaria", the pick
+Plasmodium falciparum 3D7 first), the ranked entries when the service does not
+answer ("P. falciparum" and "3D7" lead with Plasmodium falciparum 3D7, "malaria"
+with Plasmodium malariae UG01), the card's answer and the build hold.
+`tests/unit/ai/lead/test_a_picked_plan_names_the_organism.py` holds the plan's
+exact naming and a species left to the card.
 `tests/unit/domain/strategy/test_an_organism_completes_to_an_entry_the_message_states.py`,
 `test_an_organism_is_grounded_by_its_entry.py`,
 `test_the_fold_drops_an_organism_universe.py`,

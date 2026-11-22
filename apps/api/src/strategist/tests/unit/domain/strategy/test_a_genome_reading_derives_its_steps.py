@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
@@ -19,6 +20,7 @@ from veupathdb.wdk import phyletic_tree_of
 
 from strategist.domain.strategy.genome_group import GenomeGroup
 from strategist.domain.strategy.genome_group_steps import (
+    criterion_as_stated,
     criterion_keeping_its_reading,
     spec_read_on_genomes,
     spec_with_group_steps,
@@ -211,6 +213,35 @@ def test_with_nothing_else_stated_the_left_states_no_constraint() -> None:
         "excluded_species": "n/a",
     }
     assert _lists(right)["profile_pattern"] == "%pber:N%pfal:N%"
+
+
+@pytest.mark.parametrize("excluded", [[], ["mmus"]])
+def test_the_left_is_stated_as_the_census_its_reading_came_from(
+    excluded: list[str],
+) -> None:
+    stated = _profile(["pber", "pfal"], excluded)
+    left, _ = _read(_spec(stated), _at_least_one(*_PAIR)).criteria
+
+    assert _lists(criterion_as_stated(left)) == _lists(stated)
+
+
+def test_the_left_stated_back_derives_the_same_steps() -> None:
+    read = _read(_spec(_profile(["pber", "pfal"], [])), _at_least_one(*_PAIR))
+    left, right = read.criteria
+
+    rebound = criterion_keeping_its_reading(left, criterion_as_stated(left))
+    folded = fold_option_criteria(
+        read.model_copy(update={"criteria": [rebound, right]})
+    ).spec
+
+    assert [_lists(c) for c in folded.criteria] == [_lists(c) for c in read.criteria]
+
+
+def test_a_criterion_with_no_at_least_one_reading_is_stated_as_held() -> None:
+    held = _profile(["pber", "pfal"], [], _all_of(*_PAIR))
+
+    assert criterion_as_stated(held) is held
+    assert criterion_as_stated(_profile(["pber"], [])) == _profile(["pber"], [])
 
 
 def test_the_derivation_is_idempotent() -> None:

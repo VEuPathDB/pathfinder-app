@@ -9,6 +9,7 @@ from typing import get_args
 
 import pytest
 from veupathdb.domain.parameters import (
+    NO_FILTERS_WIRE,
     FilterValue,
     MultiPickValue,
     ParamKind,
@@ -17,7 +18,7 @@ from veupathdb.domain.parameters import (
     StringValue,
 )
 from veupathdb.wdk import WDKSearch, phyletic_tree_of
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -35,6 +36,7 @@ from strategist.services.strategies.parameter_rules import (
     rules_of,
 )
 from strategist.services.strategies.value_labels import vocabulary_labels
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     CRYPTO_IOWA,
     TGON_STRAINS,
@@ -85,7 +87,7 @@ _FIELDS_NOT_TAKEN = [
 
 
 def _sheet(search: WDKSearch) -> list[ParameterInfo]:
-    return format_param_info_typed(list(search.parameters or []))
+    return sheet_of(list(search.parameters or []))
 
 
 def _bound(
@@ -369,7 +371,7 @@ async def test_a_filter_is_counted_at_no_filter(
     )
 
     assert (seen, measured) == (
-        ['{"filters": []}'],
+        [NO_FILTERS_WIRE],
         [
             Measurement(
                 kind="site_default",

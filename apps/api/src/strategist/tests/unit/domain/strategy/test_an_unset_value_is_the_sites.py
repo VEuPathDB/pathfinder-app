@@ -10,13 +10,14 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
 )
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.domain.strategy.value_source import value_source
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 
 # The researcher's message of the schizont turn on plasmodb.
@@ -36,15 +37,13 @@ _AT_LEAST_ONE = (
 
 
 def _param(fixture: str, name: str) -> ParameterInfo:
-    sheet = format_param_info_typed(suite_search(fixture).parameters or [])
+    sheet = sheet_of(suite_search(fixture).parameters or [])
     return next(info for info in sheet if info.name == name)
 
 
 def _location(name: str) -> ParameterInfo:
     """A parameter of plasmodb GenesByLocation as the client library recorded it."""
-    sheet = format_param_info_typed(
-        client_search("search_genes_by_location").parameters or []
-    )
+    sheet = sheet_of(client_search("search_genes_by_location").parameters or [])
     return next(info for info in sheet if info.name == name)
 
 

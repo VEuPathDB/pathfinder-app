@@ -10,7 +10,7 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -20,6 +20,7 @@ from strategist.services.strategies.value_labels import (
     UnlabelledPick,
     vocabulary_labels,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 _PCT = suite_search("search_genes_by_rnaseq_gomez_diaz_percentile")
@@ -41,7 +42,7 @@ def _bound(params: dict[str, ParamValue]) -> dict[str, BoundValue]:
 
 
 def _sheet() -> list[ParameterInfo]:
-    return format_param_info_typed(list(_PCT.parameters or []))
+    return sheet_of(list(_PCT.parameters or []))
 
 
 def _members(field: str, *terms: str) -> dict[str, object]:
@@ -60,7 +61,7 @@ def _samples(*clauses: dict[str, object]) -> dict[str, BoundValue]:
 
 
 def _snps_sheet() -> list[ParameterInfo]:
-    return format_param_info_typed(list(_SNPS.parameters or []))
+    return sheet_of(list(_SNPS.parameters or []))
 
 
 def test_every_vocabulary_pick_is_labelled_from_the_vocabulary() -> None:
@@ -196,7 +197,7 @@ def test_a_pick_label_that_leads_with_the_value_names_the_term_alone() -> None:
     """A typeahead label writes the accession before the term; the bound
     value's label is the term, so the value is never shown twice."""
     search = suite_search("search_genes_by_interpro_domain")
-    sheet = format_param_info_typed(list(search.parameters or []))
+    sheet = sheet_of(list(search.parameters or []))
     params: dict[str, ParamValue] = {
         "domain_typeahead": MultiPickValue(values=["PF00400"]),
     }

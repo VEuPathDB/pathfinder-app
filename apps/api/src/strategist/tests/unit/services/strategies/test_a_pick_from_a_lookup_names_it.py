@@ -4,8 +4,7 @@ looked-up concept is measured. A read that lists no entry counts no pick."""
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters import MultiPickValue
-from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup, format_param_info_typed
+from veupathdb.domain.parameters import MultiPickValue, PhrasingMatch, VocabLookup
 
 from strategist.ai.agents.state import ParamVocabSnapshot
 from strategist.domain.strategy.measurement_clauses import measurement_clauses
@@ -15,6 +14,7 @@ from strategist.domain.strategy.operational_spec import (
     Measurement,
 )
 from strategist.services.strategies.cut_picks import OptionsRead, read_picks
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests.unit.domain.strategy.test_a_taxon_the_message_names_takes_its_organisms import (
     BABESIA_LEAVES,
@@ -195,7 +195,7 @@ def test_a_tree_lookup_lists_no_entry_so_it_counts_no_pick() -> None:
     """The piroplasmadb organism tree read for Babesia, kept as the tree."""
     [organism] = [
         info
-        for info in format_param_info_typed(
+        for info in sheet_of(
             suite_search("search_genes_by_taxon_piroplasmadb").parameters or []
         )
         if info.name == "organism"

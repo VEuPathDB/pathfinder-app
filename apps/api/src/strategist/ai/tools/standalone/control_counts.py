@@ -3,14 +3,19 @@ what it tested, read as the card, the exhibit and the metrics read it."""
 
 from __future__ import annotations
 
-from pydantic import ConfigDict, Field
+import json
+from collections.abc import Mapping
+from types import MappingProxyType
+
+from assistant_core.platform.pydantic_base import CamelModel, computed
+from pydantic import ConfigDict, Field, JsonValue
 from veupathdb_mcp.controls import (
     ControlTargetData,
     ControlTestResult,
     NegativeControls,
     PositiveControls,
 )
-from veupathdb_mcp.tool_payloads import ControlOutcome
+from veupathdb_mcp.tool_payloads import ControlOutcome, DownloadLinks
 
 from strategist.ai.stream_part_payloads import (
     ControlSetSummary,
@@ -22,30 +27,77 @@ from strategist.domain.evidence import (
     ControlTestEvidence,
     NamedControlSet,
 )
+from strategist.domain.strategy.expression_handles import stated_values
 
 VALUE_CHARS = 120
+_NOTHING_NAMED: Mapping[str, object] = MappingProxyType({})
 
 
-def _shown(value: str) -> str:
+def _shown(value: JsonValue) -> str:
     """A parameter value short enough to read in a table cell."""
-    if len(value) <= VALUE_CHARS:
-        return value
-    return f"{value[:VALUE_CHARS].rstrip()} ..."
+    match value:
+        case str() as text:
+            shown = text
+        case _:
+            shown = json.dumps(value)
+    if len(shown) <= VALUE_CHARS:
+        return shown
+    return f"{shown[:VALUE_CHARS].rstrip()} ..."
 
 
-class ControlCounts(ControlOutcome):
+class ControlCounts(CamelModel):
     """What a control test filed, flat as the worker reports it, with WDK's names.
 
+    ``parameters`` are the tested values as an agent states them back.
     ``target_label`` and ``parameter_labels`` are what WDK calls the tested
     step and its parameters, and they are empty when WDK did not answer.
     """
 
     model_config = ConfigDict(extra="ignore")
 
+    step_id: int | None = None
+    search_name: str = ""
+    parameters: dict[str, JsonValue] = Field(default_factory=dict)
+    estimated_size: int = 0
+    positive_recovered_ids: list[str] | None = None
+    positive_missed_ids: list[str] | None = None
+    negative_admitted_ids: list[str] | None = None
+    negative_excluded_ids: list[str] | None = None
+    downloads: DownloadLinks | None = None
     target_label: str = ""
     parameter_labels: dict[str, str] = Field(default_factory=dict)
     tunable_parameters: list[str] = Field(default_factory=list)
     control_set: NamedControlSet | None = None
+
+    @computed
+    def positive_controls_count(self) -> int | None:
+        positive = self.positive_controls()
+        return None if positive is None else positive.controls_count
+
+    @computed
+    def positive_intersection(self) -> int | None:
+        positive = self.positive_controls()
+        return None if positive is None else positive.intersection_count
+
+    @computed
+    def positive_recall(self) -> float | None:
+        positive = self.positive_controls()
+        return None if positive is None else positive.recall
+
+    @computed
+    def negative_controls_count(self) -> int | None:
+        negative = self.negative_controls()
+        return None if negative is None else negative.controls_count
+
+    @computed
+    def negative_intersection(self) -> int | None:
+        negative = self.negative_controls()
+        return None if negative is None else negative.intersection_count
+
+    @computed
+    def negative_false_positive_rate(self) -> float | None:
+        negative = self.negative_controls()
+        return None if negative is None else negative.false_positive_rate
 
     def positive_controls(self) -> PositiveControls | None:
         """The positive set, or None when the test was given no positives."""
@@ -134,7 +186,7 @@ class ControlCounts(ControlOutcome):
         return [
             TestedParameter(
                 label=self.parameter_labels.get(name, name),
-                value=_shown(value.to_wire()),
+                value=_shown(value),
             )
             for name, value in self.parameters.items()
         ]
@@ -153,4 +205,16 @@ class ControlCounts(ControlOutcome):
         )
 
 
-__all__ = ["ControlCounts"]
+def stated_counts(
+    outcome: ControlOutcome, named: Mapping[str, object] = _NOTHING_NAMED
+) -> ControlCounts:
+    return ControlCounts.model_validate(
+        {
+            **outcome.model_dump(exclude={"parameters"}),
+            **named,
+            "parameters": stated_values(outcome.parameters),
+        }
+    )
+
+
+__all__ = ["ControlCounts", "stated_counts"]

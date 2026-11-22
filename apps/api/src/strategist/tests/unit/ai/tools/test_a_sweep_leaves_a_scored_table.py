@@ -8,9 +8,11 @@ from typing import Any
 from uuid import UUID
 
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 
 from strategist.ai.tools.standalone import optimization
 from strategist.services.experiment.scored_comparison import ScoredComparison
+from strategist.services.parameter_optimization.config import SweepVariantResult
 from strategist.tests._support.qa_recording import qa_recording
 
 _RESULT: dict[str, Any] = json.loads(
@@ -49,3 +51,23 @@ def test_the_table_ranks_signalp_41_first() -> None:
     scores = (best.sensitivity, best.precision, best.f1)
     assert [None if x is None else round(x, 3) for x in scores] == [0.95, 0.987, 0.968]
     assert best.search_name == "GenesWithSignalPeptide"
+
+
+def test_a_setting_restated_in_another_order_does_not_vary() -> None:
+    organisms = ["Plasmodium falciparum 3D7", "Plasmodium vivax P01"]
+    variants = [
+        SweepVariantResult(
+            variant_id=variant_id,
+            status="success",
+            params={
+                "organism": MultiPickValue(values=terms),
+                "signalp_version": SinglePickValue(value=version),
+            },
+        )
+        for variant_id, terms, version in (
+            ("a", organisms, "SignalP-4.1"),
+            ("b", organisms[::-1], "SignalP-5.0"),
+        )
+    ]
+
+    assert optimization._varied(variants) == ["signalp_version"]

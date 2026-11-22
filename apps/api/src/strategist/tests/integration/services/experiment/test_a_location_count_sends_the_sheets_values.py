@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb_mcp.catalog import ResolveContext
 
 from strategist.ai.tools.standalone._variant_targets import resolved_variants
 from strategist.domain.strategy.session import StrategySession
@@ -41,7 +42,9 @@ async def test_a_location_count_on_hostdb_answers_with_the_sheets_values(
     handle = veupathdb_auth_token_ctx.set(require_wdk_creds)
     try:
         (spec,) = await resolved_variants(
-            StrategySession(site_id="hostdb"), [_chromosome_19()]
+            StrategySession(site_id="hostdb"),
+            [_chromosome_19()],
+            ResolveContext(site_id="hostdb"),
         )
         counted = await search_count("hostdb", spec)
     finally:

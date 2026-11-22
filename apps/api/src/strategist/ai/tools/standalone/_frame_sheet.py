@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from pydantic_ai import RunContext
+from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters import match_exact_option, to_wire
+from veupathdb.domain.parameters import (
+    VocabularyEntryError,
+    entries_or_refusal,
+    match_exact_option,
+    wire_map,
+)
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
@@ -12,6 +17,7 @@ from veupathdb_mcp.catalog import (
     ResolvedParams,
     build_sheet,
     format_param_info_typed,
+    organism_parameter_of,
     read_search_definition,
 )
 
@@ -25,10 +31,7 @@ from strategist.ai.tools.standalone._catalog_models import (
 from strategist.ai.tools.standalone._frame_eda import (
     refuse_a_search_the_criterion_cannot_use,
 )
-from strategist.ai.tools.standalone._frame_proposals import (
-    CriterionCall,
-    refuse_unmatched_value,
-)
+from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     criterion_return,
@@ -47,6 +50,7 @@ def _decided_here(info: ParameterInfo, call: CriterionCall) -> bool:
 
 
 async def reconcile_dependents(
+    site_id: str,
     fetch_at: ParamFetcher,
     infos: list[ParameterInfo],
     resolved: ResolvedParams,
@@ -69,9 +73,11 @@ async def reconcile_dependents(
     }
     if not on_the_sheet:
         return []
-    context = {name: to_wire(value) for name, value in resolved.params.items()}
+    context = wire_map(resolved.params)
     stale: list[ParameterInfo] = []
-    for info in format_param_info_typed(await fetch_at(context)):
+    declarations = await fetch_at(context)
+    organism = await organism_parameter_of(site_id, declarations)
+    for info in format_param_info_typed(declarations, organism=organism):
         if info.name not in on_the_sheet:
             continue
         options = info.vocabulary()
@@ -79,10 +85,12 @@ async def reconcile_dependents(
         asked = state.was_redecided(call.criterion_id, call.search_name, info.name)
         if changed and not asked and not _decided_here(info, call):
             stale.append(info)
-        elif options and info.param_kind != "filter":
-            refuse_unmatched_value(
-                call.search_name, info, options, call.terms(info.name)
-            )
+        elif info.param_kind != "filter":
+            try:
+                entries_or_refusal(info.name, options, call.terms(info.name))
+            except VocabularyEntryError as exc:
+                msg = f"{exc.detail} Nothing was recorded."
+                raise ModelRetry(msg) from exc
     for info in stale:
         state.mark_redecided(call.criterion_id, call.search_name, info.name)
     if not stale:
@@ -94,10 +102,15 @@ async def reconcile_dependents(
 
 
 def open_parameter_sheet(
-    state: AgentToolState, criterion_id: str, search_name: str, definition: WDKSearch
+    state: AgentToolState,
+    criterion_id: str,
+    search_name: str,
+    definition: WDKSearch,
+    *,
+    organism: str | None,
 ) -> dict[str, None]:
     """Pin the parameter sheet for one criterion and answer with its template."""
-    infos = format_param_info_typed(definition.parameters or [])
+    infos = format_param_info_typed(definition.parameters or [], organism=organism)
     state.record_read(search_name, infos)
     entries = build_sheet(infos, query=state.operational_spec_draft.goal)
     runs = f"{search_display_name(definition)}: {what_it_finds(definition)}"
@@ -126,7 +139,13 @@ async def open_the_sheet(
             criterion_id=stated.id,
             search_name=search_name,
             params_template=open_parameter_sheet(
-                ctx.deps.agent_state, stated.id, search_name, definition
+                ctx.deps.agent_state,
+                stated.id,
+                search_name,
+                definition,
+                organism=await organism_parameter_of(
+                    ctx.deps.site_id, definition.parameters or []
+                ),
             ),
             sheet_pinned=True,
         ),

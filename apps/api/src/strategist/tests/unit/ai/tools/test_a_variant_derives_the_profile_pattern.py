@@ -7,12 +7,13 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import StringValue
 from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo, ResolveContext
 
 from strategist.ai.tools.standalone._variant_targets import resolved_variants
 from strategist.domain.strategy.session import StrategySession
 from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.variant_comparison import VariantInput
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import (
     list_searches_under,
     serve_record_classes,
@@ -29,7 +30,7 @@ async def _profile_parameters(
     site_id: str, record_type: str, search_name: str, context: dict[str, str]
 ) -> list[ParameterInfo]:
     del site_id, record_type, search_name, context
-    return format_param_info_typed(list(_PROFILE.parameters or []))
+    return sheet_of(list(_PROFILE.parameters or []))
 
 
 async def _profile_definition(
@@ -64,6 +65,7 @@ async def test_the_species_lists_derive_the_pattern_the_variant_runs() -> None:
     (spec,) = await resolved_variants(
         StrategySession(site_id="plasmodb"),
         [_profile(included_species="pfal", excluded_species="hsap")],
+        ResolveContext(site_id="plasmodb"),
     )
 
     assert spec.parameters["profile_pattern"] == StringValue(value="%hsap:N%pfal:Y%")
@@ -71,13 +73,18 @@ async def test_the_species_lists_derive_the_pattern_the_variant_runs() -> None:
 
 async def test_a_variant_naming_no_species_is_refused() -> None:
     with pytest.raises(ModelRetry, match="included_species"):
-        await resolved_variants(StrategySession(site_id="plasmodb"), [_profile()])
+        await resolved_variants(
+            StrategySession(site_id="plasmodb"),
+            [_profile()],
+            ResolveContext(site_id="plasmodb"),
+        )
 
 
 async def test_a_comma_list_of_species_codes_derives_one_pattern() -> None:
     (spec,) = await resolved_variants(
         StrategySession(site_id="plasmodb"),
         [_profile(included_species="pfal", excluded_species="hsap,pber")],
+        ResolveContext(site_id="plasmodb"),
     )
 
     assert spec.parameters["profile_pattern"] == StringValue(

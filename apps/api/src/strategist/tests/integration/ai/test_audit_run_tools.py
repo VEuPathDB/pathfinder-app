@@ -402,7 +402,7 @@ async def test_a_plan_records_its_target_genes_and_refuses_an_unheld_genome(
     [targeted] = ctx.deps.facts
     assert refused.value.message.split(". ")[0] == (
         "The planner starts no audit: the site holds no genome named Examplea; the "
-        f"organisms its words name are {', '.join(STRAINS[:5])}"
+        f"organisms nearest it are {', '.join(STRAINS[:5])}"
     )
     assert targeted.value("scope.targets.0.genes.0") == _STRAIN
     assert [r.record_id for r in ctx.deps.records] == [_STRAIN, _REFERENCE]

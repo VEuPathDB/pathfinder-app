@@ -141,7 +141,7 @@ def _unheld_genome(name: str, suggested: tuple[str, ...]) -> str:
     unheld = f"the site holds no genome named {name}"
     if not suggested:
         return unheld
-    return f"{unheld}; the organisms its words name are {', '.join(suggested)}"
+    return f"{unheld}; the organisms nearest it are {', '.join(suggested)}"
 
 
 def planner_refusal(proposal: ScopeProposal) -> str:
@@ -169,8 +169,8 @@ async def plan_gene_model_audit_tool(
     The planner resolves the named genomes, picks the comparison genomes and the
     species reference, keeps the gene targets the site can judge, and estimates
     the run. A request no audit can start from is refused with the reason,
-    and a genome the site does not hold is refused with the organisms its
-    words name. Nothing is written and nothing starts. To start the audit,
+    and a genome the site does not hold exactly is refused with the organisms
+    nearest its name. Nothing is written and nothing starts. To start the audit,
     call start_gene_model_audit with this request and the scope returned here.
     """
     proposal = await plan_gene_model_audit(ctx.deps.caller, request)

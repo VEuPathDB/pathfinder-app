@@ -9,12 +9,10 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
-from veupathdb.domain.parameters import to_wire
-
 from strategist.ai.agents.criterion_lines import criterion_label, criterion_runs
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason
-from strategist.domain.strategy.expression_handles import shown_value, shown_wire
+from strategist.domain.strategy.expression_handles import stated_text
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -344,12 +342,12 @@ def _contradicted_option(option: Criterion, carrier: Criterion) -> str:
     """Why an option one criterion runs the search for is still unplaced."""
     carried = carried_values(carrier)
     clashes = [
-        f"{name}={shown_value(name, bound.value)} where {carrier.id} already "
-        f"carries {name}={shown_wire(name, carried[name])}"
+        f"{name}={stated_text(name, bound.value)} where {carrier.id} already "
+        f"carries {name}={stated_text(name, carrier.resolved_params[name].value)}"
         for name, bound in option.resolved_params.items()
         if bound.source != "default"
         and name in carried
-        and carried[name] != to_wire(bound.value)
+        and carried[name] != bound.value
     ]
     return (
         f"{option.id} ({option.text[:80]}) states "

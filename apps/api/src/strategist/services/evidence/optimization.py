@@ -3,29 +3,25 @@
 from collections.abc import Mapping
 
 from veupathdb import get_logger
-from veupathdb.domain.parameters import ParamValue
 from veupathdb.errors import VEuPathDBError
+from veupathdb_mcp.catalog import organism_parameter_of
 
 from strategist.services.parameter_optimization import sweep, tunable
 from strategist.services.parameter_optimization.config import (
     OptimizationConfig,
-    ParameterSpec,
     SweepControls,
+    SweepPlan,
     SweepTarget,
     SweepVariantResult,
     SweepVariantSpec,
 )
-from strategist.services.parameter_optimization.tunable import SweepPlan
 
 logger = get_logger(__name__)
 
 
-def enumerate_variants(
-    parameter_space: list[ParameterSpec],
-    fixed_parameters: dict[str, ParamValue],
-) -> list[SweepVariantSpec]:
+def enumerate_variants(plan: SweepPlan) -> list[SweepVariantSpec]:
     """The Cartesian product of the parameter grid, one variant per point."""
-    return sweep.enumerate_variants(parameter_space, fixed_parameters)
+    return sweep.enumerate_variants(plan)
 
 
 async def run_trial(
@@ -56,12 +52,14 @@ async def sweep_plan_for_step(
     budget: int,
 ) -> SweepPlan:
     """The grid a sweep of this step runs, capped at ``budget`` trials."""
+    declarations = await tunable.search_declarations(site_id, record_type, search_name)
     return tunable.sweep_plan(
         search_name,
-        await tunable.search_parameter_metadata(site_id, record_type, search_name),
+        declarations,
         step_values,
         names=names,
         budget=budget,
+        organism=await organism_parameter_of(site_id, declarations),
     )
 
 

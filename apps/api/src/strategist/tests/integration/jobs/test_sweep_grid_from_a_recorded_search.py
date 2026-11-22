@@ -14,8 +14,7 @@ from uuid import uuid4
 import pytest
 from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.testing import FIXTURE_ROOT
-from veupathdb.wdk import WDKSearchConfig, WDKSearchResponse, WDKStep
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb.wdk import WDKParameter, WDKSearchConfig, WDKSearchResponse, WDKStep
 from veupathdb_mcp.controls import (
     ControlTargetData,
     ControlTestResult,
@@ -40,14 +39,14 @@ SEARCH = "GenesByExonCount"
 POSITIVES = ["PF3D7_1133400", "PF3D7_0102600", "PF3D7_0930300"]
 
 
-def _recorded_parameters() -> list[ParameterInfo]:
+def _recorded_parameters() -> list[WDKParameter]:
     raw = json.loads(
         qa_recording(
             FIXTURE_ROOT / "wdk" / "search_genes_by_exon_count.json"
         ).read_text()
     )
     response = WDKSearchResponse.model_validate(raw["body"])
-    return format_param_info_typed(response.search_data.parameters or [])
+    return list(response.search_data.parameters or [])
 
 
 class _Api:
@@ -69,7 +68,7 @@ def recorded_search(monkeypatch: pytest.MonkeyPatch) -> list[IntersectionConfig]
 
     async def read(
         site_id: str, record_type: str, search_name: str
-    ) -> list[ParameterInfo]:
+    ) -> list[WDKParameter]:
         del site_id, record_type, search_name
         return parameters
 
@@ -99,7 +98,7 @@ def recorded_search(monkeypatch: pytest.MonkeyPatch) -> list[IntersectionConfig]
     async def no_update(self: TaskProgressEmitter, **kwargs: Any) -> None:
         del self, kwargs
 
-    monkeypatch.setattr(tunable, "search_parameter_metadata", read)
+    monkeypatch.setattr(tunable, "search_declarations", read)
     monkeypatch.setattr(sweep, "run_positive_negative_controls", controls)
     monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
     monkeypatch.setattr(optimize_params_impl, "attach_sweep_download", no_export)

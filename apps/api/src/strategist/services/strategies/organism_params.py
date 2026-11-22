@@ -12,11 +12,11 @@ from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp.catalog import (
     EDA_DATASET_ID_PARAM,
     dataset_organisms,
+    list_organisms,
     organism_parameter,
     read_search_definition,
     study_organisms,
 )
-from veupathdb_mcp.gene_lookup import list_organisms
 
 from strategist.domain.strategy.named_taxa import organism_trees
 from strategist.domain.strategy.organism_scope import NAMES_ONLY, SiteTaxa

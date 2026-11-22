@@ -6,20 +6,20 @@ from __future__ import annotations
 import pytest
 from pydantic import JsonValue
 from pydantic_ai import ModelRetry
+from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, to_wire
-from veupathdb.wdk import WDKSearch
-from veupathdb_mcp import catalog
+from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParentContextRequired,
-    format_param_info_typed,
+    ResolveContext,
 )
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import catalog_discovery
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    bound_vocabulary_values,
+    read_call,
 )
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone._variant_targets import resolved_variants
@@ -32,6 +32,7 @@ from strategist.services.parameter_optimization.tunable import (
     tunable_parameter_names,
 )
 from strategist.tests._support.catalog_reads import listing
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import (
     list_searches_under,
     serve_record_classes,
@@ -120,38 +121,35 @@ async def test_a_vocabulary_under_only_a_site_set_parent_reads_with_no_context(
     assert "product" in {option.value for option in result.vocabulary()}
 
 
-async def test_a_vocabulary_under_only_a_site_set_parent_is_checked_at_once(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    infos = format_param_info_typed(list(_GIARDIA_TEXT.parameters or []))
-    fields = next(info for info in infos if info.name == "text_fields")
-    contexts: list[object] = []
+async def test_a_vocabulary_under_only_a_site_set_parent_is_checked_at_once() -> None:
+    contexts: list[dict[str, str]] = []
 
-    async def _read(*_args: object, **kwargs: object) -> ParameterInfo:
-        contexts.append(kwargs["context_values"])
-        return fields
+    async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
+        contexts.append(dict(context))
+        return list(_GIARDIA_TEXT.parameters or [])
 
-    monkeypatch.setattr(catalog, "read_parameter_options", _read)
     call = CriterionCall(
         criterion_id="c1",
         search_name=_GIARDIA_TEXT.url_segment,
         text="genes annotated as cysteine-rich",
-        params={},
-    ).with_values({"text_fields": MultiPickValue(values=["no such field"])})
+        params={"text_fields": ["no such field"]},
+    )
 
     with pytest.raises(ModelRetry) as refused:
-        await bound_vocabulary_values(
-            "giardiadb", _GIARDIA_TEXT, call, infos, frozenset(), AgentToolState()
+        await read_call(
+            SearchContext("giardiadb", "transcript", _GIARDIA_TEXT.url_segment),
+            fetch_at,
+            call,
+            definition=_GIARDIA_TEXT,
+            state=AgentToolState(),
+            about=ResolveContext(site_id="giardiadb"),
         )
 
-    assert (str(refused.value), contexts) == (
-        (
-            f"text_fields on {_GIARDIA_TEXT.url_segment} has no entry that states "
-            "['no such field']. Read its entries with get_parameter_options and "
-            "pass one of them exactly."
-        ),
-        [None],
+    assert str(refused.value).startswith(
+        "text_fields has no entry 'no such field'. Candidates: "
     )
+    assert str(refused.value).endswith(" Nothing was recorded.")
+    assert contexts == [{}, {"document_type": "gene"}]
 
 
 def _read_only_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
@@ -219,7 +217,7 @@ async def _ngs_snps_parameters(
     read = (
         _SNPS_UNDER_VIVAX if _VIVAX in context.get("organismSinglePick", "") else _SNPS
     )
-    return format_param_info_typed(list(read.parameters or []))
+    return sheet_of(list(read.parameters or []))
 
 
 async def test_a_variant_sends_the_site_set_value_its_organism_gives(
@@ -237,7 +235,11 @@ async def test_a_variant_sends_the_site_set_value_its_organism_gives(
         }
     )
 
-    (spec,) = await resolved_variants(StrategySession(site_id="plasmodb"), [variant])
+    (spec,) = await resolved_variants(
+        StrategySession(site_id="plasmodb"),
+        [variant],
+        ResolveContext(site_id="plasmodb"),
+    )
 
     assert (
         spec.parameters["organismSinglePick"],
@@ -249,9 +251,7 @@ async def test_a_variant_sends_the_site_set_value_its_organism_gives(
 
 
 def _tunable(search: WDKSearch) -> list[str]:
-    return tunable_parameter_names(
-        format_param_info_typed(list(search.parameters or []))
-    )
+    return tunable_parameter_names(sheet_of(list(search.parameters or [])))
 
 
 def test_a_vocabulary_under_only_a_site_set_parent_is_tunable() -> None:

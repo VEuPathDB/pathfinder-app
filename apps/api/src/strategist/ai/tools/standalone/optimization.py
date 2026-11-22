@@ -13,6 +13,7 @@ from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.controls import ControlTargetData, ControlTestResult
 
 from strategist.ai.graph.turn_records import ControlTestRun
@@ -128,8 +129,12 @@ def _varied(variants: list[SweepVariantResult]) -> list[str]:
     return [
         name
         for name in names
-        if len({v.params[name].to_wire() for v in variants if name in v.params}) > 1
+        if _differ([v.params[name] for v in variants if name in v.params])
     ]
+
+
+def _differ(values: list[ParamValue]) -> bool:
+    return any(value != values[0] for value in values[1:])
 
 
 def _scored(variant: SweepVariantResult, label: str, search: str) -> ScoredVariant:

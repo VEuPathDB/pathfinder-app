@@ -13,7 +13,6 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.parameters import to_wire
 
 from strategist.ai.graph import _lead_model
 from strategist.ai.graph._lead_stops import final_reply
@@ -25,6 +24,7 @@ from strategist.ai.lead.sub_agent_dispatch import MintedSpec
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.separation import AttachedControls
 from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.domain.strategy.expression_handles import stated_values
 from strategist.services.control_sets import ControlSetResponse, NewControlSet
 from strategist.tests._support.database import detached_session
 from strategist.tests._support.separation import TASK_ID, recorded_offer
@@ -130,10 +130,7 @@ async def test_no_ends_the_turn_without_a_model_call_and_keeps_the_offer(
         AddCriterionChange(
             sentence=f"{criterion.text} ({criterion.role})",
             search_name=criterion.search_name,
-            params={
-                name: to_wire(bound.value)
-                for name, bound in criterion.resolved_params.items()
-            },
+            params=stated_values(criterion.param_values),
         )
         for criterion in offer.spec.criteria
     ]

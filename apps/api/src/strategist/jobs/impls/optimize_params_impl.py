@@ -136,7 +136,7 @@ async def optimize_search_parameters_impl(
     )
     score_cfg = OptimizationConfig()
 
-    variants = enumerate_variants(plan.parameter_space, plan.fixed_parameters)
+    variants = enumerate_variants(plan)
 
     await progress.update(
         percent=0.0,

@@ -7,7 +7,6 @@ from collections.abc import Mapping
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.strategy.operational_spec import BoundValue, Measurement
 from strategist.services.strategies.measurements import (
@@ -15,6 +14,7 @@ from strategist.services.strategies.measurements import (
     TurnCounts,
     measure_binding,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     GIARDIA_WB,
     recorded_site_search,
@@ -24,9 +24,7 @@ from strategist.tests._support.recorded_counts import (
 )
 from strategist.tests._support.recorded_searches import suite_search
 
-_SHEET = format_param_info_typed(
-    suite_search("search_giardiadb_genes_by_text").parameters or []
-)
+_SHEET = sheet_of(suite_search("search_giardiadb_genes_by_text").parameters or [])
 # GiardiaDB GenesByText over product and Products in Giardia Assemblage A
 # isolate WB, read live: each operand as a phrase, and the unquoted words.
 _PHRASES, _WORDS = 261, 7131

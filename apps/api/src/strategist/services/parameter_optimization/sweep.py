@@ -5,13 +5,13 @@ from itertools import product
 
 from pydantic import JsonValue
 from veupathdb.domain.parameters import (
-    MultiPickValue,
-    NumberValue,
+    FilterProposals,
     ParamValue,
-    SinglePickValue,
     to_decoded_map,
+    to_wire,
 )
 from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.controls import (
     ControlTestResult,
     IntersectionConfig,
@@ -26,6 +26,7 @@ from strategist.services.parameter_optimization.config import (
     OptimizationConfig,
     ParameterSpec,
     SweepControls,
+    SweepPlan,
     SweepTarget,
     SweepVariantResult,
     SweepVariantSpec,
@@ -40,58 +41,86 @@ _DEFAULT_NUMERIC_LEVELS = 5
 ProgressFn = Callable[[float, str, dict[str, JsonValue] | None], Awaitable[None]]
 
 
-def enumerate_spec_values(spec: ParameterSpec) -> list[ParamValue]:
-    """Materialise a ParameterSpec into a list of concrete typed values."""
+def _level(declared: WDKParameter, level: JsonValue) -> ParamValue:
+    stated = [level] if declared.type == "multi-pick-vocabulary" else level
+    match declared.read_stated(stated):
+        case FilterProposals():
+            msg = f"{declared.name} is a filter, and a sweep varies no filter"
+            raise ValueError(msg)
+        case read:
+            return read
+
+
+def _number(value: ParamValue) -> float | None:
+    try:
+        return float(to_wire(value))
+    except ValueError:
+        return None
+
+
+def _with_held(levels: list[ParamValue], held: ParamValue | None) -> list[ParamValue]:
+    number = None if held is None else _number(held)
+    if held is None or number is None:
+        return levels
+    return [held if _number(level) == number else level for level in levels]
+
+
+def enumerate_spec_values(spec: ParameterSpec) -> list[JsonValue]:
+    """Each level of a ParameterSpec in its stated form."""
     if spec.param_type == "categorical":
-        choices = [str(c) for c in spec.choices or []]
-        if spec.wdk_kind == "multi-pick-vocabulary":
-            return [MultiPickValue(values=[c]) for c in choices]
-        return [SinglePickValue(value=c) for c in choices]
+        return [str(c) for c in spec.choices or []]
 
     if spec.param_type == "integer":
         lo = int(spec.min if spec.min is not None else 0)
         hi = int(spec.max if spec.max is not None else 10)
         step = int(spec.step) if spec.step else max(1, (hi - lo) // 10)
-        return [NumberValue(value=float(v)) for v in range(lo, hi + 1, step)]
+        return [float(v) for v in range(lo, hi + 1, step)]
 
     # numeric
     lo_f = spec.min if spec.min is not None else 0.0
     hi_f = spec.max if spec.max is not None else 1.0
     if spec.step:
-        values: list[float] = []
+        values: list[JsonValue] = []
         v = lo_f
         while v <= hi_f:
             values.append(v)
             v += spec.step
-        return [NumberValue(value=val) for val in (values or [lo_f])]
+        return values or [lo_f]
     n = _DEFAULT_NUMERIC_LEVELS
     if n <= 1:
-        return [NumberValue(value=lo_f)]
+        return [lo_f]
     step_size = (hi_f - lo_f) / (n - 1)
-    return [NumberValue(value=lo_f + i * step_size) for i in range(n)]
+    return [lo_f + i * step_size for i in range(n)]
 
 
-def enumerate_variants(
-    parameter_space: list[ParameterSpec],
-    fixed_parameters: dict[str, ParamValue],
-) -> list[SweepVariantSpec]:
+def enumerate_variants(plan: SweepPlan) -> list[SweepVariantSpec]:
     """Build the Cartesian product of the parameter grid.
 
-    Each combination of per-parameter values becomes one
+    Each level is read by its parameter's declaration, and a level equal to the
+    held number is the held value. Each combination becomes one
     :class:`SweepVariantSpec` whose ``params`` dict merges the fixed
     parameters under the swept values. Variants are id'd ``v0..vN-1``
     in iteration order so the UI lane order is stable.
     """
-    if not parameter_space:
+    if not plan.parameter_space:
         msg = "parameter_space must contain at least one ParameterSpec"
         raise ValueError(msg)
 
-    names = [spec.name for spec in parameter_space]
-    value_lists = [enumerate_spec_values(spec) for spec in parameter_space]
+    names = [spec.name for spec in plan.parameter_space]
+    value_lists = [
+        _with_held(
+            [
+                _level(plan.declarations[spec.name], level)
+                for level in enumerate_spec_values(spec)
+            ],
+            plan.fixed_parameters.get(spec.name),
+        )
+        for spec in plan.parameter_space
+    ]
     variants: list[SweepVariantSpec] = []
     for idx, combo in enumerate(product(*value_lists)):
         sweep_values = dict(zip(names, combo, strict=True))
-        params: dict[str, ParamValue] = {**fixed_parameters, **sweep_values}
+        params: dict[str, ParamValue] = {**plan.fixed_parameters, **sweep_values}
         variants.append(SweepVariantSpec(id=f"v{idx}", params=params))
     return variants
 

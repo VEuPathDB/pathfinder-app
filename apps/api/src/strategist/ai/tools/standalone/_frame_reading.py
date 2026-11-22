@@ -54,4 +54,4 @@ def offered_reading(
             f"Bind those values with it, or pass the reading whose values you bind."
         )
         raise ModelRetry(msg)
-    return kept if accepted.same_reading(kept) else accepted
+    return kept if accepted.same_reading(kept, values) else accepted

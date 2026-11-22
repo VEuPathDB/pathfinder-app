@@ -7,14 +7,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
-from veupathdb.domain.parameters import wire_map
+from pydantic import Field, JsonValue
 from veupathdb_mcp.wdk import extract_pk
 
 from strategist.domain.comparison_facts import (
     ComparedVariant,
     ComparisonFact,
 )
+from strategist.domain.strategy.expression_handles import stated_values
 from strategist.services.experiment.variant_comparison import (
     VariantSpec,
     run_variant_search,
@@ -22,11 +22,11 @@ from strategist.services.experiment.variant_comparison import (
 
 
 class SearchCount(CamelModel):
-    """The genes one search returns, with the wire value of each parameter it ran."""
+    """The genes one search returns, with the stated value of each parameter it ran."""
 
     label: str
     search_name: str
-    values: dict[str, str] = Field(default_factory=dict)
+    values: dict[str, JsonValue] = Field(default_factory=dict)
     gene_count: int
 
     def fact(self) -> ComparisonFact:
@@ -44,7 +44,7 @@ class SearchMembership(CamelModel):
 
     label: str
     search_name: str
-    values: dict[str, str] = Field(default_factory=dict)
+    values: dict[str, JsonValue] = Field(default_factory=dict)
     gene_count: int
     held: list[str] = Field(default_factory=list)
     not_held: list[str] = Field(default_factory=list)
@@ -62,7 +62,7 @@ def _membership_of(
     return SearchMembership(
         label=spec.label,
         search_name=spec.search_name,
-        values=wire_map(spec.parameters),
+        values=stated_values(spec.parameters),
         gene_count=total,
         held=[gene for gene in ordered if gene in held],
         not_held=[gene for gene in ordered if gene not in held and complete],
@@ -76,7 +76,7 @@ async def search_count(site_id: str, spec: VariantSpec) -> SearchCount:
     return SearchCount(
         label=spec.label,
         search_name=spec.search_name,
-        values=wire_map(spec.parameters),
+        values=stated_values(spec.parameters),
         gene_count=answer.meta.records_returned(),
     )
 

@@ -3,9 +3,9 @@
 from collections.abc import Iterable
 
 from assistant_core.platform.pydantic_base import CamelModel
-from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from strategist.ai.graph.turn_records import TurnMarkers
+from strategist.ai.tools.standalone.control_counts import ControlCounts
 from strategist.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
@@ -74,7 +74,7 @@ class RepeatedControlTest(CamelModel):
         "that result; no new task started. Test the whole control set once per "
         "step; a subset adds nothing."
     )
-    outcome: ControlOutcome
+    outcome: ControlCounts
 
 
 def repeated_control_test(
@@ -82,7 +82,7 @@ def repeated_control_test(
     wdk_step_id: int,
     positive_controls: list[str] | None,
     negative_controls: list[str] | None,
-) -> ControlOutcome | None:
+) -> ControlCounts | None:
     """The asked ids as this message's tests of the step filed them.
 
     None when an asked id was not tested on the step under this message.
@@ -98,7 +98,7 @@ def repeated_control_test(
         negative = _filed(tested.negative, negative_controls or [])
         if positive is None or negative is None:
             continue
-        return ControlOutcome(
+        return ControlCounts(
             step_id=wdk_step_id,
             positive_recovered_ids=positive[0] if positive_controls else None,
             positive_missed_ids=positive[1] if positive_controls else None,

@@ -8,7 +8,14 @@ from collections.abc import Callable, Mapping
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import computed
-from pydantic import ConfigDict, Discriminator, Field, ValidationInfo, field_validator
+from pydantic import (
+    ConfigDict,
+    Discriminator,
+    Field,
+    JsonValue,
+    ValidationInfo,
+    field_validator,
+)
 from veupathdb.model import CamelModel
 
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
@@ -84,7 +91,7 @@ class SearchRationale(CamelModel):
     # The urls, DOIs and PMIDs this turn retrieved that FRAME cites for it.
     sources: list[str] = Field(default_factory=list)
     # The wire value of each parameter the reason was derived from.
-    derived_from: dict[str, str] = Field(default_factory=dict)
+    derived_from: dict[str, JsonValue] = Field(default_factory=dict)
     # The label every surface shows, always derived from the basis and the term.
     short: str = Field(default="", validate_default=True)
 
@@ -117,8 +124,8 @@ class SearchRationale(CamelModel):
         """Every text a model or a researcher wrote into this reason."""
         return [self.reason, self.term, self.query, *self.sources]
 
-    def changed_by(self, values: Mapping[str, str]) -> list[str]:
-        """The parameters it was derived from whose wire value ``values`` changes.
+    def changed_by(self, values: Mapping[str, JsonValue]) -> list[str]:
+        """The parameters it was derived from whose stated value ``values`` changes.
 
         A reason that recorded no values was derived from none it can compare,
         so every value changes it.
@@ -126,7 +133,9 @@ class SearchRationale(CamelModel):
         if not self.derived_from:
             return sorted(values)
         return [
-            name for name, wire in self.derived_from.items() if values.get(name) != wire
+            name
+            for name, stated in self.derived_from.items()
+            if values.get(name) != stated
         ]
 
     def redacted(self, redact: Callable[[str], str]) -> SearchRationale:

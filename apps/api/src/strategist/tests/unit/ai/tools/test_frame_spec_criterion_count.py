@@ -8,12 +8,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 import pytest
-from veupathdb.domain.parameters import ParamValue, StringValue, to_wire
+from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ResolvedParams
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count
+from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.operational_spec import OpenSlot
 from strategist.tests.unit.ai.tools.conftest import summary_of
 from strategist.tests.unit.ai.tools.test_frame_spec import (
@@ -103,7 +104,7 @@ async def test_the_count_reads_the_configuration_the_criterion_stores(
     counted = asked[0]["params"]
     stored = state.operational_spec_draft.criteria[0].param_values
     assert counted == stored
-    assert {name: to_wire(v) for name, v in stored.items()} == result.resolved_params
+    assert stated_values(stored) == result.resolved_params
     assert stored["text_expression"].to_wire() == '"variant surface protein"'
     assert set(stored) == {
         "text_expression",

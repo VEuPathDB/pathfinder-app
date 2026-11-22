@@ -14,6 +14,11 @@ from veupathdb.wdk import (
     WDKRecordInstance,
     WDKRecordType,
 )
+from veupathdb_mcp.catalog import (
+    ResolveContext,
+    post_decision,
+    use_decisions_transport,
+)
 from veupathdb_mcp.wdk import GeneExpressionSummary
 
 from strategist.services.gene_records import read
@@ -21,6 +26,7 @@ from strategist.services.gene_records.read import (
     UnknownGeneRecordError,
     read_the_gene_record,
 )
+from strategist.tests._support.decisions_wire import ChoosingService
 from strategist.tests._support.qa_recording import qa_recording
 
 _COLUMN_TYPES = {
@@ -253,6 +259,22 @@ async def test_an_organism_no_row_names_is_stated_as_absent_from_the_whole_list(
 
 
 @pytest.mark.usefixtures("_no_expression")
+async def test_an_organism_spelled_another_way_reads_its_rows() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    exact = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="Anopheles gambiae PEST"
+    )
+    folded = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="anopheles  GAMBIAE pest"
+    )
+
+    assert folded.orthologs == exact.orthologs
+    assert [r.organism for r in folded.orthologs] == ["Anopheles gambiae PEST"]
+    assert folded.nearest_ortholog_organisms == []
+
+
+@pytest.mark.usefixtures("_no_expression")
 async def test_an_organism_that_only_begins_a_row_s_organism_reads_no_row() -> None:
     api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
 
@@ -262,6 +284,30 @@ async def test_an_organism_that_only_begins_a_row_s_organism_reads_no_row() -> N
 
     assert found.orthologs == []
     assert found.nearest_ortholog_organisms[0] == "Anopheles gambiae PEST"
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_organism_a_choice_picks_leads_the_nearest_under_the_turn() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+    use_decisions_transport(ChoosingService("Anopheles species 7"))
+    try:
+        found = await read_the_gene_record(
+            api,
+            "vectorbase",
+            "AFUN008228",
+            ortholog_organism="Aedes aegypti LVP",
+            about=ResolveContext(site_id="vectorbase", message="orthologs in Aedes"),
+        )
+    finally:
+        use_decisions_transport(post_decision)
+
+    assert found.nearest_ortholog_organisms == [
+        "Anopheles species 7",
+        "Anopheles gambiae PEST",
+        "Anopheles species 9",
+        "Anopheles species 8",
+        "Anopheles species 6",
+    ]
 
 
 @pytest.mark.usefixtures("_no_expression")

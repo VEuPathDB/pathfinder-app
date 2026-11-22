@@ -143,14 +143,14 @@ def _change_for(
         )
     if before.analysis is not None or after.analysis is not None:
         return _analysis_change(before, after)
-    before_params = _wire(before)
-    after_params = _wire(after)
+    before_params = before.param_values
+    after_params = after.param_values
     rebound = before.search_name != after.search_name
     removed = sorted(set(before_params) - set(after_params))
     changed = {
-        name: value
+        name: to_wire(value)
         for name, value in after_params.items()
-        if before_params.get(name) != value
+        if (name not in before_params or before_params[name] != value)
         and (name in before_params or not sets_the_site(after.search_name, name))
     }
     reweighted = before.weight != after.weight

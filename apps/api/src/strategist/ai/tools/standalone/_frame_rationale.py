@@ -17,7 +17,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
 )
-from strategist.domain.strategy.expression_handles import shown_params
+from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.step_rationale import (
     ComparedSearch,
@@ -102,12 +102,14 @@ def rationale_for(
         if kept is None:
             return ChosenWhy(None)
         if kept.kind == "search":
-            changed = kept.changed_by(shown_params(values))
+            changed = kept.changed_by(stated_values(values))
             organisms = {info.name for info in infos if info.organism_param}
             if not changed:
                 return ChosenWhy(kept)
             if set(changed) <= organisms:
-                rewired = kept.model_copy(update={"derived_from": shown_params(values)})
+                rewired = kept.model_copy(
+                    update={"derived_from": stated_values(values)}
+                )
                 return ChosenWhy(rewired)
             if why is None:
                 raise ModelRetry(_derived_from_changed(criterion_id, kept, changed))
@@ -133,7 +135,7 @@ def rationale_for(
         query=read.query,
         tool_call_id=read.tool_call_id,
         sources=sources_retrieved(ctx, criterion_id, why.sources),
-        derived_from=shown_params(values),
+        derived_from=stated_values(values),
     )
     return ChosenWhy(rationale)
 

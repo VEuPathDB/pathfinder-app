@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from decimal import Decimal
+from typing import Any
 
 import httpx2
 import pytest
 from assistant_core.cost import cost_for_run
 from assistant_core.platform.types import PaidBy
+from openai import AsyncOpenAI
 from pydantic import SecretStr
+from pydantic_ai.providers import Provider
+from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import RunUsage
 from structlog.testing import capture_logs
 from veupathdb_mcp.catalog import (
@@ -19,12 +24,13 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.capabilities.decisions_spend import (
+    DecisionsUnansweredError,
     decision_cost,
     decisions_spend_to,
     install_decisions_transport,
     send_decision,
 )
-from strategist.domain.provider_keys import ProviderKeyring
+from strategist.domain.provider_keys import KeyableProvider, ProviderKeyring
 from strategist.platform.config import get_settings
 from strategist.platform.model_catalog import install_catalog_prices
 from strategist.platform.model_keys import attach_keyring
@@ -169,3 +175,35 @@ async def test_a_live_deployment_sends_each_decision_on_the_turns_key() -> None:
         True,
         [f"Bearer {DEPLOYMENT_KEY}"],
     )
+
+
+class _SilentWire(DecisionsWire):
+    async def answer_late(self, request: httpx2.Request) -> httpx2.Response:
+        await asyncio.sleep(5)
+        return self.answer(request)
+
+    def build(self, name: KeyableProvider, key: SecretStr) -> Provider[Any]:
+        del name
+        client = AsyncOpenAI(
+            api_key=key.get_secret_value(),
+            http_client=httpx2.AsyncClient(
+                transport=httpx2.MockTransport(self.answer_late)
+            ),
+            max_retries=0,
+        )
+        return OpenAIProvider(openai_client=client)
+
+
+async def test_a_decision_past_its_seconds_is_unanswered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "decisions_timeout_seconds", 0.05)
+    wire = _SilentWire(RECORDED["response"])
+
+    with (
+        attach_keyring(ProviderKeyring(), build=wire.build),
+        pytest.raises(DecisionsUnansweredError),
+    ):
+        await send_decision(_request())
+
+    assert wire.sent == []

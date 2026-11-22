@@ -6,13 +6,13 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.parameters import MultiPickValue, PhrasingMatch, VocabLookup
 from veupathdb.wdk import WDKParameter, WDKSearch
-from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
+from strategist.tests._support.param_infos import sheet_of
 
 _GO = "GenesByGoTerm"
 _PARAM = "go_typeahead"
@@ -44,7 +44,7 @@ _GO_TYPEAHEAD: WDKParameter = TypeAdapter(WDKParameter).validate_python(
     }
 )
 _DEFINITION = WDKSearch(url_segment=_GO, parameters=[_GO_TYPEAHEAD])
-_INFOS = format_param_info_typed([_GO_TYPEAHEAD])
+_INFOS = sheet_of([_GO_TYPEAHEAD])
 _IMMUNE = ["GO:0006955", "GO:0002250", "GO:0002218"]
 _GLYCOSYLATION = ["GO:0006486", "GO:0018279", "GO:0006487", "GO:0006493"]
 

@@ -141,7 +141,7 @@ class TestInheritsBoundParentContext:
             context_values={"profileset_generic": "DeRisi Dd2 Smoothed"},
         )
 
-        assert client.contexts[0]["profileset_generic"] == "DeRisi Dd2 Smoothed"
+        assert client.contexts[-1]["profileset_generic"] == "DeRisi Dd2 Smoothed"
 
     async def test_an_unbound_search_still_reads_without_context(
         self, monkeypatch: pytest.MonkeyPatch
@@ -176,7 +176,7 @@ class TestInheritsBoundParentContext:
             parameter_id="samples_percentile_generic",
         )
 
-        assert seen["applied_context"] == {
+        assert seen["parent_values"].applied == {
             "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")
         }
 

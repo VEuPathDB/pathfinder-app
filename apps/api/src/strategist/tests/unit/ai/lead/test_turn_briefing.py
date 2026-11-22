@@ -66,7 +66,7 @@ def test_an_editor_edit_pins_the_parameter_line() -> None:
     )
 
     assert briefing.moved
-    assert "min_expression_percentile 90 -> 75" in briefing.render()
+    assert "min_expression_percentile 90.0 -> 75.0" in briefing.render()
     assert briefing.render().startswith("## Since your last turn")
 
 
@@ -195,9 +195,10 @@ def test_a_long_value_is_clipped_and_extra_params_are_counted() -> None:
     )
 
     line = briefing.render().splitlines()[1]
-    assert "..." in line
+    assert '"kinase kinase kinase ki (cut from 142 characters)' in line
+    assert "..." not in line
     assert "+4 more params" in line
-    assert len(line) < 200
+    assert len(line) < 300
 
 
 def _many_wordy_steps(count: int, word: str) -> StrategyAst:

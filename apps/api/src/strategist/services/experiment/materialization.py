@@ -95,6 +95,7 @@ async def _canonical(
         SearchContext(site_id, record_type, node.search_name),
         stated=dict(node.parameters),
         callbacks=make_validation_callbacks(site_id),
+        about=None,
     )
     return validated.params
 

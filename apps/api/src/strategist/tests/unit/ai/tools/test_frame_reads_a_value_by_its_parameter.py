@@ -7,12 +7,15 @@ from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from pydantic_ai.tools import ToolDefinition
 from veupathdb.domain.parameters import (
+    NO_FILTERS_WIRE,
     FilterValue,
+    HeldValue,
     NumberBounds,
     NumberRange,
+    shown_stated,
 )
 from veupathdb.wdk import WDKParameter, WDKSearch
-from veupathdb_mcp.catalog import FilterReads, ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import FilterReads, ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_proposals, frame_spec
@@ -20,6 +23,7 @@ from strategist.ai.tools.standalone._frame_schema import name_the_open_sheets
 from strategist.ai.tools.standalone._frame_sheet import open_parameter_sheet
 from strategist.domain.strategy.card_answers import option_refusal
 from strategist.domain.strategy.operational_spec import (
+    BoundValue,
     Criterion,
     OpenSlot,
     OperationalSpec,
@@ -27,6 +31,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.value_text import clause_text
 from strategist.tests._support.filter_reads import NoFilterReads
+from strategist.tests._support.param_infos import organism_of, sheet_of
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_counts import no_measurements
 from strategist.tests._support.recorded_searches import (
@@ -73,7 +78,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch, definition: WDKSearch) -> None:
 def _every_null(definition: WDKSearch) -> dict[str, JsonValue]:
     return {
         info.name: None
-        for info in format_param_info_typed(definition.parameters or [])
+        for info in sheet_of(definition.parameters or [])
         if info.bindable
     }
 
@@ -113,7 +118,7 @@ async def test_a_filter_written_as_text_is_refused_and_nothing_is_recorded(
     with pytest.raises(ModelRetry) as refused:
         await _bound(monkeypatch, _VARIANTS, {"gene_variant_stats": "total_variants>5"})
 
-    assert refused.value.message.startswith("gene_variant_stats takes a list")
+    assert refused.value.message.startswith("gene_variant_stats takes a list of")
     assert refused.value.message.endswith("Nothing was recorded.")
 
 
@@ -159,6 +164,61 @@ async def test_a_filter_clause_object_records_a_number_range(
     )
 
 
+async def test_no_clause_binds_the_filter_wdk_defaults_to(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = await _bound(
+        monkeypatch,
+        _VARIANTS,
+        {"organism_select_none": [_PF], "gene_variant_stats": []},
+    )
+
+    [criterion] = state.operational_spec_draft.criteria
+    held = criterion.resolved_params["gene_variant_stats"].value
+    assert (held, held.to_wire()) == (FilterValue(), NO_FILTERS_WIRE)
+    assert shown_stated(held) == []
+
+
+_KEPT_WIRE = '{"filters": [{"field": "total_variants"}]}'
+
+
+async def test_a_kept_value_stated_back_as_shown_is_kept(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = await _bound(
+        monkeypatch,
+        _VARIANTS,
+        {"organism_select_none": [_PF], "gene_variant_stats": []},
+    )
+    [criterion] = state.operational_spec_draft.criteria
+    kept = BoundValue(value=HeldValue(wire=_KEPT_WIRE), source="held")
+    state.operational_spec_draft.criteria = [
+        criterion.model_copy(
+            update={
+                "resolved_params": {
+                    **criterion.resolved_params,
+                    "gene_variant_stats": kept,
+                }
+            }
+        )
+    ]
+
+    await bind(
+        state,
+        _VARIANTS.url_segment,
+        _every_null(_VARIANTS)
+        | {
+            "organism_select_none": [_PF],
+            "gene_variant_stats": shown_stated(kept.value),
+        },
+    )
+
+    [rebound] = state.operational_spec_draft.criteria
+    assert rebound.resolved_params["gene_variant_stats"].value == HeldValue(
+        wire=_KEPT_WIRE
+    )
+
+
 async def test_a_boolean_for_a_yes_no_vocabulary_names_its_terms(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -196,7 +256,13 @@ def _set_criterion_tool() -> ToolDefinition:
 
 def test_an_open_sheet_states_each_parameters_schema() -> None:
     state = AgentToolState()
-    open_parameter_sheet(state, "c_snps", _SNPS.url_segment, _SNPS)
+    open_parameter_sheet(
+        state,
+        "c_snps",
+        _SNPS.url_segment,
+        _SNPS,
+        organism=organism_of(_SNPS.parameters or []),
+    )
 
     prepared = name_the_open_sheets(frame_ctx(state), _set_criterion_tool())
 
@@ -216,7 +282,7 @@ _HERMAPHRODITE = (
 
 
 def test_a_card_option_a_facet_lacks_is_refused_with_its_members() -> None:
-    sheet = format_param_info_typed(_SNPS.parameters or [])
+    sheet = sheet_of(_SNPS.parameters or [])
     spec = OperationalSpec(
         criteria=[
             Criterion(

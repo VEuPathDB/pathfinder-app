@@ -47,7 +47,7 @@ def test_a_parameter_edit_is_reported_with_both_values() -> None:
     change = diff.changed[0]
     assert change.label == "top expression"
     assert [(p.name, p.before, p.after) for p in change.params] == [
-        ("min_expression_percentile", "90", "75"),
+        ("min_expression_percentile", "90.0", "75.0"),
     ]
 
 

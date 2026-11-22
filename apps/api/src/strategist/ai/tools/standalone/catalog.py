@@ -16,6 +16,7 @@ from veupathdb.wdk import get_site
 from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
 from veupathdb_mcp.catalog import (
     SearchMatch,
+    SearchNarrowing,
     VagueSearchQueryError,
     universal_searches,
 )
@@ -115,8 +116,8 @@ async def search_for_searches(
             ctx.deps.site_id,
             record_type=record_type,
             query=query,
-            keywords=keywords or [],
-            category=category,
+            about=ctx.deps.resolving(),
+            narrowing=SearchNarrowing(keywords=keywords or [], category=category),
             limit=limit,
         )
     except VagueSearchQueryError as exc:

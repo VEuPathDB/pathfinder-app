@@ -9,6 +9,7 @@ from enum import StrEnum
 import httpx
 import pydantic
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.parameters import Resolution, VocabOption, exact_or_candidates
 from veupathdb.errors import VEuPathDBError
 from veupathdb.jbrowse import get_jbrowse_client
 from veupathdb.wdk import WDKAnswer, get_site
@@ -22,7 +23,7 @@ from veupathdb_mcp.audit import (
     record_proteins,
     species_of,
 )
-from veupathdb_mcp.gene_lookup import list_organisms
+from veupathdb_mcp.catalog import list_organisms
 
 from strategist.domain.audit.planning import (
     PlanRequest,
@@ -123,24 +124,11 @@ async def site_genomes(site_id: str) -> list[SiteGenome]:
     ]
 
 
-def _words(text: str) -> set[str]:
-    return set(text.casefold().split())
-
-
-def _holding(name: str, organisms: Sequence[str]) -> list[str]:
-    return [o for o in organisms if _words(name) <= _words(o)]
-
-
-def _resolved(name: str, organisms: Sequence[str]) -> str | None:
-    if name in organisms:
-        return name
-    folded = [o for o in organisms if o.casefold() == name.casefold()]
-    held = folded or _holding(name, organisms)
-    return held[0] if len(held) == 1 else None
-
-
-def _suggestions(name: str, organisms: Sequence[str]) -> tuple[str, ...]:
-    return tuple(_holding(name, organisms)[:SUGGESTIONS])
+def _read_names(
+    names: Sequence[str], organisms: Sequence[str]
+) -> dict[str, Resolution]:
+    options = [VocabOption(value=o, display=o) for o in organisms]
+    return {name: exact_or_candidates(options, name, SUGGESTIONS) for name in names}
 
 
 def _placed(target: GeneTarget, placed: dict[str, str]) -> GeneTarget:
@@ -354,14 +342,17 @@ async def propose_scope(request: PlanRequest) -> ScopeProposal:
     organisms = [genome.organism for genome in genomes]
     places = (t.genome for t in request.targets if t.genome is not None)
     names = tuple(dict.fromkeys((*request.genomes, *places)))
-    resolved = {name: _resolved(name, organisms) for name in names}
-    placed = {name: o for name, o in resolved.items() if o is not None}
+    read = _read_names(names, organisms)
+    placed = {name: r.value for name, r in read.items() if r.value is not None}
     unresolved = tuple(name for name in names if name not in placed)
     if unresolved:
         return ScopeProposal(
             request=request,
             unresolved=unresolved,
-            suggestions={name: _suggestions(name, organisms) for name in unresolved},
+            suggestions={
+                name: tuple(c.value for c in read[name].candidates)
+                for name in unresolved
+            },
         )
     unique: dict[str, GeneTarget] = {}
     for target in request.targets:

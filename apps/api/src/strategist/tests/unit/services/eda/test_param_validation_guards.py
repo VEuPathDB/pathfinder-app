@@ -131,6 +131,7 @@ async def _validate_samples(values: list[str]) -> ValidatedParams:
         _PROFILE_CTX,
         stated={"samples": MultiPickValue(values=values)},
         callbacks=validation_callbacks(),
+        about=None,
     )
 
 
@@ -261,6 +262,7 @@ async def _validate_spec(search_name: str, spec: str) -> ValidatedParams:
             EDA_ANALYSIS_SPEC_PARAM: StringValue(value=spec),
         },
         callbacks=validation_callbacks(),
+        about=None,
     )
 
 
@@ -384,6 +386,7 @@ class TestAPlainSearchIsUntouched:
             ),
             stated={"text_expression": StringValue(value="kinase")},
             callbacks=validation_callbacks(),
+            about=None,
         )
 
         assert result.params["text_expression"] == StringValue(value="kinase")

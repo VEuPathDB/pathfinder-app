@@ -141,3 +141,19 @@ def test_the_title_text_joins_the_words_of_every_step_once() -> None:
 
 def test_a_strategy_with_no_step_has_no_title_text() -> None:
     assert title_text(None, [ORGANISM]) == ""
+
+
+def test_a_seed_value_restated_in_another_order_holds() -> None:
+    def _picked(terms: list[str]) -> StrategyAst:
+        return StrategyAst(
+            record_type="transcript",
+            root=StrategyStepNode(
+                id="step_signal",
+                search_name="GenesWithSignalPeptide",
+                parameters={"organism": MultiPickValue(values=terms)},
+            ),
+        )
+
+    seed = name_seed(_picked([ORGANISM, "Naegleria gruberi"]))
+
+    assert name_outdated(seed, _picked(["Naegleria gruberi", ORGANISM])) is False

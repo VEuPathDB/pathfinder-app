@@ -201,7 +201,7 @@ class TestASecondSheetIsTheSamePin:
         assert organism.required is True
         assert organism.is_tree is False
         text_fields = next(e for e in entries if e.name == "text_fields")
-        assert text_fields.default == '["product", "Notes"]'
+        assert text_fields.default == ["product", "Notes"]
 
     @pytest.mark.asyncio
     async def test_another_criterion_on_the_same_search_pins_its_own_sheet(
@@ -285,7 +285,7 @@ class TestEveryVisibleRequiredParamIsDecided:
 
         assert "document_type" in result.defaulted_params
         assert result.resolved_params["text_expression"] == "kinase"
-        assert result.resolved_params["text_search_organism"] == '["Plasmodium"]'
+        assert result.resolved_params["text_search_organism"] == ["Plasmodium"]
 
 
 _SAMPLE_WINDOWS = [

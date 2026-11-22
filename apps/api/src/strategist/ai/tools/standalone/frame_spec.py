@@ -4,14 +4,15 @@ from pydantic import JsonValue
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import to_wire
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import (
     ParamFetcher,
+    ResolveContext,
     ResolvedParams,
     format_param_info_typed,
     make_validation_callbacks,
+    organism_parameter_of,
     shortlist_slot,
     validate_parameters,
     wdk_fetch_at,
@@ -47,14 +48,16 @@ from strategist.ai.tools.standalone._frame_measure import (
 )
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    bound_vocabulary_values,
+    held_binding,
+    keeping_held,
     left_to_the_site,
     radio_overrides,
     read_call,
+    refuse_an_upload_the_researcher_lacks,
     refuse_undecided,
     refuse_unknown_names,
     resolve_proposals,
-    species_lists,
+    with_held,
 )
 from strategist.ai.tools.standalone._frame_rationale import (
     SearchChoice,
@@ -83,7 +86,7 @@ from strategist.ai.tools.standalone._frame_unserved import (
 from strategist.ai.tools.standalone._frame_values import proposed_call, sourced_values
 from strategist.ai.tools.standalone._frame_weight import held_weight
 from strategist.ai.tools.standalone._validation_helpers import validation_model_retry
-from strategist.domain.strategy.expression_handles import shown_wire
+from strategist.domain.strategy.expression_handles import stated_value
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
@@ -110,7 +113,7 @@ def _memoized_fetch(site_id: str, record_type: str, search_name: str) -> ParamFe
 
 
 async def _canonical_binding(
-    search: SearchContext, resolved: ResolvedParams
+    search: SearchContext, resolved: ResolvedParams, about: ResolveContext
 ) -> tuple[ResolvedParams, list[str]]:
     """The binding WDK renders, and the values WDK supplied rather than accepted.
     A tree parameter scores its leaves alone, so these are the values a count
@@ -120,6 +123,7 @@ async def _canonical_binding(
             search,
             stated=dict(resolved.params),
             callbacks=make_validation_callbacks(search.site_id),
+            about=about,
         )
     except ValidationError as exc:
         raise validation_model_retry(
@@ -185,7 +189,8 @@ async def set_criterion(
     takes a list of the ids the request states, which the tool saves as an ID list.
     ``null`` means the request does not determine it: the search default applies
     and is reported in ``defaulted_params``, or the parameter becomes an open
-    slot when there is no default. Do not pass null for a numeric parameter when
+    slot when there is no default. On a re-bind of a criterion to the same
+    search, a name left out of ``params`` keeps the value the criterion holds. Do not pass null for a numeric parameter when
     ``text`` states its value; pass the stated number. Never invent a value; a
     name that is not on the sheet comes back as a retry listing the real ones,
     and a missing vocabulary entry means the search cannot realize the
@@ -286,7 +291,11 @@ async def _bind_the_search(
         definition = await catalog_search_definition(
             ctx.deps.site_id, record_type, search_name
         )
-        infos = format_param_info_typed(await fetch_at({}))
+        declarations = await fetch_at({})
+        infos = format_param_info_typed(
+            declarations,
+            organism=await organism_parameter_of(ctx.deps.site_id, declarations),
+        )
     state.record_read(search_name, infos)
     refuse_a_param_the_sheet_lacks(stated.answers, infos)
     await refuse_a_search_the_criterion_cannot_use(
@@ -304,26 +313,24 @@ async def _bind_the_search(
         ),
         infos,
     )
+    held = held_binding(state, call, infos)
+    call = with_held(call, held)
     refuse_unknown_names(call, infos)
     refuse_undecided(call, infos)
     call, typed = await saved_id_lists(ctx.deps.site_id, state, call, infos)
-    call, corrected = proposed_call(
-        await read_call(search, fetch_at, call), infos, state, stated.answers
+    about = ctx.deps.resolving()
+    read, kept = await read_call(
+        search, fetch_at, call, definition=definition, state=state, about=about
     )
+    call, corrected = proposed_call(read, infos, state, stated.answers)
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
-    lists = species_lists(infos)
     radio = radio_overrides(definition, call, infos)
-    call = await bound_vocabulary_values(
-        ctx.deps.site_id,
-        definition,
-        call,
-        infos,
-        lists,
-        state,
-    )
+    await refuse_an_upload_the_researcher_lacks(ctx.deps.site_id, definition, call)
     refuse_what_the_words_decide(definition, call, infos, state)
     refuse_a_pick_no_lookup_read(state, definition, call, infos)
-    resolved = await resolve_proposals(search, fetch_at, call, radio)
+    resolved = keeping_held(
+        await resolve_proposals(search, fetch_at, call, radio, about), call, kept
+    )
     if resolved.unread:
         msg = (
             f"The criterion states a quantity and {resolved.unread} was left null. "
@@ -331,7 +338,9 @@ async def _bind_the_search(
             f"is right."
         )
         raise ModelRetry(msg)
-    redecide = await reconcile_dependents(fetch_at, infos, resolved, call, state)
+    redecide = await reconcile_dependents(
+        ctx.deps.site_id, fetch_at, infos, resolved, call, state
+    )
     if redecide:
         return criterion_return(
             ctx,
@@ -351,7 +360,7 @@ async def _bind_the_search(
     # Only a binding with no open slot is validated: an unresolved required
     # param reads as missing, while a bad value returns a did-you-mean retry.
     if not resolved.open_slots:
-        canonical, substituted = await _canonical_binding(search, resolved)
+        canonical, substituted = await _canonical_binding(search, resolved, about)
         # WDK renders the spec it would run, so it reports which values are its
         # own. That report is about the search being built and outranks the
         # local reading of the request.
@@ -368,7 +377,7 @@ async def _bind_the_search(
         reason=chosen_reason(why, chosen),
         answers=stated.answers,
     )
-    bound = with_typed_ids(bound, typed, state.request_messages)
+    bound = with_typed_ids({**bound, **kept}, typed, state.request_messages)
     accepted = offered_reading(state, criterion_id, reading, bound)
     open_params = open_slots(
         criterion_id, resolved.open_slots, infos, pasted_params(definition)
@@ -404,7 +413,7 @@ async def _bind_the_search(
             criterion_id=criterion_id,
             search_name=search_name,
             resolved_params={
-                name: shown_wire(name, to_wire(value))
+                name: stated_value(name, value)
                 for name, value in resolved.params.items()
                 if name in bound and not state.sets_the_site(search_name, name)
             },

@@ -60,15 +60,15 @@ def _section() -> FrameSection:
     )
 
 
-def test_each_value_line_names_the_display_name_and_the_readable_value() -> None:
+def test_each_value_line_names_the_display_name_and_the_stated_value() -> None:
     lines = render_frame_full(_section()).splitlines()
 
     assert (
-        "    Minimum expression percentile (min_expression_percentile) = 80 "
+        '    Minimum expression percentile (min_expression_percentile) = "80" '
         "(the site's default)"
     ) in lines
     assert (
-        "    Samples (samples_percentile_generic) = asexual blood stages "
+        '    Samples (samples_percentile_generic) = ["asexual blood stages"] '
         "(stated by the researcher)"
     ) in lines
 

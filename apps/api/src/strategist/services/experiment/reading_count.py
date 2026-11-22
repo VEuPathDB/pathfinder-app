@@ -8,7 +8,11 @@ from veupathdb import strip_html_tags
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import format_param_info_typed, read_search_definition
+from veupathdb_mcp.catalog import (
+    format_param_info_typed,
+    organism_parameter_of,
+    read_search_definition,
+)
 
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -153,11 +157,18 @@ async def _ids(site_id: str, spec: VariantSpec) -> frozenset[_RecordKey]:
 
 
 def _criterion(
-    spec: VariantSpec, definition: WDKSearch, role: CriterionRole, weight: int | None
+    spec: VariantSpec,
+    definition: WDKSearch,
+    role: CriterionRole,
+    weight: int | None,
+    *,
+    organism: str | None,
 ) -> Criterion:
     sheet = [
         info
-        for info in format_param_info_typed(definition.parameters or [])
+        for info in format_param_info_typed(
+            definition.parameters or [], organism=organism
+        )
         if info.bindable
     ]
     return Criterion(
@@ -199,15 +210,21 @@ async def count_reading(
     weights: Mapping[str, int],
 ) -> CountedReading:
     roles = reading_roles(root)
-    criteria = [
-        _criterion(
-            spec,
-            await read_search_definition(site_id, spec.record_type, spec.search_name),
-            roles[spec.label],
-            weights.get(spec.label),
+    criteria = []
+    for search in searches:
+        definition = await read_search_definition(
+            site_id, search.record_type, search.search_name
         )
-        for spec in searches
-    ]
+        organism = await organism_parameter_of(site_id, definition.parameters or [])
+        criteria.append(
+            _criterion(
+                search,
+                definition,
+                roles[search.label],
+                weights.get(search.label),
+                organism=organism,
+            )
+        )
     spec = OperationalSpec(criteria=criteria, structure=SpecStructure(root=root))
     label = reading_label(spec)
     gene_count, scores, not_counted = await _count(site_id, searches, root, weights)

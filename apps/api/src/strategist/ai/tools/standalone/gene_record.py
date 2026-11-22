@@ -9,6 +9,7 @@ from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.tools import ToolDefinition
+from veupathdb_mcp.catalog import ResolveContext
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import ReadRecord, TurnMarkers
@@ -42,6 +43,8 @@ class GeneRecordReader(Protocol):
 
     @property
     def turn_markers(self) -> TurnMarkers: ...
+
+    def resolving(self) -> ResolveContext: ...
 
 
 async def offered_where_genes_are_held(
@@ -78,7 +81,10 @@ async def read_gene_record(
             every row to read, for example 'Anopheles gambiae PEST'.
     """
     found = await read.read_gene_record(
-        ctx.deps.site_id, gene_id, ortholog_organism=ortholog_organism
+        ctx.deps.site_id,
+        gene_id,
+        ortholog_organism=ortholog_organism,
+        about=ctx.deps.resolving(),
     )
     ctx.deps.turn_markers.record_read(_read_record(found))
     return with_summary(found, found.summary_line(), ctx=ctx)
@@ -150,7 +156,10 @@ async def read_sampled_gene_record(
     held.append(gene_id)
     try:
         found = await read.read_gene_record(
-            ctx.deps.site_id, gene_id, ortholog_organism=ortholog_organism
+            ctx.deps.site_id,
+            gene_id,
+            ortholog_organism=ortholog_organism,
+            about=ctx.deps.resolving(),
         )
     except Exception:
         held.remove(gene_id)

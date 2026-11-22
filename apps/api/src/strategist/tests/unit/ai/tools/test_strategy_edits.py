@@ -14,7 +14,7 @@ from veupathdb.domain.parameters import (
     StringValue,
 )
 from veupathdb.domain.strategy import CombineOp
-from veupathdb.errors import ValidationError, WDKError
+from veupathdb.errors import WDKError
 from veupathdb_mcp import ToolErrorPayload
 from veupathdb_mcp.catalog import ValidatedParams
 
@@ -110,16 +110,27 @@ class TestUpdateLeafParams:
         self, stub_api: StubAPI
     ) -> None:
         deps = seed(
-            leaf("a", params={"organism": MultiPickValue(values=["Pf3D7"])}),
+            leaf(
+                "a",
+                params={
+                    "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"])
+                },
+            ),
             wdk_step_ids={"a": 100},
         )
 
-        await update_leaf_params(ctx(deps), "a", {"organism": ["Pf3D7", "Pf7G8"]})
+        await update_leaf_params(
+            ctx(deps),
+            "a",
+            {"organism": ["Plasmodium falciparum 3D7", "Plasmodium falciparum 7G8"]},
+        )
 
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps["a"].parameters == {
-            "organism": MultiPickValue(values=["Pf3D7", "Pf7G8"]),
+            "organism": MultiPickValue(
+                values=["Plasmodium falciparum 3D7", "Plasmodium falciparum 7G8"]
+            ),
         }
         patches = stub_api.named("update_step_search_config")
         assert [call.kwargs["step_id"] for call in patches] == [100]
@@ -132,7 +143,9 @@ class TestUpdateLeafParams:
             leaf(
                 "a",
                 params={
-                    "organismSinglePick": MultiPickValue(values=["Pf3D7"]),
+                    "organismSinglePick": MultiPickValue(
+                        values=["Plasmodium falciparum 3D7"]
+                    ),
                     "ReadFrequencyPercent": SinglePickValue(value="60%"),
                 },
                 search_name="GenesByNgsSnps",
@@ -160,7 +173,7 @@ class TestUpdateLeafParams:
             value="80%"
         )
         assert seen["parameters"]["organismSinglePick"] == MultiPickValue(
-            values=["Pf3D7"]
+            values=["Plasmodium falciparum 3D7"]
         )
 
     async def test_a_number_among_vocabulary_picks_reaches_wdk(
@@ -205,28 +218,16 @@ class TestUpdateLeafParams:
             await update_leaf_params(ctx(deps), "c", {})
 
     @pytest.mark.usefixtures("stub_api")
-    async def test_a_rejected_value_retries_with_the_valid_options(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_a_value_no_entry_names_retries_with_the_candidates(self) -> None:
         deps = seed(
-            leaf("a", params={"organism": MultiPickValue(values=["Pf3D7"])}),
+            leaf(
+                "a",
+                params={
+                    "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"])
+                },
+            ),
             wdk_step_ids={"a": 100},
         )
-
-        async def _raising_validate(*_args: Any, **_kwargs: Any) -> ValidatedParams:
-            raise ValidationError(
-                title="Invalid parameter value",
-                detail="Parameter 'organism' does not accept 'NotARealOrganism'.",
-                errors=[
-                    {
-                        "param": "organism",
-                        "value": "NotARealOrganism",
-                        "validOptions": ["Pf3D7", "PvP01"],
-                    },
-                ],
-            )
-
-        monkeypatch.setattr(stated_sides, "validate_parameters", _raising_validate)
 
         with pytest.raises(ModelRetry) as excinfo:
             await update_leaf_params(
@@ -236,9 +237,10 @@ class TestUpdateLeafParams:
             )
 
         msg = str(excinfo.value)
-        assert "Invalid parameter value" in msg
-        assert "validOptions" in msg
-        assert "NotARealOrganism" in msg
+        assert msg.startswith(
+            "GenesByTaxon: organism has no entry 'NotARealOrganism'. Candidates: "
+        )
+        assert msg.endswith("Nothing was written.")
 
 
 class TestUpdateCombineOperator:
@@ -343,12 +345,19 @@ class TestAPushWDKRefusedIsTheAnswer:
             status=422,
         )
         deps = seed(
-            leaf("a", params={"organism": MultiPickValue(values=["Pf3D7"])}),
+            leaf(
+                "a",
+                params={
+                    "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"])
+                },
+            ),
             wdk_step_ids={"a": 440432473},
         )
 
         with pytest.raises(ModelRetry) as excinfo:
-            await update_leaf_params(ctx(deps), "a", {"organism": ["PvP01"]})
+            await update_leaf_params(
+                ctx(deps), "a", {"organism": ["Plasmodium vivax P01"]}
+            )
 
         assert "profileset_generic: Invalid value" in str(excinfo.value)
 
@@ -374,14 +383,19 @@ class TestAPushWDKRefusedIsTheAnswer:
     ) -> None:
         stub_api.refuse = OSError("connection reset by peer")
         deps = seed(
-            leaf("a", params={"organism": MultiPickValue(values=["Pf3D7"])}),
+            leaf(
+                "a",
+                params={
+                    "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"])
+                },
+            ),
             wdk_step_ids={"a": 100},
         )
 
         answer = await update_leaf_params(
             ctx(deps, tool_call_id="call_1"),
             "a",
-            {"organism": ["PvP01"]},
+            {"organism": ["Plasmodium vivax P01"]},
         )
 
         assert returned(answer, ToolErrorPayload).ok is False

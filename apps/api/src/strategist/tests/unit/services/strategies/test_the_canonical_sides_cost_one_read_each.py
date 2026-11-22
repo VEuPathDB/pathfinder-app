@@ -5,8 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from veupathdb.domain.parameters import ParamValue, StringValue
-from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StepKind,
+    StrategyStep,
+    StrategyStepNode,
+)
 from veupathdb_mcp.catalog import ValidatedParams, ValidationCallbacks
 
 from strategist.domain.strategy.session import StrategyGraph
@@ -81,3 +86,39 @@ async def test_a_stated_leaf_that_carries_no_value_asks_the_catalog_nothing(
 
     assert [write.step_id for write in writes] == [_STATED]
     assert len(seen) == 1
+
+
+_HELD_ORGANISMS = MultiPickValue(values=["Toxoplasma gondii ME49", "Neospora caninum"])
+
+
+async def test_a_leaf_that_restates_every_held_value_is_written_as_held(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _refuse(*_args: Any, **_kwargs: Any) -> ValidatedParams:
+        raise AssertionError
+
+    monkeypatch.setattr(stated_sides, "validate_parameters", _refuse)
+    graph = StrategyGraph("g", "g", "toxodb")
+    graph.steps[_STATED] = StrategyStep(
+        id=_STATED,
+        kind=StepKind.SEARCH,
+        search_name="GenesByToxoProfileSimilarity",
+        parameters={"organism": _HELD_ORGANISMS},
+    )
+    leaf = StrategyStepNode(
+        id=_STATED,
+        search_name="GenesByToxoProfileSimilarity",
+        parameters={"organism": MultiPickValue(values=_HELD_ORGANISMS.values[::-1])},
+    )
+    stated = {
+        _STATED: StatedCriterion(
+            text="similar to MIC2", values={"organism": _HELD_ORGANISMS}
+        )
+    }
+
+    writes = await canonicalize_stated_leaves(
+        graph=graph, root=leaf, stated=stated, site_id="toxodb", callbacks=_callbacks()
+    )
+
+    assert writes == []
+    assert leaf.parameters["organism"].to_wire() == _HELD_ORGANISMS.to_wire()

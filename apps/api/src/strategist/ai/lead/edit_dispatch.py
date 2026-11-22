@@ -70,7 +70,7 @@ from strategist.domain.strategy.spec_diff import (
 )
 from strategist.domain.strategy.spec_fold import (
     fold_option_criteria,
-    stated_wire_values,
+    stated_values,
 )
 from strategist.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
@@ -151,7 +151,7 @@ async def run_edit(
     folded_after = fold_option_criteria(
         after,
         live_step_ids=graph.steps,
-        answered_values=stated_wire_values(before),
+        answered_values=stated_values(before),
     )
     if folded_after.unplaced:
         refuse_and_restore(

@@ -20,6 +20,7 @@ async def test_valid_params_canonicalize_against_real_spec(wdk_session: None) ->
         ctx,
         stated={"organism": MultiPickValue(values=[_ORGANISM])},
         callbacks=make_validation_callbacks("plasmodb"),
+        about=None,
     )
     organism = canonical.params["organism"]
     assert isinstance(organism, MultiPickValue)
@@ -36,6 +37,7 @@ async def test_unknown_search_raises(wdk_session: None) -> None:
             ctx,
             stated={"organism": MultiPickValue(values=[_ORGANISM])},
             callbacks=make_validation_callbacks("plasmodb"),
+            about=None,
         )
 
 
@@ -52,4 +54,5 @@ async def test_unknown_param_key_raises(wdk_session: None) -> None:
                 "not_a_real_param": StringValue(value="x"),
             },
             callbacks=make_validation_callbacks("plasmodb"),
+            about=None,
         )

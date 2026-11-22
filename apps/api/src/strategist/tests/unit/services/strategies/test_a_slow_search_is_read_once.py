@@ -11,7 +11,6 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.strategy.operational_spec import BoundValue, Measurement
 from strategist.services.strategies import measurements, slow_searches, wdk_counts
@@ -22,6 +21,7 @@ from strategist.services.strategies.measurements import (
 )
 from strategist.services.strategies.slow_searches import counts_slowly
 from strategist.services.strategies.wdk_counts import count_bound_criterion
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     PERCENTILE_SEARCH,
     recorded_count,
@@ -85,7 +85,7 @@ async def _measure(counts: TurnCounts, min_value: str) -> list[Measurement]:
             )
             for name, value in params.items()
         },
-        infos=format_param_info_typed(list(_PCT.parameters or [])),
+        infos=sheet_of(list(_PCT.parameters or [])),
     )
 
 

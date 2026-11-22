@@ -19,6 +19,7 @@ from veupathdb_mcp.controls import (
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from strategist.ai.tools.standalone import control_counts, experiment
+from strategist.ai.tools.standalone.control_counts import ControlCounts, stated_counts
 from strategist.services.experiment.published_names import PublishedNames
 from strategist.tests._support.saved_controls import (
     SAVED_SET,
@@ -27,6 +28,7 @@ from strategist.tests._support.saved_controls import (
     serve_saved_controls,
 )
 from strategist.tests._support.search_record_types import serve_transcript_searches
+from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
 
@@ -91,15 +93,15 @@ def _measured_service(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None:
-    returned = await experiment.run_control_tests_on_search(
+    answered = await experiment.run_control_tests_on_search(
         agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
         {"organism": ["Plasmodium falciparum 3D7"]},
         control_set_id=SAVED_SET_ID,
     )
 
-    outcome = returned.return_value
-    assert isinstance(outcome, ControlOutcome)
+    outcome = answered.return_value
+    assert isinstance(outcome, ControlCounts)
     assert outcome.search_name == "GenesByMolecularWeight"
     assert outcome.estimated_size == 132
     assert outcome.positive_intersection == 2
@@ -110,15 +112,27 @@ async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None
     assert outcome.negative_controls_count == 1
 
 
+async def test_the_tool_shows_each_tested_value_as_stated() -> None:
+    answered = await experiment.run_control_tests_on_search(
+        agent_run_context(control_sets=[SAVED_SET]),
+        "GenesByMolecularWeight",
+        {"organism": ["Plasmodium falciparum 3D7"]},
+        control_set_id=SAVED_SET_ID,
+    )
+
+    shown = returned(answered, ControlCounts).model_dump(by_alias=True, mode="json")
+    assert shown["parameters"] == {"organism": "Plasmodium falciparum 3D7"}
+
+
 async def test_the_summary_names_the_positives_the_search_recovered() -> None:
-    returned = await experiment.run_control_tests_on_search(
+    answered = await experiment.run_control_tests_on_search(
         agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
         {},
         control_set_id=SAVED_SET_ID,
     )
 
-    assert summary_of(returned).data["summary"] == (
+    assert summary_of(answered).data["summary"] == (
         "2 of 3 positive controls recovered; "
         "recall 0.67, precision 1.00, MCC 0.58; "
         "tunable parameters: organism"
@@ -137,9 +151,13 @@ def _durable_result(**overrides: Any) -> dict[str, Any]:
         negative_admitted_ids=[],
         negative_excluded_ids=["TGME49_205250"],
     )
-    dumped = outcome.model_dump(by_alias=True, exclude_none=True, mode="json")
-    dumped["targetLabel"] = "Genes by Molecular Weight"
-    dumped["parameterLabels"] = {"organism": "Organism"}
+    dumped = stated_counts(
+        outcome,
+        {
+            "target_label": "Genes by Molecular Weight",
+            "parameter_labels": {"organism": "Organism"},
+        },
+    ).model_dump(by_alias=True, exclude_none=True, mode="json")
     dumped.update(overrides)
     return {"status": "success", "result": dumped}
 
@@ -252,7 +270,7 @@ def test_a_parameter_keeps_its_wdk_name_when_the_run_resolved_none() -> None:
 def test_a_long_parameter_value_is_cut_to_a_readable_length() -> None:
     ids = ",".join(f"PF3D7_{index:07d}" for index in range(40))
     answer = _durable_result()
-    answer["result"]["parameters"] = {"dsGeneIds": {"type": "string", "value": ids}}
+    answer["result"]["parameters"] = {"dsGeneIds": ids}
 
     chunks = experiment._control_test_chunks_from_result(answer, UUID(int=4), "call_4")
 
@@ -262,7 +280,7 @@ def test_a_long_parameter_value_is_cut_to_a_readable_length() -> None:
 
 
 async def test_a_search_level_test_leaves_the_same_exhibit() -> None:
-    returned = await experiment.run_control_tests_on_search(
+    answered = await experiment.run_control_tests_on_search(
         agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
         {"organism": ["Plasmodium falciparum 3D7"]},
@@ -271,7 +289,7 @@ async def test_a_search_level_test_leaves_the_same_exhibit() -> None:
 
     exhibits = [
         chunk
-        for chunk in returned.metadata or []
+        for chunk in answered.metadata or []
         if chunk.type == "data-control-test-results"
     ]
     assert len(exhibits) == 1

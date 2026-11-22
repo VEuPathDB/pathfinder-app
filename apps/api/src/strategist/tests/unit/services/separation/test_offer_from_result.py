@@ -10,7 +10,6 @@ import math
 from typing import Literal
 
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
-from veupathdb_mcp.catalog import format_param_info_typed
 from veupathdb_mcp.separation import (
     SeparationNode,
     SeparationResult,
@@ -21,6 +20,7 @@ from strategist.domain.separation import SeparationOffer, SeparationReport
 from strategist.domain.strategy.spec_tree import build_step_tree
 from strategist.domain.strategy.step_rationale import ControlsRationale
 from strategist.services.separation.offer import separation_report
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.separation import (
     ERYTHROCYTE_INVASION,
@@ -283,7 +283,7 @@ def test_a_run_that_assembled_nothing_offers_nothing() -> None:
 def test_each_offered_value_is_read_on_the_published_sheet_of_its_search() -> None:
     sheet = [
         info
-        for info in format_param_info_typed(
+        for info in sheet_of(
             list(suite_search("search_genes_by_text").parameters or [])
         )
         if info.is_visible

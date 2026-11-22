@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -92,12 +93,15 @@ async def send_decision(request: DecisionRequest) -> DecisionResponse:
         else keyed_provider(DECISIONS_MODEL)
     )
     try:
-        raw = await provider.client.post(
-            "/decisions", cast_to=httpx.Response, body=request.model_dump(mode="json")
-        )
+        async with asyncio.timeout(get_settings().decisions_timeout_seconds):
+            raw = await provider.client.post(
+                "/decisions",
+                cast_to=httpx.Response,
+                body=request.model_dump(mode="json"),
+            )
     except APIStatusError as refused:
         raise DecisionsRefusedError(refused.status_code) from None
-    except APIError:
+    except APIError, TimeoutError:
         raise DecisionsUnansweredError from None
     response = DecisionResponse.model_validate_json(raw.content)
     sink = _sink.get()
@@ -117,6 +121,8 @@ def install_decisions_transport() -> None:
 
 __all__ = [
     "DECISIONS_MODEL",
+    "DecisionsRefusedError",
+    "DecisionsUnansweredError",
     "decision_cost",
     "decisions_on_the_deployment",
     "decisions_spend_to",

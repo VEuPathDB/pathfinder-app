@@ -241,8 +241,12 @@ async def test_the_swap_re_resolves_the_dependent_and_keeps_the_rest(
     # The old organism's dependent was refused under the new organism.
     assert redecided == [
         (
-            f"profileset takes one of {ZHU!r}, for example {ZHU!r}; it read "
-            f"{DERISI!r}. Nothing was recorded."
+            'organism moved from ["Plasmodium falciparum 3D7"] to '
+            '["Plasmodium vivax P01"], so profileset, which held '
+            f'"{DERISI}", was read again under it and refused: profileset has '
+            f"no entry {DERISI!r}. Candidates: Zhu P01 ({ZHU}). State profileset "
+            "again under the new organism, or leave it out if a reader can keep "
+            "it. Nothing was recorded."
         )
     ]
     after = deps.state.domain.operational_spec

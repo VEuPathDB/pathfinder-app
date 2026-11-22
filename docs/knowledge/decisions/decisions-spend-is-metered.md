@@ -34,8 +34,10 @@ its own fallback.
 OpenAI prices Decisions on gpt-6-luna as uncached input at $0.10 per million tokens, with
 gpt-6-luna's cache read and write rates and no charge for output. The catalog already
 holds those rates, so the price needs no table of its own. The catalog's own Decisions
-calls (search candidates, narrowed parameter reads) and the message reading spend on the
-same key and reach the same rows.
+calls (search candidates, narrowed parameter reads, the order of a vocabulary refusal's
+candidates) and the message reading spend on the same key and reach the same rows. A
+vocabulary refusal asks at most five choices, and a served tool asks none
+([one resolver names a vocabulary entry](one-resolver-names-a-vocabulary-entry.md)).
 
 # Rejected
 

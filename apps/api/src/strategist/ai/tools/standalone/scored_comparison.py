@@ -100,7 +100,9 @@ async def compare_variants_scored(
     if refused is not None:
         msg = f"{refused} {ATTACH_A_SET}"
         raise ModelRetry(msg)
-    specs = await checked_variants(runtime.strategy_session, variants)
+    specs = await checked_variants(
+        runtime.strategy_session, variants, ctx.deps.resolving()
+    )
 
     parsed = parse_id_argument(
         control_set_id, argument="control_set_id", names="control set"

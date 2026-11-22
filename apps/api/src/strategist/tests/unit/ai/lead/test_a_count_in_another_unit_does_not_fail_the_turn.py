@@ -126,7 +126,9 @@ async def _count_check(
     monkeypatch: pytest.MonkeyPatch, param: str, value: ParamValue, number: float
 ) -> tuple[bool, str, str, str | None]:
     serve_the_site(
-        monkeypatch, _details(param, value.to_wire()), recorded_orthomcl_record_types()
+        monkeypatch,
+        _details(param, value.to_wire()),
+        recorded_orthomcl_record_types(),
     )
     delta = await verify(monkeypatch, _deps(param, value, number), _DIGEST)
     [check] = [c for c in delta.digest.review.checks if c.kind == ConstraintKind.COUNT]

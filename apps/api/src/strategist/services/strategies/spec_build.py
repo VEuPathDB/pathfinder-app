@@ -333,6 +333,7 @@ async def _push_tree_to_wdk(
                     context=context,
                     held_validation=sync_state.step_validations.get(node.id),
                     callbacks=callbacks,
+                    about=None,
                 )
             except ValidationError as exc:
                 detail = exc.detail or exc.title
@@ -347,7 +348,7 @@ async def _push_tree_to_wdk(
                     ),
                 )
                 continue
-            push_parameters = {**node.parameters, **validated.params}
+            push_parameters = {**node.parameters, **context, **validated.params}
             if validated.record_class:
                 node.record_class = validated.record_class
                 record_type = validated.record_class

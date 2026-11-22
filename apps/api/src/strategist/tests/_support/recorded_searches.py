@@ -13,16 +13,21 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel, ConfigDict, JsonValue
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.parameters import ParamValue, VocabOption
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import RecordedWDKResponse
 from veupathdb.wdk import VEuPathDBClient, WDKParameter, WDKSearch, WDKSearchResponse
 from veupathdb_mcp import catalog, tool_payloads
 from veupathdb_mcp.catalog import (
+    NOTHING_READ,
+    BoundValues,
+    MovedParentError,
     ParamFetcher,
+    ResolveContext,
     ResolvedSearch,
     SearchMatch,
+    SearchNarrowing,
     ValidationCallbacks,
     read_under_parents,
 )
@@ -47,6 +52,7 @@ from strategist.tests._support.filter_reads import NoFilterReads
 from strategist.tests._support.qa_recording import client_recording, qa_recording
 
 _SUITE = Path(__file__).resolve().parents[1] / "fixtures" / "wdk"
+_NO_NARROWING = SearchNarrowing()
 
 
 class _Listing(BaseModel):
@@ -61,6 +67,32 @@ def _suite(fixture: str) -> RecordedWDKResponse:
     return RecordedWDKResponse.model_validate_json(
         qa_recording(_SUITE / f"{fixture}.json").read_text()
     )
+
+
+def _vocabulary(held: JsonValue, terms: Sequence[VocabOption]) -> JsonValue:
+    match held:
+        case {"data": _}:
+            return {
+                "data": {"term": "@@fake@@", "display": "@@fake@@"},
+                "children": [
+                    {"data": {"term": t.value, "display": t.display}, "children": []}
+                    for t in terms
+                ],
+            }
+        case _:
+            return [[t.value, t.display, None] for t in terms]
+
+
+def declaring(
+    search: WDKSearch, terms: Mapping[str, Sequence[VocabOption]]
+) -> WDKSearch:
+    raw = search.model_dump(by_alias=True, mode="json")
+    for declared in raw["parameters"]:
+        if declared["name"] in terms:
+            declared["vocabulary"] = _vocabulary(
+                declared["vocabulary"], terms[declared["name"]]
+            )
+    return WDKSearch.model_validate(raw)
 
 
 def client_search(fixture: str) -> WDKSearch:
@@ -157,13 +189,13 @@ def serve_recorded_semantic_search(monkeypatch: pytest.MonkeyPatch) -> None:
         record_type: str | list[str] | None,
         query: str,
         *,
-        keywords: list[str] | None = None,
-        category: str | None = None,
+        about: ResolveContext | None,
+        narrowing: SearchNarrowing = _NO_NARROWING,
         limit: int = 20,
     ) -> list[SearchMatch]:
-        del category
+        del about
         asked = {w for w in query.lower().split() if len(w) > 3} | {
-            k.lower() for k in (keywords or [])
+            k.lower() for k in narrowing.keywords
         }
         ranked: list[tuple[int, WDKSearch]] = []
         for search in _listing():
@@ -302,21 +334,48 @@ def serve_stated_reads(
     """Read each stated value with the catalog's reader against these recordings."""
     by_name = {d.url_segment: d for d in definitions}
 
+    async def _read_on(
+        search_name: str,
+        stated: Mapping[str, JsonValue],
+        about: ResolveContext | None,
+        bound: Mapping[str, ParamValue],
+        stale: list[MovedParentError] | None,
+    ) -> BoundValues:
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(by_name[search_name].parameters or [])
+
+        return await read_under_parents(
+            fetch_at, stated, NoFilterReads(), about=about, bound=bound, stale=stale
+        )
+
     async def _read(
         _site_id: str,
         search_name: str,
         stated: Mapping[str, JsonValue] | None,
         *,
+        about: ResolveContext | None,
         record_type: str | None = None,
         bound: Mapping[str, ParamValue],
-    ) -> dict[str, ParamValue]:
+    ) -> BoundValues:
         del record_type
         if not stated:
-            return {}
+            return NOTHING_READ
+        return await _read_on(search_name, stated, about, bound, None)
 
-        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
-            return list(by_name[search_name].parameters or [])
-
-        return await read_under_parents(fetch_at, stated, NoFilterReads(), bound=bound)
+    async def _context(
+        _site_id: str,
+        search_name: str,
+        stated: Mapping[str, JsonValue] | None,
+        *,
+        about: ResolveContext | None,
+        record_type: str | None = None,
+        bound: Mapping[str, ParamValue],
+    ) -> tuple[BoundValues, list[MovedParentError]]:
+        del record_type
+        stale: list[MovedParentError] = []
+        if not stated:
+            return NOTHING_READ, stale
+        return await _read_on(search_name, stated, about, bound, stale), stale
 
     monkeypatch.setattr(_stated_values, "read_stated_parameters", _read)
+    monkeypatch.setattr(_stated_values, "read_stated_context", _context)

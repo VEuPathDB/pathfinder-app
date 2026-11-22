@@ -6,7 +6,7 @@ from collections.abc import Generator
 
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb_mcp.gene_lookup import list_organisms
+from veupathdb_mcp.catalog import list_organisms
 
 from strategist.domain.strategy.organism_phrases import stated_organisms
 from strategist.tests._support.site_organisms import recorded_organisms

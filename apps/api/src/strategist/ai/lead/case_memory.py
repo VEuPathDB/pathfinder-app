@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from assistant_core.memory.autowrite import MemoryCandidate
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.tombstones import compute_content_hash
-from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_PARAM, to_wire
+from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_PARAM, shown_stated, to_wire
 
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.graph.turn_records import ZeroResultStep
@@ -85,7 +85,7 @@ def _params(
         wire = to_wire(value)
         held = patterns.get(wire) if name == PHYLETIC_EXPRESSION_PARAM else None
         params[name] = (
-            wire
+            shown_stated(value)
             if held is None
             else {"pattern": held.model_dump(mode="json", by_alias=True)["pattern"]}
         )

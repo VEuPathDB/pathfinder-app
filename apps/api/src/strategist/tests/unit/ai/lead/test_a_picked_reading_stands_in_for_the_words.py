@@ -9,7 +9,8 @@ from typing import Any
 import pytest
 from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
 from veupathdb.domain.parameters import ParamValue, StringValue
-from veupathdb_mcp.catalog import ParameterInfo, ValidatedParams
+from veupathdb.wdk import WDKParameter, WDKStringParam
+from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, ValidatedParams
 
 from strategist.ai.agents.verification import (
     pinned_researcher_request,
@@ -47,7 +48,7 @@ from strategist.domain.strategy.readings import (
     Reading,
     ReadingChooser,
 )
-from strategist.services.strategies import reading_check
+from strategist.services.strategies import reading_check, sheet_params
 from strategist.tests._support.requirement_values import without_ids
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
@@ -110,8 +111,15 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del callbacks
         return ValidatedParams(params=dict(stated))
 
+    def _fetch_at(_site_id: str, _record_type: str, _search: str) -> ParamFetcher:
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return [WDKStringParam(name=_EXPRESSION)]
+
+        return fetch_at
+
     monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
+    monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
 
 
 def _plasmodium(

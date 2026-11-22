@@ -13,9 +13,9 @@ from assistant_core.graph.turn_state import (
     PendingApproval,
     UserQuestionAnswer,
 )
-from veupathdb.domain.parameters import NumberValue, StringValue
+from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp, flatten_tree
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import lead_consult
@@ -42,6 +42,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.question_options import Keep, TypedOption, Withdraw
 from strategist.domain.strategy.questions import OpenQuestion, SlotQuestion
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
@@ -63,7 +64,7 @@ _REPLY = "One value decides the trophozoite step, so I ask it before I build."
 def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
     """A recorded RNA-Seq percentile sheet stands in for the trophozoite search:
     the two recorded percentile searches publish the floor alike."""
-    sheet = format_param_info_typed(
+    sheet = sheet_of(
         suite_search("search_genes_by_rnaseq_gomez_diaz_percentile").parameters or []
     )
 
@@ -287,7 +288,7 @@ class TestAnAnswerAppliesItsBinding:
         troph = next(c for c in spec.criteria if c.id == "c_troph")
 
         rebound = bound_values(
-            {_FLOOR: NumberValue(value=1)},
+            {_FLOOR: StringValue(value="1")},
             infos=[],
             site_supplied=set(),
             request_texts=["Also require that they are expressed in trophozoites."],
@@ -296,7 +297,7 @@ class TestAnAnswerAppliesItsBinding:
         )
 
         assert rebound[_FLOOR] == BoundValue(
-            value=NumberValue(value=1), source="card", basis="1"
+            value=StringValue(value="1"), source="card", basis="1"
         )
 
     async def test_a_withdraw_option_retires_the_requirement(self) -> None:

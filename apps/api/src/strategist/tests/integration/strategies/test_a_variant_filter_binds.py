@@ -29,6 +29,7 @@ _RARE_VARIANTS: JsonValue = [
 
 async def _count(site_id: str, stated: dict[str, JsonValue]) -> int | None:
     resolved = await resolve_params_with_intent(
+        about=None,
         fetch_at=wdk_fetch_at(site_id, "transcript", _SEARCH),
         filter_reads=WDKFilterReads(site_id, "transcript", _SEARCH),
         intent=ParamIntent(),

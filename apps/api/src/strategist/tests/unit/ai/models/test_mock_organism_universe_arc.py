@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from pydantic_ai.messages import ToolCallPart
 from veupathdb.domain.parameters import MultiPickValue
-from veupathdb_mcp.catalog import SheetEntry, format_param_info_typed
+from veupathdb_mcp.catalog import SheetEntry
 
 from strategist.ai.agents.state import AgentToolState, SearchOverview
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
@@ -30,6 +30,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.organism_reads import serve_organism_reads
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 from strategist.tests._support.site_organisms import recorded_organisms
 from strategist.tests._support.tool_returns import returned
@@ -69,7 +70,7 @@ def _marked(search_name: str) -> str | None:
         if search_name == "GenesByGeneModelChars"
         else suite_search("search_genes_with_signal_peptide")
     )
-    infos = format_param_info_typed(definition.parameters or [])
+    infos = sheet_of(definition.parameters or [])
     return next((i.name for i in infos if i.organism_param), None)
 
 

@@ -25,7 +25,7 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import PhyleticPattern
 from veupathdb_mcp.testing import ORTHOMCL_GROUP_CLOUDS
 
-from strategist.tests._support.orthomcl_counts import SITE
+from strategist.tests._support.orthomcl_counts import ORTHOMCL_RECORD_TYPES, SITE
 from strategist.tests._support.qa_recording import client_recording, qa_recording
 
 TAXON_PARAM = "taxon_type_ahead"
@@ -177,6 +177,9 @@ def served_genus_clouds() -> Iterator[GenusClouds]:
     sequences = f"{service}/record-types/sequence/searches/ByTaxonomy/reports"
     with respx.mock(assert_all_mocked=True, assert_all_called=False) as router:
         router.get(f"{site.web_base_url}/app").mock(return_value=httpx.Response(200))
+        router.get(f"{service}/record-types").mock(
+            return_value=httpx.Response(200, json=ORTHOMCL_RECORD_TYPES)
+        )
         router.post(
             f"{service}/record-types/{ORTHO_TAXONOMY_RECORD_TYPE}/searches/"
             f"{ORTHO_TAXONOMY_SEARCH}/reports/standard"

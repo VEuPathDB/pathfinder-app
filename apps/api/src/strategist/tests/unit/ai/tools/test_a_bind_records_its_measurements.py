@@ -9,7 +9,7 @@ from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import FilterValue, SinglePickValue, StringMembers
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count, frame_spec
@@ -21,6 +21,7 @@ from strategist.domain.strategy.operational_spec import (
     Measurement,
 )
 from strategist.domain.value_caveats import assumed_value_caveats
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     PERCENTILE_SEARCH,
     percentile_count,
@@ -49,7 +50,7 @@ _PARAMS: dict[str, JsonValue] = {
 
 
 def _sheet() -> list[ParameterInfo]:
-    return format_param_info_typed(list(_PERCENTILE.parameters or []))
+    return sheet_of(list(_PERCENTILE.parameters or []))
 
 
 def _serve(
@@ -269,7 +270,7 @@ _SAMPLES = "variation_sample_meta"
 
 
 def _snps_sheet() -> list[ParameterInfo]:
-    return format_param_info_typed(list(_SNPS.parameters or []))
+    return sheet_of(list(_SNPS.parameters or []))
 
 
 async def _fetch_snps(_context: dict[str, str]) -> list[WDKParameter]:

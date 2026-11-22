@@ -6,9 +6,8 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.parameters import MultiPickValue, PhrasingMatch, VocabLookup
 from veupathdb.wdk import WDKParameter, WDKSearch
-from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.models.mock.site_values import SiteValues
@@ -21,6 +20,7 @@ from strategist.ai.models.mock.strategy_specs import (
 )
 from strategist.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
+from strategist.tests._support.param_infos import sheet_of
 
 _PARAM = "go_typeahead"
 _GO_LABELS = [
@@ -117,7 +117,7 @@ def _refusals(values: SiteValues, request: str) -> list[str]:
                 state,
                 WDKSearch(url_segment=GO_TERM, parameters=[param]),
                 call,
-                format_param_info_typed([param]),
+                sheet_of([param]),
             )
         except ModelRetry as refusal:
             refused.append(refusal.message)

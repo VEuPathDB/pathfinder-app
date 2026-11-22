@@ -20,7 +20,7 @@ from veupathdb.wdk import (
     WDKSearch,
     phyletic_tree_of,
 )
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -34,6 +34,7 @@ from strategist.services.strategies.measurements import (
     TurnCounts,
     measure_binding,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     CRYPTO_IOWA,
     GIARDIA_WB,
@@ -58,7 +59,7 @@ _PROFILESET = (
 
 
 def _sheet(search: WDKSearch) -> list[ParameterInfo]:
-    return format_param_info_typed(list(search.parameters or []))
+    return sheet_of(list(search.parameters or []))
 
 
 def _percentile_params(min_value: str) -> dict[str, ParamValue]:

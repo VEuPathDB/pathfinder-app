@@ -9,7 +9,11 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping
 from typing import NamedTuple
 
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import (
+    HeldValue,
+    ParamValue,
+    to_wire,
+)
 from veupathdb.domain.strategy import CombineOp, StepKind
 
 from strategist.domain.strategy.combination_check import meeting_operator
@@ -152,12 +156,14 @@ def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]
         if c.kind is ConstraintKind.COUNT
         for p in linked_params(c, spec.criteria)
     }
-    found: dict[str, str] = {}
-    for name, value in criterion.param_values.items():
-        wire = to_wire(value)
-        if (name, wire) in grounded:
-            found[name] = wire
-    return found
+    return {
+        name: to_wire(value)
+        for name, value in criterion.param_values.items()
+        if any(
+            grounded_name == name and value == HeldValue(wire=grounded_wire)
+            for grounded_name, grounded_wire in grounded
+        )
+    }
 
 
 class StatedCriterion(NamedTuple):
@@ -189,8 +195,15 @@ class ValueContradiction(NamedTuple):
 
     criterion_text: str
     parameter: str
-    stated: str
-    written: str
+    stated: ParamValue
+    written: ParamValue
+
+    def repeats(self, other: ValueContradiction | None) -> bool:
+        return (
+            other is not None
+            and self.stated == other.stated
+            and self.written == other.written
+        )
 
 
 def contradicted_values(
@@ -214,13 +227,13 @@ def contradicted_values(
         parameters = held.get(criterion_id, step.parameters)
         for name, value in criterion.values.items():
             written = parameters.get(name)
-            if written is None or to_wire(written) == to_wire(value):
+            if written is None or written == value:
                 continue
             found[(criterion_id, name)] = ValueContradiction(
                 criterion_text=criterion.text,
                 parameter=name,
-                stated=to_wire(value),
-                written=to_wire(written),
+                stated=value,
+                written=written,
             )
     return found
 
@@ -240,12 +253,12 @@ def new_value_contradiction(
     the catalog moves under a stated one is judged too.
     """
     for pair, found in contradicted_values(stated, graph, after).items():
-        if before.get(pair) == found:
+        if found.repeats(before.get(pair)):
             continue
         return (
             f"the criterion {found.criterion_text!r} states "
-            f"{found.parameter} = {found.stated!r}, and this write sends "
-            f"{found.written!r}, so the strategy would answer a different "
+            f"{found.parameter} = {to_wire(found.stated)!r}, and this write sends "
+            f"{to_wire(found.written)!r}, so the strategy would answer a different "
             f"question. A value the spec states changes in the spec first "
             f"(set_criterion, in the framing pass). {_THROUGH_THE_SPEC}"
         )

@@ -133,10 +133,15 @@ async def test_a_page_past_the_paged_ceiling_returns_described_records(
         "plasmodb", "kinase", organisms=[ORGANISM], limit=1
     )
     first = await lookup_genes_by_text(
-        "plasmodb", "kinase", organism=ORGANISM, offset=0, limit=PAGE_SIZE
+        "plasmodb", "kinase", organism=ORGANISM, offset=0, limit=PAGE_SIZE, about=None
     )
     deep = await lookup_genes_by_text(
-        "plasmodb", "kinase", organism=ORGANISM, offset=DEEP_PAGE, limit=PAGE_SIZE
+        "plasmodb",
+        "kinase",
+        organism=ORGANISM,
+        offset=DEEP_PAGE,
+        limit=PAGE_SIZE,
+        about=None,
     )
     deep_ids = [record.gene_id for record in deep.records]
 

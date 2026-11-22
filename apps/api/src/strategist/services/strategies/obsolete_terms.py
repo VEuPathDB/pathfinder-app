@@ -7,7 +7,7 @@ import re
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
-from veupathdb.domain.parameters import MAX_NEAREST_ENTRIES, nearest_entries
+from veupathdb.domain.parameters import SHOWN_CANDIDATES, rank_entries
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import Measurement
@@ -72,15 +72,17 @@ def obsolete_picks(
         if m.kind != "vocabulary_label" or info is None or not _says_obsolete(m.label):
             continue
         current = [o for o in info.vocabulary() if not _says_obsolete(o.display)]
-        near = set(
-            nearest_entries(current, _without_the_word(m.label), MAX_NEAREST_ENTRIES)
-        )
         found.append(
             ObsoletePick(
                 param=m.param,
                 term=m.reading,
                 label=m.label,
-                nearest=[o.display for o in current if {o.value, o.display} & near],
+                nearest=[
+                    o.display
+                    for o in rank_entries(
+                        current, _without_the_word(m.label), SHOWN_CANDIDATES
+                    )
+                ],
             )
         )
     return found

@@ -15,9 +15,7 @@ from assistant_core.persistence.models import (
 from assistant_core.platform.db import async_session_factory
 from assistant_core.tasks.progress import TaskProgressEmitter
 from sqlalchemy import select
-from veupathdb.domain.parameters import VocabOption
-from veupathdb.wdk import WDKSearchConfig, WDKStep
-from veupathdb_mcp.catalog import ParameterInfo
+from veupathdb.wdk import WDKEnumParam, WDKParameter, WDKSearchConfig, WDKStep
 
 from strategist.jobs.impls import optimize_params_impl
 from strategist.persistence.models import User
@@ -131,16 +129,14 @@ class _Api:
         )
 
 
-def _knob(choices: list[str]) -> ParameterInfo:
-    return ParameterInfo(
-        name="knob",
-        display_name="knob",
-        type="single-pick-vocabulary",
-        required=True,
-        is_visible=True,
-        site_set=False,
-        help="",
-        allowed_values=[VocabOption(value=c, display=c) for c in choices],
+def _knob(choices: list[str]) -> WDKParameter:
+    return WDKEnumParam.model_validate(
+        {
+            "name": "knob",
+            "type": "single-pick-vocabulary",
+            "displayType": "select",
+            "vocabulary": [[c, c, None] for c in choices],
+        }
     )
 
 
@@ -173,11 +169,11 @@ def run_impl(
 
         async def read(
             site_id: str, record_type: str, search_name: str
-        ) -> list[ParameterInfo]:
+        ) -> list[WDKParameter]:
             del site_id, record_type, search_name
             return [knob]
 
-        monkeypatch.setattr(tunable, "search_parameter_metadata", read)
+        monkeypatch.setattr(tunable, "search_declarations", read)
 
         async with async_session_factory() as session:
             saved = await create_control_set(
@@ -353,11 +349,11 @@ async def test_a_saved_control_set_is_read_whole_on_the_worker(
 
     async def read(
         site_id: str, record_type: str, search_name: str
-    ) -> list[ParameterInfo]:
+    ) -> list[WDKParameter]:
         del site_id, record_type, search_name
         return [_knob(["c0", "c1"])]
 
-    monkeypatch.setattr(tunable, "search_parameter_metadata", read)
+    monkeypatch.setattr(tunable, "search_declarations", read)
     scored: list[tuple[list[str] | None, list[str] | None]] = []
 
     async def fake_run_trial(

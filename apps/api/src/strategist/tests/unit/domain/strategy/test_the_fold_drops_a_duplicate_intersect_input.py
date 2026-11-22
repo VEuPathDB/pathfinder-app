@@ -3,9 +3,14 @@ so the structure fold drops it and records it as met by the sibling."""
 
 from __future__ import annotations
 
+from itertools import permutations
+
+import pytest
+from veupathdb.domain.parameters import HeldValue, NumberValue, ParamValue
 from veupathdb.domain.strategy import CombineOp
 
 from strategist.domain.strategy.operational_spec import (
+    BoundValue,
     OperationalSpec,
     SpecStructure,
     StructureNode,
@@ -165,3 +170,34 @@ def test_the_orthology_round_trip_keeps_its_copy() -> None:
 
     assert folded.structure == spec.structure
     assert _dropped(folded) == []
+
+
+@pytest.mark.parametrize("order", list(permutations(range(3))))
+def test_a_value_held_in_two_writings_folds_alike_in_any_order(
+    order: tuple[int, ...],
+) -> None:
+    minimums: list[ParamValue] = [
+        HeldValue(wire="70"),
+        HeldValue(wire="70.0"),
+        NumberValue(value=70),
+    ]
+    ids = [f"step_c0ffee0{i}" for i in range(3)]
+    criteria = [
+        blood_stage(cid).model_copy(
+            update={
+                "resolved_params": {
+                    **blood_stage(cid).resolved_params,
+                    "min_expression_percentile": BoundValue(
+                        value=minimum, source="chosen"
+                    ),
+                }
+            }
+        )
+        for cid, minimum in zip(ids, minimums, strict=True)
+    ]
+    root = join(CombineOp.INTERSECT, *(leaf(ids[i]) for i in order))
+    spec = OperationalSpec(criteria=criteria, structure=SpecStructure(root=root))
+
+    folded = fold_duplicate_inputs(spec, SpecStructure(root=root), live_step_ids=())
+
+    assert len(folded.dropped) == 1

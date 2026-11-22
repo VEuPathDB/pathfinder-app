@@ -3,7 +3,9 @@ from __future__ import annotations
 from veupathdb.domain.parameters import ParamValue, PhyleticTree, StringValue
 from veupathdb.wdk import phyletic_tree_of
 
-from strategist.ai.agents.frame_pick_checks import hold_an_unsettled_pick_to_a_question
+from strategist.ai.agents.frame_genome_checks import (
+    hold_the_genome_reading_to_a_question,
+)
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.recorded_cards import card_questions
 from strategist.domain.strategy.genome_group import GenomeGroup
@@ -78,7 +80,7 @@ def _held(criterion: Criterion) -> tuple[FrameResult, list[OpenQuestion]]:
         ),
     )
     ctx.deps.agent_state.operational_spec_draft = draft
-    held = hold_an_unsettled_pick_to_a_question(ctx, FrameResult(summary="framed"))
+    held = hold_the_genome_reading_to_a_question(ctx, FrameResult(summary="framed"))
     assert isinstance(held, FrameResult)
     return held, held.questions(ctx.deps.agent_state.operational_spec_draft)
 
@@ -120,7 +122,7 @@ def test_the_strict_binding_stays_while_it_waits() -> None:
         ),
     )
 
-    hold_an_unsettled_pick_to_a_question(ctx, FrameResult(summary="framed"))
+    hold_the_genome_reading_to_a_question(ctx, FrameResult(summary="framed"))
 
     [held] = ctx.deps.agent_state.operational_spec_draft.criteria
     assert held.param_values == criterion.param_values

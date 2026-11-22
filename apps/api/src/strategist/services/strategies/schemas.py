@@ -20,8 +20,8 @@ from strategist.domain.strategy.step_words import StepWords
 from strategist.services.eda.export import exported_analysis
 
 
-class StepResponse(CamelModel):
-    """Strategy step - WDK-aligned fields."""
+class StepFields(CamelModel):
+    """Strategy step - WDK-aligned fields, except its parameter values."""
 
     id: str
     kind: str | None = None
@@ -32,7 +32,6 @@ class StepResponse(CamelModel):
     rationale: StepRationale | None = None
     search_name: str | None = None
     record_type: str | None = None
-    parameters: dict[str, ParamValue] | None = None
     operator: str | None = None
     colocation_params: ColocationParams | None = None
     primary_input_step_id: str | None = None
@@ -53,6 +52,12 @@ class StepResponse(CamelModel):
     analyses: list[StepAnalysis] | None = None
     expanded_strategy_id: int | None = None
     expanded_name: str | None = None
+
+
+class StepResponse(StepFields):
+    """Strategy step - WDK-aligned fields."""
+
+    parameters: dict[str, ParamValue] | None = None
 
 
 def step_rationale_of(

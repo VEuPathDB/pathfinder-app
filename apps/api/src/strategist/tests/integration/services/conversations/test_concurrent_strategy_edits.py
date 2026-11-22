@@ -357,8 +357,9 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
         context: Any,
         held_validation: Any,
         callbacks: Any,
+        about: Any,
     ) -> ValidatedParams:
-        del context, held_validation, callbacks
+        del context, held_validation, callbacks, about
         return ValidatedParams(params=dict(stated), record_class="transcript")
 
     monkeypatch.setattr(spec_build, "validate_parameters", _passthrough_validation)

@@ -14,6 +14,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
+from veupathdb_mcp.catalog import ResolveContext
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import ControlTestRun
@@ -44,9 +45,13 @@ def asked(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     seen: list[str] = []
 
     async def _read(
-        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+        site_id: str,
+        gene_id: str,
+        *,
+        ortholog_organism: str | None = None,
+        about: ResolveContext | None = None,
     ) -> GeneRecordSummary:
-        del site_id, ortholog_organism
+        del site_id, ortholog_organism, about
         seen.append(gene_id)
         return _record(gene_id)
 
@@ -258,9 +263,13 @@ async def test_a_read_the_site_did_not_answer_is_not_counted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def _unanswered(
-        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+        site_id: str,
+        gene_id: str,
+        *,
+        ortholog_organism: str | None = None,
+        about: ResolveContext | None = None,
     ) -> GeneRecordSummary:
-        del ortholog_organism
+        del ortholog_organism, about
         raise read.UnknownGeneRecordError(site_id, gene_id)
 
     ctx = agent_run_context()

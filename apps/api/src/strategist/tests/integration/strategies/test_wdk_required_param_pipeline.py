@@ -54,6 +54,7 @@ async def test_layer3_validate_parameters_relays_wdks_refusal(
             SearchContext("plasmodb", "transcript", "GenesByText"),
             stated={},
             callbacks=make_validation_callbacks("plasmodb"),
+            about=None,
         )
 
     # WDK judged the values while answering, and its bundle names every empty
@@ -96,6 +97,7 @@ async def test_validate_parameters_autofills_hidden_document_type(
             ),
         },
         callbacks=make_validation_callbacks("plasmodb"),
+        about=None,
     )
     assert "document_type" in result.params
     assert result.params["document_type"].to_decoded() == "gene"

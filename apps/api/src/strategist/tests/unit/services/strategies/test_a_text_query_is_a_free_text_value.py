@@ -18,7 +18,7 @@ from veupathdb.domain.parameters import (
 from veupathdb.errors import WDKError
 from veupathdb.testing.fixture_store import FIXTURE_ROOT
 from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -29,6 +29,7 @@ from strategist.services.strategies import search_sheets
 from strategist.services.strategies.parameter_rules import text_query
 from strategist.services.strategies.search_sheets import search_definitions
 from strategist.tests._support.logs import logged_events
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.qa_recording import qa_recording
 from strategist.tests._support.recorded_searches import suite_search
 
@@ -88,7 +89,7 @@ def test_a_placeholder_go_term_is_no_text_query() -> None:
 
 
 def _recorded(fixture: str) -> list[ParameterInfo]:
-    return format_param_info_typed(suite_search(fixture).parameters or [])
+    return sheet_of(suite_search(fixture).parameters or [])
 
 
 def test_the_radio_off_domain_accession_is_no_text_query() -> None:
@@ -153,7 +154,7 @@ def _location_search() -> WDKSearch:
 
 
 def _location_sheet() -> list[ParameterInfo]:
-    return format_param_info_typed(_location_search().parameters or [])
+    return sheet_of(_location_search().parameters or [])
 
 
 def test_a_location_step_at_its_placeholder_sequence_binds_no_text_query() -> None:

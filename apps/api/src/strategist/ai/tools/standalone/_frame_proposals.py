@@ -2,40 +2,41 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
+from difflib import get_close_matches
 
 from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import (
-    MAX_NEAREST_ENTRIES,
-    PHYLETIC_LIST_PARAMS,
-    MultiPickValue,
+    KeptValue,
     ParamValue,
     SinglePickValue,
     StringValue,
-    VocabOption,
-    accession_matches,
-    match_exact_option,
-    nearest_entries,
+    VocabularyEntryError,
+    entry_name,
+    stated_form,
 )
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
     RADIO_OFF,
+    BoundValues,
     FilterReads,
     ParameterInfo,
     ParamFetcher,
     ParamIntent,
     PhyleticListError,
+    Provenance,
     RadioPairIssue,
+    ResolveContext,
     ResolvedParams,
     UnknownParameterError,
     WDKFilterReads,
     check_radio_pairs,
-    is_phyletic_sheet,
     radio_pairs,
     read_under_parents,
     resolve_params_with_intent,
@@ -49,8 +50,9 @@ from strategist.ai.tools.standalone._catalog_elsewhere import (
     reach_sentence,
     tree_tops,
 )
-from strategist.ai.tools.standalone._vocab_resolution import bound_proposal
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
+from strategist.domain.strategy.genome_group_steps import criterion_as_stated
+from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
 from strategist.services.strategies.user_dataset_searches import (
     dataset_parameter,
@@ -69,33 +71,142 @@ class CriterionCall:
     text: str
     params: dict[str, JsonValue]
     values: dict[str, ParamValue] = field(default_factory=dict)
+    held: dict[str, BoundValue] = field(default_factory=dict)
+    held_names: frozenset[str] = frozenset()
 
     def terms(self, name: str) -> list[str]:
         return pick_terms(self.values[name]) if name in self.values else []
 
     def with_values(self, values: Mapping[str, ParamValue]) -> CriterionCall:
-        decoded = {name: value.to_decoded() for name, value in values.items()}
-        return replace(
-            self,
-            params={**self.params, **decoded},
-            values={**self.values, **values},
-        )
+        params = {n: v for n, v in self.params.items() if n not in values}
+        for name, value in values.items():
+            match stated_form(value):
+                case KeptValue():
+                    pass
+                case form:
+                    params[name] = form
+        return replace(self, params=params, values={**self.values, **values})
+
+    def with_read(self, values: BoundValues) -> CriterionCall:
+        params = {
+            name: given
+            for name, given in self.params.items()
+            if name not in values or not _kept(values[name])
+        }
+        return replace(self, params=params, values=dict(values))
+
+
+def _kept(value: ParamValue) -> bool:
+    match stated_form(value):
+        case KeptValue():
+            return True
+        case _:
+            return False
+
+
+def held_binding(
+    state: AgentToolState, call: CriterionCall, infos: list[ParameterInfo]
+) -> dict[str, BoundValue]:
+    held = next(
+        (
+            c
+            for c in state.operational_spec_draft.criteria
+            if c.id == call.criterion_id and c.search_name == call.search_name
+        ),
+        None,
+    )
+    bindable = {info.name for info in infos if info.bindable}
+    if held is None:
+        return {}
+    return {
+        name: bound
+        for name, bound in criterion_as_stated(held).resolved_params.items()
+        if name in bindable
+    }
+
+
+def with_held(call: CriterionCall, held: Mapping[str, BoundValue]) -> CriterionCall:
+    unstated = {n: b.value for n, b in held.items() if n not in call.params}
+    return replace(
+        call.with_values(unstated), held=dict(held), held_names=frozenset(unstated)
+    )
+
+
+def keeping_held(
+    resolved: ResolvedParams, call: CriterionCall, held: Mapping[str, BoundValue]
+) -> ResolvedParams:
+    kept = {n: b.value for n, b in held.items() if n not in call.params}
+    return resolved.model_copy(
+        update={
+            "params": {**resolved.params, **kept},
+            "provenance": {
+                **resolved.provenance,
+                **dict.fromkeys(kept, Provenance.STATED),
+            },
+        }
+    )
 
 
 def _filter_reads(search: SearchContext) -> FilterReads:
     return WDKFilterReads(search.site_id, search.record_type, search.search_name)
 
 
+async def _entry_refusal(
+    definition: WDKSearch,
+    refusal: VocabularyEntryError,
+    state: AgentToolState,
+    site_id: str,
+) -> str:
+    name, first = refusal.faults[0]
+    others = await _other_sites_holding(site_id, definition, name, first.phrase)
+    if not others:
+        return f"{refusal.detail} Nothing was recorded."
+    state.portal_route = portal_route_sentence(site_id)
+    return (
+        f"{refusal.detail} {reach_sentence(definition, name, site_id, first.phrase)} "
+        f"{first.phrase} is on {joined(others)}. A conversation stays on its "
+        f"site: bind nothing for this criterion, ask no question about it, and "
+        f"write this in the summary word for word, link included: "
+        f"{state.portal_route} Nothing was recorded."
+    )
+
+
 async def read_call(
-    search: SearchContext, fetch_at: ParamFetcher, call: CriterionCall
-) -> CriterionCall:
+    search: SearchContext,
+    fetch_at: ParamFetcher,
+    call: CriterionCall,
+    *,
+    definition: WDKSearch,
+    state: AgentToolState,
+    about: ResolveContext,
+) -> tuple[CriterionCall, dict[str, BoundValue]]:
     stated = {name: v for name, v in call.params.items() if v is not None}
     try:
-        values = await read_under_parents(fetch_at, stated, _filter_reads(search))
+        values = await read_under_parents(
+            fetch_at,
+            stated,
+            _filter_reads(search),
+            about=about,
+            bound={
+                name: bound.value
+                for name, bound in call.held.items()
+                if name not in call.params or call.params[name] is not None
+            },
+        )
+    except VocabularyEntryError as exc:
+        msg = await _entry_refusal(definition, exc, state, search.site_id)
+        raise ModelRetry(msg) from exc
     except ValidationError as exc:
         msg = f"{exc.detail or exc.title} Nothing was recorded."
         raise ModelRetry(msg) from exc
-    return replace(call, values=values)
+    read = call.with_read(values)
+    given_back = {name for name in call.params if name not in read.params}
+    kept = {
+        name: bound
+        for name, bound in call.held.items()
+        if name in call.held_names or name in given_back
+    }
+    return read, kept
 
 
 def _bindable(infos: list[ParameterInfo]) -> list[str]:
@@ -125,11 +236,7 @@ def refuse_unknown_names(call: CriterionCall, infos: list[ParameterInfo]) -> Non
     bindable = _bindable(infos)
     unknown = sorted(set(call.params) - set(bindable))
     if unknown:
-        nearest = nearest_entries(
-            [VocabOption(value=name, display="") for name in bindable],
-            unknown[0],
-            MAX_NEAREST_ENTRIES,
-        )
+        nearest = get_close_matches(unknown[0], bindable, n=5, cutoff=0.0)
         msg = (
             f"No such parameter(s) on {call.search_name}: {unknown}. Nearest: "
             f"{nearest}. The valid names are listed above; "
@@ -141,7 +248,7 @@ def refuse_unknown_names(call: CriterionCall, infos: list[ParameterInfo]) -> Non
 def refuse_undecided(call: CriterionCall, infos: list[ParameterInfo]) -> None:
     """Every bindable required parameter needs a value or a null."""
     required = {i.name for i in infos if i.bindable and i.required}
-    undecided = sorted(required - set(call.params))
+    undecided = sorted(required - set(call.params) - set(call.values))
     if undecided:
         msg = (
             f"Decide every required parameter of {call.search_name}: missing "
@@ -151,107 +258,16 @@ def refuse_undecided(call: CriterionCall, infos: list[ParameterInfo]) -> None:
         raise ModelRetry(msg)
 
 
-def _unmatched_retry(
-    search_name: str, info: ParameterInfo, options: list[VocabOption], terms: list[str]
-) -> tuple[str, str] | None:
-    """The first proposed term that is no entry, and the retry it earns."""
-    unmatched = [term for term in terms if match_exact_option(options, term) is None]
-    if not unmatched:
-        return None
-    shared = accession_matches(options, unmatched[0])
-    if len(shared) > 1:
-        return unmatched[0], (
-            f"{info.name} on {search_name}: {len(shared)} entries share the "
-            f"accession {unmatched[0]!r}; copy the full value of the one you mean: "
-            f"{shared[:MAX_NEAREST_ENTRIES]}."
-        )
-    return unmatched[0], (
-        f"{info.name} on {search_name} has no entry that states {unmatched}. "
-        f"Read its entries with get_parameter_options and pass one of them exactly."
-    )
-
-
-def refuse_unmatched_value(
-    search_name: str, info: ParameterInfo, options: list[VocabOption], terms: list[str]
-) -> None:
-    """A proposed vocabulary value is one of the entries, not a substring."""
-    retry = _unmatched_retry(search_name, info, options, terms)
-    if retry is not None:
-        raise ModelRetry(retry[1])
-
-
-def _with_terms(held: ParamValue, terms: list[str]) -> ParamValue:
-    match held:
-        case MultiPickValue():
-            return MultiPickValue(values=terms)
-        case _:
-            return SinglePickValue(value=terms[0])
-
-
-async def bound_vocabulary_values(
-    site_id: str,
-    definition: WDKSearch,
-    call: CriterionCall,
-    infos: list[ParameterInfo],
-    derived: frozenset[str],
-    state: AgentToolState,
-) -> CriterionCall:
-    """Binds every proposal the sheet's own vocabulary can answer, and refuses one
-    no entry states.
-
-    A proposal that is no entry is bound to the entry the catalog's pick settles.
-
-    A dependent parameter is skipped here: the sheet showed its vocabulary under
-    the search defaults, and ``reconcile_dependents`` checks it against the one
-    the bound parents produce. A filter parameter takes a facet expression, not
-    a vocabulary entry. A ``derived`` parameter is a species list the
-    resolver reads against the tree, which names no single entry. A refusal that
-    sends the request to the portal is recorded on the pass. A user-dataset
-    parameter is checked against the researcher's own uploads instead.
-    """
-    owned = await _refuse_an_upload_the_researcher_lacks(site_id, definition, call)
-    for info in infos:
-        options = info.vocabulary()
-        skip = (
-            info.name in derived
-            or info.name == owned
-            or info.stated_parents
-            or info.param_kind == "filter"
-            or not options
-        )
-        terms = call.terms(info.name)
-        if skip or not terms:
-            continue
-        bound = await bound_proposal(site_id, call.search_name, info, terms)
-        call = call.with_values({info.name: _with_terms(call.values[info.name], bound)})
-        retry = _unmatched_retry(call.search_name, info, options, bound)
-        if retry is not None:
-            value, msg = retry
-            others = await _other_sites_holding(site_id, definition, info.name, value)
-            if others:
-                state.portal_route = portal_route_sentence(site_id)
-                msg += (
-                    f" {reach_sentence(definition, info.name, site_id, value)} "
-                    f"{value} is on {joined(others)}. A conversation stays on its "
-                    f"site: bind nothing for this criterion, ask no question about "
-                    f"it, and write this in the summary word for word, link "
-                    f"included: {state.portal_route}"
-                )
-            raise ModelRetry(msg)
-    return call
-
-
-async def _refuse_an_upload_the_researcher_lacks(
+async def refuse_an_upload_the_researcher_lacks(
     site_id: str, definition: WDKSearch, call: CriterionCall
-) -> str | None:
-    """The dataset parameter of a user-dataset search, once its value is an upload
-    the researcher owns; None for every other search.
+) -> None:
+    """A user-dataset search binds an upload the researcher owns.
 
     Its vocabulary is per account, so the cached sheet cannot check it.
     """
     parameter = dataset_parameter(definition)
     if parameter is None:
-        return None
+        return
     offers = await user_dataset_offers(site_id, call.search_name)
     if not offers:
         types = ", ".join(sorted(user_dataset_types(definition)))
@@ -264,7 +280,7 @@ async def _refuse_an_upload_the_researcher_lacks(
         raise ModelRetry(msg)
     match call.values.get(parameter.name):
         case SinglePickValue(value=value) if value in {o.value for o in offers}:
-            return parameter.name
+            return
         case _:
             uploads = ", ".join(
                 f"{o.upload_name!r} ({o.value})" for o in offers[:LISTING_PAGE]
@@ -297,10 +313,6 @@ async def _other_sites_holding(
     return [held for held in holders if held != site_id]
 
 
-def species_lists(infos: list[ParameterInfo]) -> frozenset[str]:
-    return PHYLETIC_LIST_PARAMS if is_phyletic_sheet(infos) else frozenset()
-
-
 def _said(value: ParamValue) -> str | list[str]:
     match value:
         case StringValue(value=text):
@@ -327,15 +339,16 @@ def radio_overrides(
 
 
 def _published_default(infos: list[ParameterInfo], name: str) -> str | None:
-    """The default value the search publishes for a param, or ``None`` for none.
+    """The default the search publishes for a param, as it is stated, or
+    ``None`` for none.
 
     An empty list and a blank string are refused by the search that publishes
     them, so neither states a value the query would use.
     """
-    published = next((i.default_value for i in infos if i.name == name), None)
-    if published is None or published.strip() in ("", "[]"):
+    published = next((i.default for i in infos if i.name == name), None)
+    if published in (None, "", []):
         return None
-    return published
+    return json.dumps(published)
 
 
 def _radio_retry(
@@ -351,7 +364,8 @@ def _radio_retry(
     )
     in_vocabulary = (
         f"the criterion in {pair.vocabulary} (nearest entries for "
-        f"{issue.free_value!r}: {issue.nearest}; for a wildcard use "
+        f"{issue.free_value!r}: {[entry_name(e) for e in issue.nearest]}; for a "
+        f"wildcard use "
         f"get_parameter_options({call.search_name}, '{pair.vocabulary}', "
         f"query=[<every phrasing of the concept>]) and list the entries a phrase "
         f"matched) and pass {RADIO_OFF} for {pair.free_text}."
@@ -382,12 +396,14 @@ async def resolve_proposals(
     fetch_at: ParamFetcher,
     call: CriterionCall,
     radio: Mapping[str, str],
+    about: ResolveContext,
 ) -> ResolvedParams:
     """The binding the catalog resolves from every stated value and the off value
     of each radio half."""
     stated = {name: v for name, v in call.params.items() if v is not None}
     try:
         return await resolve_params_with_intent(
+            about=about,
             fetch_at=fetch_at,
             filter_reads=_filter_reads(search),
             intent=ParamIntent(text=call.text),

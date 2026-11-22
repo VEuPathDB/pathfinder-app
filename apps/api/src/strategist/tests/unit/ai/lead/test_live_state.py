@@ -152,7 +152,7 @@ async def test_the_step_reports_the_parameter_value_that_is_stored(
     live = await read_live_state(_session(), _SITE_ID)
 
     su = next(step for step in live.steps if step.step_id == _SU)
-    assert su.parameters == {"min_expression_percentile": "90"}
+    assert su.parameters == {"min_expression_percentile": 90.0}
     assert su.display_name == "Su et al. RNA-Seq: top 20%"
 
 

@@ -237,8 +237,10 @@ async def test_a_replan_with_no_scope_draws_no_card(site: FakeSite) -> None:
     results = await ask_about_the_audits(parked, written.append, site_id="plasmodb")
 
     reason = (
-        f"The planner starts no audit: the site holds no genome named {STRAINS[1]}. "
-        f"{GENOME_RULE} Nothing was started and no card was shown."
+        f"The planner starts no audit: the site holds no genome named {STRAINS[1]}; "
+        f"the organisms nearest it are Examplea alpha R, {STRAINS[8]}, {STRAINS[7]}, "
+        f"{STRAINS[6]}, {STRAINS[5]}. {GENOME_RULE} Nothing was started and no "
+        "card was shown."
     )
     assert [(c["chunk"]["type"], c["chunk"]["data"]["summary"]) for c in written] == [
         ("data-tool-summary", truncate_summary(reason)),
@@ -318,19 +320,22 @@ async def test_a_plan_that_names_a_site_as_a_genome_is_refused_with_the_rule() -
         )
 
     assert refused.value.message == (
-        "The planner starts no audit: the site holds no genome named PlasmoDB. "
+        "The planner starts no audit: the site holds no genome named PlasmoDB; the "
+        "organisms nearest it are Examplea alpha D, Examplea alpha B, Otherus gamma "
+        "G, Examplea beta S, Examplea beta R. "
         f"{GENOME_RULE} Nothing was started and no card was shown."
     )
     assert (ctx.deps.facts, ctx.deps.records) == ([], [])
 
 
 @pytest.mark.usefixtures("site")
-async def test_a_refused_plan_names_the_organisms_its_words_hold() -> None:
+async def test_a_refused_plan_names_the_organisms_nearest_its_name() -> None:
     with pytest.raises(CallRefused) as refused:
         await plan_gene_model_audit_tool(_context(), PlanAsk(genomes=("beta",)))
 
     assert refused.value.message == (
         "The planner starts no audit: the site holds no genome named beta; the "
-        "organisms its words name are Examplea beta R, Examplea beta S. "
+        "organisms nearest it are Examplea beta R, Examplea beta S, Otherus gamma G, "
+        "Examplea alpha R, Examplea alpha I. "
         f"{GENOME_RULE} Nothing was started and no card was shown."
     )

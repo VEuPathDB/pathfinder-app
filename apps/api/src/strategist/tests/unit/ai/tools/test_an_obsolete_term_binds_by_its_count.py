@@ -10,7 +10,7 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.wdk import WDKParameter, WDKSearch
-from veupathdb_mcp.catalog import ResolvedParams, format_param_info_typed
+from veupathdb_mcp.catalog import ResolvedParams
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count
@@ -22,12 +22,13 @@ from strategist.domain.strategy.operational_spec import (
     Measurement,
     ValueSource,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests.unit.ai.tools.test_frame_spec import frame_ctx
 from strategist.tests.unit.services.strategies.test_an_obsolete_term_is_named_at_bind import (
     _GO_TYPEAHEAD,
 )
 
-_INFOS = format_param_info_typed([_GO_TYPEAHEAD])
+_INFOS = sheet_of([_GO_TYPEAHEAD])
 _OBSOLETE = "GO:0009296"
 _LABEL = "obsolete flagellum assembly"
 
@@ -144,9 +145,9 @@ async def test_a_stated_obsolete_term_that_counts_nothing_asks_the_researcher(
         f"the site labels {_LABEL!r}: the ontology marks the term obsolete, and the "
         "site counts 0 genes for it at these values. It is not bound. The "
         "researcher named this term, so ask them with a card which entry to use; "
-        "the current entries nearest its words are ['GO:0060271 : cilium assembly "
-        ": 7', 'GO:0044458 : motile cilium assembly : 8', 'GO:0120316 : sperm "
-        "flagellum assembly : 4', 'GO:0042255 : ribosome assembly : 8']."
+        "the current entries nearest its words are ['GO:0120316 : sperm flagellum "
+        "assembly : 4', 'GO:0044458 : motile cilium assembly : 8', 'GO:0060271 : "
+        "cilium assembly : 7', 'GO:0042255 : ribosome assembly : 8']."
     )
     assert state.operational_spec_draft.criteria == []
 

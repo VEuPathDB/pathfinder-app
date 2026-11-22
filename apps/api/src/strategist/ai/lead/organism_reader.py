@@ -3,17 +3,20 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from veupathdb.domain.parameters import VocabOption, nearest_entries
+from veupathdb.domain.parameters import (
+    SHOWN_CANDIDATES,
+    Resolution,
+    VocabOption,
+    VocabularyEntryError,
+    exact_entry,
+    exact_or_candidates,
+)
 from veupathdb_mcp.catalog import (
-    Choice,
-    ChoiceQuestion,
-    DecisionRequest,
-    DecisionResponse,
-    DecisionsTransport,
-    decide,
+    NamedVocabulary,
+    ResolveContext,
+    ordered_by_vocabulary,
 )
 
-from strategist.ai.models.mock.arc import no_decision
 from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -22,109 +25,14 @@ from strategist.domain.strategy.constraints import (
 )
 from strategist.domain.strategy.organism_phrases import completed_entry
 from strategist.domain.strategy.organism_picks import OrganismPick
-from strategist.platform.config import get_settings
-from strategist.platform.model_keys import is_mock_deployment
 
-ORGANISM_QUESTION = "organism"
-NONE_FITS = "none_fits"
-_PURPOSE = "organism entry"
-_MAX_ENTRIES = 254
-_OFFERED = 5
-_CHOICE_TEXT = (
-    "Which organism of the site do the researcher's words name? Choose "
-    "none_fits when they name a group of organisms, a species the site holds "
-    "several strains of without naming one, or an organism the site lacks."
-)
-_NONE_FITS_TEXT = (
-    "The words name no one of these organisms: a genus or a group, a species "
-    "of several strains with none named, or an organism the site does not hold."
-)
+ORGANISM_PARAMETER = "organism"
 
 
 @dataclass(frozen=True)
 class NamedOrganisms:
     constraints: list[Constraint]
     picks: list[OrganismPick]
-
-
-def _state(site_id: str, message: str, quote: str) -> str:
-    return (
-        f"VEuPathDB site: {site_id}.\n"
-        f"The researcher's message: {message}\n"
-        f'The words of the message that name the organism: "{quote}"'
-    )
-
-
-def _entries(vocabulary: Sequence[str], words: str) -> list[str]:
-    if len(vocabulary) <= _MAX_ENTRIES:
-        return list(vocabulary)
-    options = [VocabOption(value=entry, display=entry) for entry in vocabulary]
-    return nearest_entries(options, words, _MAX_ENTRIES)
-
-
-def organism_request(
-    site_id: str, message: str, quote: str, entries: Sequence[str]
-) -> DecisionRequest:
-    return DecisionRequest(
-        input=_state(site_id, message, quote),
-        questions=[
-            ChoiceQuestion(
-                name=ORGANISM_QUESTION,
-                instructions=_CHOICE_TEXT,
-                choices=[
-                    *(
-                        Choice(value=f"e{i}", description=entry)
-                        for i, entry in enumerate(entries)
-                    ),
-                    Choice(value=NONE_FITS, description=_NONE_FITS_TEXT),
-                ],
-            )
-        ],
-    )
-
-
-def _entry_of(choice: str, entries: Sequence[str]) -> str | None:
-    if choice == NONE_FITS:
-        return None
-    return entries[int(choice.removeprefix("e"))]
-
-
-async def _ask_the_service(request: DecisionRequest) -> DecisionResponse | None:
-    return await decide(request, purpose=_PURPOSE)
-
-
-@dataclass(frozen=True)
-class _Reading:
-    site_id: str
-    message: str
-    vocabulary: Sequence[str]
-    ask: DecisionsTransport
-    floor: float
-
-    def offered(self, picked: str | None, words: str) -> list[str]:
-        options = [VocabOption(value=entry, display=entry) for entry in self.vocabulary]
-        near = nearest_entries(options, words, _OFFERED)
-        first = [] if picked is None else [picked]
-        return list(dict.fromkeys([*first, *near]))[:_OFFERED]
-
-    async def pick(self, quote: str, words: str) -> OrganismPick:
-        entries = _entries(self.vocabulary, words)
-        chosen = await self.ask(
-            organism_request(self.site_id, self.message, quote, entries)
-        )
-        answer = None if chosen is None else chosen.choice(ORGANISM_QUESTION)
-        picked = None if answer is None else _entry_of(answer.choice, entries)
-        if answer is None or picked is None:
-            return OrganismPick(quote=quote, offered=self.offered(None, words))
-        return OrganismPick(
-            quote=quote,
-            picked=picked,
-            confidence=answer.confidence,
-            offered=self.offered(picked, words),
-        )
-
-    def settled(self, pick: OrganismPick) -> str | None:
-        return pick.picked if pick.confidence >= self.floor else None
 
 
 def _orthologs_named(
@@ -145,21 +53,45 @@ def _named(c: Constraint, entry: str) -> Constraint:
     )
 
 
+def _entry(
+    words: str, message: str, vocabulary: Sequence[str], options: list[VocabOption]
+) -> str | None:
+    exact = exact_entry(options, words)
+    return completed_entry(words, message, vocabulary) or (
+        None if exact is None else exact.value
+    )
+
+
+async def _offered(
+    asked: Sequence[tuple[Constraint, Resolution]],
+    options: list[VocabOption],
+    about: ResolveContext,
+) -> list[OrganismPick]:
+    if not asked:
+        return []
+    ordered = await ordered_by_vocabulary(
+        VocabularyEntryError([(ORGANISM_PARAMETER, r) for _, r in asked]),
+        {ORGANISM_PARAMETER: NamedVocabulary(display="organism", options=options)},
+        about,
+    )
+    return [
+        OrganismPick(
+            quote=c.quote or "",
+            offered=[o.value for o in r.candidates[:SHOWN_CANDIDATES]],
+        )
+        for (c, _), (_, r) in zip(asked, ordered.faults, strict=True)
+    ]
+
+
 async def named_organisms(
     site_id: str,
     constraints: Sequence[Constraint],
     message: str,
     vocabulary: Sequence[str],
 ) -> NamedOrganisms:
-    reading = _Reading(
-        site_id=site_id,
-        message=message,
-        vocabulary=vocabulary,
-        ask=no_decision if is_mock_deployment() else _ask_the_service,
-        floor=get_settings().decisions_vocab_min_confidence,
-    )
+    options = [VocabOption(value=entry, display=entry) for entry in vocabulary]
     named: list[Constraint] = []
-    picks: list[OrganismPick] = []
+    asked: list[tuple[Constraint, Resolution]] = []
     for c in constraints:
         if c.kind is ConstraintKind.ORTHOLOG:
             named.append(_orthologs_named(c, message, vocabulary))
@@ -171,24 +103,16 @@ async def named_organisms(
         if not c.quote:
             named.append(c.model_copy(update={"value": None}))
             continue
-        entry = completed_entry(words, message, vocabulary)
+        entry = _entry(words, message, vocabulary, options)
         if entry is not None:
             named.append(_named(c, entry))
             continue
-        pick = await reading.pick(c.quote, words)
-        settled = reading.settled(pick)
-        if settled is not None:
-            named.append(_named(c, settled))
-            continue
         named.append(c.model_copy(update={"value": None}))
-        picks.append(pick)
+        asked.append((c, exact_or_candidates(options, words, SHOWN_CANDIDATES)))
+    picks = await _offered(
+        asked, options, ResolveContext(site_id=site_id, message=message)
+    )
     return NamedOrganisms(constraints=named, picks=picks)
 
 
-__all__ = [
-    "NONE_FITS",
-    "ORGANISM_QUESTION",
-    "NamedOrganisms",
-    "named_organisms",
-    "organism_request",
-]
+__all__ = ["NamedOrganisms", "named_organisms"]

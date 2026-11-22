@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import NumberValue, ParamValue, SinglePickValue
+from veupathdb.wdk import WDKEnumParam, WDKNumberParam
 
 from strategist.services.evidence import optimization
 from strategist.services.parameter_optimization import sweep
@@ -9,6 +10,7 @@ from strategist.services.parameter_optimization.config import (
     OptimizationConfig,
     ParameterSpec,
     SweepControls,
+    SweepPlan,
     SweepTarget,
     SweepVariantResult,
     SweepVariantSpec,
@@ -35,11 +37,26 @@ def test_the_grid_is_the_cartesian_product_of_the_parameter_space() -> None:
     fixed: dict[str, ParamValue] = {"organism": SinglePickValue(value="pf3d7")}
 
     variants = optimization.enumerate_variants(
-        [
-            ParameterSpec(name="fold_change", type="integer", min=2, max=4, step=1),
-            ParameterSpec(name="direction", type="categorical", choices=["up", "down"]),
-        ],
-        fixed,
+        SweepPlan(
+            parameter_space=[
+                ParameterSpec(name="fold_change", type="integer", min=2, max=4, step=1),
+                ParameterSpec(
+                    name="direction", type="categorical", choices=["up", "down"]
+                ),
+            ],
+            fixed_parameters=fixed,
+            declarations={
+                "fold_change": WDKNumberParam(name="fold_change", min=2, max=4),
+                "direction": WDKEnumParam.model_validate(
+                    {
+                        "name": "direction",
+                        "type": "single-pick-vocabulary",
+                        "displayType": "select",
+                        "vocabulary": [["up", "up", None], ["down", "down", None]],
+                    }
+                ),
+            },
+        )
     )
 
     assert [v.id for v in variants] == ["v0", "v1", "v2", "v3", "v4", "v5"]

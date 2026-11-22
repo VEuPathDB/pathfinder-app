@@ -29,6 +29,9 @@ from strategist.jobs.job_context import WdkJobContext
 from strategist.jobs.runtime import build_worker_context
 from strategist.platform.identity import APPLICATION_ID
 from strategist.tests._support.decisions import answer_no_decisions
+from strategist.tests._support.declared_record_types import (
+    serve_declared_record_types,
+)
 from strategist.tests._support.eda_subset_search_doubles import (
     serve_plasmodb_subset_searches,
 )
@@ -40,7 +43,6 @@ from strategist.tests._support.site_organisms import serve_planned_organisms
 from strategist.tests._support.universal_searches import (
     serve_the_text_search_as_universal,
 )
-from strategist.tests._support.vocab_picks import serve_no_vocabulary_pick
 
 
 @pytest.fixture(autouse=True)
@@ -65,8 +67,8 @@ def no_veupathdb(
 
     CI runs this tier with no VEuPathDB credential, so a live read here passes
     only on a machine that holds one. Such a test holds no site login, and it
-    reads each search's organism parameter, record classes, site organisms and
-    EDA-backed searches from the recorded catalog answers.
+    reads each search's organism parameter, record classes, site organisms,
+    declared record types and EDA-backed searches from the recorded catalog answers.
     """
     if request.node.get_closest_marker("live_wdk") is None:
         refuse_veupathdb(monkeypatch, request.node.nodeid)
@@ -75,8 +77,8 @@ def no_veupathdb(
         serve_catalog_marks(monkeypatch)
         serve_record_classes(monkeypatch)
         serve_planned_organisms(monkeypatch)
+        serve_declared_record_types(monkeypatch)
         serve_plasmodb_subset_searches(monkeypatch)
-        serve_no_vocabulary_pick(monkeypatch)
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -5,15 +5,15 @@ from __future__ import annotations
 import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 _TEXT = suite_search("search_genes_by_text")
-_INFOS = format_param_info_typed(_TEXT.parameters or [])
+_INFOS = sheet_of(_TEXT.parameters or [])
 _PHRASE_REQUEST = (
     "Please undo those changes: search the exact phrase in the product field "
     "only and drop the domain steps."

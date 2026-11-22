@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
+import pytest
+from veupathdb.domain.parameters import (
+    HeldValue,
+    MultiPickValue,
+    NumberValue,
+    ParamValue,
+    StringValue,
+)
 from veupathdb.domain.strategy import CombineOp
 
 from strategist.domain.strategy.constraints import (
@@ -20,6 +27,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import (
     JoinContradiction,
+    ValueContradiction,
     contradicted_joins,
     contradicted_values,
     new_join_contradiction,
@@ -336,4 +344,39 @@ def test_a_value_the_spec_states_and_the_edit_repeats_is_applied() -> None:
     assert (stated_values(spec, spec.criteria[-1]), _values_refusal(graph, spec)) == (
         {"min_expression_percentile": "90"},
         None,
+    )
+
+
+def _departure(stated: ParamValue, written: ParamValue) -> ValueContradiction:
+    return ValueContradiction(
+        criterion_text="expressed in trophozoites",
+        parameter="p",
+        stated=stated,
+        written=written,
+    )
+
+
+@pytest.mark.parametrize(
+    ("stated", "before", "after"),
+    [
+        (NumberValue(value=90), HeldValue(wire="80.0"), NumberValue(value=80)),
+        (
+            MultiPickValue(values=["a"]),
+            MultiPickValue(values=["b", "c"]),
+            MultiPickValue(values=["c", "b"]),
+        ),
+    ],
+    ids=["number-spelling", "pick-order"],
+)
+def test_a_departure_held_in_another_writing_is_the_same_departure(
+    stated: ParamValue, before: ParamValue, after: ParamValue
+) -> None:
+    assert _departure(stated, after).repeats(_departure(stated, before))
+
+
+def test_a_string_parameter_holds_two_spellings_of_a_number_apart() -> None:
+    stated = StringValue(value="x")
+
+    assert not _departure(stated, StringValue(value="80")).repeats(
+        _departure(stated, StringValue(value="80.0"))
     )

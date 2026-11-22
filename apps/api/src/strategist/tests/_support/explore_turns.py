@@ -17,7 +17,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from veupathdb.wdk import WDKAnswer, WDKSearch, WDKSearchConfig
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.capabilities.metering import ModelSpend
 from strategist.ai.conversation._turn_helpers import _extract_chunk
@@ -27,6 +27,7 @@ from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from strategist.domain.modes import EXPLORE_PHASE
 from strategist.services.experiment import reading_count, variant_comparison
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import recorded_searches
 from strategist.tests._support.recorded_columns import recorded_body
 from strategist.tests._support.recorded_searches import serve_stated_reads
@@ -71,7 +72,7 @@ async def _recorded_parameters(
     site_id: str, record_type: str, search_name: str, context: dict[str, str]
 ) -> list[ParameterInfo]:
     del site_id, record_type, context
-    return format_param_info_typed(recorded_searches()[search_name].parameters or [])
+    return sheet_of(recorded_searches()[search_name].parameters or [])
 
 
 def chunks_of(payloads: Sequence[object]) -> list[dict[str, Any]]:

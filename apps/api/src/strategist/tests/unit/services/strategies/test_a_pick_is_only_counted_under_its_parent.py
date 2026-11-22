@@ -9,7 +9,6 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.strategy.operational_spec import BoundValue, ValueSource
 from strategist.services.strategies.measurements import (
@@ -17,10 +16,11 @@ from strategist.services.strategies.measurements import (
     TurnCounts,
     measure_binding,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import serve_counts, wire
 from strategist.tests._support.recorded_searches import suite_search
 
-_SHEET = format_param_info_typed(
+_SHEET = sheet_of(
     list(
         suite_search("search_genes_by_interpro_domain_under_pf3d7_pfam").parameters
         or []

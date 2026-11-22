@@ -149,11 +149,16 @@ machinery is not the obstacle.
   Nothing outside the client's `wdk` subpackage constructs these from raw JSON.
 - **`veupathdb-py: src/veupathdb/wdk/wdk_parameters.py`** - the ten-member
   `WDKParameter` union, discriminated on `type`.
-- **A search's organism parameter** - the one WDK marks with
-  `properties.organismProperties` (WDK-PARAM-013,
-  `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), which
-  the tool server carries as `ParameterInfo.organism_param` and Strategist records
-  as `Criterion.organism_param` at bind; no parameter is recognized by its name.
+- **A search's organism parameter** - named by
+  `veupathdb_mcp.catalog.organism_parameter_of` from the declarations alone: the
+  parameter whose `properties.organismProperties` holds
+  `highlightReferenceOrganisms` (`WDKParameter.is_organism`, WDK-PARAM-013,
+  `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), or
+  else the one that carries `organismProperties` and whose every leaf is an exact
+  entry of the site's organism list (`veupathdb_mcp.catalog.list_organisms`). The
+  tool server carries it as `ParameterInfo.organism_param`, and Strategist records
+  it as `Criterion.organism_param` at bind; no parameter is recognized by its name
+  or by the text of its values.
 - **A transform's input record class** - `allowedPrimaryInputRecordClassNames`
   on the search (`WDKSearch.allowed_primary_input_record_class_names`), which
   WDK enforces only when the step runs

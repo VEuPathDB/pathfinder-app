@@ -16,6 +16,7 @@ from veupathdb.domain.parameters import (
     StringValue,
     from_wire,
     to_wire,
+    wire_map,
 )
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import SiteSearchResponse, get_site_router
@@ -67,9 +68,7 @@ class TurnCounts:
         search_name: str,
         params: Mapping[str, ParamValue],
     ) -> CountKey:
-        config = json.dumps(
-            {name: to_wire(value) for name, value in params.items()}, sort_keys=True
-        )
+        config = json.dumps(wire_map(dict(params)), sort_keys=True)
         return (site_id, record_type, search_name, config)
 
     def remember(

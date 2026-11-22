@@ -137,7 +137,7 @@ class TestTheSourceOfAValue:
                 placeholder=False,
                 unset=False,
                 request_texts=[_REQUEST],
-                card_value="50",
+                card_value=NumberValue(value=50),
             )
             == "card"
         )
@@ -149,7 +149,7 @@ class TestTheSourceOfAValue:
                 placeholder=False,
                 unset=False,
                 request_texts=[_REQUEST],
-                card_value="60",
+                card_value=NumberValue(value=60),
             )
             == "chosen"
         )

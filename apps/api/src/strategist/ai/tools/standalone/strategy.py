@@ -154,7 +154,7 @@ async def build_strategy(
     try:
         outcome = await build_strategy_from_spec(
             deps=deps.to_strategy_context(),
-            root=await typed_tree(session.site_id, root),
+            root=await typed_tree(deps.resolving(), root),
             description=description,
         )
     except ApplyError as exc:
@@ -229,7 +229,7 @@ async def apply_operations(
         )
         raise ModelRetry(msg)
 
-    typed = await typed_operations(session.site_id, graph, operations)
+    typed = await typed_operations(deps.resolving(), graph, operations)
     try:
         result = await apply_operations_and_commit(
             deps=deps.to_strategy_context(),

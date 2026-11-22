@@ -15,7 +15,7 @@ from veupathdb.domain.parameters import (
     StringValue,
     VocabOption,
 )
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -33,6 +33,7 @@ from strategist.services.strategies.measurements import (
     measure_binding,
 )
 from strategist.services.strategies.pick_readings import default_reading
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     PERCENTILE_SEARCH,
     percentile_count,
@@ -141,7 +142,7 @@ async def test_a_percentile_step_names_only_the_picks_that_change_its_count(
         "channel": SinglePickValue(value="Channel 1"),
     }
     picks = ("profileset_generic", "any_or_all", "protein_coding_only", "channel")
-    infos = format_param_info_typed(
+    infos = sheet_of(
         list(
             suite_search("search_genes_by_rnaseq_gomez_diaz_percentile").parameters
             or []
@@ -201,15 +202,11 @@ async def test_a_percentile_step_names_only_the_picks_that_change_its_count(
 
 
 def _gene_types() -> list[ParameterInfo]:
-    return format_param_info_typed(
-        list(suite_search("search_genes_by_gene_type").parameters or [])
-    )
+    return sheet_of(list(suite_search("search_genes_by_gene_type").parameters or []))
 
 
 def _snps() -> list[ParameterInfo]:
-    return format_param_info_typed(
-        list(suite_search("search_genes_by_ngs_snps").parameters or [])
-    )
+    return sheet_of(list(suite_search("search_genes_by_ngs_snps").parameters or []))
 
 
 def _gene_type_count(_search: str, params: Mapping[str, ParamValue]) -> int:

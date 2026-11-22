@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from pydantic import ConfigDict, Field
-from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.parameters import HeldValue, ParamValue
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import RADIO_OFF
 
@@ -52,7 +52,7 @@ class StepTitle(CamelModel):
                     label
                     for label in self.labels
                     if (value := parameters.get(label.param)) is not None
-                    and value.to_wire() == label.wire
+                    and value == HeldValue(wire=label.wire)
                 ]
             }
         )

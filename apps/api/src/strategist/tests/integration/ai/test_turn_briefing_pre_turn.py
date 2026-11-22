@@ -233,7 +233,7 @@ async def test_the_hook_briefs_the_turn_on_an_edit_a_task_and_the_analysis(
     )
 
     rendered = briefed.domain.turn_briefing
-    assert "min_expression_percentile 90 -> 75" in rendered
+    assert "min_expression_percentile 90.0 -> 75.0" in rendered
     assert "run_control_tests_on_step finished" in rendered
     assert (
         "- the open analysis (DS_1234) changed after the card in this conversation"

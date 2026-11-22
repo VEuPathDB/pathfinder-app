@@ -5,21 +5,19 @@ when a parent holds a value other than the published one."""
 from __future__ import annotations
 
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.strategy.value_binding import (
     bind_values,
     parents_moved,
     read_again,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 # plasmodb GenesByInterproDomain: the published sheet under its default
 # organism, and the sheet under Plasmodium falciparum 3D7 and Pfam.
-_PUBLISHED = format_param_info_typed(
-    suite_search("search_genes_by_interpro_domain").parameters or []
-)
-_UNDER_PF3D7 = format_param_info_typed(
+_PUBLISHED = sheet_of(suite_search("search_genes_by_interpro_domain").parameters or [])
+_UNDER_PF3D7 = sheet_of(
     suite_search("search_genes_by_interpro_domain_under_pf3d7_pfam").parameters or []
 )
 _KH: dict[str, ParamValue] = {"domain_typeahead": MultiPickValue(values=["PF00013"])}

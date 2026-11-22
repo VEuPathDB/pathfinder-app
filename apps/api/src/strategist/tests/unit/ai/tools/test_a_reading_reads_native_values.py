@@ -16,7 +16,12 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import ParameterInfo, read_under_parents
+from veupathdb_mcp.catalog import (
+    BoundValues,
+    ParameterInfo,
+    ResolveContext,
+    read_under_parents,
+)
 
 from strategist.ai.explore import explore_tools
 from strategist.ai.explore.explore_tools import propose_readings
@@ -126,14 +131,14 @@ class TestAReadingReadsNativeValues:
         serve_recorded_readings(monkeypatch)
         counted = _counted(monkeypatch)
 
-        with pytest.raises(ModelRetry, match="gene_variant_stats takes a list"):
+        with pytest.raises(ModelRetry, match="gene_variant_stats takes a list of"):
             await propose_readings(
                 lead_run_context(), [_variant_plan("total_variants<=5")]
             )
 
         assert counted == []
 
-    async def test_two_faults_in_one_search_are_one_refusal(
+    async def test_a_shape_fault_is_refused_before_any_count(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         serve_recorded_readings(monkeypatch)
@@ -158,7 +163,6 @@ class TestAReadingReadsNativeValues:
             await propose_readings(lead_run_context(), [plan])
 
         assert "organism takes a list" in refused.value.message
-        assert "signalp_version takes one of" in refused.value.message
         assert counted == []
 
 
@@ -182,9 +186,10 @@ def _snps_under_their_organism(monkeypatch: pytest.MonkeyPatch) -> list[dict[str
         _search_name: str,
         stated: Mapping[str, JsonValue] | None,
         *,
+        about: ResolveContext | None,
         record_type: str | None = None,
         bound: Mapping[str, ParamValue],
-    ) -> dict[str, ParamValue]:
+    ) -> BoundValues:
         del record_type
 
         async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
@@ -195,7 +200,7 @@ def _snps_under_their_organism(monkeypatch: pytest.MonkeyPatch) -> list[dict[str
             return list(under[organism].parameters or [])
 
         return await read_under_parents(
-            fetch_at, stated or {}, NoFilterReads(), bound=bound
+            fetch_at, stated or {}, NoFilterReads(), about=about, bound=bound
         )
 
     monkeypatch.setattr(_stated_values, "read_stated_parameters", _read)

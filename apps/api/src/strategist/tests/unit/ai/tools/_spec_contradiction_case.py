@@ -104,15 +104,14 @@ def refuses_a_second_look(
     return _validate
 
 
-def _decimal(value: ParamValue) -> StringValue:
-    wire = to_wire(value)
-    return StringValue(value=wire if "." in wire else f"{wire}.0")
+def _decimal(value: ParamValue) -> NumberValue:
+    return NumberValue(value=float(to_wire(value)))
 
 
 async def writes_the_percentile_as_a_decimal(
     *_args: Any, **kwargs: Any
 ) -> ValidatedParams:
-    """A catalog that rewrites the percentile, the way a number param is read."""
+    """A catalog that reads the percentile as a decimal number."""
     params: dict[str, ParamValue] = dict(kwargs["stated"])
     held = params.get(PERCENTILE) or kwargs.get("context", {}).get(PERCENTILE)
     if held is not None:

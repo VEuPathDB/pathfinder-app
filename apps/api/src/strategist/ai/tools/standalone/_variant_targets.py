@@ -7,14 +7,15 @@ strategy structure, so it has no search to run.
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from difflib import get_close_matches
 
+from pydantic import JsonValue
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import (
     PHYLETIC_LIST_PARAMS,
     MultiPickValue,
     ParamValue,
-    SinglePickValue,
     from_wire,
     match_exact_option,
     to_wire,
@@ -22,17 +23,16 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME
 from veupathdb_mcp.catalog import (
+    BoundValues,
     ParameterInfo,
     PhyleticListError,
+    ResolveContext,
     is_phyletic_sheet,
 )
 
-from strategist.ai.tools.standalone._frame_proposals import refuse_unmatched_value
 from strategist.ai.tools.standalone._stated_values import typed_values
-from strategist.ai.tools.standalone._vocab_resolution import bound_proposal
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.session import StrategySession
-from strategist.domain.strategy.value_binding import pick_terms
 from strategist.services.evidence.comparisons import (
     variant_phyletic_values,
     variant_search_parameters,
@@ -113,8 +113,8 @@ def _refuse_a_search_no_step_runs(
     raise ModelRetry(msg)
 
 
-def _held_values(session: StrategySession, search_name: str) -> dict[str, str]:
-    """The wire values a step running the search holds, when one step runs it."""
+def _held_values(session: StrategySession, search_name: str) -> dict[str, ParamValue]:
+    """The values a step running the search holds, when one step runs it."""
     graph = session.graph
     steps = [
         step
@@ -123,7 +123,7 @@ def _held_values(session: StrategySession, search_name: str) -> dict[str, str]:
     ]
     if len(steps) != 1:
         return {}
-    return {name: to_wire(value) for name, value in steps[0].parameters.items()}
+    return dict(steps[0].parameters)
 
 
 def _genes(count: int | None) -> str:
@@ -173,31 +173,19 @@ async def _listed_under(site_id: str, variants: list[VariantInput]) -> dict[str,
     return listed
 
 
-async def _entry_value(
-    site_id: str,
-    variant: VariantInput,
-    info: ParameterInfo,
-    value: ParamValue,
-    context: dict[str, ParamValue],
-) -> ParamValue:
-    """The value as the vocabulary's own entries, the way ``set_criterion`` reads it."""
-    options = info.vocabulary()
-    picks = pick_terms(value)
-    if not options or info.param_kind not in _PICKS or not picks:
-        return value
-    if (
-        info.param_kind == "multi-pick-vocabulary"
-        and len(picks) == 1
-        and picks[0].strip().casefold() in _EVERY_ENTRY_WORDS
-        and match_exact_option(options, picks[0]) is None
-    ):
-        return MultiPickValue(values=[option.value for option in options])
-    picks = await bound_proposal(site_id, variant.search_name, info, picks, context)
-    refuse_unmatched_value(variant.search_name, info, options, picks)
-    entries = [match_exact_option(options, pick) or pick for pick in picks]
-    if info.param_kind == "multi-pick-vocabulary":
-        return MultiPickValue(values=entries)
-    return SinglePickValue(value=entries[0])
+def _names_every_entry(info: ParameterInfo, stated: JsonValue) -> bool:
+    match stated:
+        case [str(word)] if info.param_kind == "multi-pick-vocabulary":
+            return (
+                word.strip().casefold() in _EVERY_ENTRY_WORDS
+                and match_exact_option(info.vocabulary(), word) is None
+            )
+        case _:
+            return False
+
+
+def _every_entry(info: ParameterInfo) -> MultiPickValue:
+    return MultiPickValue(values=[option.value for option in info.vocabulary()])
 
 
 def _sheet_value(info: ParameterInfo) -> ParamValue | None:
@@ -232,31 +220,66 @@ def _site_set(infos: dict[str, ParameterInfo]) -> dict[str, ParamValue]:
 
 
 type _Search = tuple[str, str]
+type _InfosAt = Callable[[_Search, dict[str, str]], Awaitable[list[ParameterInfo]]]
 
 
 async def _derived_phyletic(
-    site_id: str, search: _Search, values: dict[str, ParamValue]
+    about: ResolveContext, search: _Search, values: dict[str, ParamValue]
 ) -> dict[str, ParamValue]:
     lists = {
         name: to_wire(values[name]) for name in PHYLETIC_LIST_PARAMS if name in values
     }
     try:
-        return await variant_phyletic_values(site_id, *search, lists)
+        return await variant_phyletic_values(about, *search, lists)
     except PhyleticListError as refused:
         raise ModelRetry(refused.detail or refused.title) from refused
 
 
+async def _variant_spec(
+    about: ResolveContext,
+    search: _Search,
+    variant: VariantInput,
+    read: BoundValues,
+    *,
+    every: set[str],
+    published: list[ParameterInfo],
+    infos_at: _InfosAt,
+) -> VariantSpec:
+    values = {n: v for n, v in read.items() if n in variant.parameters}
+    parents = {
+        info.name: values[info.name]
+        for info in published
+        if info.wire_children and info.name in values
+    }
+    infos = {info.name: info for info in await infos_at(search, wire_map(parents))}
+    site_set = _site_set(infos)
+    entries = {
+        **{n: v for n, v in values.items() if n not in site_set},
+        **{n: _every_entry(infos[n]) for n in every if n not in site_set},
+    }
+    spec = VariantSpec(
+        label=variant.label,
+        search_name=variant.search_name,
+        record_type=search[0],
+        parameters={**_published_defaults(variant, infos), **entries, **site_set},
+    )
+    if not is_phyletic_sheet(list(infos.values())):
+        return spec
+    derived = await _derived_phyletic(about, search, values)
+    return spec.model_copy(update={"parameters": {**spec.parameters, **derived}})
+
+
 async def checked_variants(
-    session: StrategySession, stated: list[VariantInput]
+    session: StrategySession, stated: list[VariantInput], about: ResolveContext
 ) -> list[VariantSpec]:
     """The variants as ``resolved_variants`` reads them. Refuses a variant of a
     search no step of the strategy runs, since each one is counted in place."""
     _refuse_a_search_no_step_runs(stated, session)
-    return await resolved_variants(session, stated)
+    return await resolved_variants(session, stated, about)
 
 
 async def resolved_variants(
-    session: StrategySession, stated: list[VariantInput]
+    session: StrategySession, stated: list[VariantInput], about: ResolveContext
 ) -> list[VariantSpec]:
     """The variants under the record type the catalog lists each search under,
     with each vocabulary value as the entry it names and each pick they do not
@@ -298,40 +321,32 @@ async def resolved_variants(
     checked: list[VariantSpec] = []
     for variant in stated:
         search = (listed[variant.search_name], variant.search_name)
-        values = await typed_values(
-            site_id, variant.search_name, variant.parameters, record_type=search[0]
-        )
+        sheet = {info.name: info for info in published[search]}
         held = _held_values(session, variant.search_name)
-        parents = {
-            info.name: values[info.name]
-            for info in published[search]
-            if info.wire_children and info.name in values
+        every = {
+            name
+            for name, value in variant.parameters.items()
+            if _names_every_entry(sheet[name], value)
         }
-        infos = {info.name: info for info in await infos_at(search, wire_map(parents))}
-        site_set = _site_set(infos)
-        phyletic = is_phyletic_sheet(list(infos.values()))
-        entries = {
-            name: value
-            if held.get(name) == to_wire(value)
-            or (phyletic and name in PHYLETIC_LIST_PARAMS)
-            else await _entry_value(site_id, variant, infos[name], value, parents)
-            for name, value in values.items()
-            if name not in site_set
-        }
-        spec = VariantSpec(
-            label=variant.label,
-            search_name=variant.search_name,
-            record_type=search[0],
-            parameters={
-                **_published_defaults(variant, infos),
-                **entries,
-                **site_set,
+        stated_read = await typed_values(
+            about,
+            variant.search_name,
+            {
+                name: value
+                for name, value in variant.parameters.items()
+                if name not in every
             },
+            record_type=search[0],
+            bound=held,
         )
-        if phyletic:
-            derived = await _derived_phyletic(site_id, search, values)
-            spec = spec.model_copy(
-                update={"parameters": {**spec.parameters, **derived}}
-            )
+        spec = await _variant_spec(
+            about,
+            search,
+            variant,
+            stated_read,
+            every=every,
+            published=published[search],
+            infos_at=infos_at,
+        )
         checked.append(spec)
     return checked

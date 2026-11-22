@@ -7,7 +7,12 @@ from collections.abc import Sequence
 from typing import assert_never
 
 from pydantic import BaseModel, TypeAdapter
-from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue, to_wire
+from veupathdb.domain.parameters import (
+    NumberValue,
+    ParamValue,
+    StringValue,
+    to_wire,
+)
 
 from strategist.domain.log2_scale import (
     stated_on_the_other_scale,
@@ -321,7 +326,7 @@ def value_source(
     placeholder: bool,
     unset: bool,
     request_texts: Sequence[str],
-    card_value: str | None = None,
+    card_value: ParamValue | None = None,
     display_name: str = "",
 ) -> ValueSource:
     """Who set one bound value, from what its sheet says of it: the default for
@@ -331,6 +336,6 @@ def value_source(
         return "default"
     if stated_words(value, request_texts, display_name=display_name, at_default=unset):
         return "stated"
-    if card_value == to_wire(value):
+    if card_value is not None and card_value == value:
         return "card"
     return "default" if unset else "chosen"

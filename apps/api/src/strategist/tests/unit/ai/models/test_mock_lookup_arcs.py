@@ -16,7 +16,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from veupathdb.domain.parameters import MultiPickValue, VocabOption
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
@@ -36,9 +36,12 @@ from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.measurement_clauses import read_pick_clauses
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.tests._support.options_reads import serve_options_reads
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import (
+    declaring,
     no_count,
     serve_recorded,
+    serve_stated_reads,
     suite_search,
 )
 from strategist.tests.unit.ai.tools.test_frame_spec import (
@@ -81,12 +84,24 @@ def _aedes_sheet() -> list[ParameterInfo]:
         )
         if info.name in replaced
         else info
-        for info in format_param_info_typed(_DEFINITION.parameters or [])
+        for info in sheet_of(_DEFINITION.parameters or [])
     ]
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_DEFINITION])
+    serve_stated_reads(
+        monkeypatch,
+        [
+            declaring(
+                _DEFINITION,
+                {
+                    "organism": [VocabOption(value=AEDES, display=AEDES)],
+                    DOMAINS: _AEDES_DOMAINS,
+                },
+            )
+        ],
+    )
     serve_params(monkeypatch, lambda _context: _aedes_sheet())
     serve_options_reads(monkeypatch, lambda _name: _aedes_sheet())
     no_validation(monkeypatch)

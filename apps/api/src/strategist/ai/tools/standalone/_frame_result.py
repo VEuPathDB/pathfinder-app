@@ -5,7 +5,7 @@ from __future__ import annotations
 from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.wdk import WDKSearch
@@ -64,7 +64,7 @@ class SetCriterionResult(CamelModel):
     sheet_pinned: bool = False
     # Each bound parameter with its value, so a wrong value is visible where a
     # bare name would hide it.
-    resolved_params: dict[str, str] = Field(default_factory=dict)
+    resolved_params: dict[str, JsonValue] = Field(default_factory=dict)
     # Params the search defaulted. State these to the user with their values.
     defaulted_params: list[str] = Field(default_factory=list)
     open_slots: list[OpenSlot] = Field(default_factory=list)

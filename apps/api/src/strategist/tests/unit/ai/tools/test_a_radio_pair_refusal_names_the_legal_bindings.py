@@ -67,5 +67,5 @@ async def test_a_vocabulary_without_the_off_value_keeps_the_criterion(
     message = await _refusal(monkeypatch, _ec("2.7.11.1", "3.4.21.-"))
 
     assert "the vocabulary half carries it and cannot be switched off" in message
-    assert "ec_number_pattern default 2.7.11.1 would still contribute" in message
+    assert 'ec_number_pattern default "2.7.11.1" would still contribute' in message
     assert "to search by the ec_wildcard value alone" not in message

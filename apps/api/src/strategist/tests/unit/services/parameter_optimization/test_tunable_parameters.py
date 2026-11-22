@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import VocabOption
+from veupathdb.wdk import WDKEnumParam, WDKParameter, WDKStringParam
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.services.evidence.optimization import enumerate_variants
+from strategist.services.parameter_optimization.config import (
+    ParameterSpec,
+    SweepPlan,
+)
 from strategist.services.parameter_optimization.tunable import (
     parameter_space_for_search,
     sweep_plan,
@@ -51,6 +56,23 @@ def _number(name: str, *, bounds: tuple[float, float] | None = None) -> Paramete
     if bounds is not None:
         info.min, info.max = bounds
     return info
+
+
+def _declared(
+    name: str, options: list[str], kind: str = "single-pick-vocabulary"
+) -> WDKParameter:
+    return WDKEnumParam.model_validate(
+        {
+            "name": name,
+            "type": kind,
+            "displayType": "select",
+            "vocabulary": [[o, o, None] for o in options],
+        }
+    )
+
+
+def _plan(specs: list[ParameterSpec], *declared: WDKParameter) -> SweepPlan:
+    return SweepPlan(parameter_space=specs, declarations={d.name: d for d in declared})
 
 
 def test_a_vocabulary_parameter_becomes_a_categorical_spec() -> None:
@@ -152,7 +174,11 @@ def test_the_grid_never_exceeds_the_budget() -> None:
         budget=30,
     )
 
-    assert len(enumerate_variants(specs, {})) <= 30
+    declared = (
+        _declared("organism", [f"o{i}" for i in range(48)], "multi-pick-vocabulary"),
+        _declared("chromosome", [f"c{i}" for i in range(15)]),
+    )
+    assert len(enumerate_variants(_plan(specs, *declared))) <= 30
 
 
 def test_a_budget_below_the_narrowest_grid_keeps_one_parameter() -> None:
@@ -166,7 +192,8 @@ def test_a_budget_below_the_narrowest_grid_keeps_one_parameter() -> None:
         budget=4,
     )
 
-    assert len(enumerate_variants(specs, {})) <= 4
+    declared = [_declared(n, ["1", "2"]) for n in "ab"]
+    assert len(enumerate_variants(_plan(specs, *declared))) <= 4
     assert [s.name for s in specs] == ["a", "b"]
 
 
@@ -181,7 +208,11 @@ def test_a_numeric_grid_is_thinned_rather_than_dropped() -> None:
     )
 
     assert [s.name for s in specs] == ["weight", "scope"]
-    assert len(enumerate_variants(specs, {})) <= 6
+    declared = (
+        WDKStringParam(name="weight", type="string", is_number=True),
+        _declared("scope", ["a", "b", "c"]),
+    )
+    assert len(enumerate_variants(_plan(specs, *declared))) <= 6
 
 
 def test_tunable_names_are_the_names_of_the_derived_specs() -> None:
@@ -204,7 +235,8 @@ def test_a_multi_pick_parameter_sweeps_one_term_in_its_own_wire_shape() -> None:
         budget=30,
     )
 
-    wires = [v.params["organism"].to_wire() for v in enumerate_variants(specs, {})]
+    plan = _plan(specs, _declared("organism", ["pf", "pv"], "multi-pick-vocabulary"))
+    wires = [v.params["organism"].to_wire() for v in enumerate_variants(plan)]
 
     assert wires == ['["pf"]', '["pv"]']
 
@@ -216,7 +248,8 @@ def test_a_single_pick_parameter_sweeps_the_bare_term() -> None:
         budget=30,
     )
 
-    wires = [v.params["scope"].to_wire() for v in enumerate_variants(specs, {})]
+    plan = _plan(specs, _declared("scope", ["gene", "transcript"]))
+    wires = [v.params["scope"].to_wire() for v in enumerate_variants(plan)]
 
     assert wires == ["gene", "transcript"]
 
@@ -302,15 +335,10 @@ def test_thinning_keeps_the_steps_own_value() -> None:
 def test_the_plan_keeps_the_steps_own_value_in_the_grid() -> None:
     plan = sweep_plan(
         "GenesByTaxon",
-        [
-            _vocab(
-                "organism",
-                [f"o{i}" for i in range(10)],
-                kind="multi-pick-vocabulary",
-            )
-        ],
+        [_declared("organism", [f"o{i}" for i in range(10)], "multi-pick-vocabulary")],
         {"organism": '["o7"]'},
         budget=3,
+        organism=None,
     )
 
     assert (plan.parameter_space[0].choices or [])[0] == "o7"
@@ -337,3 +365,39 @@ def test_a_budget_below_two_trials_is_refused_by_name() -> None:
         )
 
     assert "budget of 1" in str(refusal.value)
+
+
+def test_a_number_text_held_as_written_is_one_variant_for_its_number() -> None:
+    plan = sweep_plan(
+        "GenesByNgsSnps",
+        [
+            WDKStringParam(
+                name="MinPercentMinorAlleles",
+                type="string",
+                is_number=True,
+                min=0,
+                max=10,
+            )
+        ],
+        {"MinPercentMinorAlleles": "5.0"},
+        budget=30,
+        organism=None,
+    )
+    stepped = plan.model_copy(
+        update={
+            "parameter_space": [
+                spec.model_copy(update={"step": 2.5}) for spec in plan.parameter_space
+            ]
+        }
+    )
+
+    variants = enumerate_variants(stepped)
+
+    assert [v.params["MinPercentMinorAlleles"].to_wire() for v in variants] == [
+        "0",
+        "2.5",
+        "5.0",
+        "7.5",
+        "10",
+    ]
+    assert [v.params["MinPercentMinorAlleles"].type for v in variants] == ["string"] * 5

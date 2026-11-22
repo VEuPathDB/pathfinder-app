@@ -19,6 +19,7 @@ from assistant_core.memory.schemas import MemoryValue
 from assistant_core.models.settings import build_model_settings
 from assistant_core.platform.types import PaidBy
 from pydantic_ai.usage import RunUsage, UsageLimits
+from veupathdb_mcp.catalog import ResolveContext
 from veupathdb_mcp.records import LinkReading
 
 from strategist.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
@@ -329,6 +330,11 @@ class LeadDeps:
     def site_id(self) -> str:
         """The site this turn acts on."""
         return self.runtime.site_id
+
+    def resolving(self) -> ResolveContext:
+        return ResolveContext(
+            site_id=self.site_id, message="\n".join(self.state.researcher_messages())
+        )
 
     @property
     def turn_markers(self) -> TurnMarkers:

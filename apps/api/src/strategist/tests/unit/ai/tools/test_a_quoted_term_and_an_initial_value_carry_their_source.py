@@ -5,9 +5,9 @@ parameter, and no number is cut from a linked quote."""
 from __future__ import annotations
 
 from veupathdb.domain.parameters import StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.tools.standalone._frame_sources import bound_values
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 
 _QUOTED = 'I meant the exact phrase "GPI anchored", in quotes'
@@ -17,9 +17,7 @@ _GPI_PHRASE = "exact quoted phrase GPI anchored"
 def _text_term(text: str, message: str, quote: str) -> tuple[str, str]:
     held = bound_values(
         {"text_expression": StringValue(value=text)},
-        infos=format_param_info_typed(
-            suite_search("search_genes_by_text").parameters or []
-        ),
+        infos=sheet_of(suite_search("search_genes_by_text").parameters or []),
         site_supplied=set(),
         request_texts=[message],
         reason="the model's reason",
@@ -34,9 +32,7 @@ def _location(
     """The plasmodb GenesByLocation sheet publishes start 1 and end 0."""
     bound = bound_values(
         {name: StringValue(value=value) for name, value in values.items()},
-        infos=format_param_info_typed(
-            client_search("search_genes_by_location").parameters or []
-        ),
+        infos=sheet_of(client_search("search_genes_by_location").parameters or []),
         site_supplied=set(),
         request_texts=[message],
         reason="the model's reason",

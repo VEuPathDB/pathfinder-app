@@ -23,6 +23,7 @@ from veupathdb_mcp.testing import ORTHOMCL_COUNTS
 from strategist.tests._support.qa_recording import client_recording, qa_recording
 
 SITE = "orthomcl"
+ORTHOMCL_RECORD_TYPES = ["group", "sequence", "helper"]
 LADDER = "orthomcl_protein_count_ladder.json"
 CLADE_ONLY = "orthomcl_clade_only_counts.json"
 EVERY_SPECIES = "orthomcl_every_species_counts.json"
@@ -141,6 +142,9 @@ def replayed_counts(
     service = site.service_url
     with respx.mock(assert_all_mocked=True, assert_all_called=False) as router:
         router.get(f"{site.web_base_url}/app").mock(return_value=httpx.Response(200))
+        router.get(f"{service}/record-types").mock(
+            return_value=httpx.Response(200, json=ORTHOMCL_RECORD_TYPES)
+        )
         router.post(
             f"{service}/record-types/{ORTHO_TAXONOMY_RECORD_TYPE}/searches/"
             f"{ORTHO_TAXONOMY_SEARCH}/reports/standard"

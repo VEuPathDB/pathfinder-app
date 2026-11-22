@@ -12,6 +12,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart, ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb_mcp.catalog import ResolveContext
 
 from strategist.ai.lead.lead_agent import build_lead_agent, build_lead_toolset
 from strategist.ai.lead.lead_tools import clear_strategy
@@ -309,9 +310,13 @@ def the_record(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
     asked: list[tuple[str, str]] = []
 
     async def _read(
-        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+        site_id: str,
+        gene_id: str,
+        *,
+        ortholog_organism: str | None = None,
+        about: ResolveContext | None = None,
     ) -> GeneRecordSummary:
-        del ortholog_organism
+        del ortholog_organism, about
         asked.append((site_id, gene_id))
         return _TOXO_RECORD
 

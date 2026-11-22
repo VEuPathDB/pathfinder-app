@@ -9,7 +9,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb_mcp.gene_lookup import list_organisms
+from veupathdb_mcp.catalog import list_organisms
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps

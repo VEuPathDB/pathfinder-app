@@ -9,7 +9,6 @@ from pydantic import TypeAdapter
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, WDKTreeBoxVocabNode
 from veupathdb.wdk import WDKParameter, WDKSearch
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
@@ -19,6 +18,7 @@ from strategist.domain.strategy.constraints import (
     ConstraintKind,
     OrganismValue,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 _SIGNAL = "GenesWithSignalPeptide"
@@ -44,7 +44,13 @@ _CRYPTO_ORGANISM: WDKParameter = TypeAdapter(WDKParameter).validate_python(
         "initialDisplayValue": "[]",
         "dependentParams": [],
         "group": "empty",
-        "properties": {"organismProperties": []},
+        "properties": {
+            "organismProperties": [
+                "pruneNodesWithSingleExtendingChild",
+                "showOnlyPreferredOrganisms",
+                "highlightReferenceOrganisms",
+            ]
+        },
         "vocabulary": _node(
             "@@fake@@",
             _node(
@@ -94,7 +100,7 @@ def _bind_under(
         text="genes with a signal peptide",
         params={},
     ).with_values({"organism": MultiPickValue(values=organisms)})
-    infos = format_param_info_typed(definition.parameters or [])
+    infos = sheet_of(definition.parameters or [])
     refuse_what_the_words_decide(
         definition, call, infos, AgentToolState(stated_requirements=requirements)
     )

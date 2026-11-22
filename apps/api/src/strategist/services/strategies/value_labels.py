@@ -7,11 +7,11 @@ from collections.abc import Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict
 from veupathdb.domain.parameters import (
-    MAX_NEAREST_ENTRIES,
+    SHOWN_CANDIDATES,
     FilterValue,
     ParamValue,
     VocabOption,
-    nearest_entries,
+    rank_entries,
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -37,8 +37,7 @@ class VocabularyLabels(BaseModel):
 
 
 def _nearest(options: Sequence[VocabOption], term: str) -> list[str]:
-    near = set(nearest_entries(options, term, MAX_NEAREST_ENTRIES))
-    return [o.display for o in options if {o.value, o.display} & near]
+    return [o.display for o in rank_entries(options, term, SHOWN_CANDIDATES)]
 
 
 def _unlabelled(

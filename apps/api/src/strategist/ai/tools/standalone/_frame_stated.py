@@ -10,11 +10,12 @@ from dataclasses import dataclass, field
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import (
     FAKE_ALL_SENTINEL,
-    MAX_NEAREST_ENTRIES,
+    SHOWN_CANDIDATES,
     StringValue,
     WDKTreeBoxVocabNode,
+    entry_name,
     match_exact_option,
-    nearest_entries,
+    rank_entries,
 )
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
@@ -143,7 +144,9 @@ def _refuse_a_transform_to_another_organism(
     proposed = call.terms(info.name)
     named = _entries_stated([carried_to], {o.display: o.value for o in options})
     if not named:
-        nearest = nearest_entries(options, carried_to, MAX_NEAREST_ENTRIES)
+        nearest = [
+            entry_name(o) for o in rank_entries(options, carried_to, SHOWN_CANDIDATES)
+        ]
         msg = (
             f"{info.display_name} on {call.search_name} binds {proposed}, and the "
             f"request carries the genes to {carried_to!r}, which this vocabulary "

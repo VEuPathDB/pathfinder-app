@@ -46,8 +46,9 @@ uploads a dataset, because WDK cannot delete one from the researcher's account.
 A target whose read fails is refused on its own, with the service's error in
 the log: "<site name> did not answer the read of <gene>" for a transport or
 server failure, and "<site name> could not read <gene>" otherwise; the site-wide reads
-still fail the plan. A name that resolves to no organism, or to several, gets up
-to five suggestions that hold all of its words.
+still fail the plan. A genome name resolves only to the organism it names exactly
+(`exact_entry`, folded); any other name is unresolved and gets the five organisms
+`rank_entries` ranks nearest it as suggestions.
 
 **The estimate is a sum of measured unit costs.** `MEASURED_COSTS` holds the
 per-unit means of one cost run (QA plasmodb and toxodb, build 71, 2026-10-23),

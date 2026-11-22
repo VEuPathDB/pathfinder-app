@@ -34,6 +34,7 @@ async def validate_search_params(
     return await catalog.validate_search_params(
         SearchContext(siteId, recordType, searchName),
         context_values=payload.context_values or {},
+        about=None,
     )
 
 

@@ -8,7 +8,7 @@ import json
 import pytest
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParamFetcher
 
 from strategist.ai.agents.frame_option_checks import hold_an_option_to_its_parameter
 from strategist.ai.lead.deltas import FrameResult
@@ -24,6 +24,7 @@ from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.services.strategies import sheet_params
 from strategist.services.strategies.sheet_params import criterion_sheets
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -46,7 +47,7 @@ _PERU = json.dumps(
         ]
     }
 )
-_PUBLISHED = format_param_info_typed(_SNPS.parameters or [])
+_PUBLISHED = sheet_of(_SNPS.parameters or [])
 
 
 @pytest.fixture(autouse=True)

@@ -111,10 +111,10 @@ async def update_leaf_params(
         raise ModelRetry(msg)
 
     values = await typed_values(
-        deps.site_id, step.search_name or "", parameters, bound=step.parameters
+        deps.resolving(), step.search_name or "", parameters, bound=step.parameters
     )
     result = await _commit_or_retry(
-        deps, UpdateStepParamsOp(step_id=step_id, parameters=values)
+        deps, UpdateStepParamsOp(step_id=step_id, parameters=dict(values))
     )
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:
@@ -294,7 +294,7 @@ async def replace_subtree(
         )
         raise ModelRetry(msg)
 
-    subtree = await typed_tree(deps.site_id, new_subtree)
+    subtree = await typed_tree(deps.resolving(), new_subtree)
     op = ReplaceSubtreeOp(step_id=step_id, subtree=subtree)
     refuse_a_write_the_spec_did_not_state(deps, graph, op)
     result = await _commit_or_retry(deps, op)

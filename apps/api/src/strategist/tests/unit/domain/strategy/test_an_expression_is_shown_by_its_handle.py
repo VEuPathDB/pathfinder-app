@@ -11,9 +11,8 @@ from strategist.domain.strategy.expression_handles import (
     expression_handle,
     held_expressions,
     resolved_params,
-    shown_parameters,
-    shown_params,
-    shown_wire,
+    stated_text,
+    stated_values,
 )
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.tests._support.bound_values import bound
@@ -52,8 +51,8 @@ def test_a_handle_names_its_expression_by_content() -> None:
     assert expression_handle(_HELD) != handle
 
 
-def test_an_expression_is_shown_by_its_handle_and_any_other_value_as_written() -> None:
-    shown = shown_params(
+def test_an_expression_is_shown_by_its_handle_and_any_other_value_as_stated() -> None:
+    shown = stated_values(
         {
             "phyletic_expression": StringValue(value=_EXPRESSION),
             "min_count": NumberValue(value=2),
@@ -62,12 +61,11 @@ def test_an_expression_is_shown_by_its_handle_and_any_other_value_as_written() -
 
     assert shown == {
         "phyletic_expression": expression_handle(_EXPRESSION),
-        "min_count": "2",
+        "min_count": 2,
     }
-    assert shown_wire("phyletic_expression", _HELD) == expression_handle(_HELD)
-    assert shown_parameters({"phyletic_expression": StringValue(value=_HELD)}) == {
-        "phyletic_expression": StringValue(value=expression_handle(_HELD))
-    }
+    assert stated_text(
+        "phyletic_expression", StringValue(value=_HELD)
+    ) == expression_handle(_HELD)
 
 
 def test_a_handle_resolves_to_a_built_or_a_bound_expression() -> None:

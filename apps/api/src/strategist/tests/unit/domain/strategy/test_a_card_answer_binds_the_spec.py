@@ -10,7 +10,7 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.card_answers import spec_bound_by_card
 from strategist.domain.strategy.constraints import ConstraintKind
@@ -24,6 +24,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.value_source import value_source
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 _PERCENTILE = "min_expression_percentile"
@@ -31,7 +32,7 @@ _SEARCH = "GenesByRNASeqehisHM1IMSS_Trophozoite_transcriptome_ebi_rnaSeq_RSRCPer
 
 
 def _published(fixture: str) -> list[ParameterInfo]:
-    return format_param_info_typed(suite_search(fixture).parameters or [])
+    return sheet_of(suite_search(fixture).parameters or [])
 
 
 # A recorded RNA-Seq percentile sheet stands in for the trophozoite search: the
@@ -276,21 +277,21 @@ class TestTheSourceOfACardValue:
                 placeholder=False,
                 unset=False,
                 request_texts=["cysteine proteases expressed in trophozoites"],
-                card_value="1",
+                card_value=NumberValue(value=1),
             )
             == "card"
         )
 
-    def test_a_multi_pick_value_is_compared_by_its_wire_form(self) -> None:
-        organism = MultiPickValue(values=["Entamoeba histolytica HM-1:IMSS"])
+    def test_a_multi_pick_value_is_compared_as_its_set_of_terms(self) -> None:
+        organisms = ["Entamoeba histolytica HM-1:IMSS", "Entamoeba dispar SAW760"]
 
         assert (
             value_source(
-                organism,
+                MultiPickValue(values=organisms),
                 placeholder=False,
                 unset=False,
                 request_texts=["cysteine proteases"],
-                card_value=organism.to_wire(),
+                card_value=MultiPickValue(values=organisms[::-1]),
             )
             == "card"
         )

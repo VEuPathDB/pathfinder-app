@@ -21,7 +21,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKParameter
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import answered_strategy, pre_turn
@@ -36,6 +36,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies import sheet_params
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.sheets import visible_sheet
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
@@ -46,7 +47,7 @@ _DOMAINS = "GenesByInterproDomain"
 _TEXT = "GenesByText"
 _PUBLISHED = [
     info
-    for info in format_param_info_typed(
+    for info in sheet_of(
         suite_search("search_genes_by_interpro_domain").parameters or []
     )
     if info.is_visible

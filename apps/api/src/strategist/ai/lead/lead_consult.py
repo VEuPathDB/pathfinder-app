@@ -13,9 +13,10 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.graph.state import PipelineState
+from strategist.ai.lead.answers_text import answers_text
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.card_reply import CardReply
-from strategist.ai.lead.readings import refused_picks
+from strategist.ai.lead.readings import picks_their_criteria_refuse, refused_picks
 from strategist.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.clipped import clipped_text
@@ -30,7 +31,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
-from strategist.domain.strategy.expression_handles import shown_wire
 from strategist.domain.strategy.genome_group_steps import spec_read_on_genomes
 from strategist.domain.strategy.operator_reading import with_operator
 from strategist.domain.strategy.question_options import (
@@ -303,40 +303,6 @@ def _with_refusals(
     return CardAnswer.model_validate({**answer.model_dump(), "refused": refused})
 
 
-def _chosen(label: str, question: OpenQuestion | None) -> str:
-    """The picked label, with the values its option binds."""
-    options = question.options if question is not None else []
-    option = next((o for o in options if o.label == label), None)
-    match option:
-        case TypedOption(binding=SetValues(params=params) | ReadValues(params=params)):
-            sets = ", ".join(
-                f'{name} to "{shown_wire(name, value)}"'
-                for name, value in params.items()
-            )
-            return f"{label} (sets {sets})"
-        case _:
-            return label
-
-
-def _format_answers(
-    answers: list[UserQuestionAnswer], questions: Sequence[OpenQuestion]
-) -> str:
-    recorded = {q.question: q for q in questions}
-    parts: list[str] = []
-    for a in answers:
-        question = recorded.get(a.prompt)
-        chosen = (
-            ", ".join(_chosen(label, question) for label in a.chosen_labels)
-            if a.chosen_labels
-            else "(free text)"
-        )
-        line = f'"{a.prompt}" -> {chosen}'
-        if a.note:
-            line += f" - note: {a.note}"
-        parts.append(line)
-    return "; ".join(parts)
-
-
 def _asked(questions: Sequence[CardQuestion]) -> list[OpenQuestion]:
     """The card's questions as the thread holds an answered one."""
     return [
@@ -390,7 +356,11 @@ async def consult_user(
     answers = answered_on_the_card(state.user_question_answers.get(card, []), shown)
     sheets = await _card_sheets(state, answers)
     no_values = _picks_that_are_no_value(state, answers, sheets)
-    refused = await refused_picks(state, _without_picks(answers, no_values))
+    picked = _without_picks(answers, no_values)
+    refused = {
+        **await picks_their_criteria_refuse(state, picked, sheets),
+        **await refused_picks(state, picked),
+    }
     refusals = {
         **{
             label: (
@@ -410,7 +380,12 @@ async def consult_user(
         ctx=ctx,
     )
     answered = "; ".join(
-        [_format_answers(answers, state.domain.open_questions), *refusals.values()]
+        [
+            answers_text(
+                answers, state.domain.open_questions, state.domain.operational_spec
+            ),
+            *refusals.values(),
+        ]
     )
     answers = _without_picks(answers, {*no_values, *refused})
     if answers:

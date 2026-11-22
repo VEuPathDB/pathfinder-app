@@ -24,8 +24,6 @@ class OrganismPick(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     quote: str = Field(min_length=1)
-    picked: str | None = None
-    confidence: float = Field(default=0, ge=0, le=1)
     offered: list[str] = Field(default_factory=list, max_length=_OFFERED)
 
 
@@ -52,7 +50,6 @@ def _question(requirement: Constraint, pick: OrganismPick) -> OpenQuestion:
     return OpenQuestion(
         question=f'Which organism of this site do you mean by "{pick.quote}"?',
         dimension=ConstraintKind.ORGANISM,
-        recommended_value=pick.picked or "",
         requirement_ids=[requirement.id],
         options=[_option(requirement, entry) for entry in offered],
     )

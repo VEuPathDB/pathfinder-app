@@ -9,13 +9,13 @@ from veupathdb.domain.parameters import (
     ParamValue,
     StringValue,
 )
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.domain.strategy.value_source import (
     stated_by_labels,
     stated_run,
     value_source,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
 _LOG2 = "log2(Fold Change)"
@@ -181,9 +181,7 @@ _KNOWLESI = (
 
 def _phyletic_labels() -> list[str]:
     """The clade tree labels plasmodb publishes for the ortholog pattern search."""
-    sheet = format_param_info_typed(
-        suite_search("search_genes_by_ortholog_pattern").parameters or []
-    )
+    sheet = sheet_of(suite_search("search_genes_by_ortholog_pattern").parameters or [])
     excluded = next(info for info in sheet if info.name == "excluded_species")
     return [option.display for option in excluded.vocabulary()]
 
@@ -232,9 +230,7 @@ _MURIS_MESSAGE = (
 
 def _giardiadb_organisms() -> list[str]:
     """The organism labels giardiadb publishes for its text search."""
-    sheet = format_param_info_typed(
-        suite_search("search_giardiadb_genes_by_text").parameters or []
-    )
+    sheet = sheet_of(suite_search("search_giardiadb_genes_by_text").parameters or [])
     organism = next(info for info in sheet if info.name == "text_search_organism")
     return [option.display for option in organism.vocabulary()]
 

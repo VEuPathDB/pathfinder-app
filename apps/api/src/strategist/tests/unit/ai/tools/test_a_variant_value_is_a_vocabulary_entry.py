@@ -1,7 +1,7 @@
 """A comparison variant takes the entries its search's vocabulary holds.
 
 A value in another case is the entry it names, a value the vocabulary lacks is
-refused unless the step running the search holds it,
+refused with ranked candidates unless the step running the search holds it,
 a word for every entry runs every entry of a multi-pick, a pick the variant
 does not name runs at the site's published default, an empty pick the
 parameter does not allow is refused, a search no
@@ -20,7 +20,6 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 from veupathdb_mcp.catalog import (
     ParameterInfo,
-    format_param_info_typed,
 )
 
 from strategist.ai.tools.standalone.variant_comparison import compare_search_variants
@@ -32,6 +31,7 @@ from strategist.services.experiment.variant_comparison import (
     VariantResult,
     VariantSpec,
 )
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import (
     serve_stated_reads,
     suite_search,
@@ -44,10 +44,7 @@ _TEXT = suite_search("search_genes_by_text")
 _VARIANTS = suite_search("search_genes_by_variant_characteristics")
 _RECORDED = {d.url_segment: d for d in (_TEXT, _VARIANTS)}
 _ORGANISM = "Plasmodium falciparum 3D7"
-_FIELDS_TAKE = "GenesByText: text_fields takes a list of terms from"
-_READ_ENTRIES = (
-    "Read its entries with get_parameter_options and pass one of them exactly."
-)
+_FIELDS_LACK = "GenesByText: text_fields has no entry 'gene_name'."
 
 
 contexts: list[dict[str, str]] = []
@@ -60,7 +57,7 @@ async def _text_parameters(
     del site_id
     contexts.append(context)
     read_under.append(record_type)
-    return format_param_info_typed(list(_RECORDED[search_name].parameters or []))
+    return sheet_of(list(_RECORDED[search_name].parameters or []))
 
 
 @pytest.fixture
@@ -112,17 +109,16 @@ def _product_only() -> VariantInput:
     )
 
 
-async def test_a_value_in_another_case_is_refused_with_the_terms(
+async def test_a_value_in_another_case_runs_as_the_entry_it_names(
     ran: list[VariantSpec],
 ) -> None:
     notes = _variant("product and notes fields", ["product", "notes"])
 
-    with pytest.raises(ModelRetry) as refused:
-        await compare_search_variants(lead_run_context(), [_product_only(), notes])
+    await compare_search_variants(lead_run_context(), [_product_only(), notes])
 
-    assert ran == []
-    assert refused.value.message.startswith(_FIELDS_TAKE)
-    assert "'Notes'" in refused.value.message
+    assert ran[1].parameters["text_fields"] == MultiPickValue(
+        values=["product", "Notes"]
+    )
 
 
 async def test_an_entry_runs_as_named_under_its_parents(
@@ -147,7 +143,8 @@ async def test_a_value_the_vocabulary_lacks_is_refused_and_sent_to_its_entries(
         await compare_search_variants(lead_run_context(), [_product_only(), guessed])
 
     assert ran == []
-    assert refused.value.message.startswith(_FIELDS_TAKE)
+    assert refused.value.message.startswith(_FIELDS_LACK)
+    assert "Candidates: Gene name or symbol (name)" in refused.value.message
 
 
 # The published default of text_fields on the recorded sheet: every field.
@@ -200,9 +197,7 @@ async def test_a_word_for_every_organism_runs_every_entry(
     organisms = next(
         p for p in _TEXT.parameters or [] if p.name == "text_search_organism"
     )
-    every_entry = [
-        o.value for o in format_param_info_typed([organisms])[0].vocabulary()
-    ]
+    every_entry = [o.value for o in sheet_of([organisms])[0].vocabulary()]
     assert ran[1].parameters["text_search_organism"] == MultiPickValue(
         values=every_entry
     )
@@ -218,10 +213,10 @@ async def test_a_word_that_is_no_organism_is_refused_and_sent_to_its_entries(
         await compare_search_variants(lead_run_context(), [_product_only(), some])
 
     assert ran == []
-    assert refused.value.message == (
-        "text_search_organism on GenesByText has no entry that states ['some']. "
-        f"{_READ_ENTRIES}"
+    assert refused.value.message.startswith(
+        "GenesByText: text_search_organism has no entry 'some'. Candidates: "
     )
+    assert "get_parameter_options" not in refused.value.message
 
 
 def _text_step(organisms: list[str]) -> StrategySession:

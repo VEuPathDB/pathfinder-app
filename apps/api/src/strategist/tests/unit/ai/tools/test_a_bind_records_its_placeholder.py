@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 from veupathdb.domain.parameters import StringValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.tools.standalone._frame_sources import bound_values
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search
 
 
 def _bind(value: str) -> tuple[str, bool]:
-    infos = format_param_info_typed(
-        client_search("search_genes_by_location").parameters or []
-    )
+    infos = sheet_of(client_search("search_genes_by_location").parameters or [])
     bound = bound_values(
         {"sequenceId": StringValue(value=value)},
         infos=infos,

@@ -16,7 +16,6 @@ from veupathdb.domain.parameters import (
 from veupathdb.wdk import phyletic_tree_of
 from veupathdb_mcp.catalog import (
     ParameterInfo,
-    format_param_info_typed,
     read_search_definition,
 )
 
@@ -29,6 +28,7 @@ from strategist.services.strategies.measurements import (
     measure_binding,
 )
 from strategist.services.strategies.value_labels import vocabulary_labels
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_counts import (
     CRYPTO_IOWA,
     GIARDIA_WB,
@@ -79,7 +79,7 @@ async def _measured(
 ) -> tuple[int | None, list[tuple[str, int | None, str]]]:
     """The bound count, then each measurement as kind, count and reading."""
     definition = await read_search_definition(site_id, "transcript", search_name)
-    sheet = format_param_info_typed(list(definition.parameters or []))
+    sheet = sheet_of(list(definition.parameters or []))
     counts = TurnCounts()
     count = await counts.count(
         site_id,
@@ -216,7 +216,7 @@ async def test_each_pick_is_labelled_from_the_live_vocabulary() -> None:
         "plasmodb", "transcript", PERCENTILE_SEARCH
     )
 
-    sheet = format_param_info_typed(list(definition.parameters or []))
+    sheet = sheet_of(list(definition.parameters or []))
     labels = vocabulary_labels(_bound(_percentile(), "", "stated", sheet), sheet)
 
     assert {m.param: m.label for m in labels.labels}["protein_coding_only"] == (
@@ -278,7 +278,7 @@ async def test_each_phyletic_code_is_labelled_and_counted_live() -> None:
         "plasmodb", "transcript", "GenesByOrthologPattern"
     )
 
-    sheet = format_param_info_typed(list(definition.parameters or []))
+    sheet = sheet_of(list(definition.parameters or []))
     labels = vocabulary_labels(_bound(params, "", "stated", sheet), sheet)
     measured = await _measured(
         "plasmodb", "GenesByOrthologPattern", params, "excluded_species"

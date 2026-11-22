@@ -19,7 +19,11 @@ from strategist.ai.lead.dispatch_messages import (
     stop_heading,
 )
 from strategist.ai.lead.phase_stop import PhaseStop
-from strategist.domain.strategy.expression_handles import shown_params, shown_wire
+from strategist.domain.strategy.expression_handles import stated_text
+from strategist.domain.strategy.genome_group_steps import (
+    criterion_as_stated,
+    reading_line,
+)
 from strategist.domain.strategy.named_combine import NamedCombine, combine_at
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -108,15 +112,20 @@ def _pending_line(
         return f"- [{cid}] {planned[cid].text[:60]} has no step on the strategy yet."
     if change.disposition == "changed":
         moved = ", ".join(
-            f"{name}={shown_wire(name, value)}"
-            for name, value in change.changed_params.items()
+            f"{name}={_stated_or_unset(planned[cid], name)}"
+            for name in change.changed_params
         )
-        was = shown_params(held[cid].param_values)
         running = ", ".join(
-            f"{name}={was.get(name, '(unset)')}" for name in change.changed_params
+            f"{name}={_stated_or_unset(held[cid], name)}"
+            for name in change.changed_params
         )
         return f"- [{cid}] states {moved}; the strategy runs {running}."
     return ""
+
+
+def _stated_or_unset(criterion: Criterion, name: str) -> str:
+    value = criterion.param_values.get(name)
+    return "(unset)" if value is None else stated_text(name, value)
 
 
 def edit_work_order(
@@ -159,7 +168,8 @@ def edit_work_order(
             "criterion the request DOES change, call set_criterion with the values "
             "below as the `params` object plus the requested override, so only the "
             "named parameter moves and every other value is copied rather than "
-            "re-derived from the text."
+            "re-derived from the text. A value marked kept is the site's own: "
+            "leave its name out of `params` and it stays as it is."
         ),
         "",
         *_shape_lines(before),
@@ -171,9 +181,10 @@ def edit_work_order(
             f"- [{criterion.id}] {criterion_label(criterion, 80)} -> "
             f"{criterion_runs(criterion)} ({criterion.role})"
         )
+        lines.extend(f"    {note}" for note in [reading_line(criterion)] if note)
         lines.extend(
-            f"    {name}={value}"
-            for name, value in shown_params(criterion.param_values).items()
+            f"    {name}={stated_text(name, value)}"
+            for name, value in criterion_as_stated(criterion).param_values.items()
         )
     lines.extend(pending_lines(pending, before, answered))
     lines.extend(

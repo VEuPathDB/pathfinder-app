@@ -139,7 +139,7 @@ class TestTheToolReportsWhatItDefaulted:
         # Naming the param is not enough; the reply has to state the value used.
         result = await _bind(monkeypatch, AgentToolState())
 
-        assert result.resolved_params["min_expression_percentile"] == "80"
+        assert result.resolved_params["min_expression_percentile"] == 80.0
 
 
 class TestTheSpecRemembers:

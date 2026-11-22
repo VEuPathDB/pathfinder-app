@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.tasks.progress import TaskProgressEmitter
+from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb.wdk import WDKSearchConfig, WDKStep
 from veupathdb_mcp.controls import (
@@ -108,7 +109,13 @@ def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
         return ControlTestResult(
             site_id="plasmodb",
             record_type="transcript",
-            target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
+            target=ControlTargetData(
+                step_id=wdk_step_id,
+                estimated_size=132,
+                parameters={
+                    "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"])
+                },
+            ),
             positive=PositiveControls(recovered_ids=recovered, missed_ids=missed),
         )
 
@@ -167,6 +174,7 @@ async def test_the_result_names_the_search_the_step_runs(
     assert result["parameterLabels"] == {"organism": "Organism"}
     assert result["tunableParameters"] == ["organism", "scope"]
     assert result["controlSet"] == {"id": SAVED_SET_ID, "name": "Saved controls"}
+    assert result["parameters"] == {"organism": ["Plasmodium falciparum 3D7"]}
 
 
 async def test_a_refused_step_lookup_leaves_the_name_empty(

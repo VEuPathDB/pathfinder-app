@@ -21,7 +21,6 @@ from veupathdb.wdk import WDKStringParam
 from veupathdb_mcp.catalog import (
     PhyleticPattern,
     ValidatedParams,
-    format_param_info_typed,
 )
 
 from strategist.ai.agents.frame import build_frame_agent
@@ -44,6 +43,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading
 from strategist.services.strategies import reading_check
+from strategist.tests._support.param_infos import sheet_of
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _EXPRESSION = "phyletic_expression"
@@ -343,7 +343,7 @@ async def test_a_value_the_site_sets_binds_nothing_so_it_refuses_nothing(
         },
     )
     ctx = _context(criterion)
-    ctx.deps.agent_state.record_read("SomeSearch", format_param_info_typed([param]))
+    ctx.deps.agent_state.record_read("SomeSearch", sheet_of([param]))
     asked = _asked(_question(_FILTER_LABEL, "Another label"))
 
     assert await hold_an_option_to_its_parameter(ctx, asked) == asked

@@ -9,6 +9,12 @@ from openai import AsyncOpenAI
 from pydantic import SecretStr
 from pydantic_ai.providers import Provider
 from pydantic_ai.providers.openai import OpenAIProvider
+from veupathdb_mcp.catalog import (
+    ChoiceQuestion,
+    DecisionRequest,
+    DecisionResponse,
+    PredicateQuestion,
+)
 
 from strategist.domain.provider_keys import KeyableProvider
 
@@ -43,3 +49,33 @@ class DecisionsWire:
             max_retries=0,
         )
         return OpenAIProvider(openai_client=client)
+
+
+class ChoosingService:
+    def __init__(self, entry: str) -> None:
+        self.entry = entry
+        self.asked: list[DecisionRequest] = []
+
+    async def __call__(self, request: DecisionRequest) -> DecisionResponse | None:
+        self.asked.append(request)
+        answers = [
+            {
+                "type": "choice",
+                "name": name,
+                "choice": picked,
+                "probabilities": [{"value": picked, "probability": 0.95}],
+                "confidence": 0.95,
+            }
+            for question in request.questions
+            for name, picked in self._picked(question)
+        ]
+        return DecisionResponse.model_validate({"answers": answers})
+
+    def _picked(
+        self, question: ChoiceQuestion | PredicateQuestion
+    ) -> list[tuple[str, str]]:
+        match question:
+            case ChoiceQuestion(name=name, choices=choices):
+                return [(name, c.value) for c in choices if c.description == self.entry]
+            case _:
+                return []

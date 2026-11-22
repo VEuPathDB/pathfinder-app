@@ -8,8 +8,8 @@ from assistant_core.platform.types import PaidBy
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.models.wrapper import WrapperModel
 from pydantic_ai.usage import RunUsage
+from veupathdb.domain.parameters import PhrasingMatch, VocabLookup
 from veupathdb.domain.strategy import CombineOp
-from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup
 
 from strategist.ai.agents.state import LookupRecord
 from strategist.ai.capabilities.metering import RunPricing
