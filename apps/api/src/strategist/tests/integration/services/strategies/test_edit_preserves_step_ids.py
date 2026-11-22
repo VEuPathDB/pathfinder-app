@@ -47,7 +47,7 @@ from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_hydration import spec_from_ast
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import commit, live_counts, step_wdk_push, sync
+from strategist.services.strategies import commit_tree, live_counts
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support import wdk_write_stubs
 from strategist.tests._support.bound_values import stated
@@ -190,7 +190,7 @@ class _RecordingAPI:
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
+    for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     wdk_write_stubs.stub_every_catalog_read(monkeypatch)
@@ -391,20 +391,14 @@ async def test_edit_does_not_re_put_the_step_tree_when_topology_is_unchanged(
     stub_api: _RecordingAPI,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    calls: list[str] = []
-
-    async def _record_sync(**kwargs: Any) -> None:
-        del kwargs
-        calls.append("sync")
-
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _record_sync)
     conv_id = await _seed(db_session, seed_user)
     deps = _deps(conv_id, session_maker)
     _stub_frame(monkeypatch, _organism_swap(_before()))
 
     await run_edit(deps=deps, parent_tool_call_id="t1", reason="swap organism")
 
-    assert calls == []
+    written = {c.name for c in stub_api.calls} & {"update_strategy", "create_strategy"}
+    assert written == set()
     assert stub_api.named("create_step") == []
 
 

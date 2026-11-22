@@ -137,3 +137,7 @@ class CountingStrategyAPI:
             search_name="GenesByTaxon",
             search_config=WDKSearchConfig(parameters={}),
         )
+
+    async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
+        self.calls.append(_CallRecord("delete_orphaned_steps", {"step_ids": step_ids}))
+        return []

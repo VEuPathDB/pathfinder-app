@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import NamedTuple
 
-from assistant_core.platform.logging import get_logger
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
@@ -15,7 +14,8 @@ from veupathdb.domain.strategy import (
     subtree_ids,
     wdk_search_name,
 )
-from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb.errors import ValidationError
+from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
 from strategist.domain.strategy.build_outcome import (
@@ -37,9 +37,13 @@ from strategist.domain.strategy.spec_edit_guard import (
     new_value_contradiction,
 )
 from strategist.domain.strategy.step_words import StepWords
+from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
+from strategist.services.strategies._wdk_step_calls import pushed_step
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
+from strategist.services.strategies.naming import name_for_the_push
 from strategist.services.strategies.organism_params import tree_organism_parameters
 from strategist.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -57,11 +61,7 @@ from strategist.services.strategies.stated_sides import (
     unmoved,
 )
 from strategist.services.strategies.step_search import names_a_wdk_question
-from strategist.services.strategies.step_wdk_push import push_step_to_wdk
-from strategist.services.strategies.sync import sync_strategy_for_site
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
-
-logger = get_logger(__name__)
 
 
 def node_results(
@@ -249,27 +249,27 @@ async def build_strategy_from_spec(
         outcome.node_results = node_results(nodes, sync_state, outcome)
         return outcome
 
-    try:
-        sync_result = await sync_strategy_for_site(
-            graph=graph,
-            sync_state=sync_state,
-            site_id=deps.site_id,
-            user_prompt=deps.user_prompt,
-        )
-    except VEuPathDBError as exc:
-        logger.warning("strategy sync failed", error=str(exc))
+    committed = await commit_tree(
+        site_id=deps.site_id,
+        steps=graph.steps,
+        root_id=root.id,
+        old=graph.to_strategy_ast(sync_state=sync_state),
+        sync_state=sync_state,
+        target=CommitTarget(
+            name=name_for_the_push(graph, deps.user_prompt),
+            description=strategy_description(graph, root.id),
+        ),
+    )
+    if committed.record_type is not None:
+        graph.record_type = committed.record_type
+    sync_result = committed.sync
+    if committed.failures or sync_result is None:
         await persist_strategy_ast_to_conversation(
             deps=deps,
             graph=graph,
             sync_result=None,
         )
-        outcome.failed_steps.append(
-            StepPushFailure(
-                step_id=root.id,
-                search_name=root.search_name,
-                error=str(exc),
-            ),
-        )
+        outcome.failed_steps.extend(committed.failures)
         outcome.node_results = node_results(nodes, sync_state, outcome)
         return outcome
 
@@ -352,22 +352,16 @@ async def _push_tree_to_wdk(
             if validated.record_class:
                 node.record_class = validated.record_class
                 record_type = validated.record_class
-        wdk_id, _validation, failure = await push_step_to_wdk(
-            sync_state=sync_state,
-            step=node,
-            site_id=site_id,
-            record_type=record_type,
-            search_name=search_name,
-            parameters=push_parameters,
+        failure = await pushed_step(
+            get_strategy_api(site_id), sync_state, node, record_type, push_parameters
         )
         if failure is not None:
             sync_state.wdk_push_errors[node.id] = failure.error
             failed_node_ids.add(node.id)
             outcome.failed_steps.append(failure)
             continue
-        if wdk_id is not None:
-            sync_state.wdk_push_errors.pop(node.id, None)
-            outcome.pushed_step_ids.append(node.id)
+        sync_state.wdk_push_errors.pop(node.id, None)
+        outcome.pushed_step_ids.append(node.id)
 
 
 def _has_failed_descendant(

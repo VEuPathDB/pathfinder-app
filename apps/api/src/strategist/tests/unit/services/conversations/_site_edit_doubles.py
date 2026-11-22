@@ -25,10 +25,9 @@ from strategist.persistence.repositories import ConversationRepository
 from strategist.services.conversations import strategy_ops
 from strategist.services.strategies import (
     commit,
+    commit_tree,
     live_counts,
     site_changes,
-    step_wdk_push,
-    sync,
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
@@ -225,7 +224,7 @@ def install_the_site(monkeypatch: pytest.MonkeyPatch, site: dict[str, Any]) -> R
     """Serve the thread, the lock, the persist and the site to both routes."""
     install_stub_api(monkeypatch)
     api = SiteAPI(site)
-    for module in (commit, step_wdk_push, sync, live_counts, site_changes):
+    for module in (commit_tree, live_counts, site_changes):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(site_changes, "canonicalize_synced_parameters", decode_numbers)
     repo = Repo(api)

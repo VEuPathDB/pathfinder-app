@@ -1,26 +1,39 @@
 """The WDK calls that create or patch one step of a strategy."""
 
 from collections.abc import Collection, Mapping
+from typing import assert_never
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.parameters import wire_map
+from veupathdb.domain.parameters import ParamValue, wire_map
 from veupathdb.domain.strategy import (
     CombineOp,
+    StepFilter,
+    StepKind,
+    StepSettings,
     StrategyStep,
+    settings_of,
     subtree_ids,
     wdk_search_name,
 )
-from veupathdb.errors import ValidationError
+from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
     StrategyAPI,
+    WDKFilterValue,
     WDKSearchConfig,
+    WDKStep,
 )
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
+from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.combine_naming import combine_name
+from strategist.services.strategies.step_push_planner import (
+    CreateAction,
+    PatchAction,
+    RecreateAction,
+)
 from strategist.services.strategies.step_search import (
     COLOCATION_SEARCH,
     refuse_a_set_operation,
@@ -42,6 +55,22 @@ def _search_config(str_params: dict[str, str], step: StrategyStep) -> WDKSearchC
     if step.wdk_weight is None:
         return WDKSearchConfig(parameters=str_params)
     return WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight)
+
+
+def _held_settings(held: WDKStep) -> StepSettings:
+    return StepSettings(
+        filters=[
+            StepFilter.model_validate(f.model_dump(by_alias=True, mode="json"))
+            for f in held.search_config.filters
+        ]
+    )
+
+
+def _on_the_wire(filters: list[StepFilter]) -> list[WDKFilterValue]:
+    return [
+        WDKFilterValue.model_validate(f.model_dump(by_alias=True, mode="json"))
+        for f in filters
+    ]
 
 
 def _refuse_an_empty_eda_analysis(str_params: Mapping[str, str]) -> None:
@@ -198,15 +227,25 @@ async def _put_search_config(
     sync_state: WDKSyncState,
     step: StrategyStep,
     record_type: str,
+    before: StepSettings,
 ) -> None:
-    """Write the step's parameters and weight over the ones WDK holds."""
+    """Write the step's parameters and weight, and its filters when they moved."""
     refuse_a_set_operation(step.id, wdk_search_name(step))
     str_params = wire_map(step.parameters)
     _refuse_an_empty_eda_analysis(str_params)
-
+    wdk_id = sync_state.wdk_step_ids[step.id]
+    stated = settings_of(step)
+    config = WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight or 0)
+    if "filters" in stated.changed(before):
+        held = _held_settings(await api.find_step(wdk_id))
+        config = WDKSearchConfig(
+            parameters=str_params,
+            wdk_weight=step.wdk_weight or 0,
+            filters=_on_the_wire(held.filters_to_put(before, stated)),
+        )
     await api.update_step_search_config(
-        step_id=sync_state.wdk_step_ids[step.id],
-        search_config=_search_config(str_params, step),
+        step_id=wdk_id,
+        search_config=config,
         record_type=record_type,
         search_name=wdk_search_name(step),
     )
@@ -246,3 +285,121 @@ async def _sort_a_ranking(
         await api.update_step_properties(
             step_id=sync_state.wdk_step_ids[root_id], spec=_SORTED_BY_WEIGHT
         )
+
+
+async def _new_step(
+    api: StrategyAPI,
+    sync_state: WDKSyncState,
+    step: StrategyStep,
+    record_type: str,
+    parameters: Mapping[str, ParamValue],
+) -> int | None:
+    search_name = wdk_search_name(step)
+    str_params = wire_map(dict(parameters))
+    match step.kind:
+        case StepKind.COMBINE:
+            return await _push_combine_step(
+                api, sync_state, step, record_type, step.operator
+            )
+        case StepKind.TRANSFORM:
+            return await _push_transform_step(
+                api, sync_state, step, search_name, str_params, record_type
+            )
+        case StepKind.SEARCH:
+            return await _push_leaf_step(
+                api, search_name, str_params, step, record_type
+            )
+        case _:
+            assert_never(step.kind)
+
+
+async def _put_the_stated_filters(
+    api: StrategyAPI,
+    sync_state: WDKSyncState,
+    step: StrategyStep,
+    record_type: str,
+) -> None:
+    wdk_id = sync_state.wdk_step_ids[step.id]
+    found = await api.find_step(wdk_id)
+    held = _held_settings(found)
+    sync_state.filters_wdk_added[step.id] = held.filters_wdk_added(StepSettings())
+    if not step.filters:
+        return
+    await api.update_step_search_config(
+        step_id=wdk_id,
+        search_config=WDKSearchConfig(
+            parameters=dict(found.search_config.parameters),
+            filters=_on_the_wire(
+                held.filters_to_put(StepSettings(), settings_of(step))
+            ),
+        ),
+        record_type=record_type,
+        search_name=found.search_name,
+    )
+
+
+def _failure(
+    step: StrategyStep, error: str, status: int | None = None
+) -> StepPushFailure:
+    return StepPushFailure(
+        step_id=step.id,
+        search_name=wdk_search_name(step),
+        error=error,
+        wdk_status=status,
+    )
+
+
+async def pushed_step(
+    api: StrategyAPI,
+    sync_state: WDKSyncState,
+    step: StrategyStep,
+    record_type: str,
+    parameters: Mapping[str, ParamValue],
+) -> StepPushFailure | None:
+    try:
+        wdk_id = await _new_step(api, sync_state, step, record_type, parameters)
+        if wdk_id is None:
+            return _failure(step, "push returned no wdk step id")
+        sync_state.wdk_step_ids[step.id] = wdk_id
+        await _put_the_stated_filters(api, sync_state, step, record_type)
+    except VEuPathDBError as exc:
+        return _failure(step, str(exc), exc.status)
+    except OSError as exc:
+        return _failure(step, str(exc))
+    return None
+
+
+async def written_step(
+    api: StrategyAPI,
+    sync_state: WDKSyncState,
+    step: StrategyStep,
+    action: CreateAction | PatchAction | RecreateAction,
+    *,
+    record_type: str,
+    before: StepSettings,
+) -> tuple[StepPushFailure | None, int | None]:
+    match action:
+        case CreateAction():
+            return await pushed_step(
+                api, sync_state, step, record_type, step.parameters
+            ), None
+        case RecreateAction():
+            replaced = sync_state.wdk_step_ids.get(step.id)
+            failure = await pushed_step(
+                api, sync_state, step, record_type, step.parameters
+            )
+            moved = sync_state.wdk_step_ids.get(step.id) != replaced
+            return failure, (replaced if moved else None)
+        case PatchAction():
+            try:
+                if action.search_config:
+                    await _put_search_config(api, sync_state, step, record_type, before)
+                if action.name:
+                    await _patch_name(api, sync_state, step)
+            except VEuPathDBError as exc:
+                return _failure(step, str(exc), exc.status), None
+            except OSError as exc:
+                return _failure(step, str(exc)), None
+            return None, None
+        case _:
+            assert_never(action)

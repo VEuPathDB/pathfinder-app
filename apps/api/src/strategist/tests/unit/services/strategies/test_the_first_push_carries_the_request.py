@@ -16,7 +16,13 @@ from assistant_core.persistence.repositories.conversation import (
 from strategist.domain.strategy.operations import ReplaceStrategyOp
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.persistence.models import ConversationStrategyView
-from strategist.services.strategies import commit, naming, persist, sync
+from strategist.services.strategies import (
+    _tree_write,
+    commit,
+    commit_tree,
+    naming,
+    persist,
+)
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.naming import name_if_unnamed
@@ -49,7 +55,7 @@ _PROVISIONAL = "Find genes upregulated 24 hours post blood meal in Anopheles..."
 
 
 def _write_through(monkeypatch: pytest.MonkeyPatch, threads: Threads) -> StubAPI:
-    """Push through the real sync and persist every write on ``threads``."""
+    """Write the tree for real and persist every write on ``threads``."""
     api = install_stub_api(monkeypatch)
 
     @asynccontextmanager
@@ -60,7 +66,7 @@ def _write_through(monkeypatch: pytest.MonkeyPatch, threads: Threads) -> StubAPI
         monkeypatch.setattr(module, "strategy_write_scope", _scope)
         monkeypatch.setattr(module, "ConversationRepository", lambda _s: threads)
     monkeypatch.setattr(naming, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", sync.sync_strategy_for_site)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _tree_write.put_the_tree)
     monkeypatch.setattr(
         commit,
         "persist_strategy_ast_to_conversation",

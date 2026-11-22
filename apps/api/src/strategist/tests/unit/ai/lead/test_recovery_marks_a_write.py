@@ -24,6 +24,7 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.session import StrategySession
+from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.tests._support.scripted import scripted_with
@@ -65,19 +66,32 @@ def _sync_result() -> SyncResult:
     )
 
 
+def _committed() -> CommittedTree:
+    return CommittedTree(
+        pushed=[],
+        failures=[],
+        drafts={},
+        skipped=[],
+        sync=_sync_result(),
+        record_type="transcript",
+        held={},
+    )
+
+
 @pytest.fixture
 def quiet_sync(monkeypatch: pytest.MonkeyPatch) -> None:
     """The re-sync reads counts into the sync state and puts no step on VEuPathDB."""
 
-    async def _sync(**kwargs: Any) -> SyncResult:
-        synced = _sync_result()
-        kwargs["sync_state"].step_counts = dict(synced.counts)
-        return synced
+    async def _sync(**kwargs: Any) -> CommittedTree:
+        committed = _committed()
+        kwargs["sync_state"].wdk_strategy_id = 901
+        kwargs["sync_state"].step_counts = {"step_a": _ROOT_COUNT}
+        return committed
 
     async def _sheets(**kwargs: Any) -> dict[str, list[ParameterInfo]]:
         return {name: [] for name in kwargs["search_names"]}
 
-    monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(sub_agent_dispatch, "commit_tree", _sync)
     monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
 
 
@@ -230,15 +244,15 @@ async def test_a_recovery_whose_resync_pushed_a_step_marks_the_turn(
     """The plan is untouched, and the step it names now stands on VEuPathDB."""
     session = session_with_one_step()
 
-    async def _sync(**kwargs: object) -> SyncResult:
+    async def _sync(**kwargs: object) -> CommittedTree:
         del kwargs
         ensure_sync_state(session).wdk_step_ids["step_a"] = 5001
-        return _sync_result()
+        return _committed()
 
     async def _sheets(**kwargs: Any) -> dict[str, list[ParameterInfo]]:
         return {name: [] for name in kwargs["search_names"]}
 
-    monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(sub_agent_dispatch, "commit_tree", _sync)
     monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
     deps = _deps(session)
 

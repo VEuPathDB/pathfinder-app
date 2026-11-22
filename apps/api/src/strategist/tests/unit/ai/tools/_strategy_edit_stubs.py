@@ -31,19 +31,21 @@ from strategist.ai.tools.standalone._stated_values import StatedStepNode
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import (
     commit,
+    commit_tree,
     live_counts,
     spec_build,
     stated_sides,
-    step_wdk_push,
-    sync,
 )
-from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import (
     list_every_search_under,
     recorded_searches,
 )
 from strategist.tests._support.recorded_searches import serve_stated_reads
+from strategist.tests._support.wdk_write_stubs import (
+    keeps_every_value,
+    skip_the_tree_put,
+)
 
 _STEP_PUSHES = frozenset(
     {
@@ -193,11 +195,18 @@ class StubAPI:
         name: str,
         description: str | None = None,
         *,
+        is_saved: bool = False,
+        is_internal: bool = False,
         user_id: str | None = None,
     ) -> WDKIdentifier:
         del user_id
         self._record(
-            "create_strategy", step_tree=step_tree, name=name, description=description
+            "create_strategy",
+            step_tree=step_tree,
+            name=name,
+            description=description,
+            is_saved=is_saved,
+            is_internal=is_internal,
         )
         return WDKIdentifier(id=self._alloc())
 
@@ -246,22 +255,6 @@ async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
     return ValidatedParams(params=params, record_class="transcript")
 
 
-async def _no_plan_params(*_args: Any, **_kwargs: Any) -> set[str]:
-    return set()
-
-
-async def _fake_sync(**_kwargs: Any) -> SyncResult:
-    return SyncResult(
-        wdk_strategy_id=42,
-        wdk_url="http://example",
-        root_step_id=0,
-        counts={},
-        root_count=None,
-        zero_step_ids=[],
-        step_count=0,
-    )
-
-
 def pin_validator(monkeypatch: pytest.MonkeyPatch, validator: Any) -> None:
     """Serve one parameter validator to every seam a write passes."""
     for module in (stated_sides, spec_build):
@@ -271,15 +264,15 @@ def pin_validator(monkeypatch: pytest.MonkeyPatch, validator: Any) -> None:
 def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     """Serve one StubAPI to every strategy write path and stub the side effects."""
     api = StubAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
+    for module in (commit_tree, spec_build, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     for module in (commit, spec_build):
         monkeypatch.setattr(module, "reconcile_sync_state_with_wdk", _noop)
-        monkeypatch.setattr(module, "sync_strategy_for_site", _fake_sync)
         monkeypatch.setattr(module, "persist_strategy_ast_to_conversation", _noop)
         monkeypatch.setattr(module, "defer_the_gene_set_refresh", _noop)
+    skip_the_tree_put(monkeypatch)
     pin_validator(monkeypatch, _echo_parameters)
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_plan_params)
+    monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
     list_every_search_under(monkeypatch, "transcript")
     serve_stated_reads(monkeypatch, list(recorded_searches().values()))
     return api

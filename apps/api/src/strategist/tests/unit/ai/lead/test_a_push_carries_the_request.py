@@ -15,7 +15,7 @@ from strategist.ai.lead import sub_agent_dispatch
 from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.ai.tools.standalone import eda_step
 from strategist.domain.strategy.build_outcome import BuildOutcome
-from strategist.services.strategies.sync import SyncResult
+from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -55,27 +55,28 @@ def test_an_eda_step_carries_the_request() -> None:
 async def test_a_recovery_resync_carries_the_request(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    requests: list[str] = []
+    names: list[str] = []
 
-    async def _sync(**kwargs: Any) -> SyncResult:
-        requests.append(kwargs["user_prompt"])
-        return SyncResult(
-            wdk_strategy_id=330679883,
-            wdk_url=None,
-            root_step_id=440537303,
-            counts={},
-            root_count=None,
-            zero_step_ids=[],
-            step_count=1,
+    async def _commit(**kwargs: Any) -> CommittedTree:
+        names.append(kwargs["target"].name)
+        return CommittedTree(
+            pushed=[],
+            failures=[],
+            drafts={},
+            skipped=[],
+            sync=None,
+            record_type=None,
+            held={},
         )
 
-    monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(sub_agent_dispatch, "commit_tree", _commit)
     deps = lead_deps(
-        pipeline_state(user_prompt=_REQUEST), strategy_session=session_with_one_step()
+        pipeline_state(user_prompt=_REQUEST),
+        strategy_session=session_with_one_step(name=""),
     )
 
     await sub_agent_dispatch._resync_outcome(
         agent_deps_for(deps, call_id="call_test"), BuildOutcome()
     )
 
-    assert requests == [_REQUEST]
+    assert names == [_REQUEST]

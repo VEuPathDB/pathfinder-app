@@ -25,9 +25,7 @@ from strategist.domain.strategy.operations import (
 from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.persistence.models import User
 from strategist.persistence.repositories.conversation import ConversationRepository
-from strategist.services.strategies import (
-    commit,
-)
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit import (
     apply_and_commit,
     apply_operations_and_commit,
@@ -39,7 +37,6 @@ from strategist.tests._support.wdk_write_stubs import (
     validate_against,
 )
 from strategist.tests.integration.services.strategies._commit_wire import (
-    PROMPT,
     PV,
     CountingAPI,
     FailingAPI,
@@ -64,7 +61,7 @@ def pushes() -> RecordedPushes:
 def stub_api(monkeypatch: pytest.MonkeyPatch, pushes: RecordedPushes) -> CountingAPI:
     api = CountingAPI()
     patch_strategy_api(monkeypatch, api)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", pushes.sync)
+    monkeypatch.setattr(commit_tree, "put_the_tree", pushes.put)
     return api
 
 
@@ -121,7 +118,7 @@ async def test_delete_collapse_combine_drops_wdk_steps_and_persists_ast(
 
     assert sorted(result.dropped_step_ids) == ["step_a", "step_c"]
     assert orphaned(stub_api) == [[100, 300]]
-    assert pushes.pushed == [(None, PROMPT)]
+    assert pushes.pushed == ["Test strategy"]
 
     async with session_maker() as fresh:
         repo = ConversationRepository(fresh)

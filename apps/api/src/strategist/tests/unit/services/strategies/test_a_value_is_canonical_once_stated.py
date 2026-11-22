@@ -17,23 +17,28 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import load_recorded
-from veupathdb.wdk import WDKIdentifier, WDKSearchConfig, WDKSearchResponse
+from veupathdb.wdk import (
+    WDKIdentifier,
+    WDKSearchConfig,
+    WDKSearchResponse,
+    WDKStep,
+)
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.domain.strategy.operations import UpdateStepParamsOp
 from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import (
+    commit_tree,
     save_substrategy,
     stated_sides,
-    step_wdk_push,
 )
+from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.save_substrategy import save_subtree_as_strategy
 from strategist.services.strategies.stated_sides import canonical_batch
-from strategist.services.strategies.step_push_planner import plan_step_pushes
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
 
 _BRANCH = MultiPickValue(values=["Haemoproteidae"])
 _LEAVES = MultiPickValue(values=["Haemoproteus tartakovskyi strain SISKIN1"])
@@ -139,19 +144,32 @@ class _Api:
         self.written.append(dict(search_config.parameters))
         self._refuse()
 
-    async def find_step(self, step_id: int) -> Any:
-        del step_id
-        raise OSError
+    async def find_step(self, step_id: int) -> WDKStep:
+        return WDKStep(id=step_id, search_name=_SEARCH, search_config=WDKSearchConfig())
 
     async def create_strategy(self, **_kwargs: Any) -> WDKIdentifier:
         return WDKIdentifier(id=7)
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch, api: _Api) -> None:
-    monkeypatch.setattr(step_wdk_push, "validate_parameters", _validate)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    skip_the_tree_put(monkeypatch)
     monkeypatch.setattr(save_substrategy, "get_strategy_api", lambda _site: api)
     list_every_search_under(monkeypatch, "transcript")
+
+
+async def _commit(
+    graph: StrategyGraph, before: StrategyAst | None, sync_state: WDKSyncState
+) -> CommittedTree:
+    return await commit_tree.commit_tree(
+        site_id="plasmodb",
+        steps=graph.steps,
+        root_id="s",
+        old=before,
+        sync_state=sync_state,
+        target=commit_tree.CommitTarget(name="g", description=""),
+    )
 
 
 def _wire(organism: MultiPickValue, weight: str) -> dict[str, str]:
@@ -188,13 +206,8 @@ async def test_a_push_sends_the_branch_wdk_holds_and_the_held_value_as_they_are(
     api = _Api()
     _serve(monkeypatch, api)
     graph = _graph(_BRANCH, 60)
-    plan = plan_step_pushes(
-        old_ast=_ast(_BRANCH, 50), new_ast=_ast(_BRANCH, 60), existing_wdk_ids={"s": 9}
-    )
 
-    await push_steps_with_plan(
-        graph, WDKSyncState(wdk_step_ids={"s": 9}), "plasmodb", plan
-    )
+    await _commit(graph, _ast(_BRANCH, 50), WDKSyncState(wdk_step_ids={"s": 9}))
 
     assert graph.steps["s"].parameters == _values(_BRANCH, 60)
     assert api.written == [_wire(_BRANCH, "60")]
@@ -207,14 +220,11 @@ async def test_a_failed_push_retried_sends_the_stated_canonical_values(
     _serve(monkeypatch, api)
     graph = _graph(_LEAVES, 50)
     await _edit(monkeypatch, graph, {"organism": _BRANCH})
-    plan = plan_step_pushes(
-        old_ast=None, new_ast=_ast(_LEAVES, 50), existing_wdk_ids={}
-    )
 
-    first = await push_steps_with_plan(graph, WDKSyncState(), "plasmodb", plan)
-    second = await push_steps_with_plan(graph, WDKSyncState(), "plasmodb", plan)
+    first = await _commit(graph, None, WDKSyncState())
+    second = await _commit(graph, None, WDKSyncState())
 
-    assert (first.failed, second.failed) == (["s"], [])
+    assert ([f.step_id for f in first.failures], second.failures) == (["s"], [])
     assert api.created == [_wire(_LEAVES, "50"), _wire(_LEAVES, "50")]
 
 

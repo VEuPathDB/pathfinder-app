@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import pytest
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, StringValue
@@ -13,6 +15,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.eda import EdaStringSetFilter
 from veupathdb.wdk import (
+    StrategyAPI,
     WDKParameter,
     WDKSearch,
     WDKSearchResponse,
@@ -26,7 +29,7 @@ from veupathdb_mcp.catalog import (
     ValidationCallbacks,
 )
 
-from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from strategist.services.eda.authoring import new_analysis, serialize_spec
 from strategist.services.strategies import spec_build
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -125,22 +128,21 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> list[StrategyStep]:
         return ResolvedSearch(response=_response(), values_were_read=True)
 
     async def _push(
-        *,
+        api: StrategyAPI,
         sync_state: WDKSyncState,
         step: StrategyStep,
-        site_id: str,
         record_type: str,
-        search_name: str,
-        parameters: dict[str, ParamValue],
-    ) -> tuple[int | None, StepValidation | None, str | None]:
-        del sync_state, site_id, record_type, search_name, parameters
+        parameters: Mapping[str, ParamValue],
+    ) -> StepPushFailure | None:
+        del api, record_type, parameters
         pushed.append(step)
-        return 440185943, None, None
+        sync_state.wdk_step_ids[step.id] = 440185943
+        return None
 
     serve_search_details(monkeypatch, _resolved)
     list_every_search_under(monkeypatch, "transcript")
     monkeypatch.setattr(spec_build, "make_validation_callbacks", _callbacks)
-    monkeypatch.setattr(spec_build, "push_step_to_wdk", _push)
+    monkeypatch.setattr(spec_build, "pushed_step", _push)
     return pushed
 
 

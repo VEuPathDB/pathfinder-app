@@ -12,7 +12,7 @@ from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy import rebuild_tree
+from veupathdb.domain.strategy import pushable_root_id, rebuild_tree
 from veupathdb.errors import VEuPathDBError
 
 from strategist.ai.graph.runtime import AgentDeps
@@ -78,16 +78,18 @@ from strategist.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from strategist.domain.strategy.step_words import added_searches, step_words
+from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.domain.strategy.types import SyncStateProtocol
 from strategist.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.data_marks import read_data_marks
+from strategist.services.strategies.naming import name_for_the_push
 from strategist.services.strategies.spec_build import (
     build_strategy_from_spec,
     node_results,
 )
-from strategist.services.strategies.sync import sync_strategy_for_site
 from strategist.services.strategies.sync_state import ensure_sync_state
 
 
@@ -338,24 +340,38 @@ def _records_organism(
 
 
 async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOutcome:
-    """The BuildOutcome after recovery edits, read by re-syncing the strategy."""
+    """The BuildOutcome after recovery edits, read by committing the strategy again."""
     graph = agent_deps.strategy_session.get_graph(None)
     if graph is None:
         return prior
+    primary = graph.primary_root_id()
+    root_id = None if primary is None else pushable_root_id(primary, graph.steps)
+    if root_id is None:
+        return prior
     sync_state = ensure_sync_state(agent_deps.strategy_session)
     try:
-        sync_result = await sync_strategy_for_site(
-            graph=graph,
-            sync_state=sync_state,
+        committed = await commit_tree(
             site_id=agent_deps.site_id,
-            user_prompt=agent_deps.user_prompt,
+            steps=graph.steps,
+            root_id=root_id,
+            old=graph.to_strategy_ast(sync_state=sync_state),
+            sync_state=sync_state,
+            target=CommitTarget(
+                name=name_for_the_push(graph, agent_deps.user_prompt),
+                description=strategy_description(graph, root_id),
+            ),
         )
     except VEuPathDBError:
         return prior
+    if committed.record_type is not None:
+        graph.record_type = committed.record_type
     fresh = BuildOutcome(
         pushed_step_ids=list(prior.pushed_step_ids),
-        wdk_strategy_id=sync_result.wdk_strategy_id,
-        zero_step_ids=list(sync_result.zero_step_ids),
+        failed_steps=list(committed.failures),
+        wdk_strategy_id=sync_state.wdk_strategy_id,
+        zero_step_ids=sorted(
+            sid for sid, count in sync_state.step_counts.items() if count == 0
+        ),
         organism_change=_records_organism(graph, sync_state),
     )
     fresh.node_results = node_results(list(graph.steps.values()), sync_state, fresh)

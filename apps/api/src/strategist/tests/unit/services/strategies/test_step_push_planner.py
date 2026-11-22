@@ -5,7 +5,12 @@ from veupathdb.domain.parameters import (
     ParamValue,
     StringValue,
 )
-from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StepFilter,
+    StrategyAst,
+    StrategyStepNode,
+)
 
 from strategist.services.strategies.step_push_planner import (
     CreateAction,
@@ -138,7 +143,7 @@ def test_single_leaf_param_change_patches_only_that_leaf() -> None:
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_a"].action == PatchAction(search_config=True, name=False)
-    assert by_id["step_a"].reason == "params changed"
+    assert by_id["step_a"].reason == "parameters changed"
     assert by_id["step_b"].action == SkipAction()
     assert by_id["step_c"].action == SkipAction()
     assert by_id["step_inner"].action == SkipAction()
@@ -344,3 +349,54 @@ def test_combine_metadata_only_change_patches_combine() -> None:
     assert by_id["step_c"].reason == "combine name changed"
     assert by_id["step_a"].action == SkipAction()
     assert by_id["step_b"].action == SkipAction()
+
+
+def _filtered(node: StrategyStepNode, *values: str) -> StrategyStepNode:
+    return node.model_copy(
+        update={
+            "filters": [
+                StepFilter(
+                    name="matched_transcript_filter_array",
+                    value={"values": list(values)},
+                )
+            ]
+        }
+    )
+
+
+def test_a_filter_only_change_on_a_leaf_patches_its_search_config() -> None:
+    a = _leaf("step_a")
+    b = _leaf("step_b")
+    old = _ast(_combine("step_c", _filtered(a, "Y"), b))
+    new = _ast(_combine("step_c", _filtered(a, "N"), b))
+    wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3}
+
+    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids)
+
+    by_id = {p.step_id: p.action for p in plan}
+    assert by_id == {
+        "step_a": PatchAction(search_config=True, name=False),
+        "step_b": SkipAction(),
+        "step_c": SkipAction(),
+    }
+
+
+def test_a_filter_change_on_a_combine_recreates_it() -> None:
+    a = _leaf("step_a")
+    b = _leaf("step_b")
+    old = _ast(_combine("step_c", a, b))
+    new = _ast(_filtered(_combine("step_c", a, b), "YY"))
+    wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3}
+
+    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids)
+
+    assert [p.action for p in plan] == [SkipAction(), SkipAction(), RecreateAction()]
+
+
+def test_a_value_restated_in_its_canonical_spelling_is_not_written() -> None:
+    old = _ast(_leaf("step_a", organism=_multi(["Pf3D7", "PvP01"])))
+    new = _ast(_leaf("step_a", organism=_multi(["PvP01", "Pf3D7"])))
+
+    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids={"step_a": 1})
+
+    assert [p.action for p in plan] == [SkipAction()]

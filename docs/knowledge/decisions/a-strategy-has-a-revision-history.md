@@ -35,8 +35,8 @@ message it just wrote, so the exact rule is available where it matters most.
 
 **Fork materializes; it no longer duplicates.** A fork resolves the anchor's
 snapshot and pushes that tree to WDK as a strategy of its own through the
-existing push path (`plan_step_pushes` with no known step ids, then
-`push_steps_with_plan`, then `sync_strategy_for_site`). WDK's
+one commit path (`commit_tree` with no prior tree, so every step is
+created). WDK's
 `sourceStrategySignature` duplication was removed with the code that used it:
 it copies a strategy as it stands now, which is the very state a branch point
 must not inherit. **Every snapshot that holds a tree is pushed**, whatever WDK

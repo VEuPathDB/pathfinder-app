@@ -2,13 +2,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy import (
-    StrategyAst,
-    pushable_root_id,
-    wdk_search_name,
-)
+from veupathdb.domain.strategy import StrategyAst, pushable_root_id
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk import get_site, get_strategy_api
 
 from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.combine_naming import name_the_combines
@@ -32,6 +27,12 @@ from strategist.services.strategies.batch_refusal import (
     entry_state,
     refusal_after_the_batch,
 )
+from strategist.services.strategies.commit_tree import (
+    CommitTarget,
+    CommittedTree,
+    commit_tree,
+    drop_the_tree,
+)
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from strategist.services.strategies.graph_rollback import (
@@ -40,7 +41,10 @@ from strategist.services.strategies.graph_rollback import (
     restore_graph,
 )
 from strategist.services.strategies.live_counts import replace_counts_with_wdks
-from strategist.services.strategies.naming import name_the_thread_as_the_graph
+from strategist.services.strategies.naming import (
+    name_for_the_push,
+    name_the_thread_as_the_graph,
+)
 from strategist.services.strategies.organism_params import (
     tree_cross_organism_refusal,
 )
@@ -52,18 +56,8 @@ from strategist.services.strategies.reconcile import (
 )
 from strategist.services.strategies.record_classes import tree_record_class_refusal
 from strategist.services.strategies.stated_sides import canonical_batch
-from strategist.services.strategies.step_push_planner import plan_step_pushes
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
-from strategist.services.strategies.sync import (
-    StrategyLabels,
-    SyncResult,
-    UnclassedRootError,
-    put_the_strategy_labels,
-    step_tree_is_current,
-    sync_strategy_for_site,
-)
+from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
-from strategist.services.strategies.wdk_counts import invalidate_counts_for
 
 logger = get_logger(__name__)
 
@@ -207,7 +201,7 @@ async def apply_operations_and_commit(
     sync_state = ensure_sync_state(deps.strategy_session)
     snapshot = graph.to_strategy_ast(sync_state=sync_state)
     # Deep-copy: apply_operation mutates the live nodes in-place, so a shallow
-    # snapshot would alias the post-mutation state and defeat plan_step_pushes
+    # snapshot would alias the post-mutation state and defeat the planner's
     # change detection.
     old_ast = snapshot.model_copy(deep=True) if snapshot is not None else None
     entry_labels = graph_labels(graph)
@@ -255,12 +249,12 @@ async def apply_operations_and_commit(
         graph.save_history(result.description)
 
     try:
-        sync_result = await _commit_to_wdk(
+        committed = await _commit_the_tree(
             deps=deps,
             graph=graph,
             old_ast=old_ast,
-            new_ast=wdk_ast,
-            dropped_step_ids=result.dropped_step_ids,
+            wdk_ast=wdk_ast,
+            sync_state=sync_state,
         )
     except VEuPathDBError:
         # The push raises for a step VEuPathDB already holds, so the batch is
@@ -268,17 +262,11 @@ async def apply_operations_and_commit(
         restore_graph(graph, old_ast, entry_labels)
         raise
 
-    # VEuPathDB owns the counts. Reading them back here is what makes the
-    # session, the graph snapshot and the stored strategy carry one set of
-    # numbers for the tree this commit leaves behind.
-    await replace_counts_with_wdks(
-        graph=graph, sync_state=sync_state, site_id=deps.site_id
-    )
-
+    sync_result = None if committed is None else committed.sync
     await persist_strategy_ast_to_conversation(
         deps=deps,
         graph=graph,
-        sync_result=sync_result.sync_result,
+        sync_result=sync_result,
     )
     if answer_revision(new_ast) != answer_revision(old_ast):
         await defer_the_gene_set_refresh(deps)
@@ -288,145 +276,45 @@ async def apply_operations_and_commit(
     return CommitResult(
         description=result.description,
         dropped_step_ids=result.dropped_step_ids,
-        sync_result=sync_result.sync_result,
-        failures=sync_result.failures,
+        sync_result=sync_result,
+        failures=[] if committed is None else committed.failures,
     )
 
 
-@dataclass
-class _WDKCommitOutcome:
-    succeeded_step_ids: list[str]
-    failures: list[StepPushFailure]
-    sync_result: SyncResult | None
-
-
-async def _put_the_step_tree(
-    *,
-    deps: StrategyMutationContext,
-    graph: StrategyGraph,
-    sync_state: WDKSyncState,
-    new_ast: StrategyAst | None,
-    failures: list[StepPushFailure],
-) -> SyncResult | None:
-    """Re-root the WDK strategy on the tree the graph now maps to.
-
-    A recreated step keeps its local id under a new WDK id, so the local shape
-    alone does not say whether the tree moved.
-    """
-    if new_ast is None or not graph.steps:
-        return None
-    if step_tree_is_current(new_ast.root, sync_state):
-        await put_the_strategy_labels(
-            get_strategy_api(deps.site_id),
-            sync_state,
-            StrategyLabels(
-                name=graph.name,
-                description=strategy_description(graph, new_ast.root.id),
-            ),
-        )
-        return None
-    try:
-        return await sync_strategy_for_site(
-            graph=graph,
-            sync_state=sync_state,
-            site_id=deps.site_id,
-            user_prompt=deps.user_prompt,
-        )
-    except UnclassedRootError as refused:
-        failures.append(refused.failure)
-        return None
-    except VEuPathDBError as exc:
-        root = graph.steps[new_ast.root.id]
-        site = get_site(deps.site_id).display_name
-        failures.append(
-            StepPushFailure(
-                step_id=root.id,
-                search_name=wdk_search_name(root),
-                error=f"{site} did not take the strategy's steps: {exc.detail or exc.title}",
-            )
-        )
-        return None
-
-
-async def _commit_to_wdk(
+async def _commit_the_tree(
     *,
     deps: StrategyMutationContext,
     graph: StrategyGraph,
     old_ast: StrategyAst | None,
-    new_ast: StrategyAst | None,
-    dropped_step_ids: list[str],
-) -> _WDKCommitOutcome:
-    sync_state = ensure_sync_state(deps.strategy_session)
-    api = get_strategy_api(deps.site_id)
-
+    wdk_ast: StrategyAst | None,
+    sync_state: WDKSyncState,
+) -> CommittedTree | None:
     await reconcile_sync_state_with_wdk(
-        sync_state,
-        deps.site_id,
-        sync_state.wdk_strategy_id,
+        sync_state, deps.site_id, sync_state.wdk_strategy_id
     )
-
-    succeeded: list[str] = []
-    failures: list[StepPushFailure] = []
-    recreated: dict[str, int] = {}
-    if new_ast is not None:
-        plan = plan_step_pushes(
-            old_ast=old_ast,
-            new_ast=new_ast,
-            existing_wdk_ids=sync_state.wdk_step_ids,
+    committed = None
+    if wdk_ast is None or not graph.steps:
+        await drop_the_tree(
+            site_id=deps.site_id, steps=graph.steps, sync_state=sync_state
         )
-        push_outcome = await push_steps_with_plan(graph, sync_state, deps.site_id, plan)
-        succeeded = push_outcome.succeeded
-        failures = push_outcome.failures
-        recreated = push_outcome.recreated_wdk_ids
-        # A pushed step's parameters just changed, so its stored count now
-        # describes the OLD step. A refused step is in the same position: WDK
-        # kept the previous search. Mark both unknown rather than let a stale
-        # number be read back as current fact.
-        invalidate_counts_for(
-            sync_state,
-            [*succeeded, *(failure.step_id for failure in failures)],
-            graph=graph,
-        )
-
-    # The id mapping is kept until WDK confirms the delete. The strategy push
-    # below is what orphans these steps, so deleting them first is refused.
-    orphaned: dict[str, int] = {}
-    for sid in dropped_step_ids:
-        sync_state.step_counts.pop(sid, None)
-        sync_state.step_validations.pop(sid, None)
-        sync_state.wdk_push_errors.pop(sid, None)
-        wdk_id = sync_state.wdk_step_ids.get(sid)
-        if wdk_id is not None:
-            orphaned[sid] = wdk_id
-
-    sync_result = (
-        None
-        if failures
-        else await _put_the_step_tree(
-            deps=deps,
-            graph=graph,
+    else:
+        committed = await commit_tree(
+            site_id=deps.site_id,
+            steps=graph.steps,
+            root_id=wdk_ast.root.id,
+            old=old_ast,
             sync_state=sync_state,
-            new_ast=new_ast,
-            failures=failures,
+            target=CommitTarget(
+                name=name_for_the_push(graph, deps.user_prompt),
+                description=strategy_description(graph, wdk_ast.root.id),
+            ),
         )
+        if committed.record_type is not None:
+            graph.record_type = committed.record_type
+    # VEuPathDB owns the counts. Reading them back here is what makes the
+    # session, the graph snapshot and the stored strategy carry one set of
+    # numbers for the tree this commit leaves behind.
+    await replace_counts_with_wdks(
+        graph=graph, sync_state=sync_state, site_id=deps.site_id
     )
-    # A step the put replaced belongs to no strategy either. Its local id now
-    # names the new WDK step, so there is no mapping to forget for it, and a
-    # put that did not land leaves it on the tree.
-    replaced = list(recreated.values()) if sync_result is not None else []
-    if orphaned or replaced:
-        leftover = set(await api.delete_orphaned_steps([*orphaned.values(), *replaced]))
-        for sid, wdk_id in orphaned.items():
-            if wdk_id not in leftover:
-                sync_state.wdk_step_ids.pop(sid, None)
-        if leftover:
-            logger.warning(
-                "Some orphaned WDK steps could not be deleted",
-                step_ids=sorted(leftover),
-            )
-
-    return _WDKCommitOutcome(
-        succeeded_step_ids=succeeded,
-        failures=failures,
-        sync_result=sync_result,
-    )
+    return committed

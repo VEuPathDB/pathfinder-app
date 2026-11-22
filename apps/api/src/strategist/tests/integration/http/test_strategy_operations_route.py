@@ -16,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from strategist.persistence.models import ConversationStrategy
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies import commit
-from strategist.services.strategies.commit import _WDKCommitOutcome
 from strategist.tests.integration.http.conftest import (
     first_frame_client_for,
     make_user,
@@ -33,11 +32,10 @@ def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
     """WDK is not reached: the step push is recorded instead of sent."""
     pushed: list[Any] = []
 
-    async def no_push(**kwargs: Any) -> _WDKCommitOutcome:
-        pushed.append(kwargs["new_ast"])
-        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
+    async def no_push(**kwargs: Any) -> None:
+        pushed.append(kwargs["wdk_ast"])
 
-    monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
+    monkeypatch.setattr(commit, "_commit_the_tree", no_push)
     return pushed
 
 

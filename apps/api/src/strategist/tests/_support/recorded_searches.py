@@ -42,11 +42,11 @@ from strategist.ai.tools.standalone import (
     frame_spec,
 )
 from strategist.services.strategies import (
+    commit_tree,
     record_classes,
     sheet_params,
     spec_build,
     stated_sides,
-    step_wdk_push,
 )
 from strategist.tests._support.catalog_builders import serve_search_details
 from strategist.tests._support.filter_reads import NoFilterReads
@@ -155,7 +155,7 @@ def _recorded_validation_callbacks() -> ValidationCallbacks:
 def serve_recorded_record_types(monkeypatch: pytest.MonkeyPatch) -> None:
     """Find each search's record type in plasmodb's recorded listing, wherever
     a binding, a write or a push asks the catalog."""
-    for module in (_frame_canonical, stated_sides, step_wdk_push, spec_build):
+    for module in (_frame_canonical, stated_sides, commit_tree, spec_build):
         monkeypatch.setattr(
             module,
             "make_validation_callbacks",

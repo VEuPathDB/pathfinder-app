@@ -40,13 +40,17 @@ from strategist.domain.strategy.spec_tree import (
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import spec_build, step_wdk_push
+from strategist.services.strategies import commit_tree, spec_build
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests._support.wdk_write_stubs import RecordedPushes, landed_pushes
+from strategist.tests._support.wdk_write_stubs import (
+    NoStrategyRead,
+    RecordedPushes,
+    landed_pushes,
+)
 
 # A strategy write defers the gene-set refresh onto the job queue.
 pytestmark = pytest.mark.usefixtures("open_job_queue")
@@ -58,14 +62,12 @@ _PROMPT = "find genes upregulated in gametocytes"
 
 
 @dataclass
-class _RecordingAPI:
+class _RecordingAPI(NoStrategyRead):
     """The WDK steps this build creates, and the strategy pushes it makes."""
 
     created: list[dict[str, str]] = field(default_factory=list)
     pushes: RecordedPushes = field(
-        default_factory=lambda: landed_pushes(
-            77, root_step_id=7001, root_count=412, step_count=1
-        )
+        default_factory=lambda: landed_pushes(77, root_step_id=7001)
     )
     next_id: int = 7000
 
@@ -109,10 +111,11 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
+    for module in (spec_build, commit_tree):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(spec_build, "validate_parameters", _accept_every_value)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _noop_reconcile)
-    monkeypatch.setattr(spec_build, "sync_strategy_for_site", api.pushes.sync)
+    monkeypatch.setattr(commit_tree, "put_the_tree", api.pushes.put)
     list_every_search_under(monkeypatch, "transcript")
     return api
 
@@ -229,7 +232,7 @@ async def test_the_pushed_step_carries_the_option_and_the_row_records_it(
     assert recording_api.created == [
         {"organism": '["Pf3D7"]', "dataset": _TIMECOURSE},
     ]
-    assert recording_api.pushes.pushed == [(None, _PROMPT)]
+    assert recording_api.pushes.pushed == ["Gametocyte expression"]
     async with session_maker() as fresh:
         stored = await ConversationRepository(fresh).get_strategy(conversation_id)
     persisted = StrategyAst.model_validate(stored.strategy_ast)

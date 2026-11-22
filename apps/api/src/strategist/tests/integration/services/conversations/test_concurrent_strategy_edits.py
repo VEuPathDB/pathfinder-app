@@ -33,11 +33,10 @@ from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.conversations import strategy_ops
 from strategist.services.strategies import (
     commit,
+    commit_tree,
     insert_saved,
     spec_build,
     stated_sides,
-    step_wdk_push,
-    sync,
 )
 from strategist.services.strategies.insert_saved import ClonedSavedStrategy
 from strategist.tests._support import wdk_write_stubs
@@ -57,7 +56,7 @@ _COMBINE_PUSH = "create_combined_step"
 
 
 @dataclass
-class _SlowAPI:
+class _SlowAPI(wdk_write_stubs.NoStrategyRead):
     """WDK stub where one named push takes a measurable amount of time."""
 
     slow_call: str = ""
@@ -148,17 +147,14 @@ async def _no_reconcile(*_args: Any, **_kwargs: Any) -> None:
 @pytest.fixture
 def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     api = _SlowAPI()
-    monkeypatch.setattr(commit, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
-
-    async def _no_incomplete(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_incomplete)
+    for module in (commit_tree, spec_build):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(
+        commit_tree, "validate_parameters", wdk_write_stubs.keeps_every_value
+    )
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
     monkeypatch.setattr(
-        commit, "sync_strategy_for_site", wdk_write_stubs.landed_pushes(555).sync
+        commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put
     )
     monkeypatch.setattr(
         stated_sides, "validate_parameters", wdk_write_stubs.accepts_every_value
@@ -365,7 +361,7 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
     monkeypatch.setattr(spec_build, "validate_parameters", _passthrough_validation)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _no_reconcile)
     monkeypatch.setattr(
-        spec_build, "sync_strategy_for_site", wdk_write_stubs.landed_pushes(555).sync
+        commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put
     )
     return entered
 

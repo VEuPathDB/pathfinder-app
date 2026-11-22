@@ -74,7 +74,7 @@ The note lives on the graph's `description`: a build (`build_the_minted`, throug
 spec binds a saved comparison write `noted_description(...)`, which appends
 `SNAPSHOT_NOTE` to a description the researcher wrote and adds it once. Each step named as
 a computed snapshot holds a saved list of group ids, the ids are fixed, and a later release
-maps each id to the groups it became, so the count can change. `sync_strategy_for_site`
+maps each id to the groups it became, so the count can change. `commit_tree`
 sends the graph's description on every create, so a build, an edit, a resync and a
 materialized copy all carry it.
 A push to a strategy the site already holds sends the description too, whenever the one

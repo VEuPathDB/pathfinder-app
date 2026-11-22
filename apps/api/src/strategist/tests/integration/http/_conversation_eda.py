@@ -22,7 +22,6 @@ from strategist.persistence.repositories.conversation_analysis import (
 )
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies import commit
-from strategist.services.strategies.commit import _WDKCommitOutcome
 from strategist.tests._support.eda_wire import (
     DE_ENTITY_SIZES,
     AnalysisStore,
@@ -98,10 +97,10 @@ def site_edited_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
 def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> None:
     """WDK is not reached: the commit reports a push it never sent."""
 
-    async def no_push(**_kwargs: object) -> _WDKCommitOutcome:
-        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
+    async def no_push(**_kwargs: object) -> None:
+        return None
 
-    monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
+    monkeypatch.setattr(commit, "_commit_the_tree", no_push)
 
 
 @pytest.fixture

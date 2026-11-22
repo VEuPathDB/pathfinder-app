@@ -11,20 +11,17 @@ from veupathdb.domain.parameters import NumberValue
 from veupathdb.domain.strategy import (
     CombineOp,
     StrategyAst,
-    StrategyStep,
     StrategyStepNode,
-    flatten_tree,
 )
 
 from strategist.domain.strategy.operations import UpdateStepParamsOp
-from strategist.services.strategies import step_wdk_push
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.step_push_planner import (
     PatchAction,
     plan_step_pushes,
 )
-from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import commit_against
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -37,8 +34,8 @@ _WDK_DEFAULT = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 _WDK_IDS = {"step_a": 440537303, "step_b": 440537313, "step_join": 440537323}
 
 
-def _join(name: str | None, search_name: str = "__combine__") -> StrategyStep:
-    node = StrategyStepNode(
+def _join(name: str | None, search_name: str = "__combine__") -> StrategyStepNode:
+    return StrategyStepNode(
         id="step_join",
         search_name=search_name,
         display_name=name,
@@ -46,25 +43,16 @@ def _join(name: str | None, search_name: str = "__combine__") -> StrategyStep:
         primary_input=leaf("step_a"),
         secondary_input=leaf("step_b"),
     )
-    return flatten_tree(node)["step_join"]
 
 
 class TestTheCreateSendsTheName:
-    @pytest.fixture
-    def api(self, monkeypatch: pytest.MonkeyPatch) -> StubAPI:
+    async def _pushed_name(
+        self, monkeypatch: pytest.MonkeyPatch, node: StrategyStepNode
+    ) -> object:
         api = StubAPI()
-        monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
-        return api
-
-    async def _pushed_name(self, api: StubAPI, step: StrategyStep) -> object:
-        await step_wdk_push.push_step_to_wdk(
-            sync_state=WDKSyncState(wdk_step_ids=dict(_WDK_IDS)),
-            step=step,
-            site_id="plasmodb",
-            record_type="transcript",
-            search_name="__combine__",
-            parameters={},
-        )
+        held = {"step_a": _WDK_IDS["step_a"], "step_b": _WDK_IDS["step_b"]}
+        before = node.model_copy(update={"id": "step_before"})
+        await commit_against(monkeypatch, api, node, before=before, held=held)
         (call,) = api.named("create_combined_step")
         return call.kwargs["custom_name"]
 
@@ -77,12 +65,16 @@ class TestTheCreateSendsTheName:
         ],
     )
     async def test_an_unnamed_combine_goes_under_its_operators_name(
-        self, api: StubAPI, name: str | None, search_name: str
+        self, monkeypatch: pytest.MonkeyPatch, name: str | None, search_name: str
     ) -> None:
-        assert await self._pushed_name(api, _join(name, search_name)) == "Union"
+        pushed = await self._pushed_name(monkeypatch, _join(name, search_name))
 
-    async def test_a_researchers_name_goes_as_given(self, api: StubAPI) -> None:
-        pushed = await self._pushed_name(api, _join("Exported or secreted"))
+        assert pushed == "Union"
+
+    async def test_a_researchers_name_goes_as_given(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pushed = await self._pushed_name(monkeypatch, _join("Exported or secreted"))
 
         assert pushed == "Exported or secreted"
 

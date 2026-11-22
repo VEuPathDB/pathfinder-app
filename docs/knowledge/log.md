@@ -304,6 +304,21 @@
 
 ## 2026-11-22
 
+* **A strategy reaches WDK through one commit path.** `services/strategies/commit_tree.py`
+  plans each step against the tree before it, validates every step it writes once (a value
+  that moved is stated, the rest is context) and returns every refusal together: a refused
+  step WDK does not hold is a draft, one it holds is a failure, and either keeps the tree
+  from being put. A new step is created without its filters, the filters WDK added are kept
+  beside the sync state, and the step's own filters follow in one search-config PUT that
+  carries the held list with the plan's change; a filter change on a leaf is a search-config
+  patch, on a combine a recreate. The tree is put, a ranking is sorted by weight when a
+  weight moved or the root did, the steps a recreate replaced and the steps the graph
+  dropped are deleted after the put, and the strategy is read back: every setting WDK holds
+  other than the parameters is compared with the plan, and a difference is a failure that
+  names the field. The edit path, the snapshot materialize and the resync after recovery
+  run through it; the filter pass and the sort in `sync.py` and `step_wdk_push.py` are
+  gone, and an import-linter contract names the modules that may import the step writers.
+
 * **Every value shown to an agent reads back.** A filter with no clauses is shown `[]`
   and `[]` binds `{"filters":[]}`, the text WDK's no-filter value is; a value stated back
   as shown is the held value, by one rule in the reader that knows the held values, for

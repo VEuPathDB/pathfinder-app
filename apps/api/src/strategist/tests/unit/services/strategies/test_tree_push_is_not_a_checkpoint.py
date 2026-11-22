@@ -18,9 +18,10 @@ from veupathdb.wdk import (
 )
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import sync
-from strategist.services.strategies.sync import SyncResult, sync_strategy_for_site
+from strategist.services.strategies import commit_tree
+from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 _WDK_STEP_ID = 1001
 
@@ -79,7 +80,7 @@ def _recording_api(calls: list[str]) -> StrategyAPI:
 def calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     recorded: list[str] = []
     api = _recording_api(recorded)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
     return recorded
 
 
@@ -94,11 +95,11 @@ def _graph() -> StrategyGraph:
     return graph
 
 
-async def _sync(sync_state: WDKSyncState | None = None) -> SyncResult:
-    return await sync_strategy_for_site(
-        graph=_graph(),
-        sync_state=sync_state or WDKSyncState(wdk_step_ids={"A": _WDK_STEP_ID}),
-        site_id="plasmodb",
+async def _sync(sync_state: WDKSyncState | None = None) -> CommittedTree:
+    return await put_the_graph(
+        _graph(),
+        sync_state or WDKSyncState(wdk_step_ids={"A": _WDK_STEP_ID}),
+        "plasmodb",
     )
 
 

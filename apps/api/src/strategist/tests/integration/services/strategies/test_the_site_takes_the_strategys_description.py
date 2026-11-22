@@ -13,8 +13,8 @@ from veupathdb.wdk import WDKStepTree, get_site
 
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
-from strategist.services.strategies.sync import sync_strategy_for_site
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 _USER = 1000000104
 _STRATEGY = 214648770
@@ -124,9 +124,7 @@ async def _push(held: dict[str, object]) -> tuple[list[object], list[object]]:
     with respx.mock(assert_all_called=False) as router:
         put, patch = _site(router, held)
         await reconcile_sync_state_with_wdk(state, "plasmodb", _STRATEGY)
-        await sync_strategy_for_site(
-            graph=_signal_peptides(), sync_state=state, site_id="plasmodb"
-        )
+        await put_the_graph(_signal_peptides(), state, "plasmodb")
     return (
         [json.loads(call.request.content) for call in put.calls],
         [json.loads(call.request.content) for call in patch.calls],

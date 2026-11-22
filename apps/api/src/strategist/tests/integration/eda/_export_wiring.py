@@ -20,7 +20,6 @@ from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.eda import binding
 from strategist.services.strategies import commit
-from strategist.services.strategies.commit import _WDKCommitOutcome
 from strategist.tests._support.eda_step_doubles import DE_DATASET, DE_PERMISSION
 from strategist.tests._support.eda_wire import (
     DE_STUDY,
@@ -97,11 +96,10 @@ def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
     """WDK is not reached: the step push is recorded instead of sent."""
     pushed: list[Any] = []
 
-    async def no_push(**kwargs: Any) -> _WDKCommitOutcome:
-        pushed.append(kwargs["new_ast"])
-        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
+    async def no_push(**kwargs: Any) -> None:
+        pushed.append(kwargs["wdk_ast"])
 
-    monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
+    monkeypatch.setattr(commit, "_commit_the_tree", no_push)
     return pushed
 
 

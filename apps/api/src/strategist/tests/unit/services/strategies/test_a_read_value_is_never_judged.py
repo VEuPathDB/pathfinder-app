@@ -20,12 +20,11 @@ from strategist.domain.strategy.operations import UpdateStepParamsOp
 from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import StatedCriterion
-from strategist.services.strategies import stated_sides, step_wdk_push
+from strategist.services.strategies import commit_tree, stated_sides
 from strategist.services.strategies.stated_sides import canonical_batch
-from strategist.services.strategies.step_push_planner import plan_step_pushes
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
 
 _PATTERN = "profile_pattern"
 _READ: dict[str, ParamValue] = {
@@ -61,6 +60,17 @@ def _ast(weight: float) -> StrategyAst:
     )
 
 
+async def _commit(graph: StrategyGraph, before: StrategyAst) -> None:
+    await commit_tree.commit_tree(
+        site_id="plasmodb",
+        steps=graph.steps,
+        root_id="s",
+        old=before,
+        sync_state=WDKSyncState(wdk_step_ids={"s": 9}),
+        target=commit_tree.CommitTarget(name="g", description=""),
+    )
+
+
 class _Api:
     def __init__(self) -> None:
         self.written: list[dict[str, str]] = []
@@ -86,8 +96,9 @@ async def test_a_sibling_edit_and_its_push_never_judge_a_read_value(
 
     monkeypatch.setattr(stated_sides, "validate_parameters", catalog)
     monkeypatch.setattr(stated_sides, "search_record_types", _listed)
-    monkeypatch.setattr(step_wdk_push, "validate_parameters", catalog)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", catalog)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     graph = StrategyGraph("g", "g", "plasmodb")
     graph.steps = flatten_tree(_ast(50).root)
@@ -102,14 +113,9 @@ async def test_a_sibling_edit_and_its_push_never_judge_a_read_value(
     )
     for op in batch.ops:
         apply_operation(graph, op)
-    await push_steps_with_plan(
-        graph,
-        WDKSyncState(wdk_step_ids={"s": 9}),
-        "plasmodb",
-        plan_step_pushes(old_ast=_ast(50), new_ast=_ast(60), existing_wdk_ids={"s": 9}),
-    )
+    await _commit(graph, _ast(50))
 
-    assert catalog.stated == [{"max_weight"}, set()]
+    assert catalog.stated == [{"max_weight"}, {"max_weight"}]
     assert graph.steps["s"].parameters == _values(60)
     assert api.written == [
         {
@@ -130,8 +136,9 @@ async def test_restating_a_held_pattern_with_a_retired_code_pushes_the_new_one(
 
     monkeypatch.setattr(stated_sides, "validate_parameters", catalog)
     monkeypatch.setattr(stated_sides, "search_record_types", _listed)
-    monkeypatch.setattr(step_wdk_push, "validate_parameters", catalog)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", catalog)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     graph = StrategyGraph("g", "g", "plasmodb")
     graph.steps = flatten_tree(_ast(50).root)
@@ -146,23 +153,7 @@ async def test_restating_a_held_pattern_with_a_retired_code_pushes_the_new_one(
     )
     for op in batch.ops:
         apply_operation(graph, op)
-    await push_steps_with_plan(
-        graph,
-        WDKSyncState(wdk_step_ids={"s": 9}),
-        "plasmodb",
-        plan_step_pushes(
-            old_ast=_ast(50),
-            new_ast=StrategyAst(
-                record_type="transcript",
-                root=StrategyStepNode(
-                    id="s",
-                    search_name="GenesByOrthologPattern",
-                    parameters={**_values(50), _PATTERN: restated},
-                ),
-            ),
-            existing_wdk_ids={"s": 9},
-        ),
-    )
+    await _commit(graph, _ast(50))
 
     assert graph.steps["s"].parameters[_PATTERN] == restated
     assert [w[_PATTERN] for w in api.written] == ["%pfal:Y%"]

@@ -29,13 +29,10 @@ from veupathdb.wdk import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import (
-    commit,
-    step_wdk_push,
-    sync,
-)
+from strategist.services.strategies import commit, commit_tree
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import NoStrategyRead, keeps_every_value
 
 PROMPT = "find kinases expressed in blood stages"
 
@@ -47,7 +44,7 @@ class Call:
 
 
 @dataclass
-class CountingAPI:
+class CountingAPI(NoStrategyRead):
     calls: list[Call] = field(default_factory=list)
     next_id: int = 9000
 
@@ -168,15 +165,11 @@ class CountingAPI:
 def patch_strategy_api(monkeypatch: pytest.MonkeyPatch, api: CountingAPI) -> None:
     """Serve ``api`` to the commit path, and let every step count as complete."""
 
-    async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    for module in (commit, step_wdk_push, sync):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
 
 

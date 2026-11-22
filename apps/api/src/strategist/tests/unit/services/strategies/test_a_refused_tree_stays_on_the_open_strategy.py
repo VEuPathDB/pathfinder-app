@@ -7,7 +7,7 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStepTree, WDKStrategyDetails, build_wdk_step_tree
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
-from strategist.services.strategies import commit, sync
+from strategist.services.strategies import _tree_write, commit_tree
 from strategist.services.strategies.commit import CommitResult, apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -81,14 +81,13 @@ def _pushed_join() -> WDKSyncState:
 async def _delete_b(
     monkeypatch: pytest.MonkeyPatch, api: StubAPI
 ) -> tuple[CommitResult, WDKSyncState]:
-    for module in (commit, sync):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", sync.sync_strategy_for_site)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _tree_write.put_the_tree)
 
     async def _no_marks(*_args: object) -> dict[str, str]:
         return {}
 
-    monkeypatch.setattr(sync, "tree_organism_parameters", _no_marks)
+    monkeypatch.setattr(_tree_write, "tree_organism_parameters", _no_marks)
     root = combine("step_join", leaf("step_a"), leaf("step_b"))
     session = session_with(root, dict(_IDS))
     state = ensure_sync_state(session)

@@ -40,7 +40,7 @@ from strategist.services.gene_sets.types import (
     ResultNotGenes,
     ResultWithoutGenes,
 )
-from strategist.services.strategies import sync
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import (
     defer_the_gene_set_refresh,
@@ -62,6 +62,7 @@ from strategist.tests._support.read_saves_back import (
     ReadSavesBack,
     strategy_api_on,
 )
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 # The worker carries the researcher's WDK token into the job.
 pytestmark = pytest.mark.usefixtures("worker_seams")
@@ -335,7 +336,7 @@ async def site(monkeypatch: pytest.MonkeyPatch) -> ReadSavesBack:
     served = ReadSavesBack(put_waits_for_a_reader=False)
     served.release_the_put.clear()
     api = await strategy_api_on(served)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(strategy_genes, "get_strategy_api", lambda _site_id: api)
 
     async def _genes(_site_id: str, _root: WDKStep) -> StepGenes:
@@ -370,15 +371,15 @@ async def test_the_job_reads_the_strategy_after_the_tree_write_ends(
     try:
         await store_root(thread, CombineOp.INTERSECT)
         save = asyncio.create_task(
-            sync.sync_strategy_for_site(
-                graph=_graph_after_the_delete(),
-                sync_state=WDKSyncState(
+            put_the_graph(
+                _graph_after_the_delete(),
+                WDKSyncState(
                     wdk_step_ids={"text": TEXT, "go": GO, "join": INNER},
                     wdk_strategy_id=_WDK_STRATEGY,
                     wdk_step_tree=BEFORE_THE_DELETE,
                     wdk_strategy_name="Kinases",
                 ),
-                site_id="plasmodb",
+                "plasmodb",
             )
         )
         await site.put_started.wait()

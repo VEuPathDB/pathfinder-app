@@ -47,7 +47,7 @@ from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import measurements, spec_build, step_wdk_push
+from strategist.services.strategies import commit_tree, measurements, spec_build
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -56,7 +56,11 @@ from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_counts import wire
 from strategist.tests._support.recorded_searches import serve_recorded, suite_search
-from strategist.tests._support.wdk_write_stubs import RecordedPushes, landed_pushes
+from strategist.tests._support.wdk_write_stubs import (
+    NoStrategyRead,
+    RecordedPushes,
+    landed_pushes,
+)
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
@@ -82,13 +86,11 @@ _COUNTS = {_LEFT: 1832, _RIGHT: 1335, _STRICT: 484}
 
 
 @dataclass
-class _RecordingAPI:
+class _RecordingAPI(NoStrategyRead):
     created: list[dict[str, str]] = field(default_factory=list)
     combined: list[CombinedStepSpec] = field(default_factory=list)
     pushes: RecordedPushes = field(
-        default_factory=lambda: landed_pushes(
-            77, root_step_id=7003, root_count=497, step_count=3
-        )
+        default_factory=lambda: landed_pushes(77, root_step_id=7003)
     )
     next_id: int = 7000
 
@@ -153,10 +155,11 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         del timeout_seconds
         return _COUNTS[wire(params, "profile_pattern")]
 
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
+    for module in (spec_build, commit_tree):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(spec_build, "validate_parameters", _accept_every_value)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _noop_reconcile)
-    monkeypatch.setattr(spec_build, "sync_strategy_for_site", api.pushes.sync)
+    monkeypatch.setattr(commit_tree, "put_the_tree", api.pushes.put)
     monkeypatch.setattr(measurements, "count_search_answer", _recorded)
     list_every_search_under(monkeypatch, "transcript")
     return api
@@ -353,4 +356,4 @@ async def test_an_answered_card_pushes_the_minus_with_no_model_in_between(
         stored = await ConversationRepository(fresh).get_strategy(conversation_id)
     persisted = StrategyAst.model_validate(stored.strategy_ast)
     assert persisted.root.operator is CombineOp.MINUS
-    assert recording_api.pushes.pushed == [(None, _MESSAGE)]
+    assert recording_api.pushes.pushed == ["Orthologs"]

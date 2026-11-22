@@ -25,18 +25,11 @@ from strategist.domain.strategy.operations import (
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.step_words import StepWords
-from strategist.services.strategies import (
-    commit,
-    live_counts,
-    stated_sides,
-    step_wdk_push,
-    sync,
-)
+from strategist.services.strategies import commit, stated_sides
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
-from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.wdk_write_stubs import serve_the_site, skip_the_tree_put
 
 
 @dataclass
@@ -115,14 +108,8 @@ class _StubAPI:
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     api = _StubAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-
-    async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
-    list_every_search_under(monkeypatch, "transcript")
+    serve_the_site(monkeypatch, api)
+    skip_the_tree_put(monkeypatch)
 
     async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
         params: dict[str, ParamValue] = dict(kwargs["stated"])
@@ -130,36 +117,11 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
 
     monkeypatch.setattr(stated_sides, "validate_parameters", _echo_parameters)
 
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
+    async def _noop(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
-
-    async def _fake_sync(
-        *,
-        graph: Any,
-        sync_state: Any,
-        site_id: str,
-        user_prompt: str = "",
-    ) -> SyncResult:
-        del graph, sync_state, site_id, user_prompt
-        return SyncResult(
-            wdk_strategy_id=42,
-            wdk_url="http://example",
-            root_step_id=0,
-            counts={},
-            root_count=None,
-            zero_step_ids=[],
-            step_count=0,
-        )
-
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
-
-    async def _noop_persist(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _noop_persist)
-
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop)
+    monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _noop)
     return api
 
 
@@ -279,3 +241,21 @@ async def test_a_commit_takes_the_words_the_spec_states(stub_api: _StubAPI) -> N
 
     assert deps.strategy_session.graph is not None
     assert deps.strategy_session.graph.words.criterion_texts == {"a": "kinases"}
+
+
+@pytest.mark.asyncio
+async def test_deleting_the_whole_strategy_deletes_the_steps_wdk_held(
+    stub_api: _StubAPI,
+) -> None:
+    deps = _seed_session(_leaf("a"), wdk_step_ids={"a": 100})
+
+    await apply_and_commit(
+        deps=deps,
+        op=DeleteStepOp(step_id="a", resolution=DeleteResolution.DELETE_STRATEGY),
+    )
+
+    deleted = [c.kwargs["step_id"] for c in stub_api.calls if c.name == "delete_step"]
+    assert deleted == [100]
+    sync = deps.strategy_session.sync_state
+    assert sync is not None
+    assert sync.wdk_step_ids == {}

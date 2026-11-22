@@ -256,7 +256,7 @@ async def test_a_rebuild_that_recurses_puts_the_graph_back(
 async def test_a_push_the_site_refuses_puts_the_graph_back(
     stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The push raises after the batch applied, so the graph is put back.
+    """The commit raises after the batch applied, so the graph is put back.
 
     The next plan is measured against the strategy the researcher has, and a
     graph left ahead of it would state a step no push ever landed.
@@ -268,7 +268,7 @@ async def test_a_push_the_site_refuses_puts_the_graph_back(
     async def _refuses(*_args: Any, **_kwargs: Any) -> Any:
         raise ValidationError(title="Invalid", detail="min_pep: Cannot be empty.")
 
-    monkeypatch.setattr(commit, "push_steps_with_plan", _refuses)
+    monkeypatch.setattr(commit, "commit_tree", _refuses)
 
     with pytest.raises(ValidationError):
         await apply_operations_and_commit(

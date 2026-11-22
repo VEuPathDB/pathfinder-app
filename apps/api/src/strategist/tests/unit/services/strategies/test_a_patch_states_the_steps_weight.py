@@ -1,11 +1,11 @@
-"""A search-config patch states the step's weight when the graph holds one."""
+"""A search-config patch states the step's weight, and 0 when it holds none."""
 
 from __future__ import annotations
 
 from typing import Any
 
 import pytest
-from veupathdb.domain.strategy import StepKind, StrategyStep
+from veupathdb.domain.strategy import StepKind, StepSettings, StrategyStep
 from veupathdb.wdk import StrategyAPI, WDKSearchConfig
 
 from strategist.services.strategies._wdk_step_calls import _put_search_config
@@ -36,6 +36,7 @@ async def _patch(
         WDKSyncState(wdk_step_ids={"step_a": 7}),
         step,
         "transcript",
+        StepSettings(),
     )
     return sent[0]
 
@@ -52,9 +53,12 @@ async def test_a_held_weight_is_stated(
     )
 
 
-async def test_no_weight_leaves_the_steps_own_in_place(
+async def test_no_weight_clears_the_one_the_step_held(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     config = await _patch(monkeypatch, _step(None))
 
-    assert sorted(config.model_fields_set) == ["parameters"]
+    assert (config.wdk_weight, sorted(config.model_fields_set)) == (
+        0,
+        ["parameters", "wdk_weight"],
+    )

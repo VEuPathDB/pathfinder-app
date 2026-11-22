@@ -3,7 +3,7 @@ listed under, so a transform reads its own input parameters from the catalog."""
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 
 import pytest
 from veupathdb.domain import SearchContext
@@ -12,14 +12,14 @@ from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
     StepKind,
-    StepValidation,
     StrategyStep,
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb.wdk import StrategyAPI
 from veupathdb_mcp.catalog import ValidatedParams
 
-from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from strategist.services.strategies import record_classes, spec_build
 from strategist.services.strategies.sync_state import WDKSyncState
 
@@ -44,21 +44,19 @@ def _recording(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
         return _listed_under
 
     async def _push(
-        *,
+        api: StrategyAPI,
         sync_state: WDKSyncState,
         step: StrategyStep,
-        site_id: str,
         record_type: str,
-        search_name: str,
-        parameters: dict[str, ParamValue],
-    ) -> tuple[int | None, StepValidation | None, str | None]:
-        del site_id, search_name, parameters
+        parameters: Mapping[str, ParamValue],
+    ) -> StepPushFailure | None:
+        del api, parameters
         pushed.append((step.id, record_type))
         sync_state.wdk_step_ids[step.id] = 1000 + len(pushed)
-        return sync_state.wdk_step_ids[step.id], None, None
+        return None
 
     monkeypatch.setattr(spec_build, "validate_parameters", _validate)
-    monkeypatch.setattr(spec_build, "push_step_to_wdk", _push)
+    monkeypatch.setattr(spec_build, "pushed_step", _push)
     monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
     return pushed
 

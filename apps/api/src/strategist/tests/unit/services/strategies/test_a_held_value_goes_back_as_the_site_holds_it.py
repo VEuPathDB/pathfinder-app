@@ -18,6 +18,7 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import (
     StepKind,
+    StepSettings,
     StepValidation,
     StrategyAst,
     StrategyStep,
@@ -47,12 +48,13 @@ from strategist.services.experiment.variant_comparison import (
     counted_in_place,
 )
 from strategist.services.separation.thread_searches import thread_searches
-from strategist.services.strategies import site_changes, stated_sides, step_wdk_push
+from strategist.services.strategies import site_changes, stated_sides
 from strategist.services.strategies._wdk_step_calls import _put_search_config
 from strategist.services.strategies.schemas import step_response_from_strategy_ast
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.wdk_write_stubs import commit_against
 
 _RETIRED: dict[str, ParamValue] = {
     "text_expression": HeldValue(wire="kinase"),
@@ -99,7 +101,11 @@ async def _put(monkeypatch: pytest.MonkeyPatch, step: StrategyStep) -> dict[str,
     api = StrategyAPI.__new__(StrategyAPI)
     monkeypatch.setattr(api, "update_step_search_config", record)
     await _put_search_config(
-        api, WDKSyncState(wdk_step_ids={step.id: 10}), step, "transcript"
+        api,
+        WDKSyncState(wdk_step_ids={step.id: 10}),
+        step,
+        "transcript",
+        StepSettings(),
     )
     return dict(sent[0].parameters)
 
@@ -135,22 +141,11 @@ async def test_an_imported_retired_step_is_created_byte_identical(
             del step_id
             raise OSError
 
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: _Api())
-    step = StrategyStep(
-        id="10",
-        kind=StepKind.SEARCH,
-        search_name="GenesByRetiredText",
-        parameters=dict(_RETIRED),
+    step = StrategyStepNode(
+        id="10", search_name="GenesByRetiredText", parameters=dict(_RETIRED)
     )
 
-    await step_wdk_push.push_step_to_wdk(
-        sync_state=WDKSyncState(),
-        step=step,
-        site_id="plasmodb",
-        record_type="transcript",
-        search_name="GenesByRetiredText",
-        parameters=step.parameters,
-    )
+    await commit_against(monkeypatch, _Api(), step, before=None, held={})
 
     assert dict(created[0].parameters) == {
         "text_expression": "kinase",

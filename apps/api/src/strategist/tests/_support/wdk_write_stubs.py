@@ -2,17 +2,37 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-from veupathdb.wdk import WDKSearch
+from veupathdb.domain.strategy import (
+    StrategyAst,
+    StrategyStepNode,
+    flatten_tree,
+    pushable_root_id,
+)
+from veupathdb.errors import WDKError
+from veupathdb.wdk import StrategyAPI, WDKSearch, WDKStrategyDetails
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import commit, stated_sides, step_wdk_push
-from strategist.services.strategies.sync import SyncResult
+from strategist.domain.strategy.strategy_description import strategy_description
+from strategist.services.strategies import (
+    commit,
+    commit_tree,
+    live_counts,
+    stated_sides,
+)
+from strategist.services.strategies._tree_write import TreeTarget, WrittenTree
+from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
+from strategist.services.strategies.naming import name_for_the_push
+from strategist.services.strategies.sync import (
+    StrategyLabels,
+    put_the_strategy_labels,
+    step_tree_is_current,
+)
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_searches import (
@@ -26,8 +46,8 @@ async def accepts_every_value(*_args: Any, **kwargs: Any) -> ValidatedParams:
     return ValidatedParams(params=dict(kwargs["stated"]), record_class="transcript")
 
 
-async def no_plan_params(*_args: Any, **_kwargs: Any) -> set[str]:
-    return set()
+async def keeps_every_value(*_args: Any, **kwargs: Any) -> ValidatedParams:
+    return ValidatedParams(params=dict(kwargs["stated"]))
 
 
 async def no_reconcile(*_args: Any, **_kwargs: Any) -> None:
@@ -36,10 +56,95 @@ async def no_reconcile(*_args: Any, **_kwargs: Any) -> None:
 
 def stub_every_catalog_read(monkeypatch: pytest.MonkeyPatch) -> None:
     """A write reaches no catalog and no WDK: every read answers its input."""
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", no_plan_params)
+    monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
     monkeypatch.setattr(stated_sides, "validate_parameters", accepts_every_value)
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", no_reconcile)
     list_every_search_under(monkeypatch, "transcript")
+
+
+class NoStrategyRead:
+    """A site that answers no read of the strategy, so a commit keeps its counts."""
+
+    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
+        msg = f"strategy {strategy_id} is not read here"
+        raise WDKError(msg, status=404)
+
+
+def serve_the_site(monkeypatch: pytest.MonkeyPatch, api: object) -> None:
+    for module in (commit_tree, live_counts):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
+    list_every_search_under(monkeypatch, "transcript")
+
+
+def skip_the_tree_put(monkeypatch: pytest.MonkeyPatch, strategy_id: int = 42) -> None:
+
+    async def _put(
+        api: StrategyAPI,
+        site_id: str,
+        root: StrategyStepNode,
+        record_type: str,
+        sync_state: WDKSyncState,
+        target: TreeTarget,
+    ) -> WrittenTree | None:
+        del site_id, record_type
+        if step_tree_is_current(root, sync_state):
+            labels = StrategyLabels(name=target.name, description=target.description)
+            await put_the_strategy_labels(api, sync_state, labels)
+            return None
+        return WrittenTree(strategy_id=strategy_id, root_step_id=0, created=False)
+
+    monkeypatch.setattr(commit_tree, "put_the_tree", _put)
+
+
+async def commit_against(
+    monkeypatch: pytest.MonkeyPatch,
+    api: object,
+    root: StrategyStepNode,
+    *,
+    before: StrategyStepNode | None,
+    held: Mapping[str, int],
+) -> tuple[CommittedTree, WDKSyncState]:
+    serve_the_site(monkeypatch, api)
+    skip_the_tree_put(monkeypatch)
+    sync_state = WDKSyncState(wdk_step_ids=dict(held))
+    committed = await commit_tree.commit_tree(
+        site_id="plasmodb",
+        steps=flatten_tree(root),
+        root_id=root.id,
+        old=None
+        if before is None
+        else StrategyAst(record_type="transcript", root=before),
+        sync_state=sync_state,
+        target=CommitTarget(name="test", description=""),
+    )
+    return committed, sync_state
+
+
+async def put_the_graph(
+    graph: StrategyGraph,
+    sync_state: WDKSyncState,
+    site_id: str,
+    *,
+    user_prompt: str = "",
+) -> CommittedTree:
+    primary = graph.primary_root_id()
+    root_id = None if primary is None else pushable_root_id(primary, graph.steps)
+    assert root_id is not None
+    committed = await commit_tree.commit_tree(
+        site_id=site_id,
+        steps=graph.steps,
+        root_id=root_id,
+        old=graph.to_strategy_ast(sync_state=sync_state),
+        sync_state=sync_state,
+        target=CommitTarget(
+            name=name_for_the_push(graph, user_prompt),
+            description=strategy_description(graph, root_id),
+        ),
+    )
+    if committed.record_type is not None:
+        graph.record_type = committed.record_type
+    return committed
 
 
 def validate_against(
@@ -53,41 +158,29 @@ def validate_against(
 
 @dataclass
 class RecordedPushes:
-    """A strategy push that records the name and the request each one carries."""
+    """A tree put that records the strategy name each one carries."""
 
-    result: SyncResult
-    pushed: list[tuple[str | None, str]] = field(default_factory=list)
+    result: WrittenTree
+    pushed: list[str] = field(default_factory=list)
 
-    async def sync(
+    async def put(
         self,
-        *,
-        graph: StrategyGraph,
-        sync_state: WDKSyncState,
+        api: StrategyAPI,
         site_id: str,
-        strategy_name: str | None = None,
-        user_prompt: str = "",
-    ) -> SyncResult:
-        del graph, sync_state, site_id
-        self.pushed.append((strategy_name, user_prompt))
+        root: StrategyStepNode,
+        record_type: str,
+        sync_state: WDKSyncState,
+        target: TreeTarget,
+    ) -> WrittenTree:
+        del api, site_id, root, record_type, sync_state
+        self.pushed.append(target.name)
         return self.result
 
 
-def landed_pushes(
-    wdk_strategy_id: int,
-    *,
-    root_step_id: int = 0,
-    root_count: int | None = None,
-    step_count: int = 0,
-) -> RecordedPushes:
-    """Pushes that each land on ``wdk_strategy_id`` and report no step counts."""
+def landed_pushes(wdk_strategy_id: int, *, root_step_id: int = 0) -> RecordedPushes:
+    """Puts that each land on ``wdk_strategy_id``."""
     return RecordedPushes(
-        result=SyncResult(
-            wdk_strategy_id=wdk_strategy_id,
-            wdk_url="http://test",
-            root_step_id=root_step_id,
-            counts={},
-            root_count=root_count,
-            zero_step_ids=[],
-            step_count=step_count,
+        result=WrittenTree(
+            strategy_id=wdk_strategy_id, root_step_id=root_step_id, created=False
         )
     )

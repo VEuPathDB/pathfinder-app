@@ -3,7 +3,12 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StrategyStepNode,
+    flatten_tree,
+    wdk_search_name,
+)
 from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     CombinedStepSpec,
@@ -16,24 +21,18 @@ from veupathdb.wdk import (
     WDKStrategyDetails,
 )
 
-from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.operations import (
     ReplaceSubtreeOp,
     UpdateCombineOperatorOp,
     UpdateStepMetaOp,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.services.strategies import (
-    commit,
-    live_counts,
-    record_classes,
-    step_wdk_push,
-    sync,
-)
+from strategist.services.strategies import commit, commit_tree, record_classes
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
-from strategist.services.strategies.sync import SyncResult, UnclassedRootError
+from strategist.services.strategies.record_classes import unclassed_step_failure
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.wdk_write_stubs import serve_the_site
 
 STRATEGY_ID = 330643473
 
@@ -178,13 +177,7 @@ class _RecordingAPI:
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     recording = _RecordingAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: recording)
-
-    async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
+    serve_the_site(monkeypatch, recording)
 
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
@@ -310,11 +303,11 @@ async def test_a_recreate_whose_put_fails_deletes_nothing(
 ) -> None:
     """WDK still holds the old step in its tree, so deleting it is refused."""
 
-    async def _refuse(**_kwargs: Any) -> SyncResult:
+    async def _refuse(*_args: Any) -> None:
         message = "500: the site is down"
         raise WDKError(message)
 
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _refuse)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _refuse)
     step_a = _leaf("step_a", "GenesByRNASeqSu")
     step_b = _leaf("step_b", "GenesByTaxon")
     root = _join("step_join", step_a, step_b, CombineOp.INTERSECT)
@@ -407,16 +400,13 @@ async def test_the_next_put_the_strategy_holds_records_the_tree(
 async def test_a_root_the_site_lists_no_class_for_is_a_failed_push(
     api: _RecordingAPI, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    unclassed = StepPushFailure(
-        step_id="step_join",
-        search_name="__combine__",
-        error="The site lists no record type for __combine__.",
-    )
+    async def _unlisted(_search_name: str) -> None:
+        return None
 
-    async def _refused(**_kwargs: Any) -> SyncResult:
-        raise UnclassedRootError(unclassed)
+    async def _resolver(_site_id: str) -> Any:
+        return _unlisted
 
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _refused)
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
     root = _join(
         "step_join",
         _leaf("step_a", "GenesByMolecularWeight"),
@@ -430,4 +420,9 @@ async def test_a_root_the_site_lists_no_class_for_is_a_failed_push(
         op=UpdateCombineOperatorOp(step_id="step_join", operator=CombineOp.UNION),
     )
 
+    graph = deps.strategy_session.graph
+    assert graph is not None
+    unclassed = unclassed_step_failure(
+        "step_join", wdk_search_name(graph.steps["step_join"])
+    )
     assert (result.failures, result.sync_result) == ([unclassed], None)

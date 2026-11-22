@@ -13,11 +13,12 @@ from assistant_core.persistence.repositories.conversation import (
 from veupathdb.wdk import build_wdk_step_tree
 
 from strategist.domain.strategy.operations import UpdateStrategyMetaOp
-from strategist.services.strategies import reconcile, sync
+from strategist.services.strategies import commit_tree, reconcile
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -54,14 +55,13 @@ async def _sync(
 ) -> StubAPI:
     """Sync the two-search join under ``name`` against a recording WDK."""
     api = StubAPI()
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     session = session_with(combine("step_join", leaf("step_a"), leaf("step_b")), _IDS)
     assert session.graph is not None
+    session.graph.name = name
     for step in session.graph.steps.values():
         step.record_class = "transcript"
-    await sync.sync_strategy_for_site(
-        graph=session.graph, sync_state=state, site_id="plasmodb", strategy_name=name
-    )
+    await put_the_graph(session.graph, state, "plasmodb")
     return api
 
 
@@ -122,17 +122,17 @@ class TestTheFirstPush:
         self, monkeypatch: pytest.MonkeyPatch, graph_name: str, user_prompt: str
     ) -> tuple[list[object], str]:
         api = StubAPI()
-        monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+        monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
         root = combine("step_join", leaf("step_a"), leaf("step_b"))
         session = session_with(root, _IDS)
         assert session.graph is not None
         session.graph.name = graph_name
         for step in session.graph.steps.values():
             step.record_class = "transcript"
-        await sync.sync_strategy_for_site(
-            graph=session.graph,
-            sync_state=WDKSyncState(wdk_step_ids=dict(_IDS)),
-            site_id="plasmodb",
+        await put_the_graph(
+            session.graph,
+            WDKSyncState(wdk_step_ids=dict(_IDS)),
+            "plasmodb",
             user_prompt=user_prompt,
         )
         created = [call.kwargs["name"] for call in api.named("create_strategy")]

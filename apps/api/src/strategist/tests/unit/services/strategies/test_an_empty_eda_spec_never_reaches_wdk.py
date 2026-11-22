@@ -7,13 +7,14 @@ from typing import Any
 
 import pytest
 from veupathdb.domain.parameters import ParamValue, StringValue
-from veupathdb.domain.strategy import StrategyStep, StrategyStepNode, flatten_tree
+from veupathdb.domain.strategy import (
+    StrategyStepNode,
+)
 from veupathdb.wdk import WDKIdentifier, WDKSearchConfig, WDKStep
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM, EDA_DATASET_ID_PARAM
 
-from strategist.services.strategies import step_wdk_push
 from strategist.services.strategies.step_push_planner import PatchAction
-from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import commit_against
 
 _VALUES = PatchAction(search_config=True, name=False)
 
@@ -51,92 +52,71 @@ class RecordingAPI:
 
 
 @pytest.fixture
-def api(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
-    recorder = RecordingAPI()
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: recorder)
-    return recorder
+def api() -> RecordingAPI:
+    return RecordingAPI()
 
 
-def _step(spec: str) -> StrategyStep:
+def _step(spec: str) -> StrategyStepNode:
     parameters: dict[str, ParamValue] = {
         EDA_DATASET_ID_PARAM: StringValue(value=_DATASET_ID),
         EDA_ANALYSIS_SPEC_PARAM: StringValue(value=spec),
     }
-    node = StrategyStepNode(id="step_eda", search_name=_SEARCH, parameters=parameters)
-    return flatten_tree(node)["step_eda"]
+    return StrategyStepNode(id="step_eda", search_name=_SEARCH, parameters=parameters)
 
 
 class TestTheCreateCall:
     async def test_an_empty_analysis_is_refused_and_creates_nothing(
-        self, api: RecordingAPI
+        self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        step = _step("")
-
-        wdk_id, _validation, failure = await step_wdk_push.push_step_to_wdk(
-            sync_state=WDKSyncState(),
-            step=step,
-            site_id="plasmodb",
-            record_type="transcript",
-            search_name=_SEARCH,
-            parameters=step.parameters,
+        committed, _ = await commit_against(
+            monkeypatch, api, _step(""), before=None, held={}
         )
 
-        assert wdk_id is None
-        assert failure is not None
+        (failure,) = committed.failures
         assert failure.step_id == "step_eda"
         assert _REFUSAL in failure.error
         assert "Export the step again from an analysis" in failure.error
         assert api.calls == []
 
     async def test_an_authored_analysis_reaches_the_site(
-        self, api: RecordingAPI
+        self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        step = _step(_ANALYSIS)
-
-        wdk_id, _validation, failure = await step_wdk_push.push_step_to_wdk(
-            sync_state=WDKSyncState(),
-            step=step,
-            site_id="plasmodb",
-            record_type="transcript",
-            search_name=_SEARCH,
-            parameters=step.parameters,
+        committed, sync_state = await commit_against(
+            monkeypatch, api, _step(_ANALYSIS), before=None, held={}
         )
 
-        assert wdk_id == _WDK_STEP_ID
-        assert failure is None
+        assert sync_state.wdk_step_ids == {"step_eda": _WDK_STEP_ID}
+        assert committed.failures == []
         assert api.calls == ["create_step"]
 
 
 class TestThePatchCall:
-    def _sync_state(self) -> WDKSyncState:
-        return WDKSyncState(wdk_step_ids={"step_eda": _WDK_STEP_ID})
-
     async def test_an_empty_analysis_is_refused_and_patches_nothing(
-        self, api: RecordingAPI
+        self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        sync_state = self._sync_state()
-
-        failure = await step_wdk_push._execute_patch(
-            sync_state,
-            "plasmodb",
+        committed, sync_state = await commit_against(
+            monkeypatch,
+            api,
             _step(""),
-            "transcript",
-            _VALUES,
+            before=_step(_ANALYSIS),
+            held={"step_eda": _WDK_STEP_ID},
         )
 
-        assert failure is not None
+        (failure,) = committed.failures
         assert _REFUSAL in failure.error
         assert sync_state.wdk_push_errors["step_eda"] == failure.error
         assert api.calls == []
 
-    async def test_an_authored_analysis_is_patched(self, api: RecordingAPI) -> None:
-        failure = await step_wdk_push._execute_patch(
-            self._sync_state(),
-            "plasmodb",
+    async def test_an_authored_analysis_is_patched(
+        self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        committed, _ = await commit_against(
+            monkeypatch,
+            api,
             _step(_ANALYSIS),
-            "transcript",
-            _VALUES,
+            before=_step(""),
+            held={"step_eda": _WDK_STEP_ID},
         )
 
-        assert failure is None
+        assert committed.failures == []
         assert api.calls == ["update_step_search_config"]

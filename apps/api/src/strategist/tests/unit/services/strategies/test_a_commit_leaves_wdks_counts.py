@@ -35,21 +35,13 @@ from strategist.domain.strategy.operations import (
     UpdateStepParamsOp,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.services.strategies import (
-    commit,
-    live_counts,
-    stated_sides,
-    step_wdk_push,
-    sync,
-)
+from strategist.services.strategies import commit, stated_sides
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
-from strategist.services.strategies.sync import (
-    SyncResult,
-    build_step_tree_from_graph,
-)
+from strategist.services.strategies.sync import build_step_tree_from_graph
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import serve_the_site
 
 _SITE = "vectorbase"
 _STRATEGY = 900
@@ -111,6 +103,10 @@ class _StubAPI:
             search_name="GenesByText",
             search_config=WDKSearchConfig(parameters={}),
         )
+
+    async def update_strategy(self, **_kwargs: Any) -> WDKStrategyDetails:
+        msg = "a parameter edit leaves the step tree alone and puts nothing"
+        raise AssertionError(msg)
 
     async def get_strategy(
         self, strategy_id: int, user_id: str | None = None
@@ -186,13 +182,7 @@ def _seeded_session() -> StrategyMutationContext:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     api = _StubAPI(live=dict(_LIVE))
-    for module in (commit, step_wdk_push, sync, live_counts):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-
-    async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
+    serve_the_site(monkeypatch, api)
 
     async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
         params: dict[str, ParamValue] = dict(kwargs["stated"])
@@ -204,12 +194,6 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
         return None
 
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
-
-    async def _refuse_sync(**_kwargs: Any) -> SyncResult:
-        msg = "a parameter edit leaves the step tree alone and puts nothing"
-        raise AssertionError(msg)
-
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _refuse_sync)
 
     async def _noop_persist(*_args: Any, **_kwargs: Any) -> None:
         return None

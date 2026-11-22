@@ -1,4 +1,4 @@
-"""A step is orphaned by the strategy push, so it is deleted after it.
+"""A step is orphaned by the strategy put, so it is deleted after it.
 
 WDK refuses to delete a step the stored strategy still references. Deleting
 before the push guarantees the refusal, and dropping the local id anyway means
@@ -14,15 +14,16 @@ from uuid import uuid4
 import pytest
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
-from veupathdb.wdk import NewStepSpec, StepsMixin, WDKIdentifier
+from veupathdb.wdk import NewStepSpec, StepsMixin, WDKIdentifier, WDKStrategyDetails
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.services.strategies import commit, step_wdk_push
+from strategist.services.strategies import commit, commit_tree
+from strategist.services.strategies._tree_write import WrittenTree
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
-from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import serve_the_site
 
 _STILL_REFERENCED = "409: step belongs to a strategy"
 
@@ -64,38 +65,28 @@ class _Recorder:
     async def update_step_search_config(self, **_kwargs: Any) -> None:
         return None
 
+    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
+        msg = f"strategy {strategy_id} is not read here"
+        raise WDKError(msg, status=404)
+
 
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
     api = _Recorder()
-    monkeypatch.setattr(commit, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
-
-    async def _no_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
+    serve_the_site(monkeypatch, api)
 
     async def _no_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    async def _sync(**kwargs: Any) -> SyncResult:
-        del kwargs
+    async def _put(*_args: Any) -> WrittenTree:
         api.order.append("sync")
-        return SyncResult(
-            wdk_strategy_id=42,
-            wdk_url="http://example.invalid",
-            root_step_id=0,
-            counts={},
-            root_count=None,
-            zero_step_ids=[],
-            step_count=0,
-        )
+        return WrittenTree(strategy_id=42, root_step_id=0, created=False)
 
     async def _no_persist(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_validate)
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _put)
     monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _no_persist)
     return api
 

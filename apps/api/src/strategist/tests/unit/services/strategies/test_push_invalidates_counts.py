@@ -36,30 +36,30 @@ def _state() -> WDKSyncState:
 
 def test_pushed_step_count_becomes_unknown() -> None:
     state = _state()
-    invalidate_counts_for(state, ["a"], graph=_graph())
+    invalidate_counts_for(state, ["a"], steps=_graph().steps)
     assert state.step_counts["a"] is None
 
 
 def test_the_combine_above_it_becomes_unknown_and_the_sibling_stands() -> None:
     state = _state()
-    invalidate_counts_for(state, ["a"], graph=_graph())
+    invalidate_counts_for(state, ["a"], steps=_graph().steps)
     assert state.step_counts == {"a": None, "b": 100, "c": None}
 
 
 def test_invalidating_many_steps() -> None:
     state = _state()
-    invalidate_counts_for(state, ["a", "b"], graph=_graph())
+    invalidate_counts_for(state, ["a", "b"], steps=_graph().steps)
     assert state.step_counts == {"a": None, "b": None, "c": None}
 
 
 def test_empty_push_changes_nothing() -> None:
     state = _state()
-    invalidate_counts_for(state, [], graph=_graph())
+    invalidate_counts_for(state, [], steps=_graph().steps)
     assert state.step_counts == {"a": 2862, "b": 100, "c": 2900}
 
 
 def test_unknown_step_id_is_ignored() -> None:
     # A step that was never counted must not gain a phantom entry.
     state = _state()
-    invalidate_counts_for(state, ["never-seen"], graph=_graph())
+    invalidate_counts_for(state, ["never-seen"], steps=_graph().steps)
     assert "never-seen" not in state.step_counts

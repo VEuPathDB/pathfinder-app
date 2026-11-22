@@ -30,12 +30,10 @@ from veupathdb_mcp.catalog import (
 from strategist.ai.lead import edit_dispatch
 from strategist.ai.tools.standalone import _frame_canonical, frame_spec
 from strategist.services.strategies import (
-    commit,
+    commit_tree,
     live_counts,
     record_classes,
     sheet_params,
-    step_wdk_push,
-    sync,
 )
 from strategist.tests._support import wdk_write_stubs
 from strategist.tests._support.recorded_searches import (
@@ -218,7 +216,7 @@ class _SearchDetailsClient:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     api = RecordingAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
+    for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     wdk_write_stubs.stub_every_catalog_read(monkeypatch)

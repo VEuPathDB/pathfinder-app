@@ -33,11 +33,11 @@ from veupathdb.wdk import get_strategy_api
 from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.session import StrategySession
 from strategist.platform.errors import ErrorCode, NotFoundError
+from strategist.services.strategies._wdk_step_calls import pushed_step
 from strategist.services.strategies.record_classes import (
     fill_record_classes,
     unclassed_step_failure,
 )
-from strategist.services.strategies.step_wdk_push import push_step_to_wdk
 from strategist.services.strategies.sync import build_step_tree_from_graph
 from strategist.services.strategies.sync_state import WDKSyncState
 
@@ -104,22 +104,19 @@ async def save_subtree_as_strategy(
         node_class = step_class_of(cloned_steps, node.id)
         if node_class is not None:
             classes[node.id] = node_class
-            wdk_id, _validation, failure = await push_step_to_wdk(
-                sync_state=isolated_sync,
-                step=node,
-                site_id=site_id,
-                record_type=node_class,
-                search_name=wdk_search_name(node),
-                parameters=dict(node.parameters),
+            failure = await pushed_step(
+                get_strategy_api(site_id),
+                isolated_sync,
+                node,
+                node_class,
+                dict(node.parameters),
             )
         else:
-            wdk_id = None
             failure = unclassed_step_failure(node.id, wdk_search_name(node))
-        if failure is not None or wdk_id is None:
-            reason = failure.error if failure is not None else "no WDK id returned"
+        if failure is not None:
             raise ValidationError(
                 title="failed to clone step into saved strategy",
-                detail=f"step {node.id!r} ({node.search_name}): {reason}",
+                detail=f"step {node.id!r} ({node.search_name}): {failure.error}",
             )
 
     step_tree = build_step_tree_from_graph(cloned_root, isolated_sync.wdk_step_ids)

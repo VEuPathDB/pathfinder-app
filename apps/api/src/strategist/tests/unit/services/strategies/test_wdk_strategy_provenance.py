@@ -1,4 +1,4 @@
-"""The sync reports whether it minted the WDK strategy it returns.
+"""The commit reports whether it minted the WDK strategy it returns.
 
 Only a minted strategy is Strategist's to delete, so the flag is true on
 exactly the branches that call ``create_strategy``.
@@ -19,9 +19,11 @@ from veupathdb.wdk import (
 )
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import sync
-from strategist.services.strategies.sync import SyncResult, sync_strategy_for_site
+from strategist.services.strategies import commit_tree
+from strategist.services.strategies.commit_tree import CommittedTree
+from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 _WDK_STEP_ID = 1001
 _ADOPTED_ID = 42
@@ -61,7 +63,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> Mock:
     stub.create_strategy = AsyncMock(side_effect=create_strategy)
     stub.get_strategy = AsyncMock(side_effect=get_strategy)
     stub.update_strategy = AsyncMock(side_effect=get_strategy)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: stub)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: stub)
     return stub
 
 
@@ -76,12 +78,14 @@ def _graph() -> StrategyGraph:
     return graph
 
 
+async def _commit(sync_state: WDKSyncState) -> CommittedTree:
+    return await put_the_graph(_graph(), sync_state, "plasmodb")
+
+
 async def _sync(sync_state: WDKSyncState) -> SyncResult:
-    return await sync_strategy_for_site(
-        graph=_graph(),
-        sync_state=sync_state,
-        site_id="plasmodb",
-    )
+    result = (await _commit(sync_state)).sync
+    assert result is not None
+    return result
 
 
 def _adopted(step_tree: WDKStepTree | None) -> WDKSyncState:
@@ -112,15 +116,17 @@ async def test_a_refused_update_mints_nothing(api: Mock) -> None:
     api.update_strategy = AsyncMock(side_effect=WDKError("refused", status=422))
     state = _adopted(WDKStepTree(step_id=9999))
 
-    with pytest.raises(WDKError):
-        await _sync(state)
+    committed = await _commit(state)
 
+    assert [f.step_id for f in committed.failures] == ["A"]
     assert (state.wdk_strategy_id, api.create_strategy.await_count) == (_ADOPTED_ID, 0)
 
 
 @pytest.mark.asyncio
 async def test_an_unchanged_tree_mints_nothing(api: Mock) -> None:
-    result = await _sync(_adopted(WDKStepTree(step_id=_WDK_STEP_ID)))
+    state = _adopted(WDKStepTree(step_id=_WDK_STEP_ID))
 
-    assert (result.wdk_strategy_id, result.created_wdk_strategy) == (_ADOPTED_ID, False)
+    committed = await _commit(state)
+
+    assert (committed.sync, state.wdk_strategy_id) == (None, _ADOPTED_ID)
     assert api.create_strategy.await_count == 0

@@ -16,11 +16,12 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.services.strategies import spec_build, sync
+from strategist.services.strategies import _tree_write, commit_tree, spec_build
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.computed_comparison import PATTERN, held_comparison
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -96,9 +97,7 @@ async def test_the_build_creates_the_strategy_with_its_description(
         return None
 
     monkeypatch.setattr(spec_build, "defer_the_gene_set_refresh", _quiet)
-    monkeypatch.setattr(
-        spec_build, "sync_strategy_for_site", sync.sync_strategy_for_site
-    )
+    monkeypatch.setattr(commit_tree, "put_the_tree", _tree_write.put_the_tree)
     graph = StrategyGraph("g1", "Groups", "plasmodb")
     graph.record_type = "transcript"
     session = StrategySession(site_id="plasmodb")
@@ -118,15 +117,14 @@ async def test_the_build_creates_the_strategy_with_its_description(
 async def _pushed(
     monkeypatch: pytest.MonkeyPatch, api: StubAPI, state: WDKSyncState
 ) -> list[object]:
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     session = session_with(combine("step_join", leaf("step_a"), leaf("step_b")), _IDS)
     assert session.graph is not None
     session.graph.description = SNAPSHOT_NOTE
+    session.graph.name = "G"
     for step in session.graph.steps.values():
         step.record_class = "transcript"
-    await sync.sync_strategy_for_site(
-        graph=session.graph, sync_state=state, site_id="plasmodb", strategy_name="G"
-    )
+    await put_the_graph(session.graph, state, "plasmodb")
     return [c.kwargs["description"] for c in api.named("create_strategy")]
 
 

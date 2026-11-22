@@ -1,0 +1,204 @@
+from dataclasses import dataclass
+from typing import Literal, Protocol
+
+from assistant_core.platform.logging import get_logger
+from veupathdb.domain.strategy import (
+    StepSettings,
+    StrategyStep,
+    StrategyStepNode,
+    settings_of,
+    walk,
+)
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
+from veupathdb_mcp.wdk import build_snapshot_from_wdk
+
+from strategist.domain.strategy.validate import validate_strategy
+from strategist.platform.errors import StrategyCompilationError
+from strategist.services.strategies.organism_params import (
+    tree_dataset_organisms,
+    tree_organism_parameters,
+    tree_taxa,
+)
+from strategist.services.strategies.result_list import result_list_url
+from strategist.services.strategies.sync import (
+    StrategyLabels,
+    SyncResult,
+    TreeNotHeldError,
+    build_step_tree_from_graph,
+    put_the_strategy_labels,
+    step_tree_is_current,
+)
+from strategist.services.strategies.sync_state import WDKSyncState
+
+logger = get_logger(__name__)
+
+type StrategyRole = Literal["thread", "saved", "internal"]
+
+
+@dataclass(frozen=True)
+class WrittenTree:
+    strategy_id: int
+    root_step_id: int
+    created: bool
+
+
+class TreeTarget(Protocol):
+    @property
+    def name(self) -> str: ...
+    @property
+    def description(self) -> str: ...
+    @property
+    def role(self) -> StrategyRole: ...
+
+
+async def put_the_tree(
+    api: StrategyAPI,
+    site_id: str,
+    root: StrategyStepNode,
+    record_type: str,
+    sync_state: WDKSyncState,
+    target: TreeTarget,
+) -> WrittenTree | None:
+    await _validate_the_tree(site_id, root, record_type, sync_state)
+    labels = StrategyLabels(name=target.name, description=target.description)
+    return await _write_the_tree(api, root, sync_state, labels, target.role)
+
+
+async def _validate_the_tree(
+    site_id: str, root: StrategyStepNode, record_type: str, sync_state: WDKSyncState
+) -> None:
+    sync_state.organism_params = await tree_organism_parameters(site_id, root)
+    datasets = await tree_dataset_organisms(site_id, root, sync_state.organism_params)
+    taxa = await tree_taxa(site_id, root, sync_state.organism_params, datasets)
+    result = validate_strategy(
+        root, record_type, sync_state.organism_params, datasets, taxa=taxa
+    )
+    if not result.valid:
+        errors = [{"path": e.path, "message": e.message} for e in result.errors]
+        msg = f"Strategy validation failed: {errors}"
+        raise StrategyCompilationError(msg)
+
+
+async def _write_the_tree(
+    api: StrategyAPI,
+    root: StrategyStepNode,
+    sync_state: WDKSyncState,
+    labels: StrategyLabels,
+    role: StrategyRole,
+) -> WrittenTree | None:
+    if step_tree_is_current(root, sync_state):
+        await put_the_strategy_labels(api, sync_state, labels)
+        return None
+    step_tree = build_step_tree_from_graph(root, sync_state.wdk_step_ids)
+    strategy_id = sync_state.wdk_strategy_id
+    if strategy_id is None:
+        made = await api.create_strategy(
+            step_tree,
+            labels.name,
+            description=labels.description,
+            is_saved=role == "saved",
+            is_internal=role == "internal",
+        )
+        strategy_id = made.id
+    else:
+        held = await api.update_strategy(
+            strategy_id=strategy_id,
+            step_tree=step_tree,
+            name=labels.name,
+            description=labels.description,
+        )
+        if held.step_tree != step_tree:
+            raise TreeNotHeldError(step_tree, held.step_tree)
+    created = sync_state.wdk_strategy_id is None
+    sync_state.wdk_strategy_id = strategy_id
+    sync_state.wdk_strategy_name = labels.name
+    sync_state.wdk_strategy_description = labels.description
+    sync_state.wdk_step_tree = step_tree
+    return WrittenTree(strategy_id, step_tree.step_id, created)
+
+
+async def delete_what_the_tree_dropped(
+    api: StrategyAPI,
+    steps: dict[str, StrategyStep],
+    sync_state: WDKSyncState,
+    replaced: list[int],
+) -> None:
+    dropped = {
+        local: wdk
+        for local, wdk in sync_state.wdk_step_ids.items()
+        if local not in steps
+    }
+    for local in {*sync_state.step_counts, *sync_state.step_validations} - steps.keys():
+        sync_state.step_counts.pop(local, None)
+        sync_state.step_validations.pop(local, None)
+    if not dropped and not replaced:
+        return
+    leftover = set(await api.delete_orphaned_steps([*dropped.values(), *replaced]))
+    for local, wdk in dropped.items():
+        if wdk not in leftover:
+            sync_state.wdk_step_ids.pop(local, None)
+            sync_state.wdk_push_errors.pop(local, None)
+            sync_state.filters_wdk_added.pop(local, None)
+    if leftover:
+        logger.warning(
+            "Some orphaned WDK steps could not be deleted", step_ids=sorted(leftover)
+        )
+
+
+async def read_the_strategy(
+    api: StrategyAPI, sync_state: WDKSyncState
+) -> WDKStrategyDetails | None:
+    if sync_state.wdk_strategy_id is None:
+        return None
+    try:
+        live = await api.get_strategy(sync_state.wdk_strategy_id)
+    except (VEuPathDBError, OSError) as exc:
+        logger.warning("Strategy count lookup failed", error=str(exc))
+        return None
+    local = {wdk: sid for sid, wdk in sync_state.wdk_step_ids.items()}
+    counts: dict[str, int | None] = {}
+    sync_state.step_validations = {}
+    for wdk_id, step in live.steps.items():
+        sid = local.get(int(wdk_id)) if wdk_id.isdigit() else None
+        if sid is None:
+            continue
+        counts[sid] = step.estimated_size
+        if step.validation is not None:
+            sync_state.step_validations[sid] = step.validation
+    sync_state.step_counts = counts
+    return live
+
+
+def held_by_id(
+    live: WDKStrategyDetails | None, sync_state: WDKSyncState
+) -> dict[str, StepSettings]:
+    if live is None:
+        return {}
+    try:
+        snapshot, _wire = build_snapshot_from_wdk(live)
+    except VEuPathDBError as exc:
+        logger.warning("The held strategy did not read back", error=str(exc))
+        return {}
+    local = {str(wdk): sid for sid, wdk in sync_state.wdk_step_ids.items()}
+    return {
+        local[node.id]: settings_of(node)
+        for node in walk(snapshot.root)
+        if node.id in local
+    }
+
+
+def sync_result(
+    site_id: str, root: StrategyStepNode, sync_state: WDKSyncState, written: WrittenTree
+) -> SyncResult:
+    counts = dict(sync_state.step_counts)
+    return SyncResult(
+        wdk_strategy_id=written.strategy_id,
+        wdk_url=result_list_url(site_id, written.strategy_id, written.root_step_id),
+        root_step_id=written.root_step_id,
+        counts=counts,
+        root_count=counts.get(root.id),
+        zero_step_ids=sorted(sid for sid, c in counts.items() if c == 0),
+        step_count=len(walk(root)),
+        created_wdk_strategy=written.created,
+    )

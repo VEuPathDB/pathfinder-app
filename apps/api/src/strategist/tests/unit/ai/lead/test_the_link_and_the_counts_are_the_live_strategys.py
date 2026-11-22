@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.wdk import WDKStepTree, WDKStrategyDetails
+from veupathdb.wdk import StrategyAPI, WDKStepTree, WDKStrategyDetails
 
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.intent import (
@@ -27,9 +27,9 @@ from strategist.domain.strategy.build_outcome import BuildOutcome, built_counts
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.turn_facts import StrategyLinkFact
-from strategist.services.strategies import commit, live_counts, step_wdk_push, sync
+from strategist.services.strategies import commit_tree, live_counts
+from strategist.services.strategies._tree_write import TreeTarget, WrittenTree
 from strategist.services.strategies.result_list import live_result_list_url
-from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.run_context import lead_run_context
@@ -259,19 +259,17 @@ class _SiteAfterTheDelete(StubAPI):
         )
 
 
-async def _sync_on_the_live_root(
-    *, sync_state: WDKSyncState, **_kwargs: object
-) -> SyncResult:
+async def _put_on_the_live_root(
+    api: StrategyAPI,
+    site_id: str,
+    root: StrategyStepNode,
+    record_type: str,
+    sync_state: WDKSyncState,
+    target: TreeTarget,
+) -> WrittenTree:
+    del api, site_id, root, record_type, target
     sync_state.wdk_step_tree = WDKStepTree(step_id=_LIVE_ROOT)
-    return SyncResult(
-        wdk_strategy_id=_STRATEGY,
-        wdk_url=None,
-        root_step_id=_LIVE_ROOT,
-        counts={},
-        root_count=None,
-        zero_step_ids=[],
-        step_count=1,
-    )
+    return WrittenTree(strategy_id=_STRATEGY, root_step_id=_LIVE_ROOT, created=False)
 
 
 async def test_after_a_delete_the_ledger_counts_are_the_live_strategys(
@@ -279,9 +277,9 @@ async def test_after_a_delete_the_ledger_counts_are_the_live_strategys(
 ) -> None:
     install_stub_api(monkeypatch)
     api = _SiteAfterTheDelete()
-    for module in (commit, step_wdk_push, sync, live_counts):
+    for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _sync_on_the_live_root)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _put_on_the_live_root)
     session = session_with(
         combine(
             _INTERSECT,

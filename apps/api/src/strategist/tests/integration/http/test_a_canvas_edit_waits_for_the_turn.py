@@ -32,7 +32,6 @@ from strategist.services.conversations.thread_lock import (
 )
 from strategist.services.strategies import commit
 from strategist.services.strategies.commit import (
-    _WDKCommitOutcome,
     apply_operations_and_commit,
 )
 from strategist.services.strategies.context import StrategyMutationContext
@@ -86,11 +85,10 @@ class _SitePush:
     entered: asyncio.Event = field(default_factory=asyncio.Event)
     release: asyncio.Event = field(default_factory=asyncio.Event)
 
-    async def __call__(self, **_kwargs: Any) -> _WDKCommitOutcome:
+    async def __call__(self, **_kwargs: Any) -> None:
         if self.hold:
             self.entered.set()
             await self.release.wait()
-        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
 
 
 @dataclass(frozen=True)
@@ -155,7 +153,7 @@ def site_push(
 ) -> Iterator[_SitePush]:
     del saver
     push = _SitePush()
-    monkeypatch.setattr(commit, "_commit_to_wdk", push)
+    monkeypatch.setattr(commit, "_commit_the_tree", push)
     yield push
     push.release.set()
 
