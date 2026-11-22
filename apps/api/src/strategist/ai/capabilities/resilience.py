@@ -300,7 +300,7 @@ class ToolResilience(AbstractCapability[AgentDeps]):
                 if seen >= OUTAGE_GIVE_UP_THRESHOLD:
                     return _outage_directive(tool_name, search_name, error)
             failures = ctx.deps.service_outage.record_tool_failure(tool_name)
-            if failures >= self.circuit_break_threshold:
+            if failures > self.circuit_break_threshold:
                 logger.warning(
                     "Circuit breaker: answering with the outage directive",
                     tool_name=tool_name,

@@ -14,9 +14,10 @@ so. Protocol 2.2.0 lets a failed call's `data-tool-summary` carry `status: "corr
 (`assistant_core/PROTOCOL.md`, section 6.3), and two producers write it:
 
 - **Every model retry.** The runtime's event stream writes the summary after each
-  tool result whose `outcome` is `retried`, with the reason as its line. No tool here, in `veupathdb_mcp` or in
-  the runtime turns a site or network error into `ModelRetry`, so a retry is always the
-  model's call handed back.
+  tool result whose `outcome` is `retried`, with the reason as its line. One retry is not
+  the model's call handed back: `ToolResilience` (`ai/capabilities/resilience.py`) raises
+  `TransientRetry`, a `ModelRetry`, for a transient site or network error, so that call's
+  result is `retried` too and draws the same grey corrected row today.
 - **Every guardrail that refuses a call without spending a retry.** It raises
   `CallRefused` (`assistant_core.capabilities.refused_calls`), a `ToolFailed`, and
   `MarkRefusedCalls`, which `agent_capabilities` gives every agent, carries the summary on

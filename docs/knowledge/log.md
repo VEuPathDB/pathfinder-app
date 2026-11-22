@@ -13,7 +13,8 @@
   live keys names the live problems and adds one line per spent key. A refused call sent again
   is still held without charge, and the next resend is charged to the call's key. A transient
   error raises `TransientRetry` and is never charged; the breaker counts a tool's transient
-  failures (`ServiceOutageMemory.record_tool_failure`). The count tools' raised retry ceiling
+  failures (`ServiceOutageMemory.record_tool_failure`) and answers the fourth with the outage
+  directive, the same failure as before. The count tools' raised retry ceiling
   (six, one per refusal) is gone with the per-tool budget it fed.
 * **A commit checks the staged files; a push runs the whole-project gates in parallel.**
   `.pre-commit-config.yaml` sets `default_stages: [pre-commit]`, so a push no longer

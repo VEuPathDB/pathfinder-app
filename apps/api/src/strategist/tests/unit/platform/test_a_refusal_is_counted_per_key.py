@@ -258,12 +258,12 @@ async def test_a_transient_failure_charges_no_key_and_trips_the_breaker() -> Non
     deps = _deps()
 
     result = await _agent(
-        _calls(*["c5"] * DEFAULT_CIRCUIT_BREAK_THRESHOLD, search_name=""),
+        _calls(*["c5"] * (DEFAULT_CIRCUIT_BREAK_THRESHOLD + 1), search_name=""),
         KeyedRefusalToolset(wrapped=body.toolset()),
     ).run("bind", deps=deps)
 
     returns = _returns(result.all_messages())
-    assert [p.outcome for p in returns] == ["retried", "retried", "success"]
+    assert [p.outcome for p in returns] == ["retried", "retried", "retried", "success"]
     assert "SEARCH_UNAVAILABLE" in str(returns[-1].content)
     assert deps.refusal_book.ledger.uses == ()
 
