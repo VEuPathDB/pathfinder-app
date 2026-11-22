@@ -318,8 +318,9 @@ async def lookup_phyletic_codes(
     """Look up phyletic genome and clade codes by name.
 
     On a genomics site the codes are for GenesByOrthologPattern: put a code or
-    its label in included_species or excluded_species; profile_pattern is
-    derived from those two lists and is never written by hand. Its tree is read
+    its label in included_species or excluded_species, one string with the
+    codes separated by commas; profile_pattern is derived from those two
+    parameters and is never written by hand. Its tree is read
     under the record type the site lists that search under. On OrthoMCL the
     codes are for phyletic_expression: each match carries its code, label,
     leaf and genomes, the number of genomes under a clade, and species groups

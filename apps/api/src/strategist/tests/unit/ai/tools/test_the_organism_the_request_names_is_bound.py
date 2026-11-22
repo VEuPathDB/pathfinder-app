@@ -7,7 +7,7 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters import WDKTreeBoxVocabNode
+from veupathdb.domain.parameters import MultiPickValue, WDKTreeBoxVocabNode
 from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp.catalog import format_param_info_typed
 
@@ -92,8 +92,8 @@ def _bind_under(
         criterion_id="c_signal",
         search_name=search_name,
         text="genes with a signal peptide",
-        params={"organism": organisms},
-    )
+        params={},
+    ).with_values({"organism": MultiPickValue(values=organisms)})
     infos = format_param_info_typed(definition.parameters or [])
     refuse_what_the_words_decide(
         definition, call, infos, AgentToolState(stated_requirements=requirements)

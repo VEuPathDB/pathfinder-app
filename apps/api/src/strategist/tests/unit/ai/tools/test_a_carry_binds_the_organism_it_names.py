@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import format_param_info_typed
 
@@ -41,7 +42,12 @@ def _bind(definition: WDKSearch, carried_to: str, organisms: list[str]) -> list[
         criterion_id="c_to",
         search_name=definition.url_segment,
         text="their syntenic orthologs",
-        params={"organism": organisms, "isSyntenic": "yes"},
+        params={},
+    ).with_values(
+        {
+            "organism": MultiPickValue(values=organisms),
+            "isSyntenic": SinglePickValue(value="yes"),
+        }
     )
     infos = format_param_info_typed(definition.parameters or [])
     refuse_what_the_words_decide(definition, call, infos, _carrying(carried_to))
@@ -106,8 +112,8 @@ def test_a_search_that_takes_no_input_is_no_carry() -> None:
         criterion_id="c_signal",
         search_name=_SIGNAL.url_segment,
         text="genes with a signal peptide",
-        params={"organism": [_PF3D7]},
-    )
+        params={},
+    ).with_values({"organism": MultiPickValue(values=[_PF3D7])})
     infos = format_param_info_typed(_SIGNAL.parameters or [])
 
     refuse_what_the_words_decide(_SIGNAL, call, infos, _carrying(_P01))
@@ -144,10 +150,7 @@ async def test_set_criterion_refuses_a_carry_bound_to_the_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_recorded(monkeypatch, [_ORTHOLOGS])
-    serve_params(
-        monkeypatch,
-        lambda _context: format_param_info_typed(_ORTHOLOGS.parameters or []),
-    )
+    serve_params(monkeypatch, declared=_ORTHOLOGS.parameters or [])
     no_validation(monkeypatch)
     no_count(monkeypatch)
     serve_site_listing(monkeypatch, [])

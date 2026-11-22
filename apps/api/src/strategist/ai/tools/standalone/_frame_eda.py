@@ -3,6 +3,9 @@ the analysis criteria FRAME keeps as the EDA tools bound them."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
@@ -13,7 +16,6 @@ from veupathdb_mcp.catalog import (
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone._frame_proposals import ParamProposals
 from strategist.ai.tools.standalone._frame_roles import (
     refuse_a_role_the_search_cannot_take,
 )
@@ -71,7 +73,7 @@ async def refuse_a_search_the_criterion_cannot_use(
     record_type: str,
     definition: WDKSearch,
     criterion: Criterion,
-    params: ParamProposals | None,
+    params: Mapping[str, JsonValue] | None,
 ) -> None:
     """Every refusal a search passes before a criterion binds to it.
 
@@ -86,7 +88,7 @@ async def refuse_a_search_the_criterion_cannot_use(
     )
 
 
-def _named_dataset(params: ParamProposals | None) -> str | None:
+def _named_dataset(params: Mapping[str, JsonValue] | None) -> str | None:
     """The dataset a proposal names for an EDA-backed search, if it names one."""
     match None if params is None else params.get(EDA_DATASET_ID_PARAM):
         case str() as dataset if dataset:

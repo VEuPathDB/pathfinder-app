@@ -16,8 +16,8 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb.wdk import WDKParameter, WDKSearch
+from veupathdb_mcp.catalog import ParamFetcher, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
@@ -31,10 +31,12 @@ from strategist.ai.models.mock.unset_value_arcs import (
     TEXT,
     radio_off_domain_spec,
 )
+from strategist.ai.tools.standalone import frame_spec
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone.catalog_discovery import get_parameter_options
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.tests._support.options_reads import serve_options_reads
+from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_searches import (
     no_count,
     serve_recorded,
@@ -43,7 +45,6 @@ from strategist.tests._support.recorded_searches import (
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
     no_validation,
-    serve_params,
     serve_site_listing,
 )
 
@@ -64,13 +65,18 @@ _GPI_MESSAGE = (
 )
 
 
-def _serve(monkeypatch: pytest.MonkeyPatch, asked: list[str]) -> None:
+def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, list(_SHEETS.values()))
 
-    def _params(_context: dict[str, str]) -> list[ParameterInfo]:
-        return format_param_info_typed(_SHEETS[asked[-1]].parameters or [])
+    list_every_search_under(monkeypatch, "transcript")
 
-    serve_params(monkeypatch, _params)
+    def _fetch_at(_site: str, _record_type: str, search_name: str) -> ParamFetcher:
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(_SHEETS[search_name].parameters or [])
+
+        return fetch_at
+
+    monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
     serve_options_reads(
         monkeypatch,
         lambda name: format_param_info_typed(_SHEETS[name].parameters or []),
@@ -127,7 +133,7 @@ async def _framed(
     monkeypatch: pytest.MonkeyPatch, message: str
 ) -> tuple[AgentToolState, list[ToolCallPart]]:
     asked: list[str] = []
-    _serve(monkeypatch, asked)
+    _serve(monkeypatch)
     bind_scripted_scope("plasmodb", message)
     state = _state(message)
     script = role_script("frame")

@@ -96,11 +96,7 @@ def test_the_workspace_is_read_from_the_work_order() -> None:
     assert [c.criterion_id for c in criteria] == ["step_sp", "step_tm"]
     assert criteria[1].search_name == _TM
     assert criteria[1].role == "filter"
-    assert criteria[1].values == {
-        "organism": f'["{_PF}"]',
-        "min_tm": "2",
-        "max_tm": "99",
-    }
+    assert criteria[1].values == {"organism": [_PF], "min_tm": 2, "max_tm": 99}
 
 
 def test_the_shape_is_read_from_the_work_order() -> None:
@@ -130,9 +126,9 @@ def test_the_proposal_moves_the_named_value_and_copies_the_rest() -> None:
     call = _call(_listed(), [sheet])
 
     assert call.args_as_dict()["params"] == {
-        "organism": f'["{_PF}"]',
+        "organism": [_PF],
         "min_tm": "1",
-        "max_tm": "99",
+        "max_tm": 99,
     }
 
 

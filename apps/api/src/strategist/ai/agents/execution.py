@@ -105,17 +105,14 @@ Example shape (in the natural Python/JSON the tool accepts):
 
 ```
 build_strategy(root={
-  "id": "<auto>",
-  "search_name": "__combine__",
   "operator": "INTERSECT",
-  "display_name": "Membrane kinases with EST evidence",
+  "display_name": "Membrane proteins with many variants",
   "primary_input": {
-    "search_name": "__combine__",
     "operator": "UNION",
     "display_name": "Membrane-associated genes",
     "primary_input": {
       "search_name": "GenesByTransmembraneDomains",
-      "parameters": {"organism": ["Plasmodium falciparum 3D7"]},
+      "parameters": {"organism": ["Plasmodium falciparum 3D7"], "min_tm": 2},
       "display_name": "TM-domain genes"
     },
     "secondary_input": {
@@ -125,9 +122,12 @@ build_strategy(root={
     }
   },
   "secondary_input": {
-    "search_name": "GenesByEstEvidence",
-    "parameters": {"min_percent_identity": 90, "bp_overlap_gte": 100},
-    "display_name": "Strong EST evidence"
+    "search_name": "GenesByVariantCharacteristics",
+    "parameters": {
+      "organism_select_none": ["Plasmodium falciparum 3D7"],
+      "gene_variant_stats": [{"field": "total_variants", "value": {"min": 6}}]
+    },
+    "display_name": "Six variants or more"
   }
 })
 ```

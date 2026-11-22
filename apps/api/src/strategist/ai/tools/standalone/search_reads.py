@@ -78,7 +78,7 @@ async def _refuse_an_unlisted_search(
     raise ModelRetry(msg)
 
 
-def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantInput) -> None:
+def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantSpec) -> None:
     """Raises ModelRetry for a text term of several words sent unquoted when
     this turn's message asks for the phrase."""
     for name, value in search.parameters.items():
@@ -104,10 +104,10 @@ async def resolved_search(
     value as the entry its vocabulary names. A name the catalog does not list is
     looked up among the searches of ``record_type``."""
     reject_combine_variants([search])
-    _refuse_an_unquoted_phrase(ctx, search)
     await _refuse_an_unlisted_search(ctx, search, record_type, framing=framing)
-    specs = await resolved_variants(ctx.deps.runtime.strategy_session, [search])
-    return specs[0]
+    [spec] = await resolved_variants(ctx.deps.runtime.strategy_session, [search])
+    _refuse_an_unquoted_phrase(ctx, spec)
+    return spec
 
 
 async def search_count_of(

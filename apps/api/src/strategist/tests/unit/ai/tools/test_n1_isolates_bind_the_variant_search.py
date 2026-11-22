@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.tools.standalone.frame_spec import set_criterion
@@ -34,10 +33,7 @@ _N1 = (
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_VARIANTS, _SNVS, _PVIV])
-    serve_params(
-        monkeypatch,
-        lambda _context: format_param_info_typed(_VARIANTS.parameters or []),
-    )
+    serve_params(monkeypatch, declared=_VARIANTS.parameters or [])
     no_validation(monkeypatch)
     no_count(monkeypatch)
     serve_site_listing(monkeypatch, [])

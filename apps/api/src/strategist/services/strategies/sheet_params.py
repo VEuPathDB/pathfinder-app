@@ -19,6 +19,7 @@ from veupathdb_mcp.catalog import (
     wdk_fetch_at,
 )
 
+from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.spec_hydration import StepRead, sheet_bound
 from strategist.domain.strategy.value_binding import parents_moved
 from strategist.services.strategies.record_classes import search_record_types
@@ -118,6 +119,8 @@ def _with_vocabulary(info: ParameterInfo, read: ParameterInfo) -> ParameterInfo:
             "allowed_values_note": read.allowed_values_note,
             "prompt_values": read.prompt_values,
             "vocab_leaves": read.vocab_leaves,
+            "filter_fields": read.filter_fields,
+            "filter_leaves": read.filter_leaves,
         }
     )
 
@@ -131,13 +134,61 @@ async def vocabularies_under(
     if not any(info.wire_parents for info in infos):
         return infos
     read = await fetch_at({name: to_wire(value) for name, value in values.items()})
-    answered = {info.name: info for info in read}
+    answered = {info.name: info for info in format_param_info_typed(read)}
     return [
         _with_vocabulary(info, answered[info.name])
         if info.wire_parents and info.name in answered
         else info
         for info in infos
     ]
+
+
+async def _sheet_under(
+    site_id: str,
+    search_name: str,
+    sheet: Sequence[ParameterInfo],
+    values: Mapping[str, ParamValue],
+    names: Collection[str],
+    record_type: str | None = None,
+) -> list[ParameterInfo] | None:
+    """The sheet with each dependent vocabulary of these names read under the
+    values; None while their parents hold the published values, or when the site
+    cannot read it."""
+    if not parents_moved(values, names, sheet):
+        return None
+    try:
+        listed_under = record_type or await _listed_under(site_id, search_name)
+        if listed_under is None:
+            return None
+        fetch_at = wdk_fetch_at(site_id, listed_under, search_name)
+        return await vocabularies_under(fetch_at, list(sheet), values)
+    except (VEuPathDBError, OSError) as exc:
+        logger.warning(
+            "step vocabulary unreadable", search_name=search_name, error=str(exc)
+        )
+        return None
+
+
+async def criterion_sheets(
+    site_id: str,
+    criteria: Iterable[Criterion],
+    sheets: Mapping[str, Sequence[ParameterInfo]],
+) -> dict[str, list[ParameterInfo]]:
+    """The published sheet of each criterion's search with each dependent
+    vocabulary read under the values the criterion holds, by criterion id."""
+    read: dict[str, list[ParameterInfo]] = {}
+    for c in criteria:
+        published = list(sheets.get(c.search_name, []))
+        under = await _sheet_under(
+            site_id,
+            c.search_name,
+            published,
+            c.param_values,
+            [info.name for info in published],
+            c.record_class,
+        )
+        read[c.id] = published if under is None else under
+    return read
 
 
 async def sheets_under_their_parents(
@@ -157,20 +208,7 @@ async def sheets_under_their_parents(
         if sheet is None:
             continue
         values = sheet_bound(step.node.parameters, sheet)
-        if not parents_moved(values, step.names, sheet):
-            continue
-        try:
-            listed_under = await _listed_under(site_id, search_name)
-            if listed_under is None:
-                continue
-            fetch_at = wdk_fetch_at(site_id, listed_under, search_name)
-            under[step.node.id] = await vocabularies_under(
-                fetch_at, list(sheet), values
-            )
-        except (VEuPathDBError, OSError) as exc:
-            logger.warning(
-                "step vocabulary unreadable",
-                search_name=search_name,
-                error=str(exc),
-            )
+        read = await _sheet_under(site_id, search_name, sheet, values, step.names)
+        if read is not None:
+            under[step.node.id] = read
     return under

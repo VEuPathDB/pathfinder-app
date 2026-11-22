@@ -5,9 +5,9 @@ from pydantic_ai import RunContext
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StepValidation
-from veupathdb.wdk import WDKSearch, WDKSearchResponse
+from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse
 from veupathdb_mcp import tool_payloads
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParamFetcher
 from veupathdb_mcp.tool_payloads import SearchListing
 
 from strategist.ai.agents.state import AgentToolState
@@ -64,11 +64,9 @@ def serve_orthomcl(monkeypatch: pytest.MonkeyPatch) -> OrthoSite:
         ]
 
     def _fetch_at(_site: str, record_type: str, name: str) -> ParamFetcher:
-        async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
+        async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
             site.contexts.append(context)
-            return format_param_info_typed(
-                site.read(record_type, name).parameters or []
-            )
+            return list(site.read(record_type, name).parameters or [])
 
         return fetch_at
 

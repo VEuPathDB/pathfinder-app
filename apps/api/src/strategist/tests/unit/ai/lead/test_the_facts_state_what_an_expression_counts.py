@@ -27,7 +27,6 @@ _INFO = ParameterInfo.model_validate(
         "is_visible": True,
         "site_set": False,
         "help": "",
-        "value_format": "",
     }
 )
 

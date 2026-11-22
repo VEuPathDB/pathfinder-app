@@ -9,9 +9,8 @@ from pydantic_ai import RunContext
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import NumberValue, SinglePickValue
 from veupathdb.domain.strategy import StepValidation
-from veupathdb.wdk import WDKSearch, WDKSearchResponse
+from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse
 from veupathdb_mcp.catalog import (
-    ParameterInfo,
     ParamFetcher,
     Provenance,
     ResolvedParams,
@@ -70,7 +69,7 @@ async def _bind(
         return ValidatedParams()
 
     def _fetch_at(*_args: object) -> ParamFetcher:
-        async def fetch_at(_context: dict[str, str]) -> list[ParameterInfo]:
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
             return []
 
         return fetch_at

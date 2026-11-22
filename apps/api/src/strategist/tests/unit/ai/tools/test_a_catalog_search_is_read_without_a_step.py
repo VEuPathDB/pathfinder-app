@@ -37,6 +37,7 @@ from strategist.tests._support.record_classes import (
     recorded_searches,
     serve_record_classes,
 )
+from strategist.tests._support.recorded_searches import serve_stated_reads
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
 
@@ -153,6 +154,7 @@ def reports(monkeypatch: pytest.MonkeyPatch) -> _Reports:
     )
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: served)
     monkeypatch.setattr(variant_comparison, "search_parameters", _recorded_parameters)
+    serve_stated_reads(monkeypatch, list(recorded_searches().values()))
     serve_record_classes(monkeypatch)
     return served
 
@@ -163,12 +165,9 @@ def _vsp_search() -> VariantInput:
             "label": "VSP in product",
             "searchName": "GenesByText",
             "parameters": {
-                "text_search_organism": {
-                    "type": "multi-pick-vocabulary",
-                    "values": [_WB],
-                },
-                "text_expression": {"type": "string", "value": "VSP"},
-                "text_fields": {"type": "multi-pick-vocabulary", "values": ["product"]},
+                "text_search_organism": [_WB],
+                "text_expression": "VSP",
+                "text_fields": ["product"],
             },
         }
     )
@@ -179,9 +178,7 @@ def _signal_peptide() -> VariantInput:
         {
             "label": "Signal peptide",
             "searchName": "GenesWithSignalPeptide",
-            "parameters": {
-                "organism": {"type": "multi-pick-vocabulary", "values": [_IL3000]}
-            },
+            "parameters": {"organism": [_IL3000]},
         }
     )
 

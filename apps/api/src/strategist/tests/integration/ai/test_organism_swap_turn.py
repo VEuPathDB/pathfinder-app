@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.persistence.models import Conversation
-from pydantic_ai import RunContext
+from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -33,7 +33,6 @@ from strategist.ai.lead import frame_dispatch
 from strategist.ai.lead.deltas import EditDelta, FrameResult
 from strategist.ai.lead.edit_dispatch import run_edit
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
@@ -41,7 +40,6 @@ from strategist.domain.strategy.spec_hydration import spec_from_ast
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.tool_returns import returned
 from strategist.tests.integration.ai._organism_swap_wire import (
     DERISI,
     PF,
@@ -185,7 +183,8 @@ def _deps(conv_id: UUID, session_maker: Any) -> LeadDeps:
 
 
 def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """FRAME re-binds only the expression criterion, through the real resolver."""
+    """FRAME re-binds only the expression criterion, through the real resolver.
+    The first call copies the old organism's profileset forward and is refused."""
     rounds: list[str] = []
 
     async def _fake(**kwargs: Any) -> FrameResult:
@@ -197,17 +196,15 @@ def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]
             messages=[],
             tool_call_id="call_1",
         )
-        first = returned(
+        with pytest.raises(ModelRetry) as refused:
             await set_criterion(
                 ctx,
                 criterion_id="step_expr",
                 text="expression profile",
                 search_name="GenesByProfile",
                 params={"organism": [PV], "profileset": DERISI},
-            ),
-            SetCriterionResult,
-        )
-        rounds.extend(first.redecide)
+            )
+        rounds.append(refused.value.message)
         await set_criterion(
             ctx,
             criterion_id="step_expr",
@@ -241,8 +238,13 @@ async def test_the_swap_re_resolves_the_dependent_and_keeps_the_rest(
     )
 
     assert isinstance(result, EditDelta)
-    # The dependent was handed back rather than copied forward.
-    assert redecided == ["profileset"]
+    # The old organism's dependent was refused under the new organism.
+    assert redecided == [
+        (
+            f"profileset takes one of {ZHU!r}, for example {ZHU!r}; it read "
+            f"{DERISI!r}. Nothing was recorded."
+        )
+    ]
     after = deps.state.domain.operational_spec
     assert after is not None
     swapped = next(c for c in after.criteria if c.id == "step_expr")

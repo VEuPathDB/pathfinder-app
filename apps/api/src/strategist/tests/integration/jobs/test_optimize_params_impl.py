@@ -140,7 +140,6 @@ def _knob(choices: list[str]) -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         allowed_values=[VocabOption(value=c, display=c) for c in choices],
     )
 

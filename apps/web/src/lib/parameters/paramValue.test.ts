@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatParamValue, type ParamValue } from "./paramValue";
+import { formatParamValue, statesNothing, type ParamValue } from "./paramValue";
 
 describe("formatParamValue", () => {
   it("reads a text value as the text itself", () => {
@@ -66,8 +66,20 @@ describe("formatParamValue", () => {
     const filter: ParamValue = {
       type: "filter",
       filters: [
-        { field: "organism", value: ["P. falciparum"] },
-        { field: "stage", value: ["ring"] },
+        {
+          field: "organism",
+          type: "string",
+          isRange: false,
+          includeUnknown: false,
+          value: ["P. falciparum"],
+        },
+        {
+          field: "stage",
+          type: "string",
+          isRange: false,
+          includeUnknown: false,
+          value: ["ring"],
+        },
       ],
     };
     expect(formatParamValue(filter)).toBe("2 filters (organism, stage)");
@@ -81,5 +93,33 @@ describe("formatParamValue", () => {
     expect(formatParamValue({ type: "number-range", min: null, max: null })).toBe(
       "(any)",
     );
+  });
+});
+
+describe("an empty number or date", () => {
+  it("reads as nothing stated", () => {
+    expect(formatParamValue({ type: "number", value: null })).toBe("");
+    expect(formatParamValue({ type: "date", value: null })).toBe("");
+    expect(statesNothing({ type: "number", value: null })).toBe(true);
+    expect(statesNothing({ type: "date", value: null })).toBe(true);
+  });
+
+  it("keeps a number of zero as a selection", () => {
+    expect(statesNothing({ type: "number", value: 0 })).toBe(false);
+  });
+});
+
+describe("an empty filter", () => {
+  it("reads as nothing stated, not as a filter with no clauses", () => {
+    expect(formatParamValue({ type: "filter", filters: [], empty: true })).toBe("");
+    expect(formatParamValue({ type: "filter", filters: [] })).toBe("(no filters)");
+  });
+});
+
+describe("a held value", () => {
+  it("reads as its raw text and states something unless it is empty", () => {
+    expect(formatParamValue({ type: "held", wire: "abc" })).toBe("abc");
+    expect(statesNothing({ type: "held", wire: "abc" })).toBe(false);
+    expect(statesNothing({ type: "held", wire: "" })).toBe(true);
   });
 });

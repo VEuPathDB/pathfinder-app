@@ -6,26 +6,25 @@ suite reads live under ``tests/fixtures/wdk``.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from functools import cache
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import RecordedWDKResponse
-from veupathdb.wdk import VEuPathDBClient, WDKSearch, WDKSearchResponse
+from veupathdb.wdk import VEuPathDBClient, WDKParameter, WDKSearch, WDKSearchResponse
 from veupathdb_mcp import catalog, tool_payloads
 from veupathdb_mcp.catalog import (
-    ParameterInfo,
     ParamFetcher,
     ResolvedSearch,
     SearchMatch,
     ValidationCallbacks,
-    format_param_info_typed,
+    read_under_parents,
 )
 from veupathdb_mcp.tool_payloads import SearchListing
 
@@ -33,6 +32,7 @@ from strategist.ai.tools.standalone import (
     _catalog_models,
     _frame_count,
     _frame_sheet,
+    _stated_values,
     frame_spec,
 )
 from strategist.services.strategies import (
@@ -43,6 +43,7 @@ from strategist.services.strategies import (
     step_wdk_push,
 )
 from strategist.tests._support.catalog_builders import serve_search_details
+from strategist.tests._support.filter_reads import NoFilterReads
 from strategist.tests._support.qa_recording import client_recording, qa_recording
 
 _SUITE = Path(__file__).resolve().parents[1] / "fixtures" / "wdk"
@@ -226,6 +227,7 @@ def serve_recorded(
     monkeypatch.setattr(_frame_sheet, "read_search_definition", _definition)
     monkeypatch.setattr(_catalog_models, "read_search_definition", _definition)
     monkeypatch.setattr(sheet_params, "fetch_search_details", _catalog)
+    serve_stated_reads(monkeypatch, definitions)
 
 
 def serve_recorded_definitions(
@@ -286,9 +288,35 @@ def serve_recorded_plasmodb(
     by_name = {d.url_segment: d for d in definitions}
 
     def _fetch_at(_site_id: str, _record_type: str, search_name: str) -> ParamFetcher:
-        async def fetch_at(_context: dict[str, str]) -> list[ParameterInfo]:
-            return format_param_info_typed(by_name[search_name].parameters or [])
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(by_name[search_name].parameters or [])
 
         return fetch_at
 
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
+
+
+def serve_stated_reads(
+    monkeypatch: pytest.MonkeyPatch, definitions: Sequence[WDKSearch]
+) -> None:
+    """Read each stated value with the catalog's reader against these recordings."""
+    by_name = {d.url_segment: d for d in definitions}
+
+    async def _read(
+        _site_id: str,
+        search_name: str,
+        stated: Mapping[str, JsonValue] | None,
+        *,
+        record_type: str | None = None,
+        bound: Mapping[str, ParamValue],
+    ) -> dict[str, ParamValue]:
+        del record_type
+        if not stated:
+            return {}
+
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(by_name[search_name].parameters or [])
+
+        return await read_under_parents(fetch_at, stated, NoFilterReads(), bound=bound)
+
+    monkeypatch.setattr(_stated_values, "read_stated_parameters", _read)

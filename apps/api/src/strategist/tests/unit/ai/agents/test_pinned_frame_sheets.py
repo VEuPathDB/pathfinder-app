@@ -237,11 +237,10 @@ class TestAFreshVocabularyIsNotASheet:
         assert "minimum2" in pinned
 
     @pytest.mark.asyncio
-    async def test_a_refused_re_call_leaves_no_decide_again_line(
+    async def test_a_refused_re_call_keeps_asking_for_the_fresh_value(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # The refusal names the values and the parameter was handed back once,
-        # so the pin no longer asks for it.
+        """A value the read refuses decides nothing, so the pin still asks."""
         serve_search(monkeypatch, aggregation_under_samples)
         state = AgentToolState()
 
@@ -250,5 +249,5 @@ class TestAFreshVocabularyIsNotASheet:
             await aggregate(state, "median9")
 
         pinned = _rendered(state)
-        assert "decide again" not in pinned
-        assert "minimum2" in pinned, "the fresh vocabulary is still readable"
+        assert 'decide again under the bound parents: ["min_max_avg_ref"]' in pinned
+        assert "minimum2" in pinned

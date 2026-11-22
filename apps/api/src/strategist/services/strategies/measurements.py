@@ -14,7 +14,7 @@ from veupathdb.domain.parameters import (
     ParamValue,
     PhyleticTree,
     StringValue,
-    param_value_from_raw,
+    from_wire,
     to_wire,
 )
 from veupathdb.errors import VEuPathDBError, WDKError
@@ -223,7 +223,9 @@ def _bounds(value: ParamValue, info: ParameterInfo) -> list[tuple[ParamValue, st
     if info.param_kind == "number-range":
         if info.min is None or info.max is None:
             return []
-        whole = param_value_from_raw({"min": info.min, "max": info.max}, "number-range")
+        whole = from_wire(
+            "number-range", json.dumps({"min": info.min, "max": info.max})
+        )
         shown = f"{NumberValue(value=info.min).to_wire()} to "
         return [(whole, shown + NumberValue(value=info.max).to_wire())]
     bounds = [b for b in (info.min, info.max) if b is not None] or [_UNBOUNDED_READING]

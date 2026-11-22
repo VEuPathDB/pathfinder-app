@@ -15,6 +15,7 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import flatten_tree
 
+from strategist.ai.tools.standalone._stated_values import StatedStepNode
 from strategist.ai.tools.standalone.strategy import apply_operations, build_strategy
 from strategist.ai.tools.toolsets.execution import build_toolset
 from strategist.domain.strategy.build_outcome import BuildOutcome
@@ -24,7 +25,7 @@ from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies.commit import CommitResult
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.operations import editable_models
+from strategist.tests._support.operations import stated_models
 from strategist.tests.unit.ai.tools._apply_operations_stubs import (
     context_and_commit,
     graph_with,
@@ -202,7 +203,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
         _pin_build(monkeypatch, _build)
 
         with pytest.raises(ModelRetry):
-            await build_strategy(ctx, root=leaf("step_b"))
+            await build_strategy(
+                ctx, root=StatedStepNode(id="step_b", search_name="GenesByTaxon")
+            )
 
         assert built == []
 
@@ -213,7 +216,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
         ctx, _commit = context_and_commit(graph, [])
 
         with pytest.raises(ModelRetry) as caught:
-            await build_strategy(ctx, root=leaf("step_b"))
+            await build_strategy(
+                ctx, root=StatedStepNode(id="step_b", search_name="GenesByTaxon")
+            )
 
         assert "apply_operations" in str(caught.value)
         assert revision_of(graph) in str(caught.value)
@@ -232,7 +237,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        await build_strategy(ctx, root=leaf("step_a"))
+        await build_strategy(
+            ctx, root=StatedStepNode(id="step_a", search_name="GenesByTaxon")
+        )
 
         assert len(built) == 1
 
@@ -254,7 +261,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        returned = await build_strategy(ctx, root=leaf("step_a"))
+        returned = await build_strategy(
+            ctx, root=StatedStepNode(id="step_a", search_name="GenesByTaxon")
+        )
 
         summaries = [
             (chunk.data["summary"], chunk.data["status"])
@@ -276,7 +285,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        returned = await build_strategy(ctx, root=leaf("step_a"))
+        returned = await build_strategy(
+            ctx, root=StatedStepNode(id="step_a", search_name="GenesByTaxon")
+        )
 
         summaries = [
             (chunk.data["summary"], chunk.data["status"])
@@ -298,7 +309,11 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        await build_strategy(ctx, root=leaf("step_b"), base_revision=revision_of(graph))
+        await build_strategy(
+            ctx,
+            root=StatedStepNode(id="step_b", search_name="GenesByTaxon"),
+            base_revision=revision_of(graph),
+        )
 
         assert len(built) == 1
 
@@ -374,7 +389,7 @@ class TestToolSchema:
             name for name, spec in defs.items() if "kind" in spec.get("properties", {})
         }
 
-        assert offered == {model.__name__ for model in editable_models()}
+        assert offered == {model.__name__ for model in stated_models()}
 
     def test_the_tool_is_registered_on_the_execution_toolset(self) -> None:
         toolset = unwrap_function_toolset(build_toolset())

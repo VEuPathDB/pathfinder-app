@@ -117,7 +117,11 @@ class TestThePatchCall:
         sync_state = self._sync_state()
 
         failure = await step_wdk_push._execute_patch(
-            sync_state, "plasmodb", _step(""), "transcript", _VALUES
+            sync_state,
+            "plasmodb",
+            _step(""),
+            "transcript",
+            _VALUES,
         )
 
         assert failure is not None

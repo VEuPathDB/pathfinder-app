@@ -8,6 +8,7 @@ of a search with the same parameters.
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import to_wire
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
@@ -43,7 +44,7 @@ _PROFILESET = (
     "Asexual blood stages and salivary gland sporozoite and midgut oocyst "
     "transcriptomes - Sense"
 )
-Proposals = dict[str, str | list[str] | None]
+Proposals = dict[str, JsonValue]
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> None:

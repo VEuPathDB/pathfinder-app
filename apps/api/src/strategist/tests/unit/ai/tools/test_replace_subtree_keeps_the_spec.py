@@ -18,6 +18,7 @@ from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
+from strategist.tests._support.stated import stated_tree
 from strategist.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
@@ -131,7 +132,9 @@ class TestReplaceSubtreeAgainstTheSpec:
         assert len(graph.steps) == 16
 
         with pytest.raises(ModelRetry) as excinfo:
-            await replace_subtree(ctx(deps), "step_c1", _placeholder_subtree())
+            await replace_subtree(
+                ctx(deps), "step_c1", stated_tree(_placeholder_subtree())
+            )
 
         message = str(excinfo.value)
         for lost in ("step_k1", "step_k2", "step_k3", "step_k4"):
@@ -154,7 +157,7 @@ class TestReplaceSubtreeAgainstTheSpec:
         )
 
         payload = returned(
-            await replace_subtree(ctx(deps), "step_c1", replacement),
+            await replace_subtree(ctx(deps), "step_c1", stated_tree(replacement)),
             dict[str, JsonValue],
         )
 
@@ -186,7 +189,7 @@ class TestReplaceSubtreeAgainstTheSpec:
         )
 
         payload = returned(
-            await replace_subtree(ctx(deps), "step_c1", replacement),
+            await replace_subtree(ctx(deps), "step_c1", stated_tree(replacement)),
             dict[str, JsonValue],
         )
 
@@ -272,7 +275,9 @@ class TestADeleteKeepsTheGuardArmed:
         stub_api.calls.clear()
 
         with pytest.raises(ModelRetry) as excinfo:
-            await replace_subtree(ctx(deps), "step_c1", _placeholder_subtree())
+            await replace_subtree(
+                ctx(deps), "step_c1", stated_tree(_placeholder_subtree())
+            )
 
         for lost in ("step_k1", "step_k2", "step_k3", "step_k4"):
             assert lost in str(excinfo.value)
@@ -339,11 +344,13 @@ class TestAnExportedEdaStep:
             await replace_subtree(
                 ctx(deps),
                 "step_c1",
-                combine(
-                    "step_c1",
-                    leaf("step_k1"),
-                    leaf("step_k2"),
-                    op=CombineOp.UNION,
+                stated_tree(
+                    combine(
+                        "step_c1",
+                        leaf("step_k1"),
+                        leaf("step_k2"),
+                        op=CombineOp.UNION,
+                    )
                 ),
             ),
             dict[str, JsonValue],
@@ -366,7 +373,7 @@ class TestAnExportedEdaStep:
             await replace_subtree(
                 ctx(deps),
                 "step_c2",
-                combine("step_c2", leaf("step_k1"), leaf("step_k2")),
+                stated_tree(combine("step_c2", leaf("step_k1"), leaf("step_k2"))),
             )
 
         message = str(excinfo.value)
@@ -392,7 +399,7 @@ class TestAnExportedEdaStep:
             await replace_subtree(
                 ctx(deps),
                 "step_c1",
-                combine("step_c1", leaf("step_k1"), leaf("step_x")),
+                stated_tree(combine("step_c1", leaf("step_k1"), leaf("step_x"))),
             )
         assert "step_k2" in str(excinfo.value)
         assert stub_api.calls == []
@@ -431,7 +438,9 @@ class TestAnOptionCriterion:
         assert graph is not None
 
         with pytest.raises(ModelRetry) as excinfo:
-            await replace_subtree(ctx(deps), "step_c1", _placeholder_subtree())
+            await replace_subtree(
+                ctx(deps), "step_c1", stated_tree(_placeholder_subtree())
+            )
 
         message = str(excinfo.value)
         assert "step_k1" in message
@@ -452,7 +461,7 @@ class TestAnOptionCriterion:
         )
 
         payload = returned(
-            await replace_subtree(ctx(deps), "step_c1", replacement),
+            await replace_subtree(ctx(deps), "step_c1", stated_tree(replacement)),
             dict[str, JsonValue],
         )
 

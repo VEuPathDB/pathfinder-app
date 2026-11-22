@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, StringValue
 from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, LookupRecord
@@ -28,12 +28,14 @@ def _call(picks: list[str]) -> CriterionCall:
         criterion_id="c_obp",
         search_name=_INTERPRO,
         text=_TEXT,
-        params={
-            "organism": ["Aedes aegypti LVP_AGWG"],
-            "domain_database": "Pfam",
-            _DOMAINS: picks,
-            "domain_accession": "N/A",
-        },
+        params={},
+    ).with_values(
+        {
+            "organism": MultiPickValue(values=["Aedes aegypti LVP_AGWG"]),
+            "domain_database": SinglePickValue(value="Pfam"),
+            _DOMAINS: MultiPickValue(values=picks),
+            "domain_accession": StringValue(value="N/A"),
+        }
     )
 
 

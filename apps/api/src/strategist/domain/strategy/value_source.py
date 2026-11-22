@@ -54,19 +54,22 @@ class _DateBounds(BaseModel):
 def stated_texts(value: ParamValue) -> list[str]:
     """The texts one request message holds, each whole, to state the value.
 
-    A filter, a dataset and a step are written by no researcher in words, so
-    nothing states them.
+    A filter, a dataset, a step and a held value are written by no researcher
+    in words, so nothing states them, and nothing states an empty value.
     """
+    wire = to_wire(value)
+    if not wire:
+        return []
     match value.type:
         case "string" | "number" | "date" | "timestamp" | "single-pick-vocabulary":
-            return [to_wire(value)]
+            return [wire]
         case "multi-pick-vocabulary":
             return _TERMS.validate_python(value.to_decoded())
         case "number-range":
-            return _NumberBounds.model_validate_json(to_wire(value)).texts()
+            return _NumberBounds.model_validate_json(wire).texts()
         case "date-range":
-            return _DateBounds.model_validate_json(to_wire(value)).texts()
-        case "filter" | "input-dataset" | "input-step":
+            return _DateBounds.model_validate_json(wire).texts()
+        case "filter" | "input-dataset" | "input-step" | "held":
             return []
         case _:
             assert_never(value.type)
@@ -76,7 +79,7 @@ def _number_of(value: ParamValue) -> float | None:
     """The number a numeric value or a numeric text holds, else None."""
     match value:
         case NumberValue(value=number):
-            return float(number)
+            return number
         case StringValue(value=text):
             try:
                 return float(text)

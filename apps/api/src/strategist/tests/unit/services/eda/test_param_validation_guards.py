@@ -129,7 +129,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _WDK:
 async def _validate_samples(values: list[str]) -> ValidatedParams:
     return await validate_parameters(
         _PROFILE_CTX,
-        parameters={"samples": MultiPickValue(values=values)},
+        stated={"samples": MultiPickValue(values=values)},
         callbacks=validation_callbacks(),
     )
 
@@ -256,7 +256,7 @@ async def _validate_spec(search_name: str, spec: str) -> ValidatedParams:
         SearchContext(
             site_id="plasmodb", record_type="transcript", search_name=search_name
         ),
-        parameters={
+        stated={
             EDA_DATASET_ID_PARAM: StringValue(value=_DATASET_ID),
             EDA_ANALYSIS_SPEC_PARAM: StringValue(value=spec),
         },
@@ -382,7 +382,7 @@ class TestAPlainSearchIsUntouched:
             SearchContext(
                 site_id="plasmodb", record_type="transcript", search_name="GenesByText"
             ),
-            parameters={"text_expression": StringValue(value="kinase")},
+            stated={"text_expression": StringValue(value="kinase")},
             callbacks=validation_callbacks(),
         )
 

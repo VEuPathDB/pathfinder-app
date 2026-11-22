@@ -1,14 +1,12 @@
-"""A gene id list the step editor sends reaches the PlasmoDB step it edits.
+"""A gene id list the step editor saves reaches the PlasmoDB step it edits.
 
-The editor sends a dataset parameter as the JSON of a dataset source
-(``{"sourceType": "idList", "sourceContent": {"ids": [...]}}``) inside an
-``input-dataset`` value. The step on the site answers exactly those ids.
+The editor saves the dataset source through the site's dataset route, then sends
+the dataset id it answers. The step on the site answers exactly those ids.
 """
 
 from __future__ import annotations
 
 import contextlib
-import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from uuid import UUID, uuid4
@@ -35,6 +33,7 @@ from strategist.services.conversations.strategy_ops import apply_operation
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.spec_build import build_strategy_from_spec
+from strategist.transport.http.routers.sites.datasets import save_dataset
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -116,7 +115,13 @@ async def built(
 async def test_a_pasted_id_list_is_the_list_the_step_answers(
     built: _Built, session_maker: async_sessionmaker[AsyncSession]
 ) -> None:
-    pasted = json.dumps({"sourceType": "idList", "sourceContent": {"ids": _EDITED}})
+    saved = await save_dataset(
+        _SITE,
+        WDKDatasetConfigIdList(
+            source_type="idList",
+            source_content=WDKDatasetIdListContent(ids=list(_EDITED)),
+        ),
+    )
     async with session_maker() as session:
         await apply_operation(
             ConversationRepository(session),
@@ -128,7 +133,10 @@ async def test_a_pasted_id_list_is_the_list_the_step_answers(
                     "kind": "updateStepParams",
                     "stepId": "leaf",
                     "parameters": {
-                        _PARAM: {"type": "input-dataset", "datasetId": pasted}
+                        _PARAM: {
+                            "type": "input-dataset",
+                            "datasetId": saved.dataset_id,
+                        }
                     },
                 }
             ),

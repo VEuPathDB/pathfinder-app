@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup, format_param_info_typed
 
@@ -67,8 +68,8 @@ def _state(message: str, term: str, values: list[str]) -> AgentToolState:
 def _bind(state: AgentToolState, text: str, picks: list[str]) -> list[str]:
     """The picks the call binds; a refusal raises instead."""
     call = CriterionCall(
-        criterion_id="c_go", search_name=_GO, text=text, params={_PARAM: picks}
-    )
+        criterion_id="c_go", search_name=_GO, text=text, params={}
+    ).with_values({_PARAM: MultiPickValue(values=picks)})
     refuse_a_pick_no_lookup_read(state, _DEFINITION, call, _INFOS)
     return picks
 

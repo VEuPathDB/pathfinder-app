@@ -9,11 +9,11 @@ than a memory.
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb.domain.parameters import wire_map
 
 from strategist.ai.tools.standalone.graph_helpers import build_step_response
 from strategist.domain.strategy.build_outcome import citable_count
 from strategist.domain.strategy.session import StrategySession, strategy_root_id
+from strategist.domain.strategy.value_binding import agent_wire
 from strategist.services.strategies.live_counts import read_wdk_step_counts
 
 __all__ = ["LiveStepState", "LiveStrategyState", "read_live_state"]
@@ -72,7 +72,7 @@ async def read_live_state(
             display_name=response.display_name or step.id,
             search_name=response.search_name,
             estimated_size=citable_count(step.id, counts=counts, refused=refused),
-            parameters=wire_map(step.parameters or {}),
+            parameters={n: agent_wire(v) for n, v in step.parameters.items()},
             wdk_step_id=response.wdk_step_id,
             is_root=step.id == root_id,
         )

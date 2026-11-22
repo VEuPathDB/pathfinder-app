@@ -200,7 +200,7 @@ def _with_value(
 
 def _values_refusal(graph: StrategyGraph, spec: OperationalSpec) -> str | None:
     return new_value_contradiction(
-        stated=spec_stated_values(spec), graph=graph, before={}
+        stated=spec_stated_values(spec), graph=graph, before={}, after={}
     )
 
 
@@ -320,7 +320,7 @@ def test_a_value_that_already_departed_is_not_refused_again() -> None:
     ]
     assert (
         new_value_contradiction(
-            stated=spec_stated_values(spec), graph=graph, before=before
+            stated=spec_stated_values(spec), graph=graph, before=before, after={}
         )
         is None
     )

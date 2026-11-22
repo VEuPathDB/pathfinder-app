@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useStore } from "@tanstack/react-form";
+import { useIsMutating } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { Step } from "@strategist/shared";
 import { isShown } from "@/lib/parameters/visibility";
@@ -12,6 +13,8 @@ import {
 } from "@/features/strategy/mutations";
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
 import { SaveSubstrategyDialog } from "./SaveSubstrategyDialog";
+import { toUserMessage } from "@/lib/api/errors";
+import { SAVE_DATASET_KEY } from "@/lib/api/sites";
 import { useStrategyData } from "@/lib/api/strategy";
 import { withBasePath } from "@/lib/basePath";
 import { strategyStepUrl } from "@/lib/routes";
@@ -95,9 +98,11 @@ export function EditorContent({
     displayName: state.name ?? "",
     colocationParams: state.colocationParams ?? null,
     allowedParamKeys,
+    paramSpecs: state.paramSpecs,
   });
 
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const savingList = useIsMutating({ mutationKey: SAVE_DATASET_KEY }) > 0;
 
   const writeDraftSnapshot = (): void => {
     if (!state.paramFormHydrated) return;
@@ -118,8 +123,15 @@ export function EditorContent({
 
   const commitNow = async (): Promise<boolean> => {
     if (!changes.hasChanges) return true;
+    let patch: Partial<Step>;
     try {
-      await updateStep.mutateAsync({ stepId: step.id, patch: buildPatch() });
+      patch = buildPatch();
+    } catch (err) {
+      toast.error(`The step could not be saved: ${toUserMessage(err)}`);
+      return false;
+    }
+    try {
+      await updateStep.mutateAsync({ stepId: step.id, patch });
       persistence.clear();
       return true;
     } catch {
@@ -128,6 +140,7 @@ export function EditorContent({
   };
 
   registerCloseHandler(async () => {
+    if (savingList) return;
     const ok = await commitNow();
     if (ok) onClosed();
   });
@@ -237,7 +250,7 @@ export function EditorContent({
   const footerProps = {
     syncState,
     changeCount: changes.changeCount,
-    isSaving: updateStep.isPending,
+    isSaving: updateStep.isPending || savingList,
     onSave: () => {
       void commitNow();
     },

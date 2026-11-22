@@ -56,7 +56,7 @@ def _context() -> StrategyMutationContext:
 
 
 async def _echo(*_args: Any, **kwargs: Any) -> ValidatedParams:
-    params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+    params: dict[str, ParamValue] = dict(kwargs["stated"])
     return ValidatedParams(params=params, record_class="transcript")
 
 

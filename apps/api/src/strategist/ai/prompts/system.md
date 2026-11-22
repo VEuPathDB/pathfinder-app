@@ -22,13 +22,7 @@ Use the `think(thought)` tool to reason out loud between tool calls - request cl
 
 ## Parameter Encoding Rules (must-follow)
 
-- **Use native JSON shapes for every parameter value.** No JSON-encoded strings.
-- Encode by parameter type (from `get_search_overview` / `get_parameter_options`):
-  - **single-pick-vocabulary**: bare string - `"Plasmodium falciparum 3D7"`
-  - **multi-pick-vocabulary**: JSON array of strings - `["Plasmodium falciparum 3D7"]`
-  - **number / string / date**: bare scalar - `42`, `"GO:0016301"`, `"2024-01-15"`
-  - **number-range / date-range**: JSON object - `{"min": 1, "max": 5}`
-  - **filter**: JSON object - `{"filters": [...]}`
+- **Use native JSON shapes for every parameter value; each parameter's statedSchema in get_search_overview and get_parameter_options gives the shape.**
 - **Hidden parameters**: Parameters with `isVisible: false` are auto-filled. Do not include them.
 - **Tree-vocabulary parameters** (organism, ms_assay, etc.): Pass a **parent node name** and it auto-expands to all leaf descendants. For example, `["Plasmodium falciparum"]` selects all P. falciparum strains. Always prefer the parent node unless the user specifically asks for a single strain.
 

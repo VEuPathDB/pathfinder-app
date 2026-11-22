@@ -106,7 +106,7 @@ dispatches on to produce that `type` string.
 | `timestamp` | [`TimestampParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/TimestampParam.java#L30-L40) | [`TimestampParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L73-L75) | `WDKTimestampParam` / `TimestampValue` | `TimestampValue` |
 | `single-pick-vocabulary` | [`AbstractEnumParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AbstractEnumParam.java#L73-L90) with `isMultiPick` false - concretely [`EnumParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/EnumParam.java#L22-L30) or [`FlatVocabParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/FlatVocabParam.java#L30-L40) | four interfaces, [`SinglePick{Select,CheckBox,TypeAhead,TreeBox}EnumParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L144-L167) | `WDKEnumParam` / `SinglePickValue` | `SinglePickValue` |
 | `multi-pick-vocabulary` | the same classes with `isMultiPick` true; the choice is made in [`EnumParamFormatter`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/EnumParamFormatter.java#L45-L50) | four interfaces, `MultiPick{Select,CheckBox,TypeAhead,TreeBox}EnumParam` | `WDKEnumParam` / `MultiPickValue` | `MultiPickValue` |
-| `filter` | [`FilterParamNew`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/FilterParamNew.java#L85-L98) | [`FilterParamNew`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L77-L110) | `WDKFilterParam` / `FilterValue` | `FilterValue` |
+| `filter` | [`FilterParamNew`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/FilterParamNew.java#L85-L98) | [`FilterParamNew`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L77-L110) | `WDKFilterParam` / `FilterValue`, a list of the clause union `StringMembers`, `NumberMembers`, `NumberRange`, `DateRange`, `MultiMembers` | `FilterValue`, over the same five generated clause types |
 | `input-dataset` | [`DatasetParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/DatasetParam.java#L41-L50) | [`DatasetParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L214-L218) | `WDKDatasetParam` / `InputDatasetValue` | `InputDatasetValue` |
 | `input-step` | [`AnswerParam`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AnswerParam.java#L44-L56) | [`AnswerParam`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L220-L222) | `WDKAnswerParam` / `InputStepValue` | `InputStepValue` |
 
@@ -165,8 +165,16 @@ machinery is not the obstacle.
   `*Value` models and `ParamKind`. Pure, no I/O, and the only parameter
   representation that crosses layers.
 - **`veupathdb-py: src/veupathdb/domain/parameters/value_codec.py`** - the
-  conversion between those models and WDK's wire and decoded forms, and the
-  coercion of raw input into one of them.
+  conversion between those models and WDK's wire and decoded forms. It reads a
+  wire string by the kind it is given and guesses no kind from a value's shape.
+- **`veupathdb-py: src/veupathdb/domain/parameters/stated.py`** - the one reader
+  of a value a model states: one adapter per kind, built from the declaration,
+  whose JSON schema is what the model sees
+  ([a value is read by its parameter](../../decisions/a-value-is-read-by-its-parameter.md)).
+- **`veupathdb-py: src/veupathdb/domain/parameters/filter_clause.py`** - the five
+  clause classes WDK's `FilterParamNewStableValue` parses, and the facet that
+  decides among them
+  ([a filter clause is bound by its facet](../../decisions/a-filter-clause-is-bound-by-its-facet.md)).
 - **`veupathdb-py: src/veupathdb/domain/parameters/wdk_vocab.py` and
   `veupathdb-py: src/veupathdb/domain/wdk_values.py`** - the eight
   `WDK*`-named types that reach the browser, listed in

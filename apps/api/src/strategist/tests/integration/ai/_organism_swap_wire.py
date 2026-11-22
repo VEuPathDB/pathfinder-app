@@ -11,6 +11,7 @@ from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, VocabOption
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.wdk import (
+    WDKParameter,
     WDKSearch,
     WDKSearchConfig,
     WDKSearchResponse,
@@ -40,6 +41,7 @@ from strategist.tests._support import wdk_write_stubs
 from strategist.tests._support.recorded_searches import (
     no_count,
 )
+from strategist.tests._support.sheets import declarations
 
 PF = "Plasmodium falciparum 3D7"
 PV = "Plasmodium vivax P01"
@@ -157,7 +159,6 @@ def _organism_info() -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         organism_param=True,
         stated_children=["profileset"],
         wire_children=["profileset"],
@@ -177,7 +178,6 @@ def _profileset_info(options: list[VocabOption], default: str) -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         default_value=default,
         allowed_values=options,
         stated_parents=["organism"],
@@ -234,8 +234,8 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
 
     def _fetch_at(*_args: object) -> ParamFetcher:
-        async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
-            return _params_under(context)
+        async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
+            return declarations(_params_under(context))
 
         return fetch_at
 
@@ -253,10 +253,14 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     monkeypatch.setattr(sheet_params, "fetch_search_details", _details)
 
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        return ValidatedParams(params=dict(parameters))
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
     return api

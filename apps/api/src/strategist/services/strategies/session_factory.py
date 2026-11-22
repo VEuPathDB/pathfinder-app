@@ -1,5 +1,6 @@
 """Helpers for hydrating in-memory strategy session context for agents."""
 
+from collections.abc import Mapping
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
@@ -58,6 +59,12 @@ def persisted_graph(
     )
 
 
+def _on_the_graph[V](
+    held: Mapping[str, V] | None, graph: StrategyGraph
+) -> dict[str, V]:
+    return {sid: value for sid, value in (held or {}).items() if sid in graph.steps}
+
+
 def _restore_wdk_state(
     persisted: PersistedStrategyGraph, graph: StrategyGraph
 ) -> WDKSyncState:
@@ -71,16 +78,9 @@ def _restore_wdk_state(
         return sync_state
 
     payload = persisted.strategy_ast
-    if payload.wdk_step_ids:
-        for sid, wdk_step_id in payload.wdk_step_ids.items():
-            if sid in graph.steps:
-                sync_state.wdk_step_ids[sid] = wdk_step_id
-
-    if payload.step_counts:
-        for sid, count in payload.step_counts.items():
-            if sid in graph.steps:
-                sync_state.step_counts[sid] = count
-
+    sync_state.wdk_step_ids.update(_on_the_graph(payload.wdk_step_ids, graph))
+    sync_state.step_counts.update(_on_the_graph(payload.step_counts, graph))
+    sync_state.step_validations.update(_on_the_graph(payload.step_validations, graph))
     _restore_wdk_tree(payload, sync_state)
     return sync_state
 

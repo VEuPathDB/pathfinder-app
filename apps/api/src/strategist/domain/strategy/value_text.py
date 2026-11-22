@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pydantic import BaseModel, ConfigDict, JsonValue, TypeAdapter
-
-
-class Bounds(BaseModel):
-    model_config = ConfigDict(extra="ignore", frozen=True)
-
-    min: float | str | None = None
-    max: float | str | None = None
+from pydantic import BaseModel, ConfigDict
+from veupathdb.domain.parameters import (
+    DateBounds,
+    DateRange,
+    FilterClause,
+    MultiMembers,
+    NumberBounds,
+    NumberMembers,
+    NumberRange,
+    StringMembers,
+)
 
 
 class NumberEnds(BaseModel):
@@ -19,11 +22,6 @@ class NumberEnds(BaseModel):
 
     min: float | None = None
     max: float | None = None
-
-
-_CLAUSE_VALUE: TypeAdapter[Bounds | list[float | str]] = TypeAdapter(
-    Bounds | list[float | str]
-)
 
 
 def _bound_text(bound: float | str) -> str:
@@ -34,7 +32,7 @@ def _bound_text(bound: float | str) -> str:
             return str(bound)
 
 
-def bounds_text(bounds: Bounds) -> str:
+def bounds_text(bounds: NumberBounds | DateBounds) -> str:
     low = None if bounds.min is None else _bound_text(bounds.min)
     high = None if bounds.max is None else _bound_text(bounds.max)
     match low, high:
@@ -50,21 +48,25 @@ def bounds_text(bounds: Bounds) -> str:
             return f"{low} to {high}"
 
 
-def range_text(wire: str) -> str:
-    return bounds_text(Bounds.model_validate_json(wire))
-
-
-def clause_text(field: str, value: JsonValue, *, unknown: bool) -> str:
-    match _CLAUSE_VALUE.validate_python(value):
-        case Bounds() as bounds:
+def clause_text(clause: FilterClause, name: str = "") -> str:
+    match clause:
+        case NumberRange(value=bounds) | DateRange(value=bounds):
             shown = bounds_text(bounds)
-        case terms:
+        case MultiMembers(value=multi):
+            joined = " or " if multi.operation == "union" else " and "
+            shown = joined.join(clause_text(leaf) for leaf in multi.filters)
+        case StringMembers(value=terms) | NumberMembers(value=terms):
             shown = ", ".join(_bound_text(term) for term in terms) or "none"
-    return f"{field}: {shown} or unknown" if unknown else f"{field}: {shown}"
+    field = name or clause.field
+    return (
+        f"{field}: {shown} or unknown"
+        if clause.include_unknown
+        else f"{field}: {shown}"
+    )
 
 
 def filter_text(clauses: Sequence[str]) -> str:
     return "; ".join(clauses) or "no filter"
 
 
-__all__ = ["Bounds", "bounds_text", "clause_text", "filter_text", "range_text"]
+__all__ = ["NumberEnds", "bounds_text", "clause_text", "filter_text"]

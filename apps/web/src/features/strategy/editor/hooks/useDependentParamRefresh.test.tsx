@@ -157,6 +157,37 @@ describe("useDependentParamRefresh", () => {
     });
   });
 
+  it("leaves a value it cannot read out of the context it sends", async () => {
+    refreshDependentParamsMock.mockResolvedValue([]);
+    const variants = spec({ name: "variant_filter", type: "filter" });
+
+    const { result } = renderHook(() =>
+      useDependentParamRefresh({
+        siteId: "plasmodb",
+        recordType: "transcript",
+        searchName: "GenesByTaxon",
+        specs: [ORGANISM_SPEC, GENE_LIST_SPEC, variants],
+      }),
+    );
+
+    act(() => {
+      result.current.handleFieldChange("organism", {
+        organism: "A",
+        variant_filter: "[]",
+      });
+    });
+
+    await waitFor(() => {
+      expect(refreshDependentParamsMock).toHaveBeenCalledWith(
+        "plasmodb",
+        "transcript",
+        "GenesByTaxon",
+        "organism",
+        { organism: { type: "single-pick-vocabulary", value: "A" } },
+      );
+    });
+  });
+
   it("clears a stale dependent value when no longer valid and toasts", async () => {
     refreshDependentParamsMock.mockResolvedValue([
       spec({

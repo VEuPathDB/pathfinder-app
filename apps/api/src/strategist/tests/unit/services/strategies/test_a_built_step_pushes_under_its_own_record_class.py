@@ -86,6 +86,7 @@ async def test_each_step_of_an_orthomcl_build_pushes_under_its_own_class(
 
     await spec_build._push_tree_to_wdk(
         nodes=[steps[step_id] for step_id in order],
+        held={},
         site_id="orthomcl",
         sync_state=WDKSyncState(),
         outcome=BuildOutcome(),
@@ -110,6 +111,7 @@ async def test_a_build_step_the_site_lists_under_no_class_is_not_sent(
 
     await spec_build._push_tree_to_wdk(
         nodes=[StrategyStep(id="lost", kind=StepKind.SEARCH, search_name="Unlisted")],
+        held={},
         site_id="orthomcl",
         sync_state=WDKSyncState(),
         outcome=outcome,

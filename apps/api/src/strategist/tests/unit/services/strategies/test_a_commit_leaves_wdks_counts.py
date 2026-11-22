@@ -83,7 +83,10 @@ class _StubAPI:
         del step_id, user_id
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del spec, record_type, user_id
         self.next_id += 1
@@ -192,7 +195,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
 
     async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
-        params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+        params: dict[str, ParamValue] = dict(kwargs["stated"])
         return ValidatedParams(params=params, record_class="transcript")
 
     monkeypatch.setattr(stated_sides, "validate_parameters", _echo_parameters)

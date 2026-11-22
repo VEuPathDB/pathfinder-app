@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
@@ -38,10 +37,7 @@ _PATTERN = suite_search("search_genes_by_ortholog_pattern")
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_ORTHOLOGS, _PATTERN])
-    serve_params(
-        monkeypatch,
-        lambda _context: format_param_info_typed(_ORTHOLOGS.parameters or []),
-    )
+    serve_params(monkeypatch, declared=_ORTHOLOGS.parameters or [])
     no_validation(monkeypatch)
     no_count(monkeypatch)
     serve_site_listing(monkeypatch, [])

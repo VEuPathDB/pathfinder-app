@@ -8,11 +8,12 @@ from typing import Any
 
 import pytest
 from pydantic_ai import RunContext
-from veupathdb.domain.parameters import SinglePickValue, VocabOption
+from veupathdb.domain.parameters import MultiPickValue, VocabOption
 from veupathdb.wdk import WDKParameter, WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,
+    ParamFetcher,
     SearchOverviewResult,
     format_search_overview,
     search_inspection,
@@ -79,8 +80,19 @@ def _fixture_ctx(
     client = _RecordedClient(
         WDKSearchResponse.model_validate(client_recording(fixture).json_body())
     )
+
+    def _fetch_at(_site_id: str, record_type: str, search_name: str) -> ParamFetcher:
+        async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
+            read = await client.get_search_details_with_params(
+                record_type, search_name, context
+            )
+            return list(read.search_data.parameters or [])
+
+        return fetch_at
+
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
+    monkeypatch.setattr(search_inspection, "wdk_fetch_at", _fetch_at)
     return agent_run_context(agent_state=state), client
 
 
@@ -204,7 +216,11 @@ class TestTheParameterReadGate:
 
         def _bound(search_name: str) -> dict[str, Any]:
             captured["asked"] = search_name
-            return {"organismSinglePick": SinglePickValue(value="P. falciparum 3D7")}
+            return {
+                "organismSinglePick": MultiPickValue(
+                    values=["Plasmodium falciparum 3D7"]
+                )
+            }
 
         monkeypatch.setattr(state, "resolved_params_for", _bound)
 
@@ -220,7 +236,9 @@ class TestTheParameterReadGate:
 
         assert result.kind == "parameter_info"
         assert captured["asked"] == "GenesByLocation"
-        assert client.contexts[0]["organismSinglePick"] == "P. falciparum 3D7"
+        assert (
+            client.contexts[-1]["organismSinglePick"] == '["Plasmodium falciparum 3D7"]'
+        )
 
     async def test_an_unknown_parameter_is_not_ledgered(
         self, monkeypatch: pytest.MonkeyPatch
@@ -272,7 +290,6 @@ class TestTheParamVocabSnapshot:
             is_visible=True,
             site_set=False,
             help="Tier-quantile floor",
-            value_format='{"type": "single-pick-vocabulary", "value": "<one>"}',
             default_value="6772.93",
             allowed_values=[
                 VocabOption(value="1693.23", display="1693 reads"),
@@ -328,7 +345,6 @@ class TestTheParamVocabSnapshot:
                 is_visible=True,
                 site_set=False,
                 help="",
-                value_format='{"type": "single-pick-vocabulary", "value": "<one>"}',
                 default_value="6772.93",
                 allowed_values=[VocabOption(value="6772.93", display="6772 reads")],
             ),
@@ -340,7 +356,6 @@ class TestTheParamVocabSnapshot:
                 is_visible=True,
                 site_set=False,
                 help="",
-                value_format='{"type": "number", "value": <number>}',
                 default_value="2",
             ),
         }

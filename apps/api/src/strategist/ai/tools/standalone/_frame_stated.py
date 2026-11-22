@@ -11,6 +11,7 @@ from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import (
     FAKE_ALL_SENTINEL,
     MAX_NEAREST_ENTRIES,
+    StringValue,
     WDKTreeBoxVocabNode,
     match_exact_option,
     nearest_entries,
@@ -20,7 +21,6 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.ai.tools.standalone._qualifier_words import proposal_values
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.organism_phrases import stated_organisms
 from strategist.domain.strategy.text_expression import unquoted_phrase_refusal
@@ -107,7 +107,7 @@ def _refuse_an_organism_the_request_does_not_name(
     never refused.
     """
     options = info.vocabulary()
-    proposed = proposal_values(call.params.get(info.name))
+    proposed = call.terms(info.name)
     bound = [term for v in proposed if (term := match_exact_option(options, v))]
     named = [
         term
@@ -140,7 +140,7 @@ def _refuse_a_transform_to_another_organism(
     A name the vocabulary lacks is refused with the nearest entries.
     """
     options = info.vocabulary()
-    proposed = proposal_values(call.params.get(info.name))
+    proposed = call.terms(info.name)
     named = _entries_stated([carried_to], {o.display: o.value for o in options})
     if not named:
         nearest = nearest_entries(options, carried_to, MAX_NEAREST_ENTRIES)
@@ -169,8 +169,8 @@ def _refuse_an_unquoted_phrase(
 ) -> None:
     """Refuse a text term of several words sent unquoted when a request message
     asks for the phrase."""
-    match call.params.get(info.name):
-        case str() as text if not info.is_placeholder(text):
+    match call.values.get(info.name):
+        case StringValue(value=text) if not info.is_placeholder(text):
             refusal = unquoted_phrase_refusal(
                 info.name, call.search_name, text, messages
             )

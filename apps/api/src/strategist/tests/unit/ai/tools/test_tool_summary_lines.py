@@ -93,7 +93,6 @@ class TestASilentZeroReportsEmpty:
                 is_visible=True,
                 site_set=False,
                 help="",
-                value_format="",
                 allowed_values=[],
             )
 

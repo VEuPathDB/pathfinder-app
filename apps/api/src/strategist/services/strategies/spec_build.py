@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import NamedTuple
 
 from assistant_core.platform.logging import get_logger
@@ -53,6 +54,7 @@ from strategist.services.strategies.stated_sides import (
     CanonicalSides,
     canonical_sides,
     canonicalize_stated_leaves,
+    unmoved,
 )
 from strategist.services.strategies.step_search import names_a_wdk_question
 from strategist.services.strategies.step_wdk_push import push_step_to_wdk
@@ -135,6 +137,7 @@ def _a_build_the_spec_refuses(
         stated=sides.stated,
         graph=candidate,
         before=contradicted_values(sides.stated, graph, sides.entry),
+        after=sides.written,
     )
 
 
@@ -158,6 +161,7 @@ async def _canonical_build(
     written = root.model_copy(deep=True)
     try:
         writes = await canonicalize_stated_leaves(
+            graph=graph,
             root=written,
             stated=deps.stated_values,
             site_id=deps.site_id,
@@ -198,6 +202,7 @@ async def build_strategy_from_spec(
         raise ApplyError(refusal)
 
     sync_state = ensure_sync_state(session)
+    held = {step_id: dict(step.parameters) for step_id, step in graph.steps.items()}
     _replace_graph_contents(
         graph,
         root,
@@ -228,6 +233,7 @@ async def build_strategy_from_spec(
     outcome = BuildOutcome(organism_change=organism_change(root, marks))
     await _push_tree_to_wdk(
         nodes=nodes,
+        held=held,
         site_id=deps.site_id,
         sync_state=sync_state,
         outcome=outcome,
@@ -283,14 +289,15 @@ async def build_strategy_from_spec(
 async def _push_tree_to_wdk(
     *,
     nodes: list[StrategyStep],
+    held: Mapping[str, Mapping[str, ParamValue]],
     site_id: str,
     sync_state: WDKSyncState,
     outcome: BuildOutcome,
 ) -> None:
     """Push every node in dependency order, and record each failure and skip.
 
-    Parameters pass validation against the refreshed WDK spec before the push,
-    so an invalid value costs no round trip.
+    A value the build states passes validation before the push, so an invalid
+    one costs no round trip; a value the step already held goes as it is.
     """
     failed_node_ids: set[str] = set()
     steps_by_id = {node.id: node for node in nodes}
@@ -309,6 +316,7 @@ async def _push_tree_to_wdk(
             outcome.failed_steps.append(unclassed)
             continue
         push_parameters: dict[str, ParamValue] = dict(node.parameters)
+        context = unmoved(node.parameters, held.get(node.id, {}))
         if names_a_wdk_question(node):
             try:
                 validated = await validate_parameters(
@@ -317,7 +325,13 @@ async def _push_tree_to_wdk(
                         record_type=record_type,
                         search_name=search_name,
                     ),
-                    parameters=dict(node.parameters),
+                    stated={
+                        name: value
+                        for name, value in node.parameters.items()
+                        if name not in context
+                    },
+                    context=context,
+                    held_validation=sync_state.step_validations.get(node.id),
                     callbacks=callbacks,
                 )
             except ValidationError as exc:
@@ -333,7 +347,7 @@ async def _push_tree_to_wdk(
                     ),
                 )
                 continue
-            push_parameters = validated.params
+            push_parameters = {**node.parameters, **validated.params}
             if validated.record_class:
                 node.record_class = validated.record_class
                 record_type = validated.record_class

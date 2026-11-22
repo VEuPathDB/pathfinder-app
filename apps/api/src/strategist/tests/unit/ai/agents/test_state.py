@@ -369,7 +369,6 @@ def _cut_info() -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         allowed_values=[VocabOption(value="PF00001", display="PF00001 : Peptidase")],
         allowed_values_total=66,
         vocab_lookup=VocabLookup(terms=["peptidase"]),
@@ -410,7 +409,7 @@ def test_a_snapshot_of_a_whole_lookup_keeps_the_lookup() -> None:
 
 def test_a_parameter_read_as_site_set_this_pass_is_set_by_the_site() -> None:
     state = AgentToolState()
-    state.record_site_set(
+    state.record_read(
         "GenesByText",
         format_param_info_typed(
             list(suite_search("search_genes_by_text").parameters or [])

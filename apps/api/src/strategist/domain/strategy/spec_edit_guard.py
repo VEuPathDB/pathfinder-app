@@ -230,13 +230,16 @@ def new_value_contradiction(
     stated: Mapping[str, StatedCriterion],
     graph: StrategyGraph,
     before: Mapping[tuple[str, str], ValueContradiction],
+    after: Mapping[str, Mapping[str, ParamValue]],
 ) -> str | None:
     """Why this write restates a value the spec states, or None.
 
     Only a value the write introduces is refused. A value that already
-    departed keeps its answer until something restates the criterion.
+    departed keeps its answer until something restates the criterion. A step
+    ``after`` names is measured on what the catalog makes of it, so a value
+    the catalog moves under a stated one is judged too.
     """
-    for pair, found in contradicted_values(stated, graph, {}).items():
+    for pair, found in contradicted_values(stated, graph, after).items():
         if before.get(pair) == found:
             continue
         return (

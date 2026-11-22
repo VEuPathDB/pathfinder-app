@@ -295,7 +295,7 @@ def test_the_edit_moves_the_domain_minimum_and_copies_the_rest(
     bound = [a for a in args_of(calls, "set_criterion") if "params" in a]
     assert bound[0]["criterion_id"] == "tm_domains"
     assert bound[0]["params"] == {
-        "organism": '["Anopheles gambiae PEST"]',
+        "organism": ["Anopheles gambiae PEST"],
         "min_tm": low,
         "max_tm": None,
     }

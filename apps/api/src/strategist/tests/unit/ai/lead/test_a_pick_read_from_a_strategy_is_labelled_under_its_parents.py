@@ -20,6 +20,7 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 from veupathdb.errors import WDKError
+from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
 
 from strategist.ai.graph.state import StrategyDomainState
@@ -50,7 +51,7 @@ _PUBLISHED = [
     )
     if info.is_visible
 ]
-_UNDER_PF3D7 = format_param_info_typed(
+_UNDER_PF3D7 = list(
     suite_search("search_genes_by_interpro_domain_under_pf3d7_pfam").parameters or []
 )
 _PF3D7_CONTEXT = {
@@ -131,7 +132,7 @@ class _Reads:
     def fetch_at(
         self, _site_id: str, record_type: str, search_name: str
     ) -> ParamFetcher:
-        async def fetch(context: dict[str, str]) -> list[ParameterInfo]:
+        async def fetch(context: dict[str, str]) -> list[WDKParameter]:
             self.contexts.append((record_type, search_name, context))
             return _UNDER_PF3D7
 
@@ -273,7 +274,7 @@ async def test_a_step_the_site_cannot_read_is_labelled_on_the_published_sheet(
     monkeypatch: pytest.MonkeyPatch, reads: _Reads
 ) -> None:
     def _unreadable(_site_id: str, _record_type: str, search_name: str) -> ParamFetcher:
-        async def fetch(_context: dict[str, str]) -> list[ParameterInfo]:
+        async def fetch(_context: dict[str, str]) -> list[WDKParameter]:
             msg = f"{search_name} is unreachable"
             raise WDKError(msg, 503)
 

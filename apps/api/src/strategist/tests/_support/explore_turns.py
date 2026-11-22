@@ -29,6 +29,7 @@ from strategist.domain.modes import EXPLORE_PHASE
 from strategist.services.experiment import reading_count, variant_comparison
 from strategist.tests._support.record_classes import recorded_searches
 from strategist.tests._support.recorded_columns import recorded_body
+from strategist.tests._support.recorded_searches import serve_stated_reads
 from strategist.tests._support.run_context import turn_runtime
 
 SITE = "plasmodb"
@@ -129,6 +130,7 @@ def serve_recorded_readings(monkeypatch: pytest.MonkeyPatch) -> RecordedReports:
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: served)
     monkeypatch.setattr(variant_comparison, "search_parameters", _recorded_parameters)
     monkeypatch.setattr(reading_count, "read_search_definition", _recorded_definition)
+    serve_stated_reads(monkeypatch, list(recorded_searches().values()))
     return served
 
 

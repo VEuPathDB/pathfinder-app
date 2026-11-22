@@ -83,7 +83,10 @@ class _RecordingAPI:
         self.calls.append(_Call("delete_step", {"step_id": step_id}))
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del user_id
         self.calls.append(_Call("create_step", {"search_name": spec.search_name}))

@@ -27,6 +27,7 @@ from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import TurnMarkers
+from strategist.ai.tools.standalone._stated_values import StatedStepNode
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import (
     commit,
@@ -38,7 +39,11 @@ from strategist.services.strategies import (
 )
 from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.record_classes import (
+    list_every_search_under,
+    recorded_searches,
+)
+from strategist.tests._support.recorded_searches import serve_stated_reads
 
 _STEP_PUSHES = frozenset(
     {
@@ -88,7 +93,10 @@ class StubAPI:
         self._record("delete_step", step_id=step_id)
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del user_id
         self._record(
@@ -215,7 +223,7 @@ async def _noop(*_args: Any, **_kwargs: Any) -> None:
 
 async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
     """Accept every value, in the shape the catalog answers with."""
-    params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+    params: dict[str, ParamValue] = dict(kwargs["stated"])
     return ValidatedParams(params=params, record_class="transcript")
 
 
@@ -254,11 +262,22 @@ def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     pin_validator(monkeypatch, _echo_parameters)
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_plan_params)
     list_every_search_under(monkeypatch, "transcript")
+    serve_stated_reads(monkeypatch, list(recorded_searches().values()))
     return api
 
 
-def leaf(id_: str, params: dict[str, Any] | None = None) -> StrategyStepNode:
-    return StrategyStepNode(id=id_, search_name="GenesByTaxon", parameters=params or {})
+def leaf(
+    id_: str,
+    params: dict[str, Any] | None = None,
+    *,
+    search_name: str = "GenesByTaxon",
+) -> StrategyStepNode:
+    return StrategyStepNode(id=id_, search_name=search_name, parameters=params or {})
+
+
+def stated_leaf(id_: str) -> StatedStepNode:
+    """A GenesByTaxon step as the model states it, with no values."""
+    return StatedStepNode(id=id_, search_name="GenesByTaxon")
 
 
 def combine(

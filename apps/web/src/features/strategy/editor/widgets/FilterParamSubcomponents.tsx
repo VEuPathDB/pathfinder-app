@@ -1,23 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { z } from "zod";
 import { FilterIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   EMPTY_FILTER_VALUE,
-  FilterEntrySchema,
-  FilterValueObjectSchema,
   fieldTypeLabel,
+  readFilterValue,
   summarizeFilterValue,
-  type FilterEntry,
-  type FilterValueObject,
+  type FilterClause,
+  type FilterClauses,
 } from "./filterParamLogic";
 
 interface FilterListProps {
-  filters: FilterEntry[];
+  filters: FilterClause[];
   onRemove: (index: number) => void;
 }
 
@@ -70,7 +68,7 @@ export function FilterList({ filters, onRemove }: FilterListProps) {
 
 interface FilterJsonEditorProps {
   initialJson: string;
-  onApply: (parsed: FilterValueObject) => void;
+  onApply: (parsed: FilterClauses) => void;
   onCancel: () => void;
   name: string;
 }
@@ -91,21 +89,14 @@ export function FilterJsonEditor({
       return;
     }
     try {
-      const parsedRaw = JSON.parse(draft) as unknown;
-      const result = FilterValueObjectSchema.safeParse(parsedRaw);
-      if (!result.success) {
-        const arrResult = z.array(FilterEntrySchema).safeParse(parsedRaw);
-        if (arrResult.success) {
-          onApply({ filters: arrResult.data });
-          setError(null);
-          return;
-        }
+      const parsed = readFilterValue(JSON.parse(draft));
+      if (parsed === null) {
         setError(
           "JSON is valid but does not match the expected shape: { filters: [...] }",
         );
         return;
       }
-      onApply(result.data);
+      onApply(parsed);
       setError(null);
     } catch (parseError) {
       setError(parseError instanceof Error ? parseError.message : "Invalid JSON");
@@ -121,7 +112,7 @@ export function FilterJsonEditor({
         onChange={(event) => setDraft(event.target.value)}
         rows={8}
         className="font-mono text-xs"
-        placeholder='{"filters": [{"field": "organism", "type": "string", "isRange": false, "value": ["P. falciparum"]}]}'
+        placeholder='{"filters": [{"field": "organism", "type": "string", "isRange": false, "includeUnknown": false, "value": ["P. falciparum"]}]}'
       />
       {error !== null && (
         <p role="alert" className="text-xs text-destructive">

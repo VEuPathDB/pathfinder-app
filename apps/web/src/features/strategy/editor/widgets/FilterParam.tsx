@@ -10,7 +10,7 @@ import {
   decodeFilterValue,
   encodeFilterValue,
   tryFormatJson,
-  type FilterValueObject,
+  type FilterClauses,
 } from "./filterParamLogic";
 import { FilterJsonEditor, FilterList } from "./FilterParamSubcomponents";
 
@@ -25,7 +25,7 @@ export function FilterParam({ spec, name, field }: ParamWidgetProps) {
   const hasError = errors.length > 0;
   const errorMessage = hasError ? String(errors[0]) : null;
 
-  const commit = (next: FilterValueObject) => {
+  const commit = (next: FilterClauses) => {
     field.handleChange(encodeFilterValue(next));
     field.handleBlur();
   };

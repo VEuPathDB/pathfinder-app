@@ -22,7 +22,7 @@ Confirmed against live WDK: `"Plasmodium falciparum"` is a vocabulary node at de
 
 # Why the value is a parent in the first place
 
-That is the backend's design, not a mistake. `_prepare_search_config` calls `_expand_tree_params_to_leaves` before pushing, precisely because *WDK silently returns 0 genes for a parent node*. So a parent term is a legitimate stored value that is expanded at the WDK boundary. The UI simply never learned the same rule.
+A value is canonical once, when it is stated: a stated parent term becomes the leaves beneath it (`leaf_terms`, through the canonicalizer and the reader of stated values), because *WDK silently returns 0 genes for a parent node*, and a push sends the step's values as it holds them. A parent term can still be stored: WDK may hold one (a step read from the site), and a step stored before stated values were canonicalized holds the parent it was given. The tree has to show either as the leaves it selects.
 
 # Why it was worse than cosmetic
 
@@ -36,4 +36,4 @@ The alternative -- teaching the tree to render a parent as its own selection -- 
 
 # Anchor
 
-`expandToLeaves` in `features/strategy/editor/widgets/TreeBoxParam.tsx`, against `_expand_tree_params_to_leaves` in `veupathdb/wdk/strategy_api/steps.py`. Guarded by "a value stored as a parent term" in `TreeBoxParam.multiPick.test.tsx`, including the two mutation cases.
+`expandToLeaves` in `features/strategy/editor/widgets/TreeBoxParam.tsx`, against `leaf_terms` in `veupathdb-py: src/veupathdb/domain/parameters/wdk_vocab.py`. Guarded by "a value stored as a parent term" in `TreeBoxParam.multiPick.test.tsx`, including the two mutation cases.

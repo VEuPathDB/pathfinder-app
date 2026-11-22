@@ -83,11 +83,15 @@ def sent(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     found: list[str] = []
 
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        found.extend(value.to_wire() for value in parameters.values())
-        return ValidatedParams(params=dict(parameters))
+        found.extend(value.to_wire() for value in stated.values())
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
     return found

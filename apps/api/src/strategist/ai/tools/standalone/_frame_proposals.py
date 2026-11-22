@@ -2,43 +2,42 @@
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, replace
-from typing import Annotated
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 
-from pydantic import (
-    BaseModel,
-    BeforeValidator,
-    ConfigDict,
-    ValidationError,
-    field_validator,
-)
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
+from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import (
     MAX_NEAREST_ENTRIES,
     PHYLETIC_LIST_PARAMS,
+    MultiPickValue,
+    ParamValue,
+    SinglePickValue,
+    StringValue,
     VocabOption,
     accession_matches,
     match_exact_option,
     nearest_entries,
 )
+from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
     RADIO_OFF,
-    OverrideMap,
+    FilterReads,
     ParameterInfo,
     ParamFetcher,
     ParamIntent,
     PhyleticListError,
     RadioPairIssue,
     ResolvedParams,
-    SiteSetParameterError,
     UnknownParameterError,
-    UnreadableValueError,
+    WDKFilterReads,
     check_radio_pairs,
     is_phyletic_sheet,
     radio_pairs,
+    read_under_parents,
     resolve_params_with_intent,
 )
 from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
@@ -50,9 +49,9 @@ from strategist.ai.tools.standalone._catalog_elsewhere import (
     reach_sentence,
     tree_tops,
 )
-from strategist.ai.tools.standalone._qualifier_words import proposal_values
 from strategist.ai.tools.standalone._vocab_resolution import bound_proposal
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
+from strategist.domain.strategy.value_binding import pick_terms
 from strategist.services.strategies.user_dataset_searches import (
     dataset_parameter,
     user_dataset_offers,
@@ -60,69 +59,43 @@ from strategist.services.strategies.user_dataset_searches import (
 )
 
 
-class _Proposal(BaseModel):
-    """One proposed value as the model may type it: a string, a number, a list,
-    a JSON-encoded list, a filter object, or null."""
-
-    model_config = ConfigDict(coerce_numbers_to_str=True)
-    value: str | list[str] | None = None
-
-    @field_validator("value", mode="before")
-    @classmethod
-    def _json_word(cls, v: object) -> object:
-        """A boolean is its JSON word, so a yes/no vocabulary answers it."""
-        if isinstance(v, bool):
-            return "true" if v else "false"
-        return v
-
-    @field_validator("value", mode="before")
-    @classmethod
-    def _json_text(cls, v: object) -> object:
-        """A filter object reaches the tool server as its JSON text."""
-        return json.dumps(v) if isinstance(v, dict) else v
-
-    @field_validator("value", mode="before")
-    @classmethod
-    def _json_list(cls, v: object) -> object:
-        if not isinstance(v, str) or not v.startswith("["):
-            return v
-        try:
-            parsed = json.loads(v)
-        except json.JSONDecodeError:
-            # Bracketed text that is not a JSON list is a literal value.
-            return v
-        return [str(x) for x in parsed] if isinstance(parsed, list) else v
-
-
-def _proposed(name: str, value: object) -> str | list[str] | None:
-    try:
-        return _Proposal.model_validate({"value": value}).value
-    except ValidationError as exc:
-        message = f"{name}: {exc.errors()[0]['msg']}"
-        raise ValueError(message) from exc
-
-
-def coerce_proposals(raw: object) -> object:
-    """Reads each proposed value in the form the model wrote it. A non-mapping
-    passes through so Pydantic reports the type error."""
-    if not isinstance(raw, dict):
-        return raw
-    return {str(name): _proposed(str(name), value) for name, value in raw.items()}
-
-
-ParamProposals = Annotated[
-    dict[str, str | list[str] | None], BeforeValidator(coerce_proposals)
-]
-
-
 @dataclass(frozen=True)
 class CriterionCall:
-    """The one call's identity, carried through the checks it drives."""
+    """The one call's identity, carried through the checks it drives: the
+    values as stated, and as their parameters read them."""
 
     criterion_id: str
     search_name: str
     text: str
-    params: ParamProposals
+    params: dict[str, JsonValue]
+    values: dict[str, ParamValue] = field(default_factory=dict)
+
+    def terms(self, name: str) -> list[str]:
+        return pick_terms(self.values[name]) if name in self.values else []
+
+    def with_values(self, values: Mapping[str, ParamValue]) -> CriterionCall:
+        decoded = {name: value.to_decoded() for name, value in values.items()}
+        return replace(
+            self,
+            params={**self.params, **decoded},
+            values={**self.values, **values},
+        )
+
+
+def _filter_reads(search: SearchContext) -> FilterReads:
+    return WDKFilterReads(search.site_id, search.record_type, search.search_name)
+
+
+async def read_call(
+    search: SearchContext, fetch_at: ParamFetcher, call: CriterionCall
+) -> CriterionCall:
+    stated = {name: v for name, v in call.params.items() if v is not None}
+    try:
+        values = await read_under_parents(fetch_at, stated, _filter_reads(search))
+    except ValidationError as exc:
+        msg = f"{exc.detail or exc.title} Nothing was recorded."
+        raise ModelRetry(msg) from exc
+    return replace(call, values=values)
 
 
 def _bindable(infos: list[ParameterInfo]) -> list[str]:
@@ -179,36 +152,40 @@ def refuse_undecided(call: CriterionCall, infos: list[ParameterInfo]) -> None:
 
 
 def _unmatched_retry(
-    call: CriterionCall, info: ParameterInfo, options: list[VocabOption]
+    search_name: str, info: ParameterInfo, options: list[VocabOption], terms: list[str]
 ) -> tuple[str, str] | None:
-    """The first proposed value that is no entry, and the retry it earns."""
-    unmatched = [
-        value
-        for value in proposal_values(call.params.get(info.name))
-        if match_exact_option(options, value) is None
-    ]
+    """The first proposed term that is no entry, and the retry it earns."""
+    unmatched = [term for term in terms if match_exact_option(options, term) is None]
     if not unmatched:
         return None
     shared = accession_matches(options, unmatched[0])
     if len(shared) > 1:
         return unmatched[0], (
-            f"{info.name} on {call.search_name}: {len(shared)} entries share the "
+            f"{info.name} on {search_name}: {len(shared)} entries share the "
             f"accession {unmatched[0]!r}; copy the full value of the one you mean: "
             f"{shared[:MAX_NEAREST_ENTRIES]}."
         )
     return unmatched[0], (
-        f"{info.name} on {call.search_name} has no entry that states {unmatched}. "
+        f"{info.name} on {search_name} has no entry that states {unmatched}. "
         f"Read its entries with get_parameter_options and pass one of them exactly."
     )
 
 
 def refuse_unmatched_value(
-    call: CriterionCall, info: ParameterInfo, options: list[VocabOption]
+    search_name: str, info: ParameterInfo, options: list[VocabOption], terms: list[str]
 ) -> None:
     """A proposed vocabulary value is one of the entries, not a substring."""
-    retry = _unmatched_retry(call, info, options)
+    retry = _unmatched_retry(search_name, info, options, terms)
     if retry is not None:
         raise ModelRetry(retry[1])
+
+
+def _with_terms(held: ParamValue, terms: list[str]) -> ParamValue:
+    match held:
+        case MultiPickValue():
+            return MultiPickValue(values=terms)
+        case _:
+            return SinglePickValue(value=terms[0])
 
 
 async def bound_vocabulary_values(
@@ -242,13 +219,12 @@ async def bound_vocabulary_values(
             or info.param_kind == "filter"
             or not options
         )
-        if skip or info.name not in call.params:
+        terms = call.terms(info.name)
+        if skip or not terms:
             continue
-        bound = await bound_proposal(
-            site_id, call.search_name, info, call.params[info.name]
-        )
-        call = replace(call, params={**call.params, info.name: bound})
-        retry = _unmatched_retry(call, info, options)
+        bound = await bound_proposal(site_id, call.search_name, info, terms)
+        call = call.with_values({info.name: _with_terms(call.values[info.name], bound)})
+        retry = _unmatched_retry(call.search_name, info, options, bound)
         if retry is not None:
             value, msg = retry
             others = await _other_sites_holding(site_id, definition, info.name, value)
@@ -286,8 +262,8 @@ async def _refuse_an_upload_the_researcher_lacks(
             f"in My Data Sets on the site; nothing was recorded."
         )
         raise ModelRetry(msg)
-    match call.params.get(parameter.name):
-        case str() as value if value in {offer.value for offer in offers}:
+    match call.values.get(parameter.name):
+        case SinglePickValue(value=value) if value in {o.value for o in offers}:
             return parameter.name
         case _:
             uploads = ", ".join(
@@ -325,6 +301,14 @@ def species_lists(infos: list[ParameterInfo]) -> frozenset[str]:
     return PHYLETIC_LIST_PARAMS if is_phyletic_sheet(infos) else frozenset()
 
 
+def _said(value: ParamValue) -> str | list[str]:
+    match value:
+        case StringValue(value=text):
+            return text
+        case _:
+            return pick_terms(value)
+
+
 def radio_overrides(
     definition: WDKSearch, call: CriterionCall, infos: list[ParameterInfo]
 ) -> dict[str, str]:
@@ -333,8 +317,9 @@ def radio_overrides(
     The pairs are declared in the search properties, which the sheet drops. A
     free-text half that states the criterion is a retry.
     """
+    said = {name: _said(value) for name, value in call.values.items()}
     overrides, issue = check_radio_pairs(
-        radio_pairs(definition.properties), infos, call.params
+        radio_pairs(definition.properties), infos, said
     )
     if issue is not None:
         raise ModelRetry(_radio_retry(call, issue, infos))
@@ -393,18 +378,21 @@ def _radio_retry(
 
 
 async def resolve_proposals(
+    search: SearchContext,
     fetch_at: ParamFetcher,
     call: CriterionCall,
-    overrides: OverrideMap,
-    definition: WDKSearch,
+    radio: Mapping[str, str],
 ) -> ResolvedParams:
+    """The binding the catalog resolves from every stated value and the off value
+    of each radio half."""
+    stated = {name: v for name, v in call.params.items() if v is not None}
     try:
         return await resolve_params_with_intent(
             fetch_at=fetch_at,
+            filter_reads=_filter_reads(search),
             intent=ParamIntent(text=call.text),
             search_name=call.search_name,
-            overrides=overrides,
-            definition=definition.parameters or [],
+            stated={**stated, **radio},
         )
     except UnknownParameterError as exc:
         msg = (
@@ -420,8 +408,6 @@ async def resolve_proposals(
             f"lookup_phyletic_codes(query). Nothing was recorded."
         )
         raise ModelRetry(msg) from exc
-    except SiteSetParameterError as exc:
-        msg = f"{exc.detail} Nothing was recorded."
+    except ValidationError as exc:
+        msg = f"{exc.detail or exc.title} Nothing was recorded."
         raise ModelRetry(msg) from exc
-    except UnreadableValueError as exc:
-        raise ModelRetry(str(exc)) from exc

@@ -1,6 +1,8 @@
 """WDK strategy materialization: a step tree as WDK steps."""
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import ParamValue, wire_map
 from veupathdb.domain.strategy import (
     DEFAULT_COMBINE_OPERATOR,
     ColocationParams,
@@ -16,9 +18,9 @@ from veupathdb.wdk import (
     StrategyAPI,
     WDKSearchConfig,
     WDKStepTree,
-    encode_params,
     get_strategy_api,
 )
+from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
 from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.services.strategies.record_classes import (
@@ -26,7 +28,10 @@ from strategist.services.strategies.record_classes import (
     tree_record_class_refusal,
     unclassed_step_failure,
 )
-from strategist.services.strategies.step_search import COLOCATION_SEARCH
+from strategist.services.strategies.step_search import (
+    COLOCATION_SEARCH,
+    states_a_question,
+)
 
 logger = get_logger(__name__)
 
@@ -65,11 +70,33 @@ async def materialize_classed_tree(
             None,
             None,
         ]
+        stated = await _canonical(site_id, step, known[step.id])
         created[step.id] = await _materialize_step(
-            api, step, known[step.id], slots[0], slots[1]
+            api,
+            step.model_copy(update={"parameters": stated}),
+            known[step.id],
+            *slots[:2],
         )
         made.append(created[step.id].step_id)
     return created[root.id]
+
+
+async def _canonical(
+    site_id: str, node: StrategyStepNode, record_type: str
+) -> dict[str, ParamValue]:
+    """A curated node's values in the catalog's form: the tree is a statement."""
+    if (
+        not node.parameters
+        or node.infer_kind() == "combine"
+        or not states_a_question(node.search_name)
+    ):
+        return node.parameters
+    validated = await validate_parameters(
+        SearchContext(site_id, record_type, node.search_name),
+        stated=dict(node.parameters),
+        callbacks=make_validation_callbacks(site_id),
+    )
+    return validated.params
 
 
 async def _materialize_step(
@@ -81,7 +108,7 @@ async def _materialize_step(
 ) -> WDKStepTree:
     """Create the one WDK step this node describes, over its created inputs."""
     search_name = node.search_name
-    wire_parameters = encode_params(node.parameters)
+    wire_parameters = wire_map(node.parameters)
     display_name = node.display_name or search_name
 
     if primary_tree is not None and secondary_tree is not None:

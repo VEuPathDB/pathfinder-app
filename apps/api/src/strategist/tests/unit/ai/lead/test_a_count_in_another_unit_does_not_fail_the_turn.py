@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
-from veupathdb.domain.parameters import ParamValue, StringValue, param_value_from_raw
+from veupathdb.domain.parameters import ParamValue, StringValue, from_wire
 from veupathdb.domain.strategy import StepKind, StrategyStep
 from veupathdb.wdk import WDKStepTree, WDKStrategyDetails
 
@@ -157,7 +158,7 @@ async def test_a_range_end_is_not_compared_with_a_stated_number(
     held = await _count_check(
         monkeypatch,
         "weight_range",
-        param_value_from_raw({"min": 1000, "max": 30000}, "number-range"),
+        from_wire("number-range", json.dumps({"min": 1000, "max": 30000})),
         30,
     )
 

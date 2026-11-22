@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 
@@ -8,7 +9,7 @@ from veupathdb.domain.parameters import (
     NumberValue,
     ParamKind,
     ParamValue,
-    param_value_from_raw,
+    from_wire,
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -83,7 +84,7 @@ def _with_end(value: ParamValue, end: RangeSide, number: float) -> ParamValue | 
     low, high = (number, ends.max) if end == "lower" else (ends.min, number)
     if low is not None and high is not None and low > high:
         return None
-    return param_value_from_raw({"min": low, "max": high}, _RANGE)
+    return from_wire(_RANGE, json.dumps({"min": low, "max": high}))
 
 
 def _correction(name: str, end: RangeSide, number: float, *, published: bool) -> str:

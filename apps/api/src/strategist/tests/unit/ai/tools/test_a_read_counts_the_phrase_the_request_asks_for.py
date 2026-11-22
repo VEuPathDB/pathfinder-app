@@ -6,11 +6,16 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
 from strategist.ai.tools.standalone.search_reads import count_search, genes_in_search
+from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.variant_comparison import VariantInput
+from strategist.tests._support.record_classes import list_searches_under
+from strategist.tests._support.recorded_searches import serve_stated_reads, suite_search
 from strategist.tests._support.run_context import lead_run_context
 
+_GIARDIA_TEXT = suite_search("search_giardiadb_genes_by_text")
 _ASKS = (
     "How many genes actually have the exact phrase 'cysteine-rich protein' in "
     "their product description? Just tell me, don't change the strategy yet."
@@ -22,18 +27,29 @@ _REFUSAL = (
 )
 
 
+async def _giardia_text(
+    site_id: str, record_type: str, search_name: str, context: dict[str, str]
+) -> list[ParameterInfo]:
+    del site_id, record_type, search_name, context
+    return format_param_info_typed(_GIARDIA_TEXT.parameters or [])
+
+
+@pytest.fixture(autouse=True)
+def _giardia(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(variant_comparison, "search_parameters", _giardia_text)
+    serve_stated_reads(monkeypatch, [_GIARDIA_TEXT])
+    list_searches_under(monkeypatch, "transcript", ["GenesByText"])
+
+
 def _phrase_search(text: str) -> VariantInput:
     return VariantInput.model_validate(
         {
             "label": "exact phrase in product description",
             "searchName": "GenesByText",
             "parameters": {
-                "text_search_organism": {
-                    "type": "multi-pick-vocabulary",
-                    "values": ["Giardia muris strain Roberts-Thomson"],
-                },
-                "text_expression": {"type": "string", "value": text},
-                "text_fields": {"type": "multi-pick-vocabulary", "values": ["product"]},
+                "text_search_organism": ["Giardia muris strain Roberts-Thomson"],
+                "text_expression": text,
+                "text_fields": ["product"],
             },
         }
     )

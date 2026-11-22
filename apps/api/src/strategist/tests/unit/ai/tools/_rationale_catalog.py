@@ -9,6 +9,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import VocabOption
 from veupathdb.wdk import WDKRecordType
@@ -39,7 +40,7 @@ ORGANISMS = [
     VocabOption(value="Plasmodium falciparum 3D7", display="P. falciparum 3D7"),
     VocabOption(value="Plasmodium vivax P01", display="P. vivax P01"),
 ]
-PARAMS: dict[str, str | list[str] | None] = {
+PARAMS: dict[str, JsonValue] = {
     "organism": ["Plasmodium falciparum 3D7"],
     "min_exportpred_score": None,
 }
@@ -171,7 +172,7 @@ async def choose(
     why: SearchChoice | None,
     *,
     search_name: str = EXPORTED.name,
-    params: dict[str, str | list[str] | None] | None = None,
+    params: dict[str, JsonValue] | None = None,
 ) -> SetCriterionResult:
     return returned(
         await set_criterion(
@@ -191,7 +192,7 @@ async def refused(
     why: SearchChoice | None,
     *,
     search_name: str = EXPORTED.name,
-    params: dict[str, str | list[str] | None] | None = None,
+    params: dict[str, JsonValue] | None = None,
 ) -> str:
     """The retry the binding raised; nothing was recorded."""
     with pytest.raises(ModelRetry) as refused:

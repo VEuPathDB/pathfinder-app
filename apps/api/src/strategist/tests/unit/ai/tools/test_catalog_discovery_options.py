@@ -3,6 +3,7 @@ dependent parameters, the clade lists and the organism hints."""
 
 from __future__ import annotations
 
+import inspect
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -50,10 +51,15 @@ def _param_info(**overrides: Any) -> ParameterInfo:
         "is_visible": True,
         "site_set": False,
         "help": "",
-        "value_format": "",
     }
     base.update(overrides)
     return ParameterInfo.model_validate(base)
+
+
+_DERISI: list[WDKParameter] = [
+    wdk_param("profileset_generic"),
+    wdk_param("samples_percentile_generic"),
+]
 
 
 class TestInheritsBoundParentContext:
@@ -78,9 +84,7 @@ class TestInheritsBoundParentContext:
     async def test_it_sends_the_bound_parent_to_wdk(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        client = patch_search_details(
-            monkeypatch, parameters=[wdk_param("samples_percentile_generic")]
-        )
+        client = patch_search_details(monkeypatch, parameters=_DERISI)
         _pin_formatter(monkeypatch)
 
         await catalog_discovery.get_parameter_options(
@@ -89,16 +93,13 @@ class TestInheritsBoundParentContext:
             parameter_id="samples_percentile_generic",
         )
 
-        assert len(client.contexts) == 1
-        assert client.contexts[0]["profileset_generic"] == "DeRisi 3D7 Smoothed"
+        assert client.contexts[-1]["profileset_generic"] == "DeRisi 3D7 Smoothed"
 
     async def test_a_read_sends_no_value_of_the_parameter_it_reads(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """WDK answers a sent value as the initial value, which is no default."""
-        client = patch_search_details(
-            monkeypatch, parameters=[wdk_param("samples_percentile_generic")]
-        )
+        client = patch_search_details(monkeypatch, parameters=_DERISI)
         _pin_formatter(monkeypatch)
         ctx = agent_run_context()
         ctx.deps.agent_state.frame_set_criterion(
@@ -125,14 +126,12 @@ class TestInheritsBoundParentContext:
             parameter_id="samples_percentile_generic",
         )
 
-        assert client.contexts == [{"profileset_generic": "DeRisi 3D7 Smoothed"}]
+        assert client.contexts[-1] == {"profileset_generic": "DeRisi 3D7 Smoothed"}
 
     async def test_an_explicit_context_overrides_the_bound_value(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        client = patch_search_details(
-            monkeypatch, parameters=[wdk_param("samples_percentile_generic")]
-        )
+        client = patch_search_details(monkeypatch, parameters=_DERISI)
         _pin_formatter(monkeypatch)
 
         await catalog_discovery.get_parameter_options(
@@ -162,9 +161,7 @@ class TestInheritsBoundParentContext:
     async def test_the_inherited_context_reaches_the_formatter(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        patch_search_details(
-            monkeypatch, parameters=[wdk_param("samples_percentile_generic")]
-        )
+        patch_search_details(monkeypatch, parameters=_DERISI)
         seen: dict[str, Any] = {}
 
         def _format(*_a: object, **kwargs: Any) -> ParameterInfo:
@@ -362,7 +359,7 @@ class TestReadingOnePhyleticList:
         info = await self._read(monkeypatch, query="homo")
 
         assert isinstance(info, ParameterInfo)
-        assert "profile_pattern is derived from these two lists" in info.help
+        assert "each take one string of species or clade codes" in info.help
 
     async def test_no_query_returns_the_whole_tree(
         self, monkeypatch: pytest.MonkeyPatch
@@ -472,3 +469,14 @@ class TestTheInvestigationsOrganismsReachTheRead:
         assert read.await_args is not None
         narrowing = read.await_args.kwargs["narrowing"]
         assert list(narrowing.organism_hints) == []
+
+
+def test_the_options_query_names_how_a_facet_range_is_read() -> None:
+    doc = " ".join(
+        (inspect.getdoc(catalog_discovery.get_parameter_options) or "").split()
+    )
+
+    assert (
+        "On a filter parameter, the query also reads the range of up to three "
+        "range facets it names; a facet it does not name shows no range."
+    ) in doc

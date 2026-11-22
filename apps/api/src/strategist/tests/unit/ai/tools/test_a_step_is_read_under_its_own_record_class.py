@@ -22,6 +22,7 @@ from strategist.ai.tools.standalone import (
 )
 from strategist.ai.tools.standalone._edit_refusal import refusal_context
 from strategist.ai.tools.standalone._result_models import StepColumns
+from strategist.ai.tools.standalone._stated_values import StatedUpdateStepParamsOp
 from strategist.ai.tools.standalone._step_read import read_as
 from strategist.ai.tools.standalone.graph_helpers import build_step_response
 from strategist.ai.tools.standalone.optimization import sweep_can_run
@@ -42,6 +43,7 @@ from strategist.tests._support.orthomcl_record_classes import (
 )
 from strategist.tests._support.orthomcl_step_columns import serve_step_columns
 from strategist.tests._support.run_context import lead_run_context
+from strategist.tests._support.stated import stated
 
 from ._strategy_edit_stubs import ctx, install_stub_api, leaf, seed, session_with
 from .conftest import agent_run_context
@@ -255,10 +257,10 @@ async def test_a_refused_value_names_the_steps_class_not_the_strategys(
         await apply_operations(
             ctx(deps),
             strategy_revision(graph.to_strategy_ast()),
-            [UpdateStepParamsOp(step_id="a", parameters=edit)],
+            [StatedUpdateStepParamsOp(step_id="a", parameters=stated(edit))],
         )
     with pytest.raises(ModelRetry) as single:
-        await update_leaf_params(ctx(deps), "a", edit)
+        await update_leaf_params(ctx(deps), "a", stated(edit))
 
     assert [
         _Refusal.model_validate_json(str(raised.value)).details

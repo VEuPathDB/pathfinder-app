@@ -23,7 +23,6 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.spec_tree import build_step_tree
-from strategist.services.strategies.dataset_sources import dataset_source
 from strategist.tests._support.computed_comparison import GROUP_IDS, held_comparison
 from strategist.tests._support.group_list_site import (
     DATASET,
@@ -130,7 +129,6 @@ async def test_the_build_leaf_runs_the_list_search_on_the_saved_dataset(
         "GroupsByNameList",
         {"group_names": dataset},
     )
-    assert dataset_source("group_names", dataset) is None
 
 
 async def test_a_step_that_does_not_hold_the_list_fails_with_no_rebuild(

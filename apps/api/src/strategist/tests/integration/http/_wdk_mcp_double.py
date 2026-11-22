@@ -90,7 +90,8 @@ async def run_control_tests_on_search(
     Args:
         site_id: VEuPathDB site, for example 'plasmodb'.
         target_search_name: WDK search urlSegment to test.
-        target_parameters: Parameter values, each in its typed shape.
+        target_parameters: Values stated by name in the shape each parameter's
+            statedSchema gives.
         positive_controls: Gene ids the search should return.
         negative_controls: Gene ids the search should not return.
         record_type: Record type. Gene searches are 'transcript'.

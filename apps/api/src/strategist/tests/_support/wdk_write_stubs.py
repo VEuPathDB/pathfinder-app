@@ -23,7 +23,7 @@ from strategist.tests._support.recorded_searches import (
 
 async def accepts_every_value(*_args: Any, **kwargs: Any) -> ValidatedParams:
     """Answer a validation with the values as sent, in the catalog's shape."""
-    return ValidatedParams(params=dict(kwargs["parameters"]), record_class="transcript")
+    return ValidatedParams(params=dict(kwargs["stated"]), record_class="transcript")
 
 
 async def no_plan_params(*_args: Any, **_kwargs: Any) -> set[str]:

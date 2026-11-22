@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 
 from pydantic_ai.tools import RunContext
-from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyStep
 
 from strategist.ai.agents.criterion_lines import criterion_label, criterion_runs
@@ -18,7 +17,10 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.prompts.loader import load_system_prompt
 from strategist.domain.strategy.analysis_binding import AnalysisKind
 from strategist.domain.strategy.build_outcome import built_counts
-from strategist.domain.strategy.expression_handles import shown_params, shown_wire
+from strategist.domain.strategy.expression_handles import (
+    shown_param,
+    shown_params,
+)
 from strategist.domain.strategy.requirement_reports import requirements_block
 from strategist.domain.strategy.types import SyncStateProtocol
 from strategist.services.eda.export import exported_analysis
@@ -205,7 +207,7 @@ def _render_step_params(step: StrategyStep, kind: AnalysisKind | None) -> str:
         return ""
     param_strs: list[str] = []
     for name, value in step.parameters.items():
-        wire = shown_wire(name, to_wire(value))
+        wire = shown_param(name, value)
         if len(wire) > _MAX_PARAM_VAL_LEN:
             wire = wire[: _MAX_PARAM_VAL_LEN - 3] + "..."
         param_strs.append(f"{name}={wire}")

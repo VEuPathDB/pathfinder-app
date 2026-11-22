@@ -16,9 +16,10 @@ reader asks the type: the sheet the model reads lists only bindable parameters,
 no question card holds a site-set one, and the parameter rules class a site-set
 parameter as `site_set`, whose source rule is `site`. A proposal that names a
 site-set parameter is left out, whatever its value, with the correction
-"<name> is set by the site, so the proposal was left out". FRAME records the
-site-set names of each search it reads in a pass
-(`AgentToolState.site_set_read_this_pass`), and a pass starts with the names of
+"<name> is set by the site, so the proposal was left out". FRAME keeps the
+parameter infos of each search it reads in a pass
+(`AgentToolState.infos_read_this_pass`) and reads the site-set names from them,
+and a pass starts with the names of
 every search whose values its draft carries
 (`published_parameters_of_searches`, through the catalog's per-process
 definition cache; a search the catalog cannot read is left out). Its option

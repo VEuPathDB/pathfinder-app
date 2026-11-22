@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from veupathdb.domain.parameters import param_value_from_raw
+import json
+
+from veupathdb.domain.parameters import from_wire
 
 from strategist.ai.lead.parameter_facts import step_parameters
 from strategist.domain.strategy.operational_spec import Criterion, RequirementLink
@@ -118,7 +120,7 @@ def test_a_range_holding_one_end_says_the_other_is_open() -> None:
         search_name="ASearch",
         resolved_params={
             "period": bound_value(
-                param_value_from_raw({"max": 25}, "number-range"), "chosen", "Period"
+                from_wire("number-range", json.dumps({"max": 25})), "chosen", "Period"
             )
         },
     )

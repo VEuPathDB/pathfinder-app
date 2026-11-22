@@ -179,6 +179,39 @@ describe("findProposal", () => {
     });
   });
 
+  it("reads a card whose changes state a list and a number as their values", () => {
+    const change = {
+      kind: "set_values",
+      sentence: "Set the organisms to two strains and the fold change to 2.5",
+      criterionId: "c1",
+      params: {
+        organism: ["Plasmodium falciparum 3D7", "Plasmodium vivax P01"],
+        fold_change: 2.5,
+      },
+    };
+    const message = assistant([
+      {
+        type: "tool-propose_changes",
+        toolCallId: "call-8",
+        state: "approval-requested",
+        approval: { id: "appr-8" },
+        input: {
+          question: "Narrow the strategy to two strains?",
+          proposedChanges: [change],
+        },
+      },
+    ]);
+
+    expect(findProposal([message], "m1", "call-8")).toEqual({
+      proposal: {
+        question: "Narrow the strategy to two strains?",
+        proposedChanges: [change],
+      },
+      decision: "pending",
+      approvalId: "appr-8",
+    });
+  });
+
   it("reads a card the researcher answered by typing as answered, not pending", () => {
     const message = assistant([
       {

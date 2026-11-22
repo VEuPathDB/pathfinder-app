@@ -3,10 +3,11 @@ gives the edit."""
 
 from __future__ import annotations
 
+import json
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Discriminator, Field
+from pydantic import ConfigDict, Discriminator, Field, JsonValue
 
 from strategist.ai.lead.card_reply import CardReply
 
@@ -30,7 +31,10 @@ _CRITERION = Field(
 )
 _VALUES = Field(
     min_length=1,
-    description="Each parameter it sets, by name, to the wire value the site takes.",
+    description=(
+        "Each parameter it sets, by name, in the shape the parameter's "
+        "statedSchema gives."
+    ),
 )
 
 
@@ -42,10 +46,12 @@ class SetValuesChange(CamelModel):
     kind: Literal["set_values"] = "set_values"
     sentence: str = _SENTENCE
     criterion_id: str = _CRITERION
-    params: dict[str, str] = _VALUES
+    params: dict[str, JsonValue] = _VALUES
 
     def binding(self) -> str:
-        sets = ", ".join(f'{name} to "{value}"' for name, value in self.params.items())
+        sets = ", ".join(
+            f"{name} to {json.dumps(value)}" for name, value in self.params.items()
+        )
         return f"on criterion {self.criterion_id}, set {sets}"
 
 
@@ -59,13 +65,18 @@ class AddCriterionChange(CamelModel):
     search_name: str = Field(
         min_length=1, description="The site's name of the search the step runs."
     )
-    params: dict[str, str] = Field(
+    params: dict[str, JsonValue] = Field(
         default_factory=dict,
-        description="Each parameter the search takes a stated value for, by name.",
+        description=(
+            "Each parameter the search takes a stated value for, by name, in the "
+            "shape the parameter's statedSchema gives."
+        ),
     )
 
     def binding(self) -> str:
-        sets = "".join(f', {name} "{value}"' for name, value in self.params.items())
+        sets = "".join(
+            f", {name} {json.dumps(value)}" for name, value in self.params.items()
+        )
         return f"add a criterion running {self.search_name}{sets}"
 
 

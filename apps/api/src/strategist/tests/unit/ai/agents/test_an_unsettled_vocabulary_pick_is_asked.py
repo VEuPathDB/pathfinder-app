@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters import MultiPickValue, VocabOption
 from veupathdb.wdk import WDKSearchResponse
@@ -48,7 +49,10 @@ _PICK = _FIXTURES / "decisions_plasmodb_interpro_pick.json"
 _DECISIONS = "https://api.openai.com/v1/decisions"
 _SEARCH = "GenesByInterproDomain"
 _PARAM = "domain_typeahead"
-_CONTEXT = {"organism": ["Plasmodium falciparum 3D7"], "domain_database": "INTERPRO"}
+_CONTEXT: dict[str, JsonValue] = {
+    "organism": ["Plasmodium falciparum 3D7"],
+    "domain_database": "INTERPRO",
+}
 _REQUIREMENT = Constraint(
     kind=ConstraintKind.UNTYPED,
     requested_value="protein kinase",

@@ -82,16 +82,17 @@ def test_frame_instructions_read_a_typeahead_vocabulary_before_binding_it() -> N
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 
-def test_frame_instructions_state_the_two_species_lists() -> None:
+def test_frame_instructions_state_the_two_species_strings() -> None:
     # The pattern is hidden and required, so a criterion stated anywhere else
     # binds the published default and the search returns no genes.
     assert (
         "for a phylogenetic-profile search, name the species or clades that must "
         "have an ortholog in `included_species` and those that must not in "
-        "`excluded_species` (codes or labels from the sheet; a clade selects all "
-        "its species; `lookup_phyletic_codes(query)` finds a code from a common "
-        "name); the hidden `profile_pattern` is derived from those two lists, "
-        "never write it"
+        "`excluded_species`, each one string of codes or labels separated by "
+        "commas (from the sheet; a clade selects all its species; "
+        "`lookup_phyletic_codes(query)` finds a code from a common name); the "
+        "hidden `profile_pattern` is derived from those two parameters, never "
+        "write it"
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 

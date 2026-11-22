@@ -110,8 +110,8 @@
               "parameters": {
                 "document_type": "gene",
                 "text_expression": "\"reticulocyte binding\" OR \"Duffy\" OR \"merozoite surface\" OR \"apical membrane\"",
-                "text_fields": "product",
-                "text_search_organism": "Plasmodium vivax Sal-1"
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
               },
               "searchName": "GenesByText"
             },
@@ -121,8 +121,8 @@
               "parameters": {
                 "document_type": "gene",
                 "text_expression": "\"calcium-dependent protein kinase\" OR \"cGMP-dependent protein kinase\" OR \"rhomboid protease\"",
-                "text_fields": "product",
-                "text_search_organism": "Plasmodium vivax Sal-1"
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
               },
               "searchName": "GenesByText"
             }
@@ -133,8 +133,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "rhoptry OR microneme",
-              "text_fields": "product",
-              "text_search_organism": "Plasmodium vivax Sal-1"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
             },
             "searchName": "GenesByText"
           }
@@ -145,8 +145,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"chloroquine resistance\" OR \"multidrug resistance\" OR \"dihydrofolate reductase\"",
-            "text_fields": "product",
-            "text_search_organism": "Plasmodium vivax Sal-1"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
           },
           "searchName": "GenesByText"
         }
@@ -157,8 +157,8 @@
         "parameters": {
           "document_type": "gene",
           "text_expression": "ribosomal OR \"tRNA ligase\" OR \"ATP synthase\" OR histone",
-          "text_fields": "product",
-          "text_search_organism": "Plasmodium vivax Sal-1"
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
         },
         "searchName": "GenesByText"
       }
@@ -244,8 +244,8 @@
               "parameters": {
                 "document_type": "gene",
                 "text_expression": "microneme OR \"apical membrane antigen\" OR \"dense granule\" OR perforin",
-                "text_fields": "product",
-                "text_search_organism": "Neospora caninum Liverpool"
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Neospora caninum Liverpool\"]"
               },
               "searchName": "GenesByText"
             },
@@ -255,8 +255,8 @@
               "parameters": {
                 "document_type": "gene",
                 "text_expression": "\"srs domain\" OR \"surface antigen\"",
-                "text_fields": "product",
-                "text_search_organism": "Neospora caninum Liverpool"
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Neospora caninum Liverpool\"]"
               },
               "searchName": "GenesByText"
             }
@@ -267,8 +267,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "subtilase OR subtilisin OR rhomboid",
-              "text_fields": "product",
-              "text_search_organism": "Neospora caninum Liverpool"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Neospora caninum Liverpool\"]"
             },
             "searchName": "GenesByText"
           }
@@ -279,8 +279,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"CAM kinase\" OR CDPK OR \"calcium-dependent protein kinase\" OR \"cAMP-dependent\"",
-            "text_fields": "product",
-            "text_search_organism": "Neospora caninum Liverpool"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Neospora caninum Liverpool\"]"
           },
           "searchName": "GenesByText"
         }
@@ -307,8 +307,8 @@
                 "parameters": {
                   "document_type": "gene",
                   "text_expression": "microneme OR \"apical membrane antigen\" OR \"dense granule\" OR perforin",
-                  "text_fields": "product",
-                  "text_search_organism": "Neospora caninum Liverpool"
+                  "text_fields": "[\"product\"]",
+                  "text_search_organism": "[\"Neospora caninum Liverpool\"]"
                 },
                 "searchName": "GenesByText"
               },
@@ -318,8 +318,8 @@
                 "parameters": {
                   "document_type": "gene",
                   "text_expression": "\"srs domain\" OR \"surface antigen\"",
-                  "text_fields": "product",
-                  "text_search_organism": "Neospora caninum Liverpool"
+                  "text_fields": "[\"product\"]",
+                  "text_search_organism": "[\"Neospora caninum Liverpool\"]"
                 },
                 "searchName": "GenesByText"
               }
@@ -330,8 +330,8 @@
               "parameters": {
                 "document_type": "gene",
                 "text_expression": "subtilase OR subtilisin OR rhomboid",
-                "text_fields": "product",
-                "text_search_organism": "Neospora caninum Liverpool"
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Neospora caninum Liverpool\"]"
               },
               "searchName": "GenesByText"
             }
@@ -342,8 +342,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "\"CAM kinase\" OR CDPK OR \"calcium-dependent protein kinase\" OR \"cAMP-dependent\"",
-              "text_fields": "product",
-              "text_search_organism": "Neospora caninum Liverpool"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Neospora caninum Liverpool\"]"
             },
             "searchName": "GenesByText"
           }
@@ -354,8 +354,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "bradyzoite OR BSR4",
-            "text_fields": "product",
-            "text_search_organism": "Neospora caninum Liverpool"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Neospora caninum Liverpool\"]"
           },
           "searchName": "GenesByText"
         }
@@ -458,8 +458,8 @@
               "parameters": {
                 "document_type": "gene",
                 "text_expression": "trans-sialidase",
-                "text_fields": "product",
-                "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
               },
               "searchName": "GenesByText"
             },
@@ -469,8 +469,8 @@
               "parameters": {
                 "document_type": "gene",
                 "text_expression": "mucin OR TcMUC",
-                "text_fields": "product",
-                "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
               },
               "searchName": "GenesByText"
             }
@@ -481,8 +481,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "\"mucin-associated surface protein\" OR MASP",
-              "text_fields": "product",
-              "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
             },
             "searchName": "GenesByText"
           }
@@ -493,8 +493,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"surface protease GP63\"",
-            "text_fields": "product",
-            "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
           },
           "searchName": "GenesByText"
         }
@@ -505,8 +505,8 @@
         "parameters": {
           "document_type": "gene",
           "text_expression": "amastin",
-          "text_fields": "product",
-          "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
         },
         "searchName": "GenesByText"
       }
@@ -614,8 +614,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"apical membrane antigen\" OR rhoptry OR microneme",
-            "text_fields": "product",
-            "text_search_organism": "Plasmodium vivax Sal-1"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
           },
           "searchName": "GenesByText"
         },
@@ -625,8 +625,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"calcium-dependent protein kinase\" OR \"heat shock protein\"",
-            "text_fields": "product",
-            "text_search_organism": "Plasmodium vivax Sal-1"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
           },
           "searchName": "GenesByText"
         }
@@ -641,8 +641,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"apical membrane antigen\" OR rhoptry OR microneme OR \"dense granule\"",
-            "text_fields": "product",
-            "text_search_organism": "Neospora caninum Liverpool"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Neospora caninum Liverpool\"]"
           },
           "searchName": "GenesByText"
         },
@@ -652,8 +652,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"CAM kinase\" OR CDPK OR \"heat shock\"",
-            "text_fields": "product",
-            "text_search_organism": "Neospora caninum Liverpool"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Neospora caninum Liverpool\"]"
           },
           "searchName": "GenesByText"
         }
@@ -756,8 +756,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "\"dihydrofolate reductase\" OR plasmepsin OR \"heat shock protein 90\" OR \"heat shock protein 70\" OR \"chloroquine resistance\"",
-              "text_fields": "product",
-              "text_search_organism": "Plasmodium vivax Sal-1"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
             },
             "searchName": "GenesByText"
           },
@@ -767,8 +767,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "\"heat shock protein 90\" OR \"heat shock protein 70\" OR cyclophilin OR \"aspartyl protease\" OR \"ABC transporter\"",
-              "text_fields": "product",
-              "text_search_organism": "Neospora caninum Liverpool"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Neospora caninum Liverpool\"]"
             },
             "searchName": "GenesByText"
           }
@@ -779,8 +779,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "cruzipain OR \"trypanothione reductase\" OR \"sterol 24-c-methyltransferase\" OR \"heat shock protein 90\" OR \"heat shock protein 70\"",
-            "text_fields": "product",
-            "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
           },
           "searchName": "GenesByText"
         }
@@ -791,8 +791,8 @@
         "parameters": {
           "document_type": "gene",
           "text_expression": "\"ABC transporter\" OR \"folate transporter\" OR \"nucleoside transporter\"",
-          "text_fields": "product",
-          "text_search_organism": "Plasmodium vivax Sal-1"
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Plasmodium vivax Sal-1\"]"
         },
         "searchName": "GenesByText"
       }
@@ -885,8 +885,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "trans-sialidase",
-              "text_fields": "product",
-              "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
             },
             "searchName": "GenesByText"
           },
@@ -896,8 +896,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "amastin OR cruzipain",
-              "text_fields": "product",
-              "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
             },
             "searchName": "GenesByText"
           }
@@ -908,8 +908,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "\"paraflagellar rod\" OR \"flagellar calcium\" OR \"flagellar attachment\"",
-            "text_fields": "product",
-            "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
           },
           "searchName": "GenesByText"
         }
@@ -920,8 +920,8 @@
         "parameters": {
           "document_type": "gene",
           "text_expression": "\"heat shock protein 70\" OR \"heat shock protein 90\" OR \"trypanothione reductase\"",
-          "text_fields": "product",
-          "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Trypanosoma cruzi CL Brener Esmeraldo-like\"]"
         },
         "searchName": "GenesByText"
       }

@@ -200,6 +200,68 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/sites/{siteId}/datasets:
+    post:
+      tags:
+      - sites
+      summary: Save Dataset
+      description: Save the source as a dataset an input-dataset parameter takes by its id.
+      operationId: save_dataset_api_v1_sites__siteId__datasets_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          title: Siteid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/WDKDatasetConfigIdList'
+              - $ref: '#/components/schemas/WDKDatasetConfigBasket'
+              - $ref: '#/components/schemas/WDKDatasetConfigFile'
+              - $ref: '#/components/schemas/WDKDatasetConfigStrategy'
+              - $ref: '#/components/schemas/WDKDatasetConfigUrl'
+              discriminator:
+                propertyName: sourceType
+                mapping:
+                  idList: '#/components/schemas/WDKDatasetConfigIdList'
+                  basket: '#/components/schemas/WDKDatasetConfigBasket'
+                  file: '#/components/schemas/WDKDatasetConfigFile'
+                  strategy: '#/components/schemas/WDKDatasetConfigStrategy'
+                  url: '#/components/schemas/WDKDatasetConfigUrl'
+              title: Source
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedDataset'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/sites/{siteId}/searches/{recordType}/{searchName}/validate:
     post:
       tags:
@@ -5533,6 +5595,47 @@ components:
       - data
       title: DataUIPart
       description: Data part with dynamic type based on data name.
+    DateBounds:
+      properties:
+        min:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Min
+        max:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Max
+      additionalProperties: false
+      type: object
+      title: DateBounds
+    DateRange:
+      properties:
+        field:
+          type: string
+          title: Field
+        type:
+          type: string
+          const: date
+          title: Type
+        isRange:
+          type: boolean
+          const: true
+          title: Isrange
+        includeUnknown:
+          type: boolean
+          title: Includeunknown
+        value:
+          $ref: '#/components/schemas/DateBounds'
+      type: object
+      required:
+      - field
+      - type
+      - isRange
+      - includeUnknown
+      - value
+      title: DateRange
     DateRangeValue:
       properties:
         type:
@@ -5560,8 +5663,9 @@ components:
           title: Type
           default: date
         value:
-          type: string
-          minLength: 1
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Value
       type: object
       required:
@@ -5654,12 +5758,14 @@ components:
             - $ref: '#/components/schemas/FilterValue'
             - $ref: '#/components/schemas/InputDatasetValue'
             - $ref: '#/components/schemas/InputStepValue'
+            - $ref: '#/components/schemas/HeldValue'
             discriminator:
               propertyName: type
               mapping:
                 date: '#/components/schemas/DateValue'
                 date-range: '#/components/schemas/DateRangeValue'
                 filter: '#/components/schemas/FilterValue'
+                held: '#/components/schemas/HeldValue'
                 input-dataset: '#/components/schemas/InputDatasetValue'
                 input-step: '#/components/schemas/InputStepValue'
                 multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -7034,34 +7140,6 @@ components:
       - url
       title: FileUIPart
       description: A file part of a message.
-    FilterTermClause:
-      properties:
-        field:
-          type: string
-          title: Field
-        type:
-          type: string
-          title: Type
-          default: string
-        isRange:
-          type: boolean
-          title: Isrange
-          default: false
-        includeUnknown:
-          type: boolean
-          title: Includeunknown
-          default: false
-        value:
-          $ref: '#/components/schemas/JsonValue'
-      type: object
-      required:
-      - field
-      title: FilterTermClause
-      description: 'One faceted clause of a WDK filter value. Keys mirror wdk-client''s
-
-        authoritative ``BaseFilter`` (field/type/isRange/includeUnknown/value);
-
-        parsing ignores extra keys (e.g. ``fieldDisplayName``) and emits only these.'
     FilterValue:
       properties:
         type:
@@ -7071,9 +7149,18 @@ components:
           default: filter
         filters:
           items:
-            $ref: '#/components/schemas/FilterTermClause'
+            anyOf:
+            - $ref: '#/components/schemas/StringMembers'
+            - $ref: '#/components/schemas/NumberMembers'
+            - $ref: '#/components/schemas/NumberRange'
+            - $ref: '#/components/schemas/DateRange'
+            - $ref: '#/components/schemas/MultiMembers'
           type: array
           title: Filters
+        empty:
+          type: boolean
+          title: Empty
+          default: false
       type: object
       title: FilterValue
     FindingDetail:
@@ -8398,12 +8485,14 @@ components:
               - $ref: '#/components/schemas/FilterValue'
               - $ref: '#/components/schemas/InputDatasetValue'
               - $ref: '#/components/schemas/InputStepValue'
+              - $ref: '#/components/schemas/HeldValue'
               discriminator:
                 propertyName: type
                 mapping:
                   date: '#/components/schemas/DateValue'
                   date-range: '#/components/schemas/DateRangeValue'
                   filter: '#/components/schemas/FilterValue'
+                  held: '#/components/schemas/HeldValue'
                   input-dataset: '#/components/schemas/InputDatasetValue'
                   input-step: '#/components/schemas/InputStepValue'
                   multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -8415,6 +8504,7 @@ components:
             type: object
           - type: 'null'
           title: Parameters
+          description: The values Strategist read from the step; the WDK step names the search WDK ran.
         createdAt:
           type: string
           title: Createdat
@@ -8721,6 +8811,20 @@ components:
       - timestamp
       title: HealthResponse
       description: Health check response.
+    HeldValue:
+      properties:
+        type:
+          type: string
+          const: held
+          title: Type
+          default: held
+        wire:
+          type: string
+          title: Wire
+      type: object
+      required:
+      - wire
+      title: HeldValue
     Importance:
       properties:
         genes:
@@ -8754,7 +8858,7 @@ components:
           default: input-dataset
         datasetId:
           type: string
-          minLength: 1
+          pattern: ^([1-9][0-9]*)?$
           title: Datasetid
       type: object
       required:
@@ -8769,7 +8873,7 @@ components:
           default: input-step
         stepId:
           type: string
-          minLength: 1
+          pattern: ^[0-9]*$
           title: Stepid
       type: object
       required:
@@ -9808,6 +9912,50 @@ components:
       - exons
       - cds
       title: ModelSpans
+    MultiFilterValue:
+      properties:
+        operation:
+          type: string
+          enum:
+          - union
+          - intersect
+          title: Operation
+        filters:
+          items:
+            $ref: '#/components/schemas/StringMembers'
+          type: array
+          title: Filters
+      type: object
+      required:
+      - operation
+      - filters
+      title: MultiFilterValue
+    MultiMembers:
+      properties:
+        field:
+          type: string
+          title: Field
+        type:
+          type: string
+          const: multiFilter
+          title: Type
+        isRange:
+          type: boolean
+          const: false
+          title: Isrange
+        includeUnknown:
+          type: boolean
+          title: Includeunknown
+        value:
+          $ref: '#/components/schemas/MultiFilterValue'
+      type: object
+      required:
+      - field
+      - type
+      - isRange
+      - includeUnknown
+      - value
+      title: MultiMembers
     MultiPickValue:
       properties:
         type:
@@ -9909,6 +10057,76 @@ components:
       - createdAt
       - updatedAt
       title: Note
+    NumberBounds:
+      properties:
+        min:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Min
+        max:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Max
+      additionalProperties: false
+      type: object
+      title: NumberBounds
+    NumberMembers:
+      properties:
+        field:
+          type: string
+          title: Field
+        type:
+          type: string
+          const: number
+          title: Type
+        isRange:
+          type: boolean
+          const: false
+          title: Isrange
+        includeUnknown:
+          type: boolean
+          title: Includeunknown
+        value:
+          items:
+            type: number
+          type: array
+          title: Value
+      type: object
+      required:
+      - field
+      - type
+      - isRange
+      - includeUnknown
+      - value
+      title: NumberMembers
+    NumberRange:
+      properties:
+        field:
+          type: string
+          title: Field
+        type:
+          type: string
+          const: number
+          title: Type
+        isRange:
+          type: boolean
+          const: true
+          title: Isrange
+        includeUnknown:
+          type: boolean
+          title: Includeunknown
+        value:
+          $ref: '#/components/schemas/NumberBounds'
+      type: object
+      required:
+      - field
+      - type
+      - isRange
+      - includeUnknown
+      - value
+      title: NumberRange
     NumberRangeValue:
       properties:
         type:
@@ -9936,7 +10154,9 @@ components:
           title: Type
           default: number
         value:
-          type: number
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Value
       type: object
       required:
@@ -10363,12 +10583,14 @@ components:
             - $ref: '#/components/schemas/FilterValue'
             - $ref: '#/components/schemas/InputDatasetValue'
             - $ref: '#/components/schemas/InputStepValue'
+            - $ref: '#/components/schemas/HeldValue'
             discriminator:
               propertyName: type
               mapping:
                 date: '#/components/schemas/DateValue'
                 date-range: '#/components/schemas/DateRangeValue'
                 filter: '#/components/schemas/FilterValue'
+                held: '#/components/schemas/HeldValue'
                 input-dataset: '#/components/schemas/InputDatasetValue'
                 input-step: '#/components/schemas/InputStepValue'
                 multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -11629,6 +11851,15 @@ components:
       - recordType
       - rootStepId
       title: SaveSubstrategyResponse
+    SavedDataset:
+      properties:
+        datasetId:
+          type: string
+          title: Datasetid
+      type: object
+      required:
+      - datasetId
+      title: SavedDataset
     SavedStrategyConsumerCounts:
       properties:
         counts:
@@ -11774,12 +12005,14 @@ components:
             - $ref: '#/components/schemas/FilterValue'
             - $ref: '#/components/schemas/InputDatasetValue'
             - $ref: '#/components/schemas/InputStepValue'
+            - $ref: '#/components/schemas/HeldValue'
             discriminator:
               propertyName: type
               mapping:
                 date: '#/components/schemas/DateValue'
                 date-range: '#/components/schemas/DateRangeValue'
                 filter: '#/components/schemas/FilterValue'
+                held: '#/components/schemas/HeldValue'
                 input-dataset: '#/components/schemas/InputDatasetValue'
                 input-step: '#/components/schemas/InputStepValue'
                 multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -12002,7 +12235,6 @@ components:
           default: single-pick-vocabulary
         value:
           type: string
-          minLength: 1
           title: Value
       type: object
       required:
@@ -12396,12 +12628,14 @@ components:
               - $ref: '#/components/schemas/FilterValue'
               - $ref: '#/components/schemas/InputDatasetValue'
               - $ref: '#/components/schemas/InputStepValue'
+              - $ref: '#/components/schemas/HeldValue'
               discriminator:
                 propertyName: type
                 mapping:
                   date: '#/components/schemas/DateValue'
                   date-range: '#/components/schemas/DateRangeValue'
                   filter: '#/components/schemas/FilterValue'
+                  held: '#/components/schemas/HeldValue'
                   input-dataset: '#/components/schemas/InputDatasetValue'
                   input-step: '#/components/schemas/InputStepValue'
                   multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -12846,12 +13080,14 @@ components:
             - $ref: '#/components/schemas/FilterValue'
             - $ref: '#/components/schemas/InputDatasetValue'
             - $ref: '#/components/schemas/InputStepValue'
+            - $ref: '#/components/schemas/HeldValue'
             discriminator:
               propertyName: type
               mapping:
                 date: '#/components/schemas/DateValue'
                 date-range: '#/components/schemas/DateRangeValue'
                 filter: '#/components/schemas/FilterValue'
+                held: '#/components/schemas/HeldValue'
                 input-dataset: '#/components/schemas/InputDatasetValue'
                 input-step: '#/components/schemas/InputStepValue'
                 multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -12926,6 +13162,35 @@ components:
         The kind follows the structure: two inputs is a combine, one input is a
 
         transform, and no input is a search.'
+    StringMembers:
+      properties:
+        field:
+          type: string
+          title: Field
+        type:
+          type: string
+          const: string
+          title: Type
+        isRange:
+          type: boolean
+          const: false
+          title: Isrange
+        includeUnknown:
+          type: boolean
+          title: Includeunknown
+        value:
+          items:
+            type: string
+          type: array
+          title: Value
+      type: object
+      required:
+      - field
+      - type
+      - isRange
+      - includeUnknown
+      - value
+      title: StringMembers
     StringValue:
       properties:
         type:
@@ -13277,7 +13542,6 @@ components:
           default: timestamp
         value:
           type: string
-          minLength: 1
           title: Value
       type: object
       required:
@@ -13966,12 +14230,14 @@ components:
             - $ref: '#/components/schemas/FilterValue'
             - $ref: '#/components/schemas/InputDatasetValue'
             - $ref: '#/components/schemas/InputStepValue'
+            - $ref: '#/components/schemas/HeldValue'
             discriminator:
               propertyName: type
               mapping:
                 date: '#/components/schemas/DateValue'
                 date-range: '#/components/schemas/DateRangeValue'
                 filter: '#/components/schemas/FilterValue'
+                held: '#/components/schemas/HeldValue'
                 input-dataset: '#/components/schemas/InputDatasetValue'
                 input-step: '#/components/schemas/InputStepValue'
                 multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -14299,6 +14565,120 @@ components:
       - no_error
       - undecided
       title: VerdictKindWords
+    WDKDatasetBasketContent:
+      properties:
+        basketName:
+          type: string
+          title: Basketname
+      type: object
+      required:
+      - basketName
+      title: WDKDatasetBasketContent
+      description: 'Content for ``sourceType: "basket"``.'
+    WDKDatasetConfigBasket:
+      properties:
+        sourceType:
+          type: string
+          const: basket
+          title: Sourcetype
+        sourceContent:
+          $ref: '#/components/schemas/WDKDatasetBasketContent'
+      type: object
+      required:
+      - sourceType
+      - sourceContent
+      title: WDKDatasetConfigBasket
+      description: Dataset config with basket source.
+    WDKDatasetConfigFile:
+      properties:
+        sourceType:
+          type: string
+          const: file
+          title: Sourcetype
+        sourceContent:
+          $ref: '#/components/schemas/WDKDatasetFileContent'
+      type: object
+      required:
+      - sourceType
+      - sourceContent
+      title: WDKDatasetConfigFile
+      description: Dataset config with file source.
+    WDKDatasetConfigIdList:
+      properties:
+        sourceType:
+          type: string
+          const: idList
+          title: Sourcetype
+        sourceContent:
+          $ref: '#/components/schemas/WDKDatasetIdListContent'
+      type: object
+      required:
+      - sourceType
+      - sourceContent
+      title: WDKDatasetConfigIdList
+      description: Dataset config with id-list source.
+    WDKDatasetConfigStrategy:
+      properties:
+        sourceType:
+          type: string
+          const: strategy
+          title: Sourcetype
+        sourceContent:
+          $ref: '#/components/schemas/WDKDatasetStrategyContent'
+      type: object
+      required:
+      - sourceType
+      - sourceContent
+      title: WDKDatasetConfigStrategy
+      description: Dataset config with strategy source.
+    WDKDatasetConfigUrl:
+      properties:
+        sourceType:
+          type: string
+          const: url
+          title: Sourcetype
+        sourceContent:
+          $ref: '#/components/schemas/WDKDatasetUrlContent'
+      type: object
+      required:
+      - sourceType
+      - sourceContent
+      title: WDKDatasetConfigUrl
+      description: Dataset config with URL source.
+    WDKDatasetFileContent:
+      properties:
+        temporaryFileId:
+          type: string
+          title: Temporaryfileid
+        parser:
+          type: string
+          title: Parser
+        searchName:
+          type: string
+          title: Searchname
+        parameterName:
+          type: string
+          title: Parametername
+      type: object
+      required:
+      - temporaryFileId
+      - parser
+      - searchName
+      - parameterName
+      title: WDKDatasetFileContent
+      description: 'Content for ``sourceType: "file"``.'
+    WDKDatasetIdListContent:
+      properties:
+        ids:
+          items:
+            type: string
+          type: array
+          title: Ids
+      type: object
+      required:
+      - ids
+      title: WDKDatasetIdListContent
+      description: 'Content for ``sourceType: "idList"``.'
     WDKDatasetParser:
       properties:
         name:
@@ -14317,6 +14697,38 @@ components:
       - name
       title: WDKDatasetParser
       description: An input parser offered by a dataset parameter.
+    WDKDatasetStrategyContent:
+      properties:
+        strategyId:
+          type: integer
+          title: Strategyid
+      type: object
+      required:
+      - strategyId
+      title: WDKDatasetStrategyContent
+      description: 'Content for ``sourceType: "strategy"``.'
+    WDKDatasetUrlContent:
+      properties:
+        url:
+          type: string
+          title: Url
+        parser:
+          type: string
+          title: Parser
+        searchName:
+          type: string
+          title: Searchname
+        parameterName:
+          type: string
+          title: Parametername
+      type: object
+      required:
+      - url
+      - parser
+      - searchName
+      - parameterName
+      title: WDKDatasetUrlContent
+      description: 'Content for ``sourceType: "url"``.'
     WDKFilterOntologyTerm:
       properties:
         term:
@@ -14354,6 +14766,11 @@ components:
           type: boolean
           title: Isrange
           default: false
+        units:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Units
       type: object
       required:
       - term
@@ -14651,8 +15068,9 @@ components:
           type: string
         params:
           additionalProperties:
-            type: string
-          description: Each parameter the search takes a stated value for, by name.
+            $ref: '#/components/schemas/JsonValue'
+          description: Each parameter the search takes a stated value for, by name, in the shape the parameter's statedSchema
+            gives.
           title: Params
           type: object
       required:
@@ -14732,6 +15150,7 @@ components:
                 date: '#/components/schemas/DateValue'
                 date-range: '#/components/schemas/DateRangeValue'
                 filter: '#/components/schemas/FilterValue'
+                held: '#/components/schemas/HeldValue'
                 input-dataset: '#/components/schemas/InputDatasetValue'
                 input-step: '#/components/schemas/InputStepValue'
                 multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -14753,6 +15172,7 @@ components:
             - $ref: '#/components/schemas/FilterValue'
             - $ref: '#/components/schemas/InputDatasetValue'
             - $ref: '#/components/schemas/InputStepValue'
+            - $ref: '#/components/schemas/HeldValue'
           title: Stepparameters
           type: object
         shownSubset:
@@ -14965,6 +15385,7 @@ components:
               date: '#/components/schemas/DateValue'
               date-range: '#/components/schemas/DateRangeValue'
               filter: '#/components/schemas/FilterValue'
+              held: '#/components/schemas/HeldValue'
               input-dataset: '#/components/schemas/InputDatasetValue'
               input-step: '#/components/schemas/InputStepValue'
               multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
@@ -14986,6 +15407,7 @@ components:
           - $ref: '#/components/schemas/FilterValue'
           - $ref: '#/components/schemas/InputDatasetValue'
           - $ref: '#/components/schemas/InputStepValue'
+          - $ref: '#/components/schemas/HeldValue'
           title: Value
         source:
           enum:
@@ -19102,8 +19524,8 @@ components:
           type: string
         params:
           additionalProperties:
-            type: string
-          description: Each parameter it sets, by name, to the wire value the site takes.
+            $ref: '#/components/schemas/JsonValue'
+          description: Each parameter it sets, by name, in the shape the parameter's statedSchema gives.
           minProperties: 1
           title: Params
           type: object

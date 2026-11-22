@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import VocabOption
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -20,7 +21,7 @@ from strategist.tests.unit.ai.tools.test_frame_spec import (
 )
 
 _SCORE = "Minimum ExportPred Score"
-_ORGANISM = ["Plasmodium falciparum 3D7"]
+_ORGANISM: list[JsonValue] = ["Plasmodium falciparum 3D7"]
 
 
 def _sheet(*, score_default: str | None) -> list[ParameterInfo]:

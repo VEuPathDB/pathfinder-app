@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
+
 from veupathdb.domain.parameters import (
     ParamValue,
     StringValue,
-    param_value_from_raw,
+    from_wire,
 )
 
 from strategist.ai.lead.parameter_facts import step_parameters
@@ -45,7 +47,7 @@ def bound_value(
 
 
 def range_of(low: float, high: float) -> ParamValue:
-    return param_value_from_raw({"min": low, "max": high}, "number-range")
+    return from_wire("number-range", json.dumps({"min": low, "max": high}))
 
 
 def text_value(wire: str) -> StringValue:

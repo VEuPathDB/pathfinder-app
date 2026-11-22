@@ -153,11 +153,18 @@ describe("FilterParam - populated value", () => {
     const user = userEvent.setup();
     const twoFilters = JSON.stringify({
       filters: [
-        { field: "organism", type: "string", isRange: false, value: ["P. falciparum"] },
+        {
+          field: "organism",
+          type: "string",
+          isRange: false,
+          includeUnknown: false,
+          value: ["P. falciparum"],
+        },
         {
           field: "length",
           type: "number",
           isRange: true,
+          includeUnknown: false,
           value: { min: 100, max: 500 },
         },
       ],
@@ -184,7 +191,15 @@ describe("FilterParam - JSON editor mode", () => {
   it("opens an editable textarea with current JSON when 'Edit JSON' is clicked", async () => {
     const user = userEvent.setup();
     const value = JSON.stringify({
-      filters: [{ field: "x", type: "string", isRange: false, value: ["a"] }],
+      filters: [
+        {
+          field: "x",
+          type: "string",
+          isRange: false,
+          includeUnknown: false,
+          value: ["a"],
+        },
+      ],
     });
     render(
       <WidgetTestForm name="test_filter" defaultValue={value}>
@@ -225,6 +240,50 @@ describe("FilterParam - JSON editor mode", () => {
     fireEvent.change(textarea, { target: { value: "{not valid json" } });
     await user.click(screen.getByRole("button", { name: /apply json/i }));
     expect(screen.getByRole("alert")).toBeTruthy();
+  });
+});
+
+describe("FilterParam - JSON apply", () => {
+  async function apply(json: string) {
+    const user = userEvent.setup();
+    render(
+      <WidgetTestForm name="test_filter" defaultValue='{"filters":[]}'>
+        {(field) => (
+          <FilterParam
+            spec={makeSpec()}
+            name="test_filter"
+            options={[]}
+            vocabTree={null}
+            field={field}
+          />
+        )}
+      </WidgetTestForm>,
+    );
+    await user.click(screen.getByRole("button", { name: /edit json/i }));
+    fireEvent.change(screen.getByRole("textbox", { name: /filter json/i }), {
+      target: { value: json },
+    });
+    await user.click(screen.getByRole("button", { name: /apply json/i }));
+  }
+
+  it("refuses a clause that names no type", async () => {
+    await apply('{"filters":[{"field":"organism","isRange":false,"value":["a"]}]}');
+    expect(screen.getByRole("alert")).toHaveTextContent(/does not match/);
+  });
+
+  it("refuses a bare list of clauses", async () => {
+    await apply(
+      '[{"field":"organism","type":"string","isRange":false,"includeUnknown":false,"value":["a"]}]',
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(/does not match/);
+  });
+
+  it("lists a number range clause it applies with an ASCII open bound", async () => {
+    await apply(
+      '{"filters":[{"field":"total_variants","type":"number","isRange":true,"includeUnknown":false,"value":{"min":6}}]}',
+    );
+    expect(screen.getByText("total_variants")).toBeTruthy();
+    expect(screen.getByText("6 - +inf")).toBeTruthy();
   });
 });
 

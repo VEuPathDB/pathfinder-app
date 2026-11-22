@@ -37,8 +37,8 @@ def _published(fixture: str) -> list[ParameterInfo]:
 # A recorded RNA-Seq percentile sheet stands in for the trophozoite search: the
 # two recorded percentile searches publish the floor alike.
 _SHEETS = {
-    _SEARCH: _published("search_genes_by_rnaseq_gomez_diaz_percentile"),
-    "GenesWithSignalPeptide": _published("search_genes_with_signal_peptide"),
+    "c_troph": _published("search_genes_by_rnaseq_gomez_diaz_percentile"),
+    "c_secreted": _published("search_genes_with_signal_peptide"),
 }
 
 

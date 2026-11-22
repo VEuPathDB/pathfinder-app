@@ -193,7 +193,7 @@ class TestThePushSendsWhatThePlanNames:
         seen: list[object] = []
 
         async def _record(*_args: Any, **kwargs: Any) -> Any:
-            seen.append(kwargs["parameters"])
+            seen.append(kwargs["context"])
 
         monkeypatch.setattr(step_wdk_push, "validate_parameters", _record)
         return seen

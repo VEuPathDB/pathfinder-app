@@ -141,3 +141,45 @@ describe("a transform step's input wiring", () => {
     expect(parsed.success).toBe(true);
   });
 });
+
+describe("a value the site holds that no kind reads", () => {
+  const step: Step = {
+    id: "step-1",
+    searchName: "GenesByTaxon",
+    parameters: {
+      dnds: { type: "number-range", min: 0, max: 1.3 },
+      min_weight: { type: "held", wire: "abc" },
+      organism: { type: "held", wire: "Pf3D7, PvP01" },
+    },
+  };
+  const patch = (formValues: Record<string, string | string[]>) =>
+    buildStepPatch({
+      step,
+      formValues,
+      hiddenDefaults: {},
+      allowedParamKeys: new Set(SPECS.map((s) => s.name)),
+      paramSpecs: SPECS,
+      operator: "",
+      displayName: "",
+      colocationParams: null,
+    });
+
+  it("seeds its field with the raw text", () => {
+    const defaults = extractDefaults(SPECS, step.parameters ?? undefined);
+    expect(defaults["min_weight"]).toBe("abc");
+    expect(defaults["organism"]).toEqual(["Pf3D7, PvP01"]);
+  });
+
+  it("is left out of the patch until it is edited", () => {
+    const defaults = extractDefaults(SPECS, step.parameters ?? undefined);
+    expect(patch(defaults)).toEqual({});
+  });
+
+  it("goes through the normal parse once it is edited", () => {
+    const defaults = extractDefaults(SPECS, step.parameters ?? undefined);
+    expect(patch({ ...defaults, min_weight: "7" }).parameters).toEqual({
+      min_weight: { type: "number", value: 7 },
+    });
+    expect(() => patch({ ...defaults, min_weight: "1e" })).toThrow("min_weight");
+  });
+});

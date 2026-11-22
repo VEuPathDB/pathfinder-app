@@ -177,6 +177,7 @@ def test_the_phyletic_lookup_names_its_use_on_either_kind_of_site() -> None:
     doc = " ".join((inspect.getdoc(lookup_phyletic_codes) or "").split())
 
     assert "included_species or excluded_species" in doc
+    assert "one string with the codes separated by commas" in doc
     assert "phyletic_expression" in doc
     assert "genomes" in doc
     assert "species" in doc

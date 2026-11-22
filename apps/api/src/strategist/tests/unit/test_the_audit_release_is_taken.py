@@ -120,4 +120,4 @@ def test_the_pinned_releases_are_installed() -> None:
         veupathdb_mcp.__version__,
         version("veupathdb-py"),
         version("assistant-core"),
-    ) == ("0.9.0b12", "0.9.0b12", "0.9.0b7", "0.9.0b4")
+    ) == ("0.9.0b14", "0.9.0b14", "0.9.0b9", "0.9.0b4")

@@ -4,8 +4,10 @@ again, and an open slot keeps the kind and the display name its sheet gives."""
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import StringValue
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb.wdk import WDKParameter
+from veupathdb_mcp.catalog import ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count, frame_spec
@@ -34,11 +36,10 @@ _REQUEST = "Also require that they are expressed in trophozoites."
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_PERCENTILE])
-    sheet = format_param_info_typed(list(_PERCENTILE.parameters or []))
 
     def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
-        async def fetch_at(_context: dict[str, str]) -> list[ParameterInfo]:
-            return sheet
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(_PERCENTILE.parameters or [])
 
         return fetch_at
 
@@ -53,18 +54,19 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_no_other_sites(monkeypatch)
 
 
-def _params(**values: str | list[str] | None) -> dict[str, str | list[str] | None]:
-    return {
+def _params(**values: JsonValue) -> dict[str, JsonValue]:
+    published: dict[str, JsonValue] = {
         "profileset_generic": None,
         _SAMPLES: ["asexual blood stages"],
         _FLOOR: None,
         "max_expression_percentile": None,
         "any_or_all": "all",
         "protein_coding_only": None,
-    } | values
+    }
+    return published | values
 
 
-async def _bound(state: AgentToolState, **values: str | list[str] | None) -> Criterion:
+async def _bound(state: AgentToolState, **values: JsonValue) -> Criterion:
     state.request_messages = [_REQUEST]
     await bind(
         state,

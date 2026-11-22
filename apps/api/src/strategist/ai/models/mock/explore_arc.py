@@ -45,31 +45,23 @@ ONE_READING = (
 _PREFERENCE = re.compile(r"\bprefer", re.IGNORECASE)
 
 
-def _multi(*values: str) -> dict[str, Any]:
-    return {"type": "multi-pick-vocabulary", "values": list(values)}
-
-
-def _single(value: str) -> dict[str, Any]:
-    return {"type": "single-pick-vocabulary", "value": value}
-
-
 def _searches(organism: str) -> list[dict[str, Any]]:
     return [
         {
             "label": FIRST_LABEL,
             "search_name": SIGNAL_PEPTIDE,
             "parameters": {
-                "organism": _multi(organism),
-                "signalp_version": _single(SIGNALP_VERSIONS[0]),
+                "organism": [organism],
+                "signalp_version": SIGNALP_VERSIONS[0],
             },
         },
         {
             "label": SECOND_LABEL,
             "search_name": GENE_TYPE,
             "parameters": {
-                "organism": _multi(organism),
-                "geneType": _multi("protein coding"),
-                "includePseudogenes": _single("No"),
+                "organism": [organism],
+                "geneType": ["protein coding"],
+                "includePseudogenes": "No",
             },
         },
     ]

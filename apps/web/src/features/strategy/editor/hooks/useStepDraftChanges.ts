@@ -1,6 +1,6 @@
 "use client";
 
-import type { ColocationParams, Step } from "@strategist/shared";
+import type { ColocationParams, ParamSpec, Step } from "@strategist/shared";
 import { paramValueToRaw } from "@/features/strategy/parameters/paramValue";
 
 export interface StepDraftSnapshot {
@@ -16,11 +16,14 @@ export interface StepDraftChanges {
   hasChanges: boolean;
 }
 
-function normalizeStepBaseline(step: Step): StepDraftSnapshot {
+function normalizeStepBaseline(
+  step: Step,
+  paramSpecs: readonly ParamSpec[],
+): StepDraftSnapshot {
+  const specs = new Map(paramSpecs.map((s) => [s.name, s]));
   const baseParams: Record<string, string | string[]> = {};
-  const stepParams = step.parameters ?? {};
-  for (const [key, val] of Object.entries(stepParams)) {
-    baseParams[key] = paramValueToRaw(val);
+  for (const [key, val] of Object.entries(step.parameters ?? {})) {
+    baseParams[key] = paramValueToRaw(val, specs.get(key));
   }
   return {
     parameters: baseParams,
@@ -70,8 +73,9 @@ export function useStepDraftChanges(args: {
   displayName: string;
   colocationParams: ColocationParams | null;
   allowedParamKeys: ReadonlySet<string>;
+  paramSpecs: readonly ParamSpec[];
 }): StepDraftChanges {
-  const baseline = normalizeStepBaseline(args.step);
+  const baseline = normalizeStepBaseline(args.step, args.paramSpecs);
   const changedKeys: string[] = [];
 
   const seen = new Set<string>();

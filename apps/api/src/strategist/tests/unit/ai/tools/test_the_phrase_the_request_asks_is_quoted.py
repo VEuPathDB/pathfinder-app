@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
@@ -25,7 +26,12 @@ def _bind(message: str, term: str) -> str:
         criterion_id="c_text",
         search_name="GenesByText",
         text="polar tube protein in the product field",
-        params={"text_expression": term, "text_fields": ["product"]},
+        params={},
+    ).with_values(
+        {
+            "text_expression": StringValue(value=term),
+            "text_fields": MultiPickValue(values=["product"]),
+        }
     )
     refuse_what_the_words_decide(
         _TEXT,

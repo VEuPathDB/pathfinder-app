@@ -101,7 +101,6 @@ def test_a_term_the_vocabulary_offers_is_never_a_placeholder() -> None:
             "is_visible": True,
             "site_set": False,
             "help": "",
-            "value_format": "",
             "default_value": "",
             "allowed_values": [{"value": "N/A", "display": "not applicable"}],
         }

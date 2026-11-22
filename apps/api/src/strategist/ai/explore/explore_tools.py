@@ -4,12 +4,12 @@ import inspect
 import re
 from collections.abc import Callable
 from dataclasses import replace
-from typing import Annotated, Any
+from typing import Annotated
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from pydantic import Field, TypeAdapter
+from pydantic import Field, JsonValue, TypeAdapter
 from pydantic_ai import ModelRetry, RunContext, Tool
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import GetParameterOptionsResult, SearchOverviewResult
@@ -159,7 +159,7 @@ async def get_parameter_options(
     search_name: str,
     parameter_id: str,
     record_type: str | None = None,
-    context_values: dict[str, Any] | None = None,
+    context_values: dict[str, JsonValue] | None = None,
     query: str | list[str] | None = None,
 ) -> ToolReturn[GetParameterOptionsResult | catalog_discovery.AlreadyReadNotice]:
     return await catalog_discovery.get_parameter_options(

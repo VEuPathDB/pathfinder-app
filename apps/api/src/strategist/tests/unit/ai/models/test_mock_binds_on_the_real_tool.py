@@ -14,7 +14,6 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
@@ -44,10 +43,7 @@ _BOUND = {
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_ORTHOLOGS])
-    serve_params(
-        monkeypatch,
-        lambda _context: format_param_info_typed(_ORTHOLOGS.parameters or []),
-    )
+    serve_params(monkeypatch, declared=_ORTHOLOGS.parameters or [])
     no_validation(monkeypatch)
     no_count(monkeypatch)
     serve_site_listing(monkeypatch, [])

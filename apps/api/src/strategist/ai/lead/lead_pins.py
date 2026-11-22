@@ -35,8 +35,8 @@ from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    pending_analyses,
 )
+from strategist.domain.strategy.pending_analyses import pending_analyses
 from strategist.domain.strategy.session import StrategyGraph, strategy_root_id
 
 __all__ = [

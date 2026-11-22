@@ -1,7 +1,7 @@
 """What a variant is allowed to name.
 
 A variant runs one WDK search with values its vocabulary holds, and a pick it
-names no entry for at the site's published default. A combine step is a
+does not name at the site's published default. A combine step is a
 strategy structure, so it has no search to run.
 """
 
@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from difflib import get_close_matches
 
-from pydantic import TypeAdapter
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import (
     PHYLETIC_LIST_PARAMS,
@@ -19,6 +18,7 @@ from veupathdb.domain.parameters import (
     from_wire,
     match_exact_option,
     to_wire,
+    wire_map,
 )
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME
 from veupathdb_mcp.catalog import (
@@ -27,15 +27,12 @@ from veupathdb_mcp.catalog import (
     is_phyletic_sheet,
 )
 
-from strategist.ai.tools.standalone._frame_proposals import (
-    CriterionCall,
-    ParamProposals,
-    refuse_unmatched_value,
-)
-from strategist.ai.tools.standalone._qualifier_words import proposal_values
+from strategist.ai.tools.standalone._frame_proposals import refuse_unmatched_value
+from strategist.ai.tools.standalone._stated_values import typed_values
 from strategist.ai.tools.standalone._vocab_resolution import bound_proposal
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.session import StrategySession
+from strategist.domain.strategy.value_binding import pick_terms
 from strategist.services.evidence.comparisons import (
     variant_phyletic_values,
     variant_search_parameters,
@@ -52,10 +49,6 @@ from strategist.services.strategies.record_classes import (
 
 _COMBINE_NAMES = frozenset({COMBINE_SEARCH_NAME, "Combine", "combine"})
 _PICKS = frozenset({"single-pick-vocabulary", "multi-pick-vocabulary"})
-# An empty pick with no default is refused with this many vocabulary entries.
-_LISTED_ENTRIES = 60
-# The reader ``set_criterion`` reads a proposed value with.
-_PROPOSALS: TypeAdapter[ParamProposals] = TypeAdapter(ParamProposals)
 # An unlisted search is refused with at most this many listed names near it.
 _NEAREST_SEARCHES = 5
 _NEAREST_CUTOFF = 0.3
@@ -138,7 +131,7 @@ def _genes(count: int | None) -> str:
 
 
 def _unknown_parameters(
-    search_name: str, named: list[VariantSpec], infos: list[ParameterInfo]
+    search_name: str, named: list[VariantInput], infos: list[ParameterInfo]
 ) -> str | None:
     """The parameters the variants name that the search does not take, or None."""
     takes = [i.name for i in infos]
@@ -161,11 +154,9 @@ def _nearest(search: str, names: list[str]) -> str:
     return ", ".join(close) or "none"
 
 
-async def _listed_under(
-    site_id: str, variants: list[VariantInput]
-) -> list[VariantSpec]:
-    """Each variant under the record type the site's catalog lists its search
-    under. Raises ModelRetry for a search the catalog does not list."""
+async def _listed_under(site_id: str, variants: list[VariantInput]) -> dict[str, str]:
+    """The record type the site's catalog lists each variant's search under.
+    Raises ModelRetry for a search the catalog does not list."""
     listed = await search_record_types(site_id, [v.search_name for v in variants])
     unlisted = list(
         dict.fromkeys(v.search_name for v in variants if v.search_name not in listed)
@@ -179,48 +170,21 @@ async def _listed_under(
             for search in unlisted
         )
         raise ModelRetry(msg)
-    return [
-        VariantSpec(
-            label=v.label,
-            search_name=v.search_name,
-            parameters=v.parameters,
-            record_type=listed[v.search_name],
-        )
-        for v in variants
-    ]
-
-
-def _empty_pick(search_name: str, label: str, info: ParameterInfo) -> ModelRetry:
-    entries = [option.value for option in info.vocabulary()]
-    return ModelRetry(
-        f"{info.name} on {search_name} takes at least one entry ({label}), and the "
-        f"site refuses an empty pick. Its vocabulary holds {len(entries)} entries: "
-        f"{', '.join(entries[:_LISTED_ENTRIES])}"
-        f"{', ...' if len(entries) > _LISTED_ENTRIES else ''}."
-    )
+    return listed
 
 
 async def _entry_value(
     site_id: str,
-    variant: VariantSpec,
+    variant: VariantInput,
     info: ParameterInfo,
     value: ParamValue,
-    context: dict[str, str],
+    context: dict[str, ParamValue],
 ) -> ParamValue:
-    """The value as the vocabulary's own entries, the way ``set_criterion`` reads it.
-
-    A filter takes a facet expression, not an entry, so it is not checked here.
-    """
+    """The value as the vocabulary's own entries, the way ``set_criterion`` reads it."""
     options = info.vocabulary()
-    if not options or info.param_kind == "filter":
+    picks = pick_terms(value)
+    if not options or info.param_kind not in _PICKS or not picks:
         return value
-    proposals = _PROPOSALS.validate_python({info.name: value.to_decoded()})
-    picks = proposal_values(proposals[info.name])
-    if not picks:
-        default = site_default(info)
-        if default is None:
-            raise _empty_pick(variant.search_name, variant.label, info)
-        return default
     if (
         info.param_kind == "multi-pick-vocabulary"
         and len(picks) == 1
@@ -228,16 +192,8 @@ async def _entry_value(
         and match_exact_option(options, picks[0]) is None
     ):
         return MultiPickValue(values=[option.value for option in options])
-    picks = proposal_values(
-        await bound_proposal(site_id, variant.search_name, info, picks, context)
-    )
-    call = CriterionCall(
-        criterion_id=variant.label,
-        search_name=variant.search_name,
-        text="",
-        params={**proposals, info.name: picks},
-    )
-    refuse_unmatched_value(call, info, options)
+    picks = await bound_proposal(site_id, variant.search_name, info, picks, context)
+    refuse_unmatched_value(variant.search_name, info, options, picks)
     entries = [match_exact_option(options, pick) or pick for pick in picks]
     if info.param_kind == "multi-pick-vocabulary":
         return MultiPickValue(values=entries)
@@ -255,7 +211,7 @@ def _sheet_value(info: ParameterInfo) -> ParamValue | None:
 
 
 def _published_defaults(
-    variant: VariantSpec, infos: dict[str, ParameterInfo]
+    variant: VariantInput, infos: dict[str, ParameterInfo]
 ) -> dict[str, ParamValue]:
     """The sheet's value of each parameter the variant names no value for."""
     return {
@@ -275,23 +231,19 @@ def _site_set(infos: dict[str, ParameterInfo]) -> dict[str, ParamValue]:
     }
 
 
+type _Search = tuple[str, str]
+
+
 async def _derived_phyletic(
-    site_id: str, variant: VariantSpec
+    site_id: str, search: _Search, values: dict[str, ParamValue]
 ) -> dict[str, ParamValue]:
     lists = {
-        name: to_wire(variant.parameters[name])
-        for name in PHYLETIC_LIST_PARAMS
-        if name in variant.parameters
+        name: to_wire(values[name]) for name in PHYLETIC_LIST_PARAMS if name in values
     }
     try:
-        return await variant_phyletic_values(
-            site_id, variant.record_type, variant.search_name, lists
-        )
+        return await variant_phyletic_values(site_id, *search, lists)
     except PhyleticListError as refused:
         raise ModelRetry(refused.detail or refused.title) from refused
-
-
-type _Search = tuple[str, str]
 
 
 async def checked_variants(
@@ -307,15 +259,15 @@ async def resolved_variants(
     session: StrategySession, stated: list[VariantInput]
 ) -> list[VariantSpec]:
     """The variants under the record type the catalog lists each search under,
-    with each vocabulary value as the entry it names and each pick they name no
-    entry for at the site's published default, and every other parameter they
+    with each vocabulary value as the entry it names and each pick they do not
+    name at the site's published default, and every other parameter they
     name no value for at the value the site's sheet gives it, as a step of the
     search sends it. A required parameter the site sets runs at the value it
     sets. Refuses a search the catalog
     does not list, an unknown parameter, and a value the vocabulary under the
     variant's parents lacks; a value a step holds passes as it is."""
     site_id = session.site_id
-    variants = await _listed_under(site_id, stated)
+    listed = await _listed_under(site_id, stated)
     read: dict[tuple[_Search, tuple[tuple[str, str], ...]], list[ParameterInfo]] = {}
 
     async def infos_at(search: _Search, context: dict[str, str]) -> list[ParameterInfo]:
@@ -324,14 +276,16 @@ async def resolved_variants(
             read[key] = await variant_search_parameters(site_id, *search, context)
         return read[key]
 
-    searches = list(dict.fromkeys((v.record_type, v.search_name) for v in variants))
+    searches = list(
+        dict.fromkeys((listed[v.search_name], v.search_name) for v in stated)
+    )
     published = {search: await infos_at(search, {}) for search in searches}
     problems = [
         problem
         for search, infos in published.items()
         if (
             problem := _unknown_parameters(
-                search[1], [v for v in variants if v.search_name == search[1]], infos
+                search[1], [v for v in stated if v.search_name == search[1]], infos
             )
         )
     ]
@@ -342,15 +296,18 @@ async def resolved_variants(
         )
         raise ModelRetry(msg)
     checked: list[VariantSpec] = []
-    for variant in variants:
-        search = (variant.record_type, variant.search_name)
+    for variant in stated:
+        search = (listed[variant.search_name], variant.search_name)
+        values = await typed_values(
+            site_id, variant.search_name, variant.parameters, record_type=search[0]
+        )
         held = _held_values(session, variant.search_name)
         parents = {
-            info.name: to_wire(variant.parameters[info.name])
+            info.name: values[info.name]
             for info in published[search]
-            if info.wire_children and info.name in variant.parameters
+            if info.wire_children and info.name in values
         }
-        infos = {info.name: info for info in await infos_at(search, parents)}
+        infos = {info.name: info for info in await infos_at(search, wire_map(parents))}
         site_set = _site_set(infos)
         phyletic = is_phyletic_sheet(list(infos.values()))
         entries = {
@@ -358,11 +315,23 @@ async def resolved_variants(
             if held.get(name) == to_wire(value)
             or (phyletic and name in PHYLETIC_LIST_PARAMS)
             else await _entry_value(site_id, variant, infos[name], value, parents)
-            for name, value in variant.parameters.items()
+            for name, value in values.items()
             if name not in site_set
         }
-        entries = {**_published_defaults(variant, infos), **entries, **site_set}
+        spec = VariantSpec(
+            label=variant.label,
+            search_name=variant.search_name,
+            record_type=search[0],
+            parameters={
+                **_published_defaults(variant, infos),
+                **entries,
+                **site_set,
+            },
+        )
         if phyletic:
-            entries = {**entries, **await _derived_phyletic(site_id, variant)}
-        checked.append(variant.model_copy(update={"parameters": entries}))
+            derived = await _derived_phyletic(site_id, search, values)
+            spec = spec.model_copy(
+                update={"parameters": {**spec.parameters, **derived}}
+            )
+        checked.append(spec)
     return checked

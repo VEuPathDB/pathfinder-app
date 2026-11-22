@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import SinglePickValue
 from veupathdb.wdk import WDKSearch, WDKSearchResponse
 from veupathdb_mcp.catalog import format_param_info_typed
 
@@ -56,7 +57,9 @@ def _call(value: str | None) -> CriterionCall:
         criterion_id="c_my_list",
         search_name="GenesByUserDatasetGeneList",
         text="the genes of the gene list I uploaded",
-        params={"geneListUserDataset": value},
+        params={},
+    ).with_values(
+        {} if value is None else {"geneListUserDataset": SinglePickValue(value=value)}
     )
 
 

@@ -40,6 +40,7 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         ),
         # The account listing reads the site the path names.
         ("GET", "/api/v1/sites/{siteId}/strategies"),
+        ("POST", "/api/v1/sites/{siteId}/datasets"),
         # EDA: the study set the request names lives on the site.
         ("GET", "/api/v1/eda/studies"),
         ("POST", "/api/v1/eda/viz"),

@@ -24,7 +24,9 @@ The parameter sheet gives `included_species` and `excluded_species` the clade
 tree as their vocabulary, built from `phyletic_term_map` and
 `phyletic_indent_map`, so a proposal is a code (`pfal`) or a label (`Plasmodium
 falciparum 3D7`, case-insensitive) and the sheet shortlists it like any other
-large vocabulary. `derive_phyletic_overrides` then resolves both proposals
+large vocabulary. Each parameter is a WDK string, so a proposal is one string
+with its codes or labels separated by commas, the form the site's own form
+writes; a JSON list is refused by the parameter's reader. `derive_phyletic_overrides` then resolves both proposals
 against that tree and returns three values: the two lists canonicalized to
 comma-joined codes, and `profile_pattern` as the census the selection means -
 each clade pushed down to the species the census holds, an explicit species

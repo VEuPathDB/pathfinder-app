@@ -46,7 +46,6 @@ from strategist.services.conversations.thread_busy import (
 from strategist.services.conversations.thread_mode import thread_mode_of
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
-from strategist.services.strategies.dataset_sources import save_dataset_sources
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from strategist.services.strategies.insert_saved import (
     InsertSavedResult,
@@ -189,7 +188,6 @@ async def apply_operation(
     await get_owned_thread(repo, conversation_id, user_id)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
         await refuse_an_edit_on_a_busy_thread(locked, conversation_id)
-        op = await save_dataset_sources(site_id, op)
         locked_repo = ConversationRepository(locked)
         conversation, strategy = await get_owned_thread(
             locked_repo, conversation_id, user_id

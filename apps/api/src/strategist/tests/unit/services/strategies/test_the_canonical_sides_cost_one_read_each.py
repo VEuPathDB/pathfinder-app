@@ -9,6 +9,7 @@ from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb_mcp.catalog import ValidatedParams, ValidationCallbacks
 
+from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import StatedCriterion
 from strategist.services.strategies import stated_sides
 from strategist.services.strategies.stated_sides import canonicalize_stated_leaves
@@ -64,13 +65,14 @@ async def test_a_stated_leaf_that_carries_no_value_asks_the_catalog_nothing(
     seen: list[dict[str, ParamValue]] = []
 
     async def _record(*_args: Any, **kwargs: Any) -> ValidatedParams:
-        params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+        params: dict[str, ParamValue] = dict(kwargs["stated"])
         seen.append(params)
         return ValidatedParams(params=params, record_class="transcript")
 
     monkeypatch.setattr(stated_sides, "validate_parameters", _record)
 
     writes = await canonicalize_stated_leaves(
+        graph=StrategyGraph("g", "g", "toxodb"),
         root=_tree(),
         stated=_stated(),
         site_id="toxodb",

@@ -14,14 +14,27 @@ _SAMPLES = "variation_sample_meta"
 _VALUE = FilterValue.model_validate(
     {
         "filters": [
-            {"field": "VAR_68bb04bd", "type": "string", "value": ["female"]},
+            {
+                "field": "VAR_68bb04bd",
+                "type": "string",
+                "isRange": False,
+                "includeUnknown": False,
+                "value": ["female"],
+            },
             {
                 "field": "VAR_dc0e1a57",
                 "type": "number",
                 "isRange": True,
+                "includeUnknown": False,
                 "value": {"min": 2010, "max": 2015},
             },
-            {"field": "VAR_00000000", "value": ["PfSample"], "includeUnknown": True},
+            {
+                "field": "VAR_00000000",
+                "type": "string",
+                "isRange": False,
+                "includeUnknown": True,
+                "value": ["PfSample"],
+            },
         ]
     }
 )

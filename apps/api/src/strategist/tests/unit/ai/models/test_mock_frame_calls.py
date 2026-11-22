@@ -8,7 +8,7 @@ e2e run, and reads there as a pipeline fault.
 from __future__ import annotations
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import JsonValue, TypeAdapter, ValidationError
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -38,7 +38,6 @@ from strategist.ai.models.mock.strategy_specs import (
     union_spec,
     zero_spec,
 )
-from strategist.ai.tools.standalone._frame_proposals import ParamProposals
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.domain.strategy.operational_spec import StructureNode
@@ -104,7 +103,7 @@ def test_the_organism_reaches_every_criterion_of_the_spec() -> None:
 
 @pytest.mark.parametrize("spec", _SPECS)
 def test_a_proposal_names_exactly_the_sheet_parameters(spec: SpecPlan) -> None:
-    adapter: TypeAdapter[ParamProposals] = TypeAdapter(ParamProposals)
+    adapter: TypeAdapter[dict[str, JsonValue]] = TypeAdapter(dict[str, JsonValue])
 
     for criterion in spec.criteria:
         sheet = dict.fromkeys(["organism", "some_other_param"])

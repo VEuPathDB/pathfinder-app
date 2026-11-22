@@ -16,6 +16,11 @@ from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategySt
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import TurnMarkers
+from strategist.ai.tools.standalone._stated_values import (
+    StatedAddCombineOp,
+    StatedAddLeafOp,
+    StatedStepNode,
+)
 from strategist.ai.tools.standalone.strategy import apply_operations
 from strategist.ai.tools.toolsets.execution import build_toolset
 from strategist.domain.strategy.operational_spec import (
@@ -38,6 +43,7 @@ from strategist.services.strategies.commit import (
     apply_and_commit,
     apply_operations_and_commit,
 )
+from strategist.tests._support.stated import stated_tree
 from strategist.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
@@ -210,9 +216,11 @@ class TestABatchTheSpecContradicts:
                 ctx(deps),
                 revision,
                 [
-                    AddLeafOp(step=leaf("step_new"), attach=AttachNewRoot()),
-                    AddCombineOp(
-                        step=StrategyStepNode(
+                    StatedAddLeafOp(
+                        step=stated_tree(leaf("step_new")), attach=AttachNewRoot()
+                    ),
+                    StatedAddCombineOp(
+                        step=StatedStepNode(
                             id="step_c2",
                             search_name=COMBINE_SEARCH_NAME,
                             operator=CombineOp.UNION,

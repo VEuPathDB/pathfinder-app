@@ -6,7 +6,7 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import WDKVocabTerm
 from veupathdb.wdk import WDKEnumParam, WDKParameter, WDKStringParam
-from veupathdb_mcp.catalog import RADIO_OFF, format_param_info_typed
+from veupathdb_mcp.catalog import RADIO_OFF
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.tests.unit.ai.tools.test_frame_spec import bind, serve_search
@@ -30,8 +30,8 @@ def _ec(*entries: str) -> list[WDKParameter]:
 async def _refusal(monkeypatch: pytest.MonkeyPatch, catalog: list[WDKParameter]) -> str:
     serve_search(
         monkeypatch,
-        lambda _c: format_param_info_typed(catalog),
         catalog=catalog,
+        declared=catalog,
         properties={"radio-params": ["ec_number_pattern", "ec_wildcard"]},
     )
     with pytest.raises(ModelRetry) as info:

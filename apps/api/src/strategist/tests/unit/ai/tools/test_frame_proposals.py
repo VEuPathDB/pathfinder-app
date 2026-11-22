@@ -1,11 +1,11 @@
-"""Reading a proposal: coercion, unknown names, unmatched values, derivations."""
+"""Reading a proposal: unknown names, unmatched values, derivations."""
 
 from __future__ import annotations
 
 from typing import NamedTuple
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import VocabOption, WDKVocabTerm
@@ -17,15 +17,10 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import (
     ResolvedParams,
     UnknownParameterError,
-    format_param_info_typed,
 )
 
 from strategist.ai.agents.state import AgentToolState, SearchOverview
 from strategist.ai.tools.standalone import _frame_proposals
-from strategist.ai.tools.standalone._frame_proposals import (
-    ParamProposals,
-    coerce_proposals,
-)
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.tests._support.catalog_builders import ParamsAt
 from strategist.tests.unit.ai.tools.test_frame_spec import (
@@ -33,69 +28,10 @@ from strategist.tests.unit.ai.tools.test_frame_spec import (
     Proposals,
     bind,
     genes_by_text,
+    no_sheet,
     param_info,
     serve_search,
 )
-
-_ADAPTER: TypeAdapter[ParamProposals] = TypeAdapter(ParamProposals)
-
-
-def test_numbers_and_json_lists_are_read() -> None:
-    assert coerce_proposals(
-        {"fold_change": 2, "adj_p_value": 1e-8, "organism": '["Plasmodium"]', "x": None}
-    ) == {
-        "fold_change": "2",
-        "adj_p_value": "1e-08",
-        "organism": ["Plasmodium"],
-        "x": None,
-    }
-
-
-def test_a_string_and_a_real_list_are_unchanged() -> None:
-    assert coerce_proposals(
-        {"organism": "Plasmodium falciparum 3D7", "samples": ["20 Hour"]}
-    ) == {"organism": "Plasmodium falciparum 3D7", "samples": ["20 Hour"]}
-
-
-def test_a_list_of_numbers_becomes_a_list_of_strings() -> None:
-    assert coerce_proposals({"hours": [20, 21]}) == {"hours": ["20", "21"]}
-    assert coerce_proposals({"hours": "[20, 21]"}) == {"hours": ["20", "21"]}
-
-
-def test_a_boolean_is_read_as_its_json_word() -> None:
-    # A yes/no parameter has a vocabulary, so a boolean has to reach it as a
-    # value rather than fail the schema.
-    assert coerce_proposals({"is_syntenic": True, "is_pseudo": False}) == {
-        "is_syntenic": "true",
-        "is_pseudo": "false",
-    }
-
-
-def test_a_list_holding_an_object_is_refused_naming_the_parameter() -> None:
-    with pytest.raises(ValueError, match="ngsSnp_strain_meta"):
-        coerce_proposals({"ngsSnp_strain_meta": [{"filters": []}]})
-
-
-def test_the_annotation_reports_the_offending_parameter() -> None:
-    with pytest.raises(ValidationError, match="ngsSnp_strain_meta"):
-        _ADAPTER.validate_python({"ngsSnp_strain_meta": [{"filters": []}]})
-
-
-def test_bracketed_text_that_is_not_json_stays_text() -> None:
-    assert coerce_proposals({"text_expression": "[unnamed]"}) == {
-        "text_expression": "[unnamed]"
-    }
-
-
-def test_a_non_mapping_passes_through_for_pydantic_to_reject() -> None:
-    assert coerce_proposals("not a mapping") == "not a mapping"
-
-
-def test_the_annotation_validates_and_has_a_json_schema() -> None:
-    # The annotation becomes the tool schema the model reads, so it has to
-    # stay JSON-schema-friendly.
-    assert _ADAPTER.validate_python({"fold_change": 2}) == {"fold_change": "2"}
-    assert _ADAPTER.json_schema()["type"] == "object"
 
 
 def _options(*values: str) -> list[VocabOption]:
@@ -140,6 +76,18 @@ _PFAM = _options(
     "PF00560 : LRR_1",
     "PF00006 : ATP-synt_ab",
 )
+_SHARED = _options("PF00069 : Pkinase", "PF00069 : Pkinase_C")
+
+
+def _typeahead(options: list[VocabOption]) -> WDKEnumParam:
+    return _enum(
+        "domain_typeahead",
+        *[(o.value, o.display, None) for o in options],
+        param_type="single-pick-vocabulary",
+        display_type="typeAhead",
+    )
+
+
 _PHYLETIC: list[WDKParameter] = [
     WDKStringParam(
         name="profile_pattern", is_visible=False, initial_display_value="hsap=1T"
@@ -201,16 +149,14 @@ SEARCHES: dict[str, _Search] = {
         "non-syntenic orthologs",
     ),
     "GenesByInterproDomain": _Search(
-        _one("domain_typeahead", "single-pick-vocabulary", _PFAM),
+        no_sheet,
         "kinase domain genes",
+        [_typeahead(_PFAM)],
     ),
     "GenesBySharedDomain": _Search(
-        _one(
-            "domain_typeahead",
-            "single-pick-vocabulary",
-            _options("PF00069 : Pkinase", "PF00069 : Pkinase_C"),
-        ),
+        no_sheet,
         "kinase domain genes",
+        [_typeahead(_SHARED)],
     ),
     "GenesByExpressionPercentile": _Search(
         _percentile(), "top 10 percent by expression"
@@ -218,17 +164,15 @@ SEARCHES: dict[str, _Search] = {
     "GenesByOptionalPercentile": _Search(
         _percentile(required=False), "top 10 percent by expression"
     ),
-    "GenesByOrthologPattern": _Search(
-        lambda _c: format_param_info_typed(_PHYLETIC), _PHYLETIC_TEXT, _PHYLETIC
-    ),
+    "GenesByOrthologPattern": _Search(no_sheet, _PHYLETIC_TEXT, _PHYLETIC),
     "GenesByEcNumber": _Search(
-        lambda _c: format_param_info_typed(_EC),
+        no_sheet,
         "protein kinases",
         _EC,
         {"radio-params": ["ec_number_pattern", "ec_wildcard"]},
     ),
     "GenesByGoTerm": _Search(
-        lambda _c: format_param_info_typed(_GO),
+        no_sheet,
         "protein kinase activity",
         _GO,
         {"radio-params": ["go_typeahead", "go_term"]},
@@ -239,7 +183,11 @@ SEARCHES: dict[str, _Search] = {
 def serve_for(monkeypatch: pytest.MonkeyPatch, search: str) -> list[SearchContext]:
     entry = SEARCHES[search]
     return serve_search(
-        monkeypatch, entry.at, catalog=entry.catalog, properties=entry.properties
+        monkeypatch,
+        entry.at,
+        catalog=entry.catalog,
+        properties=entry.properties,
+        declared=entry.catalog or (),
     )
 
 
@@ -249,16 +197,19 @@ async def propose(
     return await bind(state, search, params, text=SEARCHES[search].text)
 
 
-_ORGANISM_MISS = {**KINASE_PARAMS, "text_search_organism": ["Plasmodium falciprum 3D7"]}
-_PF_SUBSTRING = {**KINASE_PARAMS, "text_search_organism": ["falciparum"]}
-_BOGUS_NAME = {**KINASE_PARAMS, "totally_bogus_name": None}
+_ORGANISM_MISS: Proposals = {
+    **KINASE_PARAMS,
+    "text_search_organism": ["Plasmodium falciprum 3D7"],
+}
+_PF_SUBSTRING: Proposals = {**KINASE_PARAMS, "text_search_organism": ["falciparum"]}
+_BOGUS_NAME: Proposals = {**KINASE_PARAMS, "totally_bogus_name": None}
 PHYLETIC_ORGANISM: Proposals = {"organism": ["Pf3D7"]}
 
 _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     (
         "GenesByText",
         _ORGANISM_MISS,
-        ("text_search_organism", "get_parameter_options"),
+        ("text_search_organism takes a list of terms", "Plasmodium falciprum 3D7"),
     ),
     # "falciparum" reads as either organism under substring matching, so the
     # binding it would produce is decided by vocabulary order.
@@ -266,8 +217,8 @@ _REFUSALS: list[tuple[str, Proposals, tuple[str, ...]]] = [
     ("GenesByText", _BOGUS_NAME, ("totally_bogus_name", "text_expression")),
     (
         "GenesByOrthologs",
-        _ADAPTER.validate_python({"is_syntenic": False}),
-        ("'false'", "get_parameter_options"),
+        {"is_syntenic": False},
+        ("is_syntenic takes one of 'yes', 'no'", "it read False"),
     ),
     (
         "GenesBySharedDomain",
@@ -428,7 +379,7 @@ async def test_an_unknown_parameter_error_becomes_a_retry_listing_the_real_names
     assert st.operational_spec_draft.criteria == []
 
 
-_PASSTHROUGH: list[tuple[str, str | list[str] | None, dict[str, object]]] = [
+_PASSTHROUGH: list[tuple[str, JsonValue, dict[str, object]]] = [
     (
         "multi-pick-vocabulary",
         ["20 Hour", "21 Hour"],
@@ -444,7 +395,7 @@ _PASSTHROUGH: list[tuple[str, str | list[str] | None, dict[str, object]]] = [
 async def test_a_proposal_reaches_the_resolver_as_the_model_wrote_it(
     monkeypatch: pytest.MonkeyPatch,
     param_type: str,
-    proposed: str | list[str] | None,
+    proposed: JsonValue,
     expected: dict[str, object],
 ) -> None:
     # A multi-pick slot answered with a list stays a list: the codec encodes it
@@ -460,4 +411,4 @@ async def test_a_proposal_reaches_the_resolver_as_the_model_wrote_it(
 
     await bind(AgentToolState(), "GenesByMicroarray", {"samples": proposed})
 
-    assert captured["overrides"] == expected
+    assert captured["stated"] == expected

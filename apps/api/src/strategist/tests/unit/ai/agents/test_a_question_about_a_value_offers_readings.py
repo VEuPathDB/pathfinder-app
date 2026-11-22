@@ -160,10 +160,14 @@ _H11_FRAME = {
 @pytest.fixture
 def echoed(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        return ValidatedParams(params=dict(parameters))
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
 

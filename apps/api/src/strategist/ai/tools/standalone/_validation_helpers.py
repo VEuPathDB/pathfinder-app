@@ -16,22 +16,26 @@ from pydantic import (
 )
 from pydantic import ValidationError as PydanticValidationError
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy import StrategyAst, StrategyStep, StrategyStepNode
+from veupathdb.domain.strategy import StrategyAst, StrategyStep
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload, tool_error
 
-from strategist.domain.strategy.operations import (
-    KINDS_A_BATCH_REFUSES,
-    EditableOperation,
+from strategist.ai.tools.standalone._stated_values import (
+    StatedAddCombineOp,
+    StatedAddLeafOp,
+    StatedAddTransformOp,
+    StatedOperation,
+    StatedStepNode,
 )
+from strategist.domain.strategy.operations import KINDS_A_BATCH_REFUSES
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.stated_shape import placeholder_names
 from strategist.platform.errors import ErrorCode
 from strategist.services.strategies.schemas import StepResponse
 
 
-def _reject_placeholder_steps(root: StrategyStepNode) -> StrategyStepNode:
-    found = placeholder_names(root)
+def _reject_placeholder_names(names: list[str]) -> None:
+    found = placeholder_names(names)
     if found:
         msg = (
             f"{', '.join(found)}: a placeholder, not a WDK search. Every step "
@@ -39,28 +43,27 @@ def _reject_placeholder_steps(root: StrategyStepNode) -> StrategyStepNode:
             f"out of the tree."
         )
         raise ValueError(msg)
+
+
+def _reject_placeholder_steps(root: StatedStepNode) -> StatedStepNode:
+    _reject_placeholder_names(root.search_names())
     return root
 
 
-StepTreePayload = Annotated[StrategyStepNode, AfterValidator(_reject_placeholder_steps)]
+StepTreePayload = Annotated[StatedStepNode, AfterValidator(_reject_placeholder_steps)]
 """A step tree the model authored, refused while it holds a placeholder name."""
 
 
-def _step_tree_of(op: EditableOperation) -> StrategyStepNode | None:
-    """The step tree an operation carries, or None when it carries none."""
-    if op.kind == "addLeaf":
-        return op.step
-    if op.kind == "addCombine":
-        return op.step
-    if op.kind == "addTransform":
-        return op.step
-    return None
-
-
-def _reject_placeholder_operations(op: EditableOperation) -> EditableOperation:
-    tree = _step_tree_of(op)
-    if tree is not None:
-        _reject_placeholder_steps(tree)
+def _reject_placeholder_operations(op: StatedOperation) -> StatedOperation:
+    match op:
+        case (
+            StatedAddLeafOp(step=step)
+            | StatedAddCombineOp(step=step)
+            | StatedAddTransformOp(step=step)
+        ):
+            _reject_placeholder_names(step.search_names())
+        case _:
+            pass
     return op
 
 
@@ -102,7 +105,7 @@ def _refuse_a_removal_in_a_batch(value: object) -> object:
 
 
 OperationPayload = Annotated[
-    EditableOperation,
+    StatedOperation,
     BeforeValidator(_refuse_a_removal_in_a_batch),
     AfterValidator(_reject_placeholder_operations),
 ]

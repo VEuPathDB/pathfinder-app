@@ -95,10 +95,15 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
 
     async def _accept_every_value(
-        _ctx: Any, *, parameters: dict[str, Any], callbacks: Any
+        _ctx: Any,
+        *,
+        stated: dict[str, Any],
+        context: Any,
+        held_validation: Any,
+        callbacks: Any,
     ) -> ValidatedParams:
-        del callbacks
-        return ValidatedParams(params=parameters)
+        del context, held_validation, callbacks
+        return ValidatedParams(params=stated)
 
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None

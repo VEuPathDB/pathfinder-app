@@ -1,5 +1,5 @@
-"""A value a card binds is read on the published sheet of its criterion's
-search, so the facts row shows a picked term with the label the site gives it."""
+"""A value a card binds is read on its criterion's sheet, so the facts row shows
+a picked term with the label the site gives it."""
 
 from __future__ import annotations
 
@@ -9,7 +9,8 @@ from uuid import uuid4
 import pytest
 from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
 from veupathdb.domain.parameters import MultiPickValue
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb.wdk import WDKParameter
+from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import lead_consult
@@ -23,6 +24,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.question_options import SetValues, TypedOption
 from strategist.domain.strategy.questions import OpenQuestion
+from strategist.services.strategies import sheet_params
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -55,6 +57,7 @@ def _criterion() -> Criterion:
         id="c_domain",
         text="genes with a protein kinase domain",
         search_name=_SEARCH,
+        record_class="transcript",
         resolved_params={
             "domain_database": BoundValue(
                 value=MultiPickValue(values=["Pfam"]), source="stated"
@@ -78,7 +81,16 @@ async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
         read.append(sorted(search_names))
         return {_SEARCH: sheet}
 
+    def _fetch_at(_site_id: str, _record_type: str, _search: str) -> ParamFetcher:
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(
+                suite_search("search_genes_by_interpro_domain").parameters or []
+            )
+
+        return fetch_at
+
     monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
     deps = lead_deps(
         pipeline_state(
             "plasmodb",

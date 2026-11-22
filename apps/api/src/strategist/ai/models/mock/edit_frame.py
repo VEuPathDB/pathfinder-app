@@ -5,10 +5,19 @@ strategy holds, and changes what the arc names.
 from __future__ import annotations
 
 import re
-from typing import Any
+from collections.abc import Mapping
+from typing import Annotated, Any
 
 from assistant_core.models.scripted import scripted_call
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    JsonValue,
+    TypeAdapter,
+    ValidationError,
+)
 from pydantic_ai.messages import ToolCallPart
 from veupathdb.domain.strategy import CombineOp
 
@@ -22,6 +31,14 @@ from strategist.ai.models.mock.specs import (
 from strategist.domain.strategy.operational_spec import StructureNode
 
 EDIT_WORK_ORDER = "EDIT work order"
+_PRINTED: TypeAdapter[JsonValue] = TypeAdapter(JsonValue)
+
+
+def _decoded(printed: str) -> JsonValue:
+    try:
+        return _PRINTED.validate_json(printed)
+    except ValidationError:
+        return printed
 
 
 def _listing() -> ToolCallPart:
@@ -37,7 +54,9 @@ class WorkspaceCriterion(BaseModel):
     text: str
     search_name: str
     role: str
-    values: dict[str, str] = Field(default_factory=dict)
+    values: dict[str, Annotated[JsonValue, BeforeValidator(_decoded)]] = Field(
+        default_factory=dict
+    )
 
 
 _HEADER = re.compile(
@@ -51,7 +70,7 @@ _NAMED = re.compile(r"^(?P<transform>TRANSFORM )?\[(?P<cid>[^\]]+)\]")
 
 def workspace_criteria(work_order: str) -> list[WorkspaceCriterion]:
     """Read the criteria an EDIT work order prints, in order."""
-    found: list[tuple[re.Match[str], dict[str, str]]] = []
+    found: list[tuple[re.Match[str], dict[str, JsonValue]]] = []
     for line in work_order.splitlines():
         header = _HEADER.match(line)
         if header is not None:
@@ -128,7 +147,7 @@ def _target(
 def param_edit_call(
     work_order: str,
     search_name: str,
-    change: dict[str, str],
+    change: Mapping[str, JsonValue],
     called: frozenset[str],
     replies: list[CriterionReply],
 ) -> ToolCallPart:

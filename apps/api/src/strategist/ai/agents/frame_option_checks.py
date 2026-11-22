@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
 from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_PARAM
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.refusal_bound import may_refuse
 from strategist.ai.agents.state import AgentToolState
@@ -11,6 +14,7 @@ from strategist.domain.strategy.card_answers import option_refusal
 from strategist.domain.strategy.expression_handles import held_expressions, is_handle
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
+from strategist.services.strategies.sheet_params import criterion_sheets
 
 
 def _unknown(question: SlotQuestion, held: dict[str, str]) -> list[str]:
@@ -56,7 +60,11 @@ def hold_an_option_to_a_held_expression(
     raise ModelRetry(msg)
 
 
-def _refusals(question: SlotQuestion, state: AgentToolState) -> list[str]:
+def _refusals(
+    question: SlotQuestion,
+    state: AgentToolState,
+    sheets: Mapping[str, Sequence[ParameterInfo]],
+) -> list[str]:
     spec = state.operational_spec_draft
     criterion = next((c for c in spec.criteria if c.id == question.criterion_id), None)
     if criterion is not None and state.sets_the_site(
@@ -73,7 +81,7 @@ def _refusals(question: SlotQuestion, state: AgentToolState) -> list[str]:
                     criterion_id=question.criterion_id,
                     params={question.param_name: wire},
                 ),
-                sheets={},
+                sheets=sheets,
                 expressions=state.built_expressions,
             )
         )
@@ -87,13 +95,19 @@ def _unbindable(question: SlotQuestion, refusals: list[str]) -> str:
     )
 
 
-def hold_an_option_to_its_parameter(
+async def hold_an_option_to_its_parameter(
     ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
 ) -> FrameResult | DeferredToolRequests:
     if not isinstance(output, FrameResult):
         return output
     state = ctx.deps.agent_state
-    held = [(q, _refusals(q, state)) for q in output.open_questions]
+    asked = {q.criterion_id for q in output.open_questions}
+    sheets = await criterion_sheets(
+        ctx.deps.site_id,
+        [c for c in state.operational_spec_draft.criteria if c.id in asked],
+        state.infos_read_this_pass,
+    )
+    held = [(q, _refusals(q, state, sheets)) for q in output.open_questions]
     refused = [_unbindable(q, refusals) for q, refusals in held if refusals]
     if not refused:
         return output

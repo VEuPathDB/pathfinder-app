@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Mapping, Sequence
-from dataclasses import replace
 from types import MappingProxyType
 
 from veupathdb.domain.parameters import (
+    NumberValue,
     ParamKind,
     ParamValue,
+    StringValue,
     UnboundParameter,
+    decimal_text,
     to_wire,
 )
 from veupathdb.wdk import WDKSearch, WDKStringParam
@@ -104,16 +106,25 @@ def bound_values(
     return bound
 
 
-def _number(proposal: str | list[str] | None) -> float | None:
-    """The number a proposal of one text holds, else None."""
-    match proposal:
-        case str(text):
+def _number(value: ParamValue) -> float | None:
+    match value:
+        case NumberValue(value=number):
+            return number
+        case StringValue(value=text):
             try:
                 return float(text)
             except ValueError:
                 return None
         case _:
             return None
+
+
+def _on_scale(value: ParamValue, number: float) -> ParamValue:
+    match value:
+        case NumberValue():
+            return NumberValue(value=number)
+        case _:
+            return StringValue(value=decimal_text(number))
 
 
 def on_the_sites_scale(
@@ -123,10 +134,10 @@ def on_the_sites_scale(
     parameter's display name converted to that parameter's scale, and one
     correction for each."""
     shown = {info.name: info.display_name for info in infos}
-    params = dict(call.params)
+    converted: dict[str, ParamValue] = {}
     corrections: list[str] = []
-    for name, proposal in call.params.items():
-        number = _number(proposal)
+    for name, value in call.values.items():
+        number = _number(value)
         site = scale_of(shown.get(name, ""))
         stated = (
             None
@@ -135,13 +146,12 @@ def on_the_sites_scale(
         )
         if stated is None or site is None:
             continue
-        converted = f"{on_scale(stated.number, stated.scale, site):g}"
-        params[name] = converted
+        converted[name] = _on_scale(value, on_scale(stated.number, stated.scale, site))
         corrections.append(
             f"{name} ({shown[name]}) takes a {site} value, so {stated.words!r} "
-            f"binds as {converted}"
+            f"binds as {converted[name].to_wire()}"
         )
-    return replace(call, params=params), corrections
+    return call.with_values(converted), corrections
 
 
 def _vocabulary_holding(labels: list[str], infos: list[ParameterInfo]) -> list[str]:

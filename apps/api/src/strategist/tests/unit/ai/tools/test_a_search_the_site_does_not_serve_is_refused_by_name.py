@@ -155,7 +155,7 @@ async def test_a_404_outside_the_search_lookup_does_not_ban_the_search(
             text=_TEXT,
             search_name="ByIdList",
             role="seed",
-            params={"source_ids": TYPED_GENE_ID},
+            params={"source_ids": [TYPED_GENE_ID]},
         )
 
     assert state.unserved_searches == {}

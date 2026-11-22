@@ -39,6 +39,7 @@ from strategist.ai.models.mock import get_mock_model
 from strategist.domain.strategy.constraints import Constraint, ConstraintKind
 from strategist.domain.strategy.orthology import restate_copies
 from strategist.domain.strategy.session import StrategySession
+from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.platform.config import get_settings
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.platform.model_keys import is_mock_deployment
@@ -361,7 +362,7 @@ def apply_agent_state(deps: LeadDeps, agent_deps: AgentDeps) -> None:
     )
     deps.state.domain.built_expressions = dict(agent_deps.agent_state.built_expressions)
     deps.state.domain.site_set = deps.state.domain.site_set.with_reads(
-        agent_deps.agent_state.site_set_read_this_pass
+        SiteSetReads.of(agent_deps.agent_state.infos_read_this_pass).by_search
     )
     comparisons = agent_deps.agent_state.computed_comparisons
     deps.state.domain.computed_comparisons = dict(comparisons)

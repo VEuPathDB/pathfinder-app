@@ -15,7 +15,6 @@ from veupathdb_mcp.catalog import (
     SUBSET_QUERY,
     ResolvedSearch,
     ValidationCallbacks,
-    format_param_info_typed,
 )
 
 from strategist.ai.agents.state import AgentToolState
@@ -106,8 +105,7 @@ def _serve_the_eda_search(
 ) -> None:
     """The EDA-backed search, whose dataset default is ``default``."""
     parameters = _eda_params(default, visible=visible)
-    infos = format_param_info_typed(parameters)
-    serve_params(monkeypatch, lambda _context: infos)
+    serve_params(monkeypatch, declared=parameters)
     serve_definition(
         monkeypatch,
         parameters,

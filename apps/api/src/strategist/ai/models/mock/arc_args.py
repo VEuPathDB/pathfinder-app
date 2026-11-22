@@ -13,21 +13,15 @@ SIGNALP_VERSIONS = ("SignalP-6.0", "SignalP-4.1")
 
 def _variant_text_params(expression: str, organism: str) -> dict[str, Any]:
     return {
-        "text_expression": {"type": "string", "value": expression},
-        "text_fields": {"type": "multi-pick-vocabulary", "values": ["product"]},
-        "document_type": {"type": "string", "value": "gene"},
-        "text_search_organism": {
-            "type": "multi-pick-vocabulary",
-            "values": [organism],
-        },
+        "text_expression": expression,
+        "text_fields": ["product"],
+        "document_type": "gene",
+        "text_search_organism": [organism],
     }
 
 
 def _signalp_params(version: str, organism: str) -> dict[str, Any]:
-    return {
-        "organism": {"type": "multi-pick-vocabulary", "values": [organism]},
-        "signalp_version": {"type": "single-pick-vocabulary", "value": version},
-    }
+    return {"organism": [organism], "signalp_version": version}
 
 
 def variant_args(organism: str, searches: Collection[str]) -> dict[str, Any]:

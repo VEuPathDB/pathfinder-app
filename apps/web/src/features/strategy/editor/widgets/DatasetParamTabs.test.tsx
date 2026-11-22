@@ -114,6 +114,7 @@ describe("PasteTab", () => {
       <PasteTab
         text={"PF3D7_1133400\nPF3D7_0709000"}
         onTextChange={vi.fn()}
+        onDone={vi.fn()}
         name="ds"
       />,
     );

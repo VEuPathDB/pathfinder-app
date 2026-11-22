@@ -4,6 +4,7 @@ bindable ones, and a dependent vocabulary waits only for its stated parents."""
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, to_wire
 from veupathdb.wdk import WDKSearch
@@ -24,6 +25,7 @@ from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone._variant_targets import resolved_variants
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.session import StrategySession
+from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.variant_comparison import VariantInput
 from strategist.services.parameter_optimization.tunable import (
@@ -34,7 +36,11 @@ from strategist.tests._support.record_classes import (
     list_searches_under,
     serve_record_classes,
 )
-from strategist.tests._support.recorded_searches import client_search, suite_search
+from strategist.tests._support.recorded_searches import (
+    client_search,
+    serve_stated_reads,
+    suite_search,
+)
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools._rationale_catalog import choice
 from strategist.tests.unit.ai.tools.conftest import (
@@ -130,8 +136,8 @@ async def test_a_vocabulary_under_only_a_site_set_parent_is_checked_at_once(
         criterion_id="c1",
         search_name=_GIARDIA_TEXT.url_segment,
         text="genes annotated as cysteine-rich",
-        params={"text_fields": ["no such field"]},
-    )
+        params={},
+    ).with_values({"text_fields": MultiPickValue(values=["no such field"])})
 
     with pytest.raises(ModelRetry) as refused:
         await bound_vocabulary_values(
@@ -157,7 +163,7 @@ def _read_only_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
 
 async def _bind_read_only(
     monkeypatch: pytest.MonkeyPatch,
-    params: dict[str, str | list[str] | None],
+    params: dict[str, JsonValue],
     state: AgentToolState | None = None,
 ) -> SetCriterionResult:
     serve_search(monkeypatch, _read_only_sheet)
@@ -187,7 +193,7 @@ async def test_a_read_only_parameter_needs_no_decision(
     assert (
         result.resolved_params["q"],
         result.corrections,
-        state.site_set_read_this_pass,
+        SiteSetReads.of(state.infos_read_this_pass).by_search,
     ) == ("x", [], {"GenesByReadOnly": frozenset({"ro"})})
 
 
@@ -220,18 +226,14 @@ async def test_a_variant_sends_the_site_set_value_its_organism_gives(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(variant_comparison, "search_parameters", _ngs_snps_parameters)
+    serve_stated_reads(monkeypatch, [_SNPS])
     serve_record_classes(monkeypatch)
     list_searches_under(monkeypatch, "transcript", ["GenesByNgsSnps"])
     variant = VariantInput.model_validate(
         {
             "label": "vivax SNPs",
             "searchName": "GenesByNgsSnps",
-            "parameters": {
-                "organismSinglePick": {
-                    "type": "multi-pick-vocabulary",
-                    "values": [_VIVAX],
-                }
-            },
+            "parameters": {"organismSinglePick": [_VIVAX]},
         }
     )
 

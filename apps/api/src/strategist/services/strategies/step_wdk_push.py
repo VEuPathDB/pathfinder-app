@@ -10,7 +10,7 @@ from typing import assert_never
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.parameters import ParamValue, wire_map
 from veupathdb.domain.strategy import (
     CombineOp,
     StepKind,
@@ -19,7 +19,7 @@ from veupathdb.domain.strategy import (
     wdk_search_name,
 )
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk import encode_params, get_strategy_api
+from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.catalog import (
     ValidationCallbacks,
     make_validation_callbacks,
@@ -93,7 +93,7 @@ async def push_step_to_wdk(
     wdk_step_id: int | None = None
     wdk_validation: StepValidation | None = None
     failure: StepPushFailure | None = None
-    str_params: dict[str, str] = encode_params(parameters)
+    str_params = wire_map(parameters)
     try:
         api = get_strategy_api(site_id)
         is_binary = step.kind is StepKind.COMBINE
@@ -227,7 +227,10 @@ async def _execute_action(
                 None,
             )
         case CreateAction():
-            return await _execute_create(sync_state, site_id, step, record_type), None
+            return (
+                await _execute_create(sync_state, site_id, step, record_type),
+                None,
+            )
         case RecreateAction():
             return await _execute_recreate(sync_state, site_id, step, record_type)
         case _:
@@ -298,7 +301,9 @@ async def _validate_plan_params(
     site_id: str,
     existing_wdk_ids: dict[str, int],
 ) -> set[str]:
-    """Canonicalize the params of each step the plan writes them for, in place.
+    """Give each step the plan writes parameters for the site-set values it lacks.
+
+    A value the step holds is sent as it is, so nothing here judges or rewrites it.
 
     Validation resolves the record class WDK lists the step's search under, and
     the step keeps it. An incomplete step that is already in WDK raises instead
@@ -320,7 +325,8 @@ async def _validate_plan_params(
                     record_type=record_type,
                     search_name=wdk_search_name(step),
                 ),
-                parameters=dict(step.parameters),
+                stated={},
+                context=step.parameters,
                 callbacks=callbacks,
             )
         except ValidationError:
@@ -328,7 +334,7 @@ async def _validate_plan_params(
                 raise
             incomplete.add(entry.step_id)
         else:
-            step.parameters = validated.params
+            step.parameters = {**step.parameters, **validated.params}
             if validated.record_class:
                 step.record_class = validated.record_class
     return incomplete

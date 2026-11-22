@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb.wdk import WDKSearchResponse
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import format_param_info_typed
@@ -50,7 +51,12 @@ def _call(organism: str) -> CriterionCall:
         criterion_id="c_to_toxo",
         search_name="GenesByOrthologs",
         text=f"their orthologs in {organism}",
-        params={"organism": [organism], "isSyntenic": "no"},
+        params={},
+    ).with_values(
+        {
+            "organism": MultiPickValue(values=[organism]),
+            "isSyntenic": SinglePickValue(value="no"),
+        }
     )
 
 
@@ -106,7 +112,12 @@ async def test_vectorbase_to_plasmodium_links_the_portal(
         criterion_id="c_to_pf",
         search_name="GenesByOrthologs",
         text="their orthologs in Plasmodium falciparum 3D7",
-        params={"organism": ["Plasmodium falciparum 3D7"], "isSyntenic": "no"},
+        params={},
+    ).with_values(
+        {
+            "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"]),
+            "isSyntenic": SinglePickValue(value="no"),
+        }
     )
 
     with pytest.raises(ModelRetry) as refused:
@@ -164,7 +175,12 @@ async def test_a_flat_vocabulary_asks_no_site(monkeypatch: pytest.MonkeyPatch) -
         criterion_id="c_to_pviv",
         search_name="GenesByOrthologs",
         text="syntenic orthologs in Plasmodium vivax P01",
-        params={"organism": ["Plasmodium vivax P01"], "isSyntenic": "maybe"},
+        params={},
+    ).with_values(
+        {
+            "organism": MultiPickValue(values=["Plasmodium vivax P01"]),
+            "isSyntenic": SinglePickValue(value="maybe"),
+        }
     )
 
     with pytest.raises(ModelRetry) as refused:

@@ -31,14 +31,14 @@ async def site_spelling(
     expressions: Mapping[str, str],
 ) -> str | None:
     sent = resolved_params({param: wire}, expressions)[param]
-    parameters = site_values(
-        {**criterion.param_values, param: option_value(criterion, param, sent)}
-    )
+    held = site_values(criterion.param_values)
+    stated = {param: option_value(criterion, param, sent)}
     try:
         async with asyncio.timeout(CHECK_BUDGET_SECONDS):
             validated = await validate_parameters(
                 SearchContext(site_id, record_type, criterion.search_name),
-                parameters=parameters,
+                stated=stated,
+                context=held,
                 callbacks=make_validation_callbacks(site_id),
             )
     except ValidationError:

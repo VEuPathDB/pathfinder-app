@@ -31,6 +31,7 @@ from strategist.persistence.models import ConversationStrategy, User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.stated import stated_tree
 
 _KINASE_CRITERIA = ("step_k1", "step_k2", "step_k3", "step_k4")
 
@@ -174,7 +175,9 @@ async def test_a_refused_replacement_leaves_the_stored_strategy_intact(
     deps = _deps(conv_id, root, session_maker)
 
     with pytest.raises(ModelRetry) as excinfo:
-        await replace_subtree(_ctx(deps), "step_c1", _placeholder_subtree())
+        await replace_subtree(
+            _ctx(deps), "step_c1", stated_tree(_placeholder_subtree())
+        )
 
     for lost in _KINASE_CRITERIA:
         assert lost in str(excinfo.value)

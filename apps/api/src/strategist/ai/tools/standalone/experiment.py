@@ -15,7 +15,6 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
-from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.catalog import UnlistedSearchError, resolve_search_record_type
 from veupathdb_mcp.controls import (
     IntersectionConfig,
@@ -26,6 +25,7 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.stream_events import control_test_results_event
 from strategist.ai.graph.turn_records import ControlTestRun, ControlTestTarget
+from strategist.ai.tools.standalone._stated_values import typed_values
 from strategist.ai.tools.standalone.control_counts import ControlCounts
 from strategist.ai.tools.standalone.control_repeats import (
     RepeatedControlTest,
@@ -245,7 +245,7 @@ async def run_control_tests_on_step(
 async def run_control_tests_on_search(
     ctx: RunContext[AgentDeps],
     target_search_name: str,
-    target_parameters: dict[str, ParamValue],
+    target_parameters: dict[str, JsonValue],
     control_set_id: str,
     record_type: str | None = None,
 ) -> ToolReturn[ControlOutcome]:
@@ -264,9 +264,8 @@ async def run_control_tests_on_search(
     Args:
         ctx: Agent run context.
         target_search_name: WDK search/question urlSegment to test.
-        target_parameters: Target search parameter mapping. Each value MUST be
-            wrapped in its typed shape - see the ``valueFormat`` field from
-            ``get_search_overview`` for the per-param template.
+        target_parameters: Target search parameter mapping, each value in the
+            shape its ``statedSchema`` gives.
         control_set_id: An attached control set, by the id
             ``list_control_sets`` gives it.
         record_type: The target search's record type. Omit it: the catalog
@@ -279,13 +278,16 @@ async def run_control_tests_on_search(
         )
     except UnlistedSearchError as exc:
         raise ModelRetry(exc.detail or exc.title) from exc
+    values = await typed_values(
+        ctx.deps.site_id, target_search_name, target_parameters, record_type=record_type
+    )
     controls = controls_search(record_type)
     measured = await run_positive_negative_controls(
         IntersectionConfig(
             site_id=ctx.deps.site_id,
             record_type=record_type,
             target_search_name=target_search_name,
-            target_parameters=dict(target_parameters),
+            target_parameters=values,
             controls_search_name=controls.search_name,
             controls_param_name=controls.param_name,
             controls_value_format=controls.value_format,

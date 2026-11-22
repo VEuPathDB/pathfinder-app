@@ -16,7 +16,11 @@ from strategist.tests._support.record_classes import (
     list_searches_under,
     serve_record_classes,
 )
-from strategist.tests._support.recorded_searches import client_search, suite_search
+from strategist.tests._support.recorded_searches import (
+    client_search,
+    serve_stated_reads,
+    suite_search,
+)
 
 # The recorded plasmodb GenesByText, whose hidden document_type the site sets to gene.
 _TEXT = suite_search("search_genes_by_text")
@@ -36,6 +40,7 @@ async def _text_parameters(
 @pytest.fixture(autouse=True)
 def _recorded_text_search(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(variant_comparison, "search_parameters", _text_parameters)
+    serve_stated_reads(monkeypatch, [_TEXT, _LOCATION])
     serve_record_classes(monkeypatch)
     list_searches_under(monkeypatch, "transcript", ["GenesByLocation"])
 
@@ -46,8 +51,8 @@ def _text_search(**extra: object) -> VariantInput:
             "label": "signal peptide in product",
             "searchName": "GenesByText",
             "parameters": {
-                "text_expression": {"type": "string", "value": "signal peptide"},
-                "text_fields": {"type": "multi-pick-vocabulary", "values": ["product"]},
+                "text_expression": "signal peptide",
+                "text_fields": ["product"],
                 **extra,
             },
         }
@@ -65,7 +70,7 @@ async def test_a_hidden_parameter_the_variant_leaves_out_runs_at_the_sites_value
 
 
 async def test_a_value_named_for_a_hidden_parameter_is_replaced_by_the_sites() -> None:
-    named = _text_search(document_type={"type": "string", "value": "transcript"})
+    named = _text_search(document_type="transcript")
 
     (spec,) = await resolved_variants(StrategySession(site_id="plasmodb"), [named])
 
@@ -78,10 +83,7 @@ def _location(**values: object) -> VariantInput:
             "label": "chromosome 4",
             "searchName": "GenesByLocation",
             "parameters": {
-                "organismSinglePick": {
-                    "type": "multi-pick-vocabulary",
-                    "values": ["Plasmodium falciparum 3D7"],
-                },
+                "organismSinglePick": ["Plasmodium falciparum 3D7"],
                 **values,
             },
         }
@@ -104,7 +106,7 @@ async def test_a_parameter_the_variant_leaves_out_runs_at_the_sheets_value() -> 
 
 
 async def test_a_value_the_variant_names_is_sent_as_named() -> None:
-    named = _location(start_point={"type": "string", "value": "100000"})
+    named = _location(start_point="100000")
 
     (spec,) = await resolved_variants(StrategySession(site_id="plasmodb"), [named])
 

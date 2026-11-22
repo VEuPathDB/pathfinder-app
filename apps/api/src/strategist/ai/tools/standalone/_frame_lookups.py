@@ -12,7 +12,6 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState, LookupRecord
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.ai.tools.standalone._qualifier_words import proposal_values
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
 from strategist.domain.strategy.value_label import label_term
@@ -61,7 +60,7 @@ def _new_picks(
     kept = pick_terms(held[name].value) if name in held else []
     return [
         term
-        for term in proposal_values(call.params.get(name))
+        for term in call.terms(name)
         if term not in kept and not _written_out(term, state.request_messages)
     ]
 

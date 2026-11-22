@@ -14,8 +14,8 @@ from uuid import UUID
 
 from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
-from veupathdb.domain.parameters import ParamValue
+from pydantic import BaseModel, ConfigDict, Field
+from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
@@ -35,7 +35,6 @@ from veupathdb.wdk import (
     WDKStrategyDetails,
     encode_params,
     get_strategy_api,
-    get_wdk_client,
 )
 from veupathdb_mcp.wdk import (
     WireStep,
@@ -58,7 +57,6 @@ from strategist.services.strategies.write_lock import strategy_write_lock
 
 logger = get_logger(__name__)
 
-_TERMS = TypeAdapter(frozenset[str])
 
 __all__ = [
     "SiteEdits",
@@ -284,30 +282,17 @@ async def _differing(
         if name in wire.parameters
         and not same_wire_value(name, value, wire.parameters[name])
     ]
-    if names and wire.record_class is not None:
-        pushed = await get_wdk_client(site_id).expand_tree_params_to_leaves(
-            wire.record_class, search_name, held
-        )
-        names = [
-            name
-            for name in names
-            if not _same_terms(pushed[name], wire.parameters[name])
-        ]
     if not names:
         return {}
     decoded = await _decoded(step.id, search_name, wire, site_id)
     return {
         name: decoded[name]
         for name in names
-        if name in decoded and decoded[name] != step.parameters[name]
+        if name in decoded
+        and not same_wire_value(
+            name, to_wire(decoded[name]), to_wire(step.parameters[name])
+        )
     }
-
-
-def _same_terms(pushed: str, stored: str) -> bool:
-    try:
-        return _TERMS.validate_json(pushed) == _TERMS.validate_json(stored)
-    except ValidationError:
-        return False
 
 
 async def values_the_site_holds_otherwise(
@@ -321,16 +306,10 @@ async def values_the_site_holds_otherwise(
 async def _decoded(
     step_id: str, search_name: str, wire: WireStep, site_id: str
 ) -> dict[str, ParamValue]:
-    """The typed values of one step's wire values, empty when none decode."""
-    if wire.record_class is None:
-        logger.warning(
-            "The site names no record class for the step, so its values were not read",
-            step_id=step_id,
-            search_name=search_name,
-        )
-        return {}
+    """The values of one step's wire values, each held as the site holds it
+    where no kind reads it; empty when the site does not answer."""
     payload = StrategyAst(
-        record_type=wire.record_class,
+        record_type=wire.record_class or "",
         root=StrategyStepNode(id=step_id, search_name=search_name),
     )
     try:
@@ -385,7 +364,7 @@ async def _take_the_sites_shape(
 
 
 def _decodable(wire: WireStep) -> bool:
-    return wire.record_class is not None and bool(wire.parameters)
+    return bool(wire.parameters)
 
 
 async def _arrivals_decoded(

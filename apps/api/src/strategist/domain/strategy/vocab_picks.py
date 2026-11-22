@@ -111,7 +111,7 @@ class PickRead(CamelModel):
                     OpenSlot(
                         criterion_id=criterion.id,
                         param_name=self.param_name,
-                        param_kind=bound.value.type,
+                        param_kind=criterion.kind_of(self.param_name),
                         options=self._offered(bound),
                     ),
                 ],

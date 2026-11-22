@@ -18,7 +18,7 @@ from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse, WDKStringParam
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog import search_inspection
+from veupathdb_mcp.catalog import ParamFetcher, search_inspection
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps, VerificationScope
@@ -170,8 +170,16 @@ def patch_search_details(
     async def _resolve(*_args: object, **_kwargs: object) -> str:
         return record_type
 
+    def _fetch_at(_site_id: str, _record_type: str, _search_name: str) -> ParamFetcher:
+        async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
+            client.contexts.append(context)
+            return list(client.parameters)
+
+        return fetch_at
+
     monkeypatch.setattr(search_inspection, "resolve_search_record_type", _resolve)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
+    monkeypatch.setattr(search_inspection, "wdk_fetch_at", _fetch_at)
     return client
 
 

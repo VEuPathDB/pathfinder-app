@@ -15,12 +15,13 @@ function formatRange(min: string | null, max: string | null): string {
 export function formatParamValue(value: ParamValue): string {
   switch (value.type) {
     case "string":
-    case "date":
     case "timestamp":
     case "single-pick-vocabulary":
       return value.value;
+    case "date":
+      return value.value ?? "";
     case "number":
-      return String(value.value);
+      return value.value === null ? "" : String(value.value);
     case "multi-pick-vocabulary": {
       const values = value.values ?? [];
       return values.length === 0 ? "(none)" : values.join(", ");
@@ -37,11 +38,14 @@ export function formatParamValue(value: ParamValue): string {
     case "input-step":
       return value.stepId;
     case "filter": {
+      if (value.empty === true) return "";
       const filters = value.filters ?? [];
       if (filters.length === 0) return "(no filters)";
       const fields = filters.map((f) => f.field).join(", ");
       return `${String(filters.length)} ${filters.length === 1 ? "filter" : "filters"} (${fields})`;
     }
+    case "held":
+      return value.wire;
   }
 }
 
@@ -61,12 +65,12 @@ export function statesAllTerm(value: ParamValue): boolean {
 export function statesNothing(value: ParamValue): boolean {
   switch (value.type) {
     case "string":
-    case "date":
     case "timestamp":
     case "single-pick-vocabulary":
       return value.value === "";
+    case "date":
     case "number":
-      return false;
+      return value.value === null;
     case "multi-pick-vocabulary":
       return (value.values ?? []).length === 0;
     case "number-range":
@@ -78,5 +82,7 @@ export function statesNothing(value: ParamValue): boolean {
       return value.stepId === "";
     case "filter":
       return (value.filters ?? []).length === 0;
+    case "held":
+      return value.wire === "";
   }
 }

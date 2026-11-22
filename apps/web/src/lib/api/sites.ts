@@ -13,6 +13,8 @@ import { siteResponseSchema } from "@strategist/shared/generated/zod/siteRespons
 import { validationResponseSchema } from "@strategist/shared/generated/zod/validationResponseSchema";
 import { z } from "zod";
 
+import type { SaveDatasetMutationRequest } from "@strategist/shared/generated/types/SaveDataset";
+import { savedDatasetSchema } from "@strategist/shared/generated/zod/savedDatasetSchema";
 import type { DependentParamsRequest } from "@strategist/shared/generated/types/DependentParamsRequest";
 import type { ParamSpecsRequest } from "@strategist/shared/generated/types/ParamSpecsRequest";
 import type { SearchValidationRequest } from "@strategist/shared/generated/types/SearchValidationRequest";
@@ -137,4 +139,18 @@ export function paramSpecsOptions(
     staleTime: 5 * 60_000,
     enabled: siteId !== "" && recordType !== "" && searchName !== "",
   });
+}
+
+export const SAVE_DATASET_KEY = ["save-dataset"] as const;
+
+export async function saveDataset(
+  siteId: string,
+  source: SaveDatasetMutationRequest,
+): Promise<string> {
+  const saved = await requestJson(
+    savedDatasetSchema,
+    `/api/v1/sites/${encodeURIComponent(siteId)}/datasets`,
+    { method: "POST", body: source },
+  );
+  return saved.datasetId;
 }

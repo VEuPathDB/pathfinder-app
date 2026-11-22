@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import SinglePickValue, VocabOption
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -77,7 +78,7 @@ def _sheet(context: dict[str, str]) -> list[ParameterInfo]:
 
 async def _bind(
     state: AgentToolState,
-    params: dict[str, str | list[str] | None],
+    params: dict[str, JsonValue],
     term: str = "Experiment",
 ) -> SetCriterionResult:
     state.record_catalog_read(listing([_SEARCH]))
@@ -236,7 +237,7 @@ def _held_spec() -> OperationalSpec:
 
 def test_a_hidden_parameter_is_held_by_no_question() -> None:
     state = AgentToolState()
-    state.record_site_set(_SEARCH, _sheet({}))
+    state.record_read(_SEARCH, _sheet({}))
 
     assert dict(params_held(_held_spec(), state.sets_the_site)) == {
         "c_ama": {"fold_change"}
@@ -248,7 +249,7 @@ def test_a_card_binds_no_hidden_parameter() -> None:
         _held_spec(),
         SetValues(criterion_id="c_ama", params={"profileset_generic": _AMA}),
         option_id="o_ama",
-        sheets={_SEARCH: _sheet({})},
+        sheets={"c_ama": _sheet({})},
         expressions={},
     )
 
@@ -279,7 +280,7 @@ def test_a_card_leaves_a_read_only_value_at_the_sites_default() -> None:
         spec,
         SetValues(criterion_id="c_ama", params={"profileset_generic": _AMA}),
         option_id="o_ama",
-        sheets={_SEARCH: sheet},
+        sheets={"c_ama": sheet},
         expressions={},
     )
 

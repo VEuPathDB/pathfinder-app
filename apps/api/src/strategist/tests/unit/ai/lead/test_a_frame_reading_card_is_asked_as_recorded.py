@@ -180,10 +180,14 @@ def no_site(monkeypatch: pytest.MonkeyPatch) -> None:
         return {}
 
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        return ValidatedParams(params=dict(parameters))
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)

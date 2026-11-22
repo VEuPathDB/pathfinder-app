@@ -4,7 +4,12 @@ from collections.abc import Iterator, Mapping
 from typing import Literal
 
 from pydantic import ConfigDict, Field, ValidationError, model_validator
-from veupathdb.domain.parameters import ParamKind, ParamValue, UnboundParameter
+from veupathdb.domain.parameters import (
+    ParamKind,
+    ParamValue,
+    UnboundParameter,
+    value_kind,
+)
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
@@ -372,8 +377,9 @@ class Criterion(CamelModel):
 
     def kind_of(self, param: str) -> ParamKind:
         held = self.resolved_params.get(param)
-        if held is not None:
-            return held.value.type
+        kind = value_kind(held.value) if held is not None else None
+        if kind is not None:
+            return kind
         kinds: dict[str, ParamKind] = {
             s.param_name: s.param_kind for s in self.open_params
         }
@@ -499,13 +505,6 @@ class OperationalSpec(CamelModel):
         held = [] if self.structure is None else combine_nodes(self.structure.root)
         combines = [(criteria_under(n), n.operator) for n in held]
         return [r for r in self.operator_reads if any(r.reads(*c) for c in combines)]
-
-
-def pending_analyses(spec: OperationalSpec | None) -> list[Criterion]:
-    """Every criterion waiting for the Lead's EDA tools, in spec order."""
-    if spec is None:
-        return []
-    return [criterion for criterion in spec.criteria if criterion.pending_analysis]
 
 
 def structure_criteria(structure: SpecStructure | None) -> frozenset[str]:

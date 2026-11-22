@@ -52,7 +52,10 @@ from strategist.domain.strategy.questions import (
 )
 from strategist.domain.strategy.readings import ReadingChooser, ReadValues
 from strategist.domain.strategy.requirement_reports import numbered_requirements
-from strategist.services.strategies.sheet_params import parameters_of_searches
+from strategist.services.strategies.sheet_params import (
+    criterion_sheets,
+    parameters_of_searches,
+)
 
 _LABEL_LIMIT = 120
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
@@ -227,8 +230,9 @@ def apply_option_bindings(
 async def _card_sheets(
     state: PipelineState, answers: Sequence[UserQuestionAnswer]
 ) -> dict[str, list[ParameterInfo]]:
-    """Every published parameter of each search a picked option binds a value
-    on, the ones the site sets included."""
+    """Every published parameter of each criterion a picked option binds a value
+    on, the ones the site sets included, with each dependent vocabulary read
+    under the values that criterion holds, by criterion id."""
     spec = state.domain.operational_spec
     recorded = {q.question: q for q in state.domain.open_questions}
     bound = {
@@ -246,7 +250,12 @@ async def _card_sheets(
     )
     if spec is None or not searches:
         return {}
-    return await parameters_of_searches(site_id=state.site_id, search_names=searches)
+    published = await parameters_of_searches(
+        site_id=state.site_id, search_names=searches
+    )
+    return await criterion_sheets(
+        state.site_id, [c for c in spec.criteria if c.id in bound], published
+    )
 
 
 def _picks_that_are_no_value(

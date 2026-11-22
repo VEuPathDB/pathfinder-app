@@ -17,7 +17,6 @@ def _info() -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="Tier-quantile floor for read counts",
-        value_format="single",
         default_value="6772.93",
         allowed_values=[
             VocabOption(value="1693.23", display="1693 reads"),

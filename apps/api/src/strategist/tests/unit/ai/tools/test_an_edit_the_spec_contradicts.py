@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters import NumberValue, StringValue
+from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp
 
 from strategist.ai.tools.standalone.strategy_edits import (
@@ -12,6 +12,7 @@ from strategist.ai.tools.standalone.strategy_edits import (
     update_combine_operator,
     update_leaf_params,
 )
+from strategist.tests._support.stated import stated_tree
 
 from ._spec_contradiction_case import (
     MIC2,
@@ -20,6 +21,7 @@ from ._spec_contradiction_case import (
     STATED_PERCENTILE,
     grounded_deps,
     measured_deps,
+    serve_the_case_reads,
     union_of_the_same_three,
 )
 from ._strategy_edit_stubs import StubAPI, ctx, install_stub_api, leaf
@@ -27,7 +29,9 @@ from ._strategy_edit_stubs import StubAPI, ctx, install_stub_api, leaf
 
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
-    return install_stub_api(monkeypatch)
+    api = install_stub_api(monkeypatch)
+    serve_the_case_reads(monkeypatch)
+    return api
 
 
 class TestAnEditTheSpecContradictsIsRefused:
@@ -52,7 +56,9 @@ class TestAnEditTheSpecContradictsIsRefused:
         deps = measured_deps()
 
         with pytest.raises(ModelRetry) as excinfo:
-            await replace_subtree(ctx(deps), PROFILE_JOIN, union_of_the_same_three())
+            await replace_subtree(
+                ctx(deps), PROFILE_JOIN, stated_tree(union_of_the_same_three())
+            )
 
         assert "set_structure" in str(excinfo.value)
         graph = deps.strategy_session.graph
@@ -68,7 +74,9 @@ class TestAnEditTheSpecContradictsIsRefused:
         await replace_subtree(
             ctx(deps),
             MIC2,
-            leaf(MIC2, {"ProfileGeneId": StringValue(value="TGME49_201780")}),
+            stated_tree(
+                leaf(MIC2, {"ProfileGeneId": StringValue(value="TGME49_201780")})
+            ),
         )
 
         graph = deps.strategy_session.graph
@@ -90,7 +98,7 @@ class TestAnEditTheSpecContradictsIsRefused:
         await update_leaf_params(
             ctx(deps),
             PROFILE,
-            {"profile_pattern": StringValue(value="%hsap:N%tgme:Y%")},
+            {"profile_pattern": "%hsap:N%tgme:Y%"},
         )
 
         graph = deps.strategy_session.graph
@@ -107,9 +115,7 @@ async def test_a_value_a_stated_requirement_grounds_onto_is_refused(
     deps = grounded_deps(dict(STATED_PERCENTILE))
 
     with pytest.raises(ModelRetry) as excinfo:
-        await update_leaf_params(
-            ctx(deps), MIC2, {"min_expression_percentile": NumberValue(value=80)}
-        )
+        await update_leaf_params(ctx(deps), MIC2, {"min_expression_percentile": 80})
 
     assert "set_criterion" in str(excinfo.value)
     assert "'90'" in str(excinfo.value)

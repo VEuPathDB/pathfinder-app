@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 from pydantic import SecretStr
+from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.controls import (
     ControlsSearch,
     ControlTargetData,
@@ -122,6 +123,10 @@ class _SeedApi:
         return []
 
 
+async def _as_stated(*_args: Any, **kwargs: Any) -> ValidatedParams:
+    return ValidatedParams(params=dict(kwargs["stated"]))
+
+
 async def test_a_group_seed_reads_its_controls_by_group_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -146,6 +151,7 @@ async def test_a_group_seed_reads_its_controls_by_group_id(
     monkeypatch.setattr(seeds, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(seeds, "run_step_control_tests", run)
+    monkeypatch.setattr(materialization, "validate_parameters", _as_stated)
     list_searches_under(monkeypatch, "group", [_PFAM, _PATTERN])
     (seed, *_) = get_seeds_for_site("orthomcl")
 

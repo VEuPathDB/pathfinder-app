@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
+
 import pytest
-from veupathdb.domain.parameters import ParamValue, StringValue, param_value_from_raw
+from veupathdb.domain.parameters import ParamValue, StringValue, from_wire
 from veupathdb.domain.strategy import StepKind, StrategyStep
 
 from strategist.domain.requirement_checks import grounded_check
@@ -34,7 +36,7 @@ _PARAM = "weight"
 
 
 def _range(low: float, high: float) -> ParamValue:
-    return param_value_from_raw({"min": low, "max": high}, "number-range")
+    return from_wire("number-range", json.dumps({"min": low, "max": high}))
 
 
 def _count(source: ConstraintSource = ConstraintSource.USER_EXPLICIT) -> Constraint:
@@ -68,7 +70,7 @@ def _refusal(held: Constraint, value: ParamValue, written: ParamValue) -> str:
         ),
     )
     refused = new_value_contradiction(
-        stated=spec_stated_values(spec), graph=graph, before={}
+        stated=spec_stated_values(spec), graph=graph, before={}, after={}
     )
     return refused or ""
 

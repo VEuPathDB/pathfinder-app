@@ -4,7 +4,7 @@ records the edit over a reason derived from the value it moves."""
 from __future__ import annotations
 
 import pytest
-from pydantic import TypeAdapter
+from pydantic import JsonValue, TypeAdapter
 from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
@@ -16,7 +16,6 @@ from strategist.ai.agents.state import AgentToolState
 from strategist.ai.models.mock.edit_frame import param_edit_call
 from strategist.ai.models.mock.specs import CriterionReply
 from strategist.ai.models.mock.strategy_specs import EDITED_MIN_TM, TM_DOMAINS
-from strategist.ai.tools.standalone._frame_proposals import ParamProposals
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone.frame_spec import set_criterion
@@ -51,6 +50,8 @@ _HELD_REASON = SearchRationale(
     tool_call_id="call_turn1_read",
     derived_from={name: to_wire(value) for name, value in _HELD_VALUES.items()},
 )
+
+_PARAMS: TypeAdapter[dict[str, JsonValue]] = TypeAdapter(dict[str, JsonValue])
 
 
 def _state() -> AgentToolState:
@@ -98,7 +99,7 @@ async def test_the_param_edit_is_recorded_with_its_own_why(
             text=args["text"],
             search_name=args["search_name"],
             role=args["role"],
-            params=TypeAdapter(ParamProposals).validate_python(args["params"]),
+            params=_PARAMS.validate_python(args["params"]),
             why=SearchChoice.model_validate(args["why"]),
         ),
         SetCriterionResult,

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import InputDatasetValue
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone._frame_proposals import ParamProposals
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone.frame_spec import set_criterion
@@ -36,7 +36,9 @@ def _state(message: str = _MESSAGE) -> AgentToolState:
     return state
 
 
-async def _bind(state: AgentToolState, params: ParamProposals) -> SetCriterionResult:
+async def _bind(
+    state: AgentToolState, params: dict[str, JsonValue]
+) -> SetCriterionResult:
     return returned(
         await set_criterion(
             group_strategy_ctx(state),
@@ -69,7 +71,7 @@ async def test_a_typed_gene_id_binds_as_an_id_list_dataset(
     site = serve_orthomcl(monkeypatch)
     state = _state()
 
-    result = await _bind(state, {"source_ids": TYPED_GENE_ID})
+    result = await _bind(state, {"source_ids": [TYPED_GENE_ID]})
 
     assert site.datasets == [[TYPED_GENE_ID]]
     assert all(TYPED_GENE_ID not in context.values() for context in site.contexts)
@@ -85,30 +87,13 @@ async def test_a_typed_gene_id_binds_as_an_id_list_dataset(
     )
 
 
-async def test_the_typed_form_the_overview_shows_carries_the_ids(
+async def test_a_dataset_id_binds_that_dataset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     site = serve_orthomcl(monkeypatch)
     state = _state()
 
-    await _bind(
-        state,
-        {"source_ids": f'{{"type": "input-dataset", "datasetId": "{TYPED_GENE_ID}"}}'},
-    )
-
-    assert site.datasets == [[TYPED_GENE_ID]]
-    assert _bound(state)[0] == InputDatasetValue(dataset_id="9001")
-
-
-async def test_the_typed_form_with_a_dataset_id_binds_that_dataset(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    site = serve_orthomcl(monkeypatch)
-    state = _state()
-
-    await _bind(
-        state, {"source_ids": '{"type": "input-dataset", "datasetId": "330713643"}'}
-    )
+    await _bind(state, {"source_ids": 330713643})
 
     assert site.datasets == []
     assert site.counted == [
@@ -116,13 +101,13 @@ async def test_the_typed_form_with_a_dataset_id_binds_that_dataset(
     ]
 
 
-async def test_a_typed_numeric_id_is_an_id_and_not_a_dataset(
+async def test_a_listed_numeric_id_is_an_id_and_not_a_dataset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     site = serve_orthomcl(monkeypatch)
     state = _state("Look up the protein with the id 814630.")
 
-    await _bind(state, {"source_ids": "814630"})
+    await _bind(state, {"source_ids": ["814630"]})
 
     assert site.datasets == [["814630"]]
     assert _bound(state)[1:] == ("stated", "814630", "814630")
@@ -134,25 +119,31 @@ async def test_a_re_call_with_the_same_ids_reuses_its_dataset(
     site = serve_orthomcl(monkeypatch)
     state = _state()
 
-    await _bind(state, {"source_ids": TYPED_GENE_ID})
+    await _bind(state, {"source_ids": [TYPED_GENE_ID]})
     await _bind(state, {"source_ids": [TYPED_GENE_ID]})
 
     assert site.datasets == [[TYPED_GENE_ID]]
     assert _bound(state)[0] == InputDatasetValue(dataset_id="9001")
 
 
-async def test_a_form_it_cannot_read_is_refused_naming_the_forms_it_reads(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize(
+    "stated",
+    [
+        TYPED_GENE_ID,
+        {"type": "input-dataset", "datasetId": "330713643"},
+        '{"sourceType": "idList"}',
+    ],
+)
+async def test_a_value_that_is_no_id_and_no_list_is_refused(
+    monkeypatch: pytest.MonkeyPatch, stated: JsonValue
 ) -> None:
     site: OrthoSite = serve_orthomcl(monkeypatch)
-    state = _state()
 
     with pytest.raises(ModelRetry) as refused:
-        await _bind(state, {"source_ids": '{"sourceType": "idList"}'})
+        await _bind(_state(), {"source_ids": stated})
 
-    assert refused.value.message == (
-        "source_ids takes the ids separated by commas or spaces, or a dataset id "
-        'as {"type": "input-dataset", "datasetId": "<id>"}; it read neither in '
-        '\'{"sourceType": "idList"}\'. Nothing was recorded.'
+    assert refused.value.message.startswith(
+        "source_ids takes a positive integer dataset id"
     )
+    assert refused.value.message.endswith("Nothing was recorded.")
     assert site.datasets == []

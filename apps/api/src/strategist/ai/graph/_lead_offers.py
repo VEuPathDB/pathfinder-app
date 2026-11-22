@@ -15,6 +15,7 @@ from typing import Any
 from assistant_core.graph import approvals
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.turn_state import ParkedCall, PendingApproval
+from pydantic import JsonValue
 from pydantic_ai.tools import (
     DeferredToolApprovalResult,
     DeferredToolResults,
@@ -75,7 +76,7 @@ def _declined_offer(
             AddCriterionChange(
                 sentence=f"{criterion.text} ({criterion.role})",
                 search_name=criterion.search_name,
-                params=shown_params(criterion.param_values),
+                params=dict[str, JsonValue](shown_params(criterion.param_values)),
             )
             for criterion in offer.spec.criteria
         ],

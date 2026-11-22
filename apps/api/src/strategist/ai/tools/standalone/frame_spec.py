@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import to_wire
 from veupathdb.errors import ValidationError
+from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import (
-    ParameterInfo,
     ParamFetcher,
     ResolvedParams,
+    format_param_info_typed,
     make_validation_callbacks,
     shortlist_slot,
     validate_parameters,
@@ -45,9 +47,10 @@ from strategist.ai.tools.standalone._frame_measure import (
 )
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    ParamProposals,
     bound_vocabulary_values,
+    left_to_the_site,
     radio_overrides,
+    read_call,
     refuse_undecided,
     refuse_unknown_names,
     resolve_proposals,
@@ -95,9 +98,9 @@ def _memoized_fetch(site_id: str, record_type: str, search_name: str) -> ParamFe
     expandParams payload.
     """
     fetch_at = wdk_fetch_at(site_id, record_type, search_name)
-    read: dict[tuple[tuple[str, str], ...], list[ParameterInfo]] = {}
+    read: dict[tuple[tuple[str, str], ...], list[WDKParameter]] = {}
 
-    async def memoized(context: dict[str, str]) -> list[ParameterInfo]:
+    async def memoized(context: dict[str, str]) -> list[WDKParameter]:
         key = tuple(sorted(context.items()))
         if key not in read:
             read[key] = await fetch_at(context)
@@ -115,7 +118,7 @@ async def _canonical_binding(
     try:
         validated = await validate_parameters(
             search,
-            parameters=dict(resolved.params),
+            stated=dict(resolved.params),
             callbacks=make_validation_callbacks(search.site_id),
         )
     except ValidationError as exc:
@@ -133,7 +136,7 @@ async def set_criterion(
     text: str,
     search_name: str = "",
     role: CriterionRole = "filter",
-    params: ParamProposals | None = None,
+    params: dict[str, JsonValue] | None = None,
     saved_strategy: str = "",
     gene_set: str = "",
     computed_groups: str = "",
@@ -177,14 +180,9 @@ async def set_criterion(
     object to send back: copy it and replace each null with a value or leave
     null; do not rename keys. Then call it AGAIN with that ``params`` object.
 
-    A value must be copied from the sheet's vocabulary when the parameter has
-    one (a tree parent term selects its children); a number or free text is the
-    literal the request states; a filter parameter takes "<member facet>=<v1>,<v2>",
-    or "<range facet><=<n>", "<range facet>>=<n>" or "<range facet>=<lo>..<hi>"
-    for a facet the sheet marks is_range or of type date; an input-dataset
-    parameter takes the ids the request states, separated by commas or spaces,
-    which the tool saves on the site as an ID list, or a saved dataset as
-    {"type": "input-dataset", "datasetId": "<dataset id>"}.
+    Each value takes the shape its sheet entry's schema gives; a filter takes a
+    list of {field, value, includeUnknown}. An input-dataset parameter also
+    takes a list of the ids the request states, which the tool saves as an ID list.
     ``null`` means the request does not determine it: the search default applies
     and is reported in ``defaulted_params``, or the parameter becomes an open
     slot when there is no default. Do not pass null for a numeric parameter when
@@ -276,7 +274,7 @@ async def _bind_the_search(
     search_name: str,
     record_type: str,
     *,
-    params: ParamProposals,
+    params: dict[str, JsonValue],
     why: SearchChoice | None,
     reading: str,
 ) -> ToolReturn[SetCriterionResult]:
@@ -288,13 +286,13 @@ async def _bind_the_search(
         definition = await catalog_search_definition(
             ctx.deps.site_id, record_type, search_name
         )
-        infos = await fetch_at({})
-    state.record_site_set(search_name, infos)
+        infos = format_param_info_typed(await fetch_at({}))
+    state.record_read(search_name, infos)
     refuse_a_param_the_sheet_lacks(stated.answers, infos)
     await refuse_a_search_the_criterion_cannot_use(
         ctx, record_type, definition, stated, params
     )
-    call, fixed = proposed_call(
+    call, fixed = left_to_the_site(
         with_stored_expressions(
             state,
             CriterionCall(
@@ -305,12 +303,14 @@ async def _bind_the_search(
             ),
         ),
         infos,
-        state,
-        stated.answers,
     )
-    await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     refuse_unknown_names(call, infos)
     refuse_undecided(call, infos)
+    call, typed = await saved_id_lists(ctx.deps.site_id, state, call, infos)
+    call, corrected = proposed_call(
+        await read_call(search, fetch_at, call), infos, state, stated.answers
+    )
+    await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     lists = species_lists(infos)
     radio = radio_overrides(definition, call, infos)
     call = await bound_vocabulary_values(
@@ -323,15 +323,7 @@ async def _bind_the_search(
     )
     refuse_what_the_words_decide(definition, call, infos, state)
     refuse_a_pick_no_lookup_read(state, definition, call, infos)
-    # A null proposal states no value, so it leaves the param to resolution.
-    overrides = {
-        **{name: value for name, value in call.params.items() if value is not None},
-        **radio,
-    }
-    overrides, typed = await saved_id_lists(
-        ctx.deps.site_id, state, criterion_id, infos, overrides
-    )
-    resolved = await resolve_proposals(fetch_at, call, overrides, definition)
+    resolved = await resolve_proposals(search, fetch_at, call, radio)
     if resolved.unread:
         msg = (
             f"The criterion states a quantity and {resolved.unread} was left null. "
@@ -423,7 +415,7 @@ async def _bind_the_search(
             result_count=count,
             alternatives=alternatives,
             rationale=chosen.rationale,
-            corrections=fixed,
+            corrections=[*fixed, *corrected],
             measurements=measured,
         ),
         record_type,

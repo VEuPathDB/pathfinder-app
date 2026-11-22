@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -12,7 +13,6 @@ from strategist.tests.unit.ai.tools.test_frame_spec import (
 )
 
 _SEARCH = "GenesByRhythm"
-_FORMAT = '{"type": "number-range", "min": <number>, "max": <number>}'
 _TEXT = "genes with a daily rhythm"
 
 
@@ -26,17 +26,16 @@ def _period(_context: dict[str, str]) -> list[ParameterInfo]:
             "period_range",
             "number-range",
             default_value='{"min":"20","max":"28"}',
-            value_format=_FORMAT,
         )
     ]
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "stated", ['{"min": 20, "max": 28}', '{"min":"20","max":"28"}', None]
+    "stated", [{"min": 20, "max": 28}, {"min": 20.5, "max": 28}, None]
 )
 async def test_a_range_binds_with_no_open_slot(
-    monkeypatch: pytest.MonkeyPatch, stated: str | None
+    monkeypatch: pytest.MonkeyPatch, stated: JsonValue
 ) -> None:
     _serve(monkeypatch)
 
@@ -46,7 +45,7 @@ async def test_a_range_binds_with_no_open_slot(
 
 
 @pytest.mark.asyncio
-async def test_a_range_the_kind_cannot_read_is_sent_back_with_its_format(
+async def test_a_range_written_as_text_is_sent_back_with_its_shape(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _serve(monkeypatch)
@@ -54,5 +53,7 @@ async def test_a_range_the_kind_cannot_read_is_sent_back_with_its_format(
     with pytest.raises(ModelRetry) as retry:
         await bind(AgentToolState(), _SEARCH, {"period_range": "20-28"}, text=_TEXT)
 
-    assert "period_range" in str(retry.value)
-    assert _FORMAT in str(retry.value)
+    assert retry.value.message == (
+        'period_range takes {"min": number, "max": number}, for example '
+        "{'min': 0.0, 'max': 1.0}; it read '20-28'. Nothing was recorded."
+    )

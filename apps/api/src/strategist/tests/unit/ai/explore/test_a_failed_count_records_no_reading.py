@@ -31,25 +31,19 @@ async def test_a_failed_call_records_none_of_its_readings(
 ) -> None:
     serve_recorded_readings(monkeypatch)
     ctx = lead_run_context(site_id=SITE)
-    organism = {
-        "type": "multi-pick-vocabulary",
-        "values": [SiteValues.for_site(SITE).organism],
-    }
+    organism = [SiteValues.for_site(SITE).organism]
     readings = [
         _reading(
             "signal peptide",
             SIGNAL_PEPTIDE,
             organism=organism,
-            signalp_version={
-                "type": "single-pick-vocabulary",
-                "value": SIGNALP_VERSIONS[0],
-            },
+            signalp_version=SIGNALP_VERSIONS[0],
         ),
         _reading(
             "no such gene type",
             GENE_TYPE,
             organism=organism,
-            geneType={"type": "multi-pick-vocabulary", "values": ["no such type"]},
+            geneType=["no such type"],
         ),
     ]
 

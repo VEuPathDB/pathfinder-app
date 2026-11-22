@@ -147,10 +147,14 @@ def _asked(
 @pytest.fixture
 def echoed(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        return ValidatedParams(params=dict(parameters))
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
 
@@ -158,11 +162,15 @@ def echoed(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def parsed(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        PhyleticExpression.parse(parameters[_EXPRESSION].to_wire())
-        return ValidatedParams(params=dict(parameters))
+        PhyleticExpression.parse(stated[_EXPRESSION].to_wire())
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
 

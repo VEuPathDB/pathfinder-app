@@ -117,8 +117,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "cytochrome P450",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -150,8 +150,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "glutathione S-transferase",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -161,8 +161,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "esterase",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           }
@@ -178,8 +178,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "ABC transporter",
-            "text_fields": "product",
-            "text_search_organism": "Anopheles gambiae PEST"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Anopheles gambiae PEST\"]"
           },
           "searchName": "GenesByText"
         },
@@ -317,8 +317,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "thioester",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -328,8 +328,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "leucine-rich repeat immune",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           }
@@ -344,8 +344,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "serine protease",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -374,8 +374,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "antimicrobial peptide OR cecropin OR defensin OR gambicin",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -385,8 +385,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "toll",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           }
@@ -397,8 +397,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "immune",
-            "text_fields": "product",
-            "text_search_organism": "Anopheles gambiae PEST"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Anopheles gambiae PEST\"]"
           },
           "searchName": "GenesByText"
         }
@@ -516,8 +516,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "odorant receptor",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -538,8 +538,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "gustatory receptor",
-            "text_fields": "product",
-            "text_search_organism": "Anopheles gambiae PEST"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Anopheles gambiae PEST\"]"
           },
           "searchName": "GenesByText"
         }
@@ -554,8 +554,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "odorant binding protein",
-            "text_fields": "product",
-            "text_search_organism": "Anopheles gambiae PEST"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Anopheles gambiae PEST\"]"
           },
           "searchName": "GenesByText"
         },
@@ -675,8 +675,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "D7",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -686,8 +686,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "salivary gland",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           }
@@ -702,8 +702,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "serine protease",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -713,8 +713,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "oxidoreductase",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           }
@@ -852,8 +852,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "trypsin",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -879,8 +879,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "chitin",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           },
@@ -890,8 +890,8 @@
             "parameters": {
               "document_type": "gene",
               "text_expression": "peritrophin OR peritrophic",
-              "text_fields": "product",
-              "text_search_organism": "Anopheles gambiae PEST"
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Anopheles gambiae PEST\"]"
             },
             "searchName": "GenesByText"
           }
@@ -907,8 +907,8 @@
           "parameters": {
             "document_type": "gene",
             "text_expression": "immune",
-            "text_fields": "product",
-            "text_search_organism": "Anopheles gambiae PEST"
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Anopheles gambiae PEST\"]"
           },
           "searchName": "GenesByText"
         },
@@ -1025,8 +1025,8 @@
         "parameters": {
           "document_type": "gene",
           "text_expression": "heat shock",
-          "text_fields": "product",
-          "text_search_organism": "Anopheles gambiae PEST"
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Anopheles gambiae PEST\"]"
         },
         "searchName": "GenesByText"
       }

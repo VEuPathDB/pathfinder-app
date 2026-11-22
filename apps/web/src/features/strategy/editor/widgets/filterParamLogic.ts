@@ -1,78 +1,58 @@
-import { z } from "zod";
+import type { FilterValue } from "@strategist/shared/generated/types/FilterValue";
+import { filterValueSchema } from "@strategist/shared/generated/zod/filterValueSchema";
 
-const FilterValueSchema = z.union([
-  z.array(z.union([z.string(), z.null(), z.number()])),
-  z.object({
-    min: z.union([z.number(), z.string(), z.null()]).optional(),
-    max: z.union([z.number(), z.string(), z.null()]).optional(),
-  }),
-  z.string(),
-  z.null(),
-]);
+export type FilterClause = NonNullable<FilterValue["filters"]>[number];
+export type FilterClauses = Required<Pick<FilterValue, "filters">>;
 
-export const FilterEntrySchema = z.object({
-  field: z.string(),
-  type: z.enum(["string", "number", "date", "longitude", "multiFilter"]).optional(),
-  isRange: z.boolean().optional(),
-  includeUnknown: z.boolean().optional(),
-  value: FilterValueSchema.optional(),
-});
-
-export const FilterValueObjectSchema = z.object({
-  filters: z.array(FilterEntrySchema).default([]),
-});
-
-export type FilterEntry = z.infer<typeof FilterEntrySchema>;
-export type FilterValueObject = z.infer<typeof FilterValueObjectSchema>;
-
-export const EMPTY_FILTER_VALUE: FilterValueObject = { filters: [] };
+export const EMPTY_FILTER_VALUE: FilterClauses = { filters: [] };
 
 export interface DecodedFilterValue {
-  parsed: FilterValueObject;
+  parsed: FilterClauses;
   ok: boolean;
+}
+
+export function readFilterValue(json: unknown): FilterClauses | null {
+  const result = filterValueSchema.safeParse(json);
+  return result.success ? { filters: result.data.filters ?? [] } : null;
 }
 
 export function decodeFilterValue(raw: string): DecodedFilterValue {
   if (!raw) return { parsed: EMPTY_FILTER_VALUE, ok: true };
   try {
-    const json = JSON.parse(raw) as unknown;
-    const result = FilterValueObjectSchema.safeParse(json);
-    if (result.success) return { parsed: result.data, ok: true };
-    if (Array.isArray(json)) {
-      const arrResult = z.array(FilterEntrySchema).safeParse(json);
-      if (arrResult.success) return { parsed: { filters: arrResult.data }, ok: true };
-    }
-    return { parsed: EMPTY_FILTER_VALUE, ok: false };
+    const parsed = readFilterValue(JSON.parse(raw));
+    return parsed === null
+      ? { parsed: EMPTY_FILTER_VALUE, ok: false }
+      : { parsed, ok: true };
   } catch {
     return { parsed: EMPTY_FILTER_VALUE, ok: false };
   }
 }
 
-export function encodeFilterValue(value: FilterValueObject): string {
-  if (value.filters.length === 0) return "";
-  return JSON.stringify(value);
+export function encodeFilterValue(value: FilterClauses): string {
+  return JSON.stringify({ filters: value.filters });
 }
 
-export function summarizeFilterValue(filter: FilterEntry): string {
-  const value = filter.value;
-  if (value === null || value === undefined) return "(any)";
-  if (Array.isArray(value)) {
-    if (value.length === 0) return "(empty)";
-    const labels = value.map((v) => (v === null ? "unknown" : String(v)));
-    if (labels.length <= 3) return labels.join(", ");
-    return `${labels.slice(0, 3).join(", ")} +${labels.length - 3} more`;
+function members(labels: string[]): string {
+  if (labels.length === 0) return "(empty)";
+  if (labels.length <= 3) return labels.join(", ");
+  return `${labels.slice(0, 3).join(", ")} +${String(labels.length - 3)} more`;
+}
+
+export function summarizeFilterValue(filter: FilterClause): string {
+  if (filter.type === "multiFilter") {
+    const count = filter.value.filters.length;
+    return `${filter.value.operation} of ${String(count)} ${count === 1 ? "filter" : "filters"}`;
   }
-  if (typeof value === "object") {
-    const min = value.min ?? "−∞";
-    const max = value.max ?? "+∞";
+  if (filter.isRange) {
+    const min = filter.value.min ?? "-inf";
+    const max = filter.value.max ?? "+inf";
     return `${String(min)} - ${String(max)}`;
   }
-  return String(value);
+  return members(filter.value.map(String));
 }
 
-export function fieldTypeLabel(filter: FilterEntry): string {
-  if (filter.type === undefined) return "filter";
-  if (filter.isRange === true) return `${filter.type} range`;
+export function fieldTypeLabel(filter: FilterClause): string {
+  if (filter.isRange) return `${filter.type} range`;
   if (filter.type === "multiFilter") return "compound";
   return filter.type;
 }

@@ -211,7 +211,7 @@ describe("useApplyOperation", () => {
       op: {
         kind: "updateStepParams",
         stepId: "a",
-        parameters: { gene_result: { type: "input-step", stepId: "" } },
+        parameters: { ds_gene_ids: { type: "input-dataset", datasetId: "abc" } },
       },
     };
     applyOperationEndpointMock.mockImplementationOnce(() =>
@@ -237,7 +237,7 @@ describe("useApplyOperation", () => {
     });
 
     expect(toast.error).toHaveBeenCalledWith(
-      "The step could not be saved: gene_result is missing a value",
+      "The step could not be saved: ds_gene_ids has an invalid value",
     );
   });
 

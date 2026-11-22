@@ -7,7 +7,8 @@ from assistant_core.graph.turn_state import PendingApproval, UserQuestionAnswer
 from pydantic import TypeAdapter
 from pydantic_ai.messages import ToolReturn, ToolReturnPart
 from veupathdb.domain.parameters import ParamKind, from_wire
-from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
+from veupathdb.wdk import WDKParameter
+from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import lead_consult
@@ -24,6 +25,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.question_options import SetValues, TypedOption
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.readings import ReadValues
+from strategist.services.strategies import sheet_params
 from strategist.tests._support.recorded_searches import client_search
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -32,7 +34,10 @@ _SEARCH = "GenesByGeneModelChars"
 _FILTER = "gene_model_char"
 _LABEL = "Low nucleotide diversity per CDS site"
 _NO_FILTER = '{"filters": []}'
-_FILTER_VALUE = '{"filters": [{"field": "sex", "value": ["female"]}]}'
+_FILTER_VALUE = (
+    '{"filters": [{"field": "gene_exon_count", "type": "number", "isRange": true, '
+    '"includeUnknown": false, "value": {"min": 2}}]}'
+)
 _PROMPT = "Which genes do you mean?"
 _BINDS_NOTHING = (
     f"{_LABEL!r} binds nothing: {_LABEL!r} is not a value of {_FILTER}: it takes a "
@@ -43,9 +48,14 @@ _BINDS_NOTHING = (
 
 @pytest.fixture(autouse=True)
 def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
-    sheet = format_param_info_typed(
-        client_search("search_genes_by_gene_model_chars").parameters or []
-    )
+    declared = list(client_search("search_genes_by_gene_model_chars").parameters or [])
+    sheet = format_param_info_typed(declared)
+
+    def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return declared
+
+        return fetch_at
 
     async def _sheets(
         *, site_id: str, search_names: Collection[str]
@@ -54,6 +64,7 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         return dict.fromkeys(search_names, sheet)
 
     monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
 
 
 def _criterion(**fields: object) -> Criterion:
@@ -233,9 +244,9 @@ async def test_a_thread_with_no_spec_binds_nothing_and_refuses_nothing() -> None
 
 async def test_a_value_the_parameter_takes_binds_and_tells_nothing_more() -> None:
     criterion = _open_on("filter")
-    question = _stored(_option("Female", _FILTER_VALUE), _option("No", _NO_FILTER))
+    question = _stored(_option("Two exons", _FILTER_VALUE), _option("No", _NO_FILTER))
 
-    deps, returned = await _clicked(criterion, question, "Female")
+    deps, returned = await _clicked(criterion, question, "Two exons")
 
     assert (
         _bound_on(deps).resolved_params[_FILTER].value.to_decoded()

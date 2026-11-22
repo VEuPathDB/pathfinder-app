@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters import ParamValue, param_value_from_raw
+from veupathdb.domain.parameters import ParamValue, from_wire
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
@@ -33,7 +36,7 @@ _PARAM = "percent_max"
 
 
 def _range(low: float, high: float) -> ParamValue:
-    return param_value_from_raw({"min": low, "max": high}, "number-range")
+    return from_wire("number-range", json.dumps({"min": low, "max": high}))
 
 
 def _recorded_sheet() -> list[ParameterInfo]:
@@ -65,7 +68,7 @@ def _count(op: CountOp, number: float) -> Constraint:
 async def _bound(
     monkeypatch: pytest.MonkeyPatch,
     sheet: list[ParameterInfo],
-    proposal: str | None,
+    proposal: JsonValue,
     requirements: list[Constraint],
 ) -> tuple[BoundValue, SetCriterionResult]:
     serve_search(monkeypatch, lambda _context: sheet)
@@ -73,7 +76,7 @@ async def _bound(
     state.stated_requirements = requirements
     state.record_catalog_read(listing([_SEARCH]))
     state.request_messages = ["junction genes"]
-    params: dict[str, str | list[str] | None] = {
+    params: dict[str, JsonValue] = {
         info.name: (proposal if info.name == _PARAM else None) for info in sheet
     }
     outcome: ToolReturn[SetCriterionResult] = await set_criterion(
@@ -106,7 +109,7 @@ async def test_an_upper_bound_opens_the_low_end_at_the_published_minimum(
     bound, result = await _bound(
         monkeypatch,
         _recorded_sheet(),
-        '{"min": 20, "max": 50}',
+        {"min": 20, "max": 50},
         [_count("<=", 50)],
     )
 
@@ -125,7 +128,7 @@ async def test_a_proposal_of_the_stated_end_alone_closes_at_the_published_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bound, _ = await _bound(
-        monkeypatch, _recorded_sheet(), '{"max": 50}', [_count("<=", 50)]
+        monkeypatch, _recorded_sheet(), {"max": 50}, [_count("<=", 50)]
     )
 
     assert bound.value == _range(1, 50)
@@ -138,7 +141,7 @@ async def test_a_lower_bound_opens_the_high_end_at_the_published_maximum(
     bound, result = await _bound(
         monkeypatch,
         _recorded_sheet(),
-        '{"min": 30, "max": 90}',
+        {"min": 30, "max": 90},
         [_count(">=", 30)],
     )
 
@@ -158,7 +161,7 @@ async def test_a_range_stating_both_sides_is_unchanged(
     bound, result = await _bound(
         monkeypatch,
         _recorded_sheet(),
-        '{"min": 30, "max": 50}',
+        {"min": 30, "max": 50},
         [_count(">=", 30), _count("<=", 50)],
     )
 
@@ -170,9 +173,7 @@ async def test_a_range_stating_both_sides_is_unchanged(
 async def test_a_range_no_requirement_links_is_unchanged(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    bound, _ = await _bound(
-        monkeypatch, _recorded_sheet(), '{"min": 30, "max": 50}', []
-    )
+    bound, _ = await _bound(monkeypatch, _recorded_sheet(), {"min": 30, "max": 50}, [])
 
     assert bound.value == _range(30, 50)
 
@@ -196,7 +197,7 @@ async def test_with_no_published_limit_the_open_end_keeps_the_site_default(
     bound, result = await _bound(
         monkeypatch,
         _no_limit_sheet(),
-        '{"min": 0, "max": 25}',
+        {"min": 0, "max": 25},
         [_count("<=", 25)],
     )
 
@@ -216,7 +217,7 @@ async def test_a_high_end_with_no_published_limit_keeps_the_site_default(
     bound, _ = await _bound(
         monkeypatch,
         _no_limit_sheet(),
-        '{"min": 22, "max": 40}',
+        {"min": 22, "max": 40},
         [_count(">=", 22)],
     )
 
@@ -230,7 +231,7 @@ async def test_a_value_already_at_the_open_end_reports_no_correction(
     bound, result = await _bound(
         monkeypatch,
         _recorded_sheet(),
-        '{"min": 1, "max": 50}',
+        {"min": 1, "max": 50},
         [_count("<=", 50)],
     )
 
@@ -245,7 +246,7 @@ async def test_an_open_end_past_the_stated_bound_leaves_the_proposal(
     bound, result = await _bound(
         monkeypatch,
         _no_limit_sheet(),
-        '{"min": 5, "max": 10}',
+        {"min": 5, "max": 10},
         [_count("<=", 10)],
     )
 
@@ -260,7 +261,7 @@ async def test_a_default_the_kind_cannot_read_leaves_the_proposal(
     bound, result = await _bound(
         monkeypatch,
         _no_default_sheet(),
-        '{"min": 5, "max": 10}',
+        {"min": 5, "max": 10},
         [_count("<=", 10)],
     )
 
@@ -275,7 +276,7 @@ async def test_a_range_with_no_default_and_no_limit_leaves_the_proposal(
     sheet = [param_info(_PARAM, "number-range")]
 
     bound, result = await _bound(
-        monkeypatch, sheet, '{"min": 5, "max": 10}', [_count("<=", 10)]
+        monkeypatch, sheet, {"min": 5, "max": 10}, [_count("<=", 10)]
     )
 
     assert bound.value == _range(5, 10)
@@ -293,15 +294,15 @@ async def test_a_range_the_kind_cannot_read_is_left_for_its_refusal(
 
 
 @pytest.mark.asyncio
-async def test_a_default_low_end_above_the_stated_high_end_is_not_bound(
+async def test_an_open_end_with_no_published_limit_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    bound, result = await _bound(
-        monkeypatch, _no_limit_sheet(), '{"max": 10}', [_count("<=", 10)]
-    )
+    with pytest.raises(ModelRetry) as retry:
+        await _bound(monkeypatch, _no_limit_sheet(), {"max": 10}, [_count("<=", 10)])
 
-    assert bound.value == param_value_from_raw({"max": 10}, "number-range")
-    assert result.corrections == []
+    assert retry.value.message.startswith(
+        f'{_PARAM} takes {{"min": number, "max": number}}'
+    )
 
 
 @pytest.mark.asyncio
@@ -310,7 +311,7 @@ async def test_a_range_proposed_with_crossed_ends_is_refused_by_its_kind(
 ) -> None:
     with pytest.raises(ModelRetry) as retry:
         await _bound(
-            monkeypatch, _no_limit_sheet(), '{"min": 20, "max": 10}', [_count("<=", 10)]
+            monkeypatch, _no_limit_sheet(), {"min": 20, "max": 10}, [_count("<=", 10)]
         )
 
     assert _PARAM in str(retry.value)

@@ -25,7 +25,13 @@ class GeneSetResponse(CamelModel):
     wdk_step_id: int | None = Field(None)
     search_name: str | None = Field(None)
     record_type: str | None = Field(None)
-    parameters: dict[str, ParamValue] | None = None
+    parameters: dict[str, ParamValue] | None = Field(
+        None,
+        description=(
+            "The values Strategist read from the step; the WDK step names the "
+            "search WDK ran."
+        ),
+    )
     created_at: str
     step_count: int = Field(1)
     vdi_id: str | None = None

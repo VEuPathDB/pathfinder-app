@@ -9,9 +9,9 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import (
     MultiPickValue,
-    NumberValue,
     ParamValue,
     SinglePickValue,
+    StringValue,
 )
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import ValidationError, WDKError
@@ -43,7 +43,10 @@ from ._strategy_edit_stubs import (
     leaf,
     seed,
     session_with,
+    stated_leaf,
 )
+
+_BLOOD_MEAL = "GenesByMicroarrayaaegLVP_AGWG_microarrayExpression_GSE22339_blood_meal_time_series_RSRC"
 
 
 @pytest.fixture
@@ -111,9 +114,7 @@ class TestUpdateLeafParams:
             wdk_step_ids={"a": 100},
         )
 
-        await update_leaf_params(
-            ctx(deps), "a", {"organism": MultiPickValue(values=["Pf3D7", "Pf7G8"])}
-        )
+        await update_leaf_params(ctx(deps), "a", {"organism": ["Pf3D7", "Pf7G8"]})
 
         graph = deps.strategy_session.graph
         assert graph is not None
@@ -131,41 +132,43 @@ class TestUpdateLeafParams:
             leaf(
                 "a",
                 params={
-                    "organism": MultiPickValue(values=["Pf3D7"]),
+                    "organismSinglePick": MultiPickValue(values=["Pf3D7"]),
                     "ReadFrequencyPercent": SinglePickValue(value="60%"),
                 },
+                search_name="GenesByNgsSnps",
             ),
             wdk_step_ids={"a": 100},
         )
         seen: dict[str, dict[str, Any]] = {}
 
         async def _capture_validate(
-            _search_ctx: Any, *, parameters: dict[str, ParamValue], **_kw: Any
+            _search_ctx: Any,
+            *,
+            stated: dict[str, ParamValue],
+            context: dict[str, ParamValue],
+            **_kw: Any,
         ) -> ValidatedParams:
-            seen["parameters"] = dict(parameters)
-            return ValidatedParams(params=dict(parameters), record_class="transcript")
+            seen["parameters"] = {**context, **stated}
+            return ValidatedParams(params=dict(stated), record_class="transcript")
 
         monkeypatch.setattr(stated_sides, "validate_parameters", _capture_validate)
 
-        await update_leaf_params(
-            ctx(deps), "a", {"ReadFrequencyPercent": SinglePickValue(value="80%")}
-        )
+        await update_leaf_params(ctx(deps), "a", {"ReadFrequencyPercent": "80%"})
 
-        assert set(seen["parameters"]) == {"organism", "ReadFrequencyPercent"}
+        assert set(seen["parameters"]) == {"organismSinglePick", "ReadFrequencyPercent"}
         assert seen["parameters"]["ReadFrequencyPercent"] == SinglePickValue(
             value="80%"
         )
-        assert seen["parameters"]["organism"] == MultiPickValue(values=["Pf3D7"])
+        assert seen["parameters"]["organismSinglePick"] == MultiPickValue(
+            values=["Pf3D7"]
+        )
 
     async def test_a_number_among_vocabulary_picks_reaches_wdk(
         self, stub_api: StubAPI
     ) -> None:
-        """An expression search binds a typed number beside its vocabulary picks."""
+        """An expression search binds a stated number beside its vocabulary picks."""
         deps = seed(
-            leaf(
-                "step_7c2e770b",
-                params={"profileset_generic": SinglePickValue(value="Pfal3D7 Su")},
-            ),
+            leaf("step_7c2e770b", search_name=_BLOOD_MEAL),
             wdk_step_ids={"step_7c2e770b": 440432473},
         )
 
@@ -173,23 +176,21 @@ class TestUpdateLeafParams:
             ctx(deps),
             "step_7c2e770b",
             {
-                "profileset_generic": SinglePickValue(
-                    value="Pfal3D7 Gametocyte time course"
-                ),
-                "regulated_dir": SinglePickValue(value="up-regulated"),
-                "fold_change": NumberValue(value=4),
-                "protein_coding_only": SinglePickValue(value="yes"),
-                "hard_floor": NumberValue(value=0),
+                "profileset_generic": "A. aegypti blood meal time-series",
+                "regulated_dir": "up-regulated",
+                "fold_change": 4,
+                "protein_coding_only": "yes",
+                "hard_floor": "0",
             },
         )
 
         graph = deps.strategy_session.graph
         assert graph is not None
-        assert graph.steps["step_7c2e770b"].parameters["fold_change"] == NumberValue(
-            value=4
+        assert graph.steps["step_7c2e770b"].parameters["fold_change"] == StringValue(
+            value="4"
         )
-        assert graph.steps["step_7c2e770b"].parameters["hard_floor"] == NumberValue(
-            value=0
+        assert graph.steps["step_7c2e770b"].parameters["hard_floor"] == (
+            SinglePickValue(value="0")
         )
         patched = stub_api.named("update_step_search_config")
         assert [call.kwargs["parameters"]["fold_change"] for call in patched] == ["4"]
@@ -231,7 +232,7 @@ class TestUpdateLeafParams:
             await update_leaf_params(
                 ctx(deps),
                 "a",
-                {"organism": MultiPickValue(values=["NotARealOrganism"])},
+                {"organism": ["NotARealOrganism"]},
             )
 
         msg = str(excinfo.value)
@@ -292,7 +293,7 @@ class TestReplaceSubtree:
         )
 
         payload = returned(
-            await replace_subtree(ctx(deps), "a", leaf("new_a")), ReplacedSubtree
+            await replace_subtree(ctx(deps), "a", stated_leaf("new_a")), ReplacedSubtree
         )
 
         assert payload.replaced_step_id == "a"
@@ -305,7 +306,7 @@ class TestReplaceSubtree:
     async def test_an_unknown_step_id_is_a_retry(self) -> None:
         deps = seed(leaf("a"), wdk_step_ids={"a": 100})
         with pytest.raises(ModelRetry):
-            await replace_subtree(ctx(deps), "missing", leaf("new"))
+            await replace_subtree(ctx(deps), "missing", stated_leaf("new"))
 
 
 class TestInsertSavedStrategy:
@@ -347,9 +348,7 @@ class TestAPushWDKRefusedIsTheAnswer:
         )
 
         with pytest.raises(ModelRetry) as excinfo:
-            await update_leaf_params(
-                ctx(deps), "a", {"organism": MultiPickValue(values=["PvP01"])}
-            )
+            await update_leaf_params(ctx(deps), "a", {"organism": ["PvP01"]})
 
         assert "profileset_generic: Invalid value" in str(excinfo.value)
 
@@ -363,7 +362,8 @@ class TestAPushWDKRefusedIsTheAnswer:
         )
 
         payload = returned(
-            await replace_subtree(ctx(deps), "a", leaf("new_a")), ToolErrorPayload
+            await replace_subtree(ctx(deps), "a", stated_leaf("new_a")),
+            ToolErrorPayload,
         )
 
         assert payload.ok is False
@@ -381,7 +381,7 @@ class TestAPushWDKRefusedIsTheAnswer:
         answer = await update_leaf_params(
             ctx(deps, tool_call_id="call_1"),
             "a",
-            {"organism": MultiPickValue(values=["PvP01"])},
+            {"organism": ["PvP01"]},
         )
 
         assert returned(answer, ToolErrorPayload).ok is False

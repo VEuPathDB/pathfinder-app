@@ -90,7 +90,6 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
                 "is_visible": True,
                 "site_set": False,
                 "help": "",
-                "value_format": "",
             }
         )
     ]
@@ -102,10 +101,14 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         return {name: sheet for name in search_names if name == _SEARCH}
 
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        return ValidatedParams(params=dict(parameters))
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)

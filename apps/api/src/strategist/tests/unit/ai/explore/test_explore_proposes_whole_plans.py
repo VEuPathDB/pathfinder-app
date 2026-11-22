@@ -22,19 +22,13 @@ from strategist.tests._support.explore_turns import (
 from strategist.tests._support.recorded_counts import recorded_count
 from strategist.tests._support.run_context import lead_run_context
 
-_ORGANISM = {
-    "type": "multi-pick-vocabulary",
-    "values": [SiteValues.for_site(SITE).organism],
-}
+_ORGANISM = [SiteValues.for_site(SITE).organism]
 _PEPTIDE: dict[str, Any] = {
     "label": "peptide",
     "searchName": SIGNAL_PEPTIDE,
     "parameters": {
         "organism": _ORGANISM,
-        "signalp_version": {
-            "type": "single-pick-vocabulary",
-            "value": SIGNALP_VERSIONS[0],
-        },
+        "signalp_version": SIGNALP_VERSIONS[0],
     },
 }
 _CODING: dict[str, Any] = {
@@ -42,7 +36,7 @@ _CODING: dict[str, Any] = {
     "searchName": GENE_TYPE,
     "parameters": {
         "organism": _ORGANISM,
-        "geneType": {"type": "multi-pick-vocabulary", "values": ["protein coding"]},
+        "geneType": ["protein coding"],
     },
 }
 _MINUS = {
@@ -208,7 +202,7 @@ async def test_one_refusal_names_every_search_a_plan_gets_wrong(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_recorded_readings(monkeypatch)
-    wrong_organism = {"type": "multi-pick-vocabulary", "values": ["no such organism"]}
+    wrong_organism = ["no such organism"]
     peptide = {
         **_PEPTIDE,
         "parameters": {**_PEPTIDE["parameters"], "organism": wrong_organism},

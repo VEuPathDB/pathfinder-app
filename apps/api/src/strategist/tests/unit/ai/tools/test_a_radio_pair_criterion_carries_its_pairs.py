@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters import WDKVocabTerm
 from veupathdb.wdk import WDKEnumParam, WDKParameter, WDKStringParam
-from veupathdb_mcp.catalog import RADIO_OFF, format_param_info_typed
+from veupathdb_mcp.catalog import RADIO_OFF
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.domain.strategy.step_naming import criterion_title
@@ -32,8 +32,8 @@ async def test_every_enzyme_is_titled_by_the_wildcard(
 ) -> None:
     serve_search(
         monkeypatch,
-        lambda _c: format_param_info_typed(_EC),
         catalog=_EC,
+        declared=_EC,
         properties={"radio-params": ["ec_number_pattern", "ec_wildcard"]},
         display_name="EC Number",
     )

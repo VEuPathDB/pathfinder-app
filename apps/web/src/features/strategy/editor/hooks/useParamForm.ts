@@ -4,24 +4,13 @@ import type { ParamSpec } from "@strategist/shared";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import { isMultiParam } from "@/features/strategy/parameters/spec";
 import { isShown } from "@/lib/parameters/visibility";
-import { paramValueToRaw } from "@/features/strategy/parameters/paramValue";
+import {
+  paramValueToRaw,
+  termsOfWire,
+} from "@/features/strategy/parameters/paramValue";
 import type { ParamValue } from "@/lib/parameters/paramValue";
 
 export type ParamFormValues = Record<string, string | string[]>;
-
-/** A WDK initial display value as the multi-pick widget reads it. */
-function coerceToMulti(raw: string | null | undefined): string[] {
-  if (raw == null) return [];
-  if (raw.startsWith("[")) {
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.map(String);
-    } catch {
-      /* a value that is not JSON is one plain term */
-    }
-  }
-  return raw.length > 0 ? [raw] : [];
-}
 
 function coerceToSingle(raw: string | null | undefined): string {
   return raw ?? "";
@@ -41,11 +30,11 @@ function extractDefaults(
     if (!isShown(spec)) continue;
     const persisted: ParamValue | undefined = override?.[spec.name];
     if (persisted !== undefined) {
-      defaults[spec.name] = paramValueToRaw(persisted);
+      defaults[spec.name] = paramValueToRaw(persisted, spec);
       continue;
     }
     const raw = spec.initialDisplayValue;
-    defaults[spec.name] = isMultiParam(spec) ? coerceToMulti(raw) : coerceToSingle(raw);
+    defaults[spec.name] = isMultiParam(spec) ? termsOfWire(raw) : coerceToSingle(raw);
   }
   return defaults;
 }

@@ -1,7 +1,38 @@
 # Log
 
+## 2026-11-22
+
+* **An empty value is read as its parameter allows it.** With veupathdb-py 0.9.0b9 and
+  veupathdb-mcp 0.9.0b14, `""` (and `[]` for a multi-pick) reads as the parameter's empty
+  value only where it publishes `allowEmptyValue: true`, and is refused elsewhere; an
+  options read shows a facet's `range` only when it read one, and its `query` says so. The
+  FRAME instruction, `lookup_phyletic_codes` and the phyletic help call `included_species`
+  and `excluded_species` one string of codes separated by commas. A comparison variant's
+  empty pick is no longer replaced by the site default. Every kind has an empty value, so
+  an empty number or date is `null` in the web and an empty number field no longer
+  reads as 0; a multi-pick reads its selected counts. A filter's empty value goes out as
+  `""` and stays apart from `{"filters": []}`; the canonicalizer refuses an empty value its
+  parameter does not accept; the editor refuses text that is no number by the parameter's
+  name. A value WDK holds that no kind reads is a `HeldValue` in the step's one
+  parameter map: it survives every edit, copy, rebuild, variant and site read, goes back
+  to WDK unchanged on every push, and is replaced only when someone states it; a value is canonical once, when
+  it is stated, and every push sends the map as it is; WDK's
+  step validation is carried on import and kept across a session load. See
+  [the value decision](decisions/a-value-is-read-by-its-parameter.md).
+
 ## 2026-11-21
 
+* **A value is read by its parameter, and a filter clause is bound by its facet.** With
+  veupathdb-py 0.9.0b8 and veupathdb-mcp 0.9.0b13, the parameter declaration gives the schema
+  a model states a value in, reads the statement under the bound parents, writes the wire
+  string and gives the one refusal. Every tool takes native values, the tree tools included,
+  and the typed wrapper stays for HTTP, storage and the web. A filter statement names a facet
+  by its exact term or display, the facet decides `type` and `isRange`, and the shorthand is
+  removed everywhere. A bound range is read from the term summary under the other clauses,
+  and a range that selects nothing or a count below `minSelectedCount` is refused. The step
+  editor saves a dataset through `POST /api/v1/sites/{siteId}/datasets` and commits its id.
+  See [the value decision](decisions/a-value-is-read-by-its-parameter.md) and
+  [the filter decision](decisions/a-filter-clause-is-bound-by-its-facet.md).
 * **A parameter the site sets is never asked for.** A hidden or read-only parameter is
   site-set on its type (veupathdb-py `site_set`, `bindable`), so no sheet, question or card
   holds one, and a proposal of one is left out with a named correction. The model sees stated

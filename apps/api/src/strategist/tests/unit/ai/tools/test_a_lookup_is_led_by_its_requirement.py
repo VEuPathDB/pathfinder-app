@@ -27,7 +27,6 @@ def _param_info(name: str) -> ParameterInfo:
             "is_visible": True,
             "site_set": False,
             "help": "",
-            "value_format": "",
         }
     )
 

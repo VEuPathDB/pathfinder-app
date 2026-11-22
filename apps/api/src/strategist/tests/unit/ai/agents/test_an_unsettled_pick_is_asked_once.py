@@ -25,6 +25,7 @@ from strategist.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from strategist.tests._support.recorded_searches import serve_stated_reads, suite_search
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _FIXTURES = Path(__file__).parents[3] / "fixtures/decisions"
@@ -67,6 +68,7 @@ async def _replayed(
         return info
 
     monkeypatch.setattr(catalog_discovery, "read_parameter_options", _site_read)
+    serve_stated_reads(monkeypatch, [suite_search("search_genes_by_interpro_domain")])
     ctx = agent_run_context(site_id=site_id)
     ctx.deps.agent_state.stated_requirements = requirements
     await catalog_discovery.get_parameter_options(ctx, **recorded["readArgs"])

@@ -8,6 +8,7 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
+    StepValidation,
     StrategyAst,
     StrategyStepNode,
 )
@@ -97,3 +98,28 @@ def test_an_unnamed_thread_keeps_the_stored_name() -> None:
 
 def test_a_thread_and_a_strategy_with_no_name_take_the_default() -> None:
     assert _named("", None) == "New Conversation"
+
+
+def test_wdk_validation_of_a_stored_step_survives_the_load() -> None:
+    refused = StepValidation.model_validate(
+        {
+            "level": "RUNNABLE",
+            "isValid": False,
+            "errors": {"general": ["Not allowed"], "byKey": {"organism": ["Gone"]}},
+        }
+    )
+    persisted = _persisted(None)
+    assert persisted.strategy_ast is not None
+    persisted = persisted.model_copy(
+        update={
+            "strategy_ast": persisted.strategy_ast.model_copy(
+                update={"step_validations": {"step_a": refused, "lost": refused}}
+            )
+        }
+    )
+
+    state = ensure_sync_state(
+        build_strategy_session(site_id="plasmodb", strategy_graph=persisted)
+    )
+
+    assert state.step_validations == {"step_a": refused}

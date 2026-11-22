@@ -4,6 +4,7 @@ the controls measured belong to the values they measured."""
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai.exceptions import ModelRetry
 
 from strategist.ai.agents.state import AgentToolState
@@ -56,10 +57,9 @@ async def test_the_counts_do_not_outlive_the_values_they_measured(
 
     await read(monkeypatch, state, EXPORTED)
 
+    moved: dict[str, JsonValue] = {**PARAMS, "organism": ["Plasmodium vivax P01"]}
     with pytest.raises(ModelRetry) as refused:
-        await choose(
-            state, None, params=PARAMS | {"organism": ["Plasmodium vivax P01"]}
-        )
+        await choose(state, None, params=moved)
 
     assert str(refused.value) == (
         "c_gpi binds GenesByExportPrediction with no why. Pass why with a basis "

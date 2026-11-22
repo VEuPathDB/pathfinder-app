@@ -44,6 +44,16 @@ def _sheet() -> list[ParameterInfo]:
     return format_param_info_typed(list(_PCT.parameters or []))
 
 
+def _members(field: str, *terms: str) -> dict[str, object]:
+    return {
+        "field": field,
+        "type": "string",
+        "isRange": False,
+        "includeUnknown": False,
+        "value": list(terms),
+    }
+
+
 def _samples(*clauses: dict[str, object]) -> dict[str, BoundValue]:
     value = FilterValue.model_validate({"filters": list(clauses)})
     return _bound({_SAMPLES: value})
@@ -102,11 +112,12 @@ def test_a_pick_the_vocabulary_does_not_label_names_the_labels_it_holds() -> Non
 
 def test_each_filter_clause_is_labelled_by_the_display_of_its_field() -> None:
     bound = _samples(
-        {"field": _SEX, "type": "string", "value": ["female", "male"]},
+        _members(_SEX, "female", "male"),
         {
             "field": _YEAR,
             "type": "number",
             "isRange": True,
+            "includeUnknown": False,
             "value": {"min": 2010, "max": 2014},
         },
     )
@@ -121,7 +132,7 @@ def test_each_filter_clause_is_labelled_by_the_display_of_its_field() -> None:
 
 
 def test_a_member_past_the_listed_values_of_its_field_is_still_labelled() -> None:
-    bound = _samples({"field": _SAMPLE_NAME, "value": ["PfSample-not-listed"]})
+    bound = _samples(_members(_SAMPLE_NAME, "PfSample-not-listed"))
 
     labels = vocabulary_labels(bound, _snps_sheet())
 
@@ -132,7 +143,7 @@ def test_a_member_past_the_listed_values_of_its_field_is_still_labelled() -> Non
 
 
 def test_a_clause_on_a_field_the_parameter_lacks_names_the_fields_it_has() -> None:
-    bound = _samples({"field": "VAR_00000000", "value": ["female"]})
+    bound = _samples(_members("VAR_00000000", "female"))
     fields = next(i for i in _snps_sheet() if i.name == _SAMPLES).filter_fields
 
     labels = vocabulary_labels(bound, _snps_sheet())
@@ -158,9 +169,9 @@ def test_the_bound_label_joins_the_label_of_each_term() -> None:
         "protein_coding_only": SinglePickValue(value="maybe"),
     }
     clauses = _samples(
-        {"field": _SEX, "type": "string", "value": ["female"]},
-        {"field": "VAR_00000000", "value": ["female"]},
-        {"field": _SAMPLE_NAME, "value": ["PfSample-not-listed"]},
+        _members(_SEX, "female"),
+        _members("VAR_00000000", "female"),
+        _members(_SAMPLE_NAME, "PfSample-not-listed"),
     )
     read = [
         (

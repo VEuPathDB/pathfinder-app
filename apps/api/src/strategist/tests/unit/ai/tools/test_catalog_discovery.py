@@ -57,7 +57,6 @@ def _param_info(**overrides: Any) -> ParameterInfo:
         "is_visible": True,
         "site_set": False,
         "help": "",
-        "value_format": "",
     }
     base.update(overrides)
     return ParameterInfo.model_validate(base)

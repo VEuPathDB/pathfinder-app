@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
@@ -49,10 +50,11 @@ from strategist.tests._support.catalog_reads import listing
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_counts import no_measurements
 from strategist.tests._support.recorded_searches import no_count
+from strategist.tests._support.sheets import declarations
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
-Proposals = dict[str, str | list[str] | None]
+Proposals = dict[str, JsonValue]
 
 
 def _transcript_session() -> StrategySession:
@@ -79,17 +81,26 @@ def param_info(
         "is_visible": True,
         "site_set": False,
         "help": "",
-        "value_format": "",
     }
     return ParameterInfo.model_validate(defaults | fields)
 
 
-def serve_params(monkeypatch: pytest.MonkeyPatch, at: ParamsAt) -> None:
+def no_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
+    return []
+
+
+def serve_params(
+    monkeypatch: pytest.MonkeyPatch,
+    at: ParamsAt = no_sheet,
+    declared: Sequence[WDKParameter] = (),
+) -> None:
+    """Each read answers ``declared`` when given, else the declarations of the
+    sheet ``at`` gives."""
     list_every_search_under(monkeypatch, "transcript")
 
     def _fetch_at(*_args: object) -> ParamFetcher:
-        async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
-            return at(context)
+        async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
+            return list(declared) or declarations(at(context))
 
         return fetch_at
 
@@ -160,23 +171,28 @@ def no_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     """WDK accepts every value and canonicalizes none of them."""
 
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        return ValidatedParams(params=dict(parameters))
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
 
 
 def serve_search(
     monkeypatch: pytest.MonkeyPatch,
-    at: ParamsAt,
+    at: ParamsAt = no_sheet,
     *,
     catalog: list[WDKParameter] | None = None,
     properties: dict[str, list[str]] | None = None,
+    declared: Sequence[WDKParameter] = (),
     **fields: str,
 ) -> list[SearchContext]:
-    serve_params(monkeypatch, at)
+    serve_params(monkeypatch, at, declared)
     serve_definition(monkeypatch)
     no_validation(monkeypatch)
     no_count(monkeypatch)
@@ -377,7 +393,7 @@ async def test_set_criterion_retries_on_invalid_resolved_param(
         await bind(
             st,
             "GenesByText",
-            {"text_fields": "product,Notes"},
+            {"text_fields": ["product,Notes"]},
             text="annotated male gametocyte",
         )
 

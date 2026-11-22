@@ -71,7 +71,10 @@ class _RecordingAPI:
         return self.next_id
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del record_type, user_id
         step_id = self._alloc()

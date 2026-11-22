@@ -34,6 +34,7 @@ describe("useStepDraftChanges", () => {
       displayName: "Step 1",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(0);
     expect(result.changedKeys).toEqual([]);
@@ -48,6 +49,7 @@ describe("useStepDraftChanges", () => {
       displayName: "Step 1",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(1);
     expect(result.changedKeys).toEqual(["parameters.organism"]);
@@ -62,6 +64,7 @@ describe("useStepDraftChanges", () => {
       displayName: "Step 1",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(1);
     expect(result.changedKeys).toEqual(["parameters.min_weight"]);
@@ -75,6 +78,7 @@ describe("useStepDraftChanges", () => {
       displayName: "Step 1",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(1);
     expect(result.changedKeys).toEqual(["parameters.go_terms"]);
@@ -88,6 +92,7 @@ describe("useStepDraftChanges", () => {
       displayName: "Step 1",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(0);
   });
@@ -100,6 +105,7 @@ describe("useStepDraftChanges", () => {
       displayName: "Step 1",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(1);
     expect(result.changedKeys).toEqual(["operator"]);
@@ -113,6 +119,7 @@ describe("useStepDraftChanges", () => {
       displayName: "Renamed Step",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(1);
     expect(result.changedKeys).toEqual(["displayName"]);
@@ -130,6 +137,7 @@ describe("useStepDraftChanges", () => {
       displayName: "New name",
       colocationParams: null,
       allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(4);
     expect(result.changedKeys).toContain("parameters.organism");
@@ -146,7 +154,23 @@ describe("useStepDraftChanges", () => {
       displayName: "Step 1",
       colocationParams: null,
       allowedParamKeys: new Set(["organism"]),
+      paramSpecs: [],
     });
     expect(result.changeCount).toBe(0);
+  });
+});
+
+describe("a held value", () => {
+  it("is no change while its field keeps the raw text", () => {
+    const result = useStepDraftChanges({
+      step: makeStep({ parameters: { min_weight: { type: "held", wire: "abc" } } }),
+      formValues: { min_weight: "abc" },
+      operator: "",
+      displayName: "Step 1",
+      colocationParams: null,
+      allowedParamKeys: ALL_PARAMS,
+      paramSpecs: [],
+    });
+    expect(result.changedKeys).toEqual([]);
   });
 });

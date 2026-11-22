@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
+from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, leaves
 
+from strategist.ai.tools.standalone._stated_values import StatedUpdateStepParamsOp
 from strategist.ai.tools.standalone.strategy import apply_operations, build_strategy
 from strategist.ai.tools.standalone.strategy_edits import (
     replace_subtree,
     update_leaf_params,
 )
-from strategist.domain.strategy.operations import UpdateStepParamsOp
 from strategist.domain.strategy.revision import strategy_revision
+from strategist.tests._support.stated import stated, stated_tree
 
 from ._spec_contradiction_case import (
     DEPARTED_PERCENTILE,
@@ -32,6 +33,7 @@ from ._spec_contradiction_case import (
     grounded_deps,
     records_the_call,
     refuses_a_second_look,
+    serve_the_case_reads,
     writes_the_percentile_as_a_decimal,
 )
 from ._strategy_edit_stubs import (
@@ -49,7 +51,9 @@ _DEPARTED_AS_READ = {PERCENTILE: StringValue(value="80.0")}
 
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
-    return install_stub_api(monkeypatch)
+    api = install_stub_api(monkeypatch)
+    serve_the_case_reads(monkeypatch)
+    return api
 
 
 class TestACanonicalizerAndTheStatedValueGuard:
@@ -59,14 +63,11 @@ class TestACanonicalizerAndTheStatedValueGuard:
         pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
         deps = grounded_deps(dict(STATED_PERCENTILE))
 
-        await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
+        await update_leaf_params(ctx(deps), MIC2, stated(dict(_SIZE)))
 
         graph = deps.strategy_session.graph
         assert graph is not None
-        assert graph.steps[MIC2].parameters == {
-            PERCENTILE: StringValue(value="90.0"),
-            **_SIZE,
-        }
+        assert graph.steps[MIC2].parameters == {**STATED_PERCENTILE, **_SIZE}
         assert stub_api.named("update_step_search_config") != []
 
     async def test_the_same_canonicalizer_still_refuses_a_real_change(
@@ -76,7 +77,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         deps = grounded_deps(dict(STATED_PERCENTILE))
 
         with pytest.raises(ModelRetry) as excinfo:
-            await update_leaf_params(ctx(deps), MIC2, dict(DEPARTED_PERCENTILE))
+            await update_leaf_params(ctx(deps), MIC2, stated(dict(DEPARTED_PERCENTILE)))
 
         assert "set_criterion" in str(excinfo.value)
         assert "90.0" in str(excinfo.value)
@@ -91,11 +92,11 @@ class TestACanonicalizerAndTheStatedValueGuard:
         pin_validator(monkeypatch, writes_the_percentile_as_a_decimal)
         deps = grounded_deps(dict(DEPARTED_PERCENTILE))
 
-        await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
+        await update_leaf_params(ctx(deps), MIC2, stated(dict(_SIZE)))
 
         graph = deps.strategy_session.graph
         assert graph is not None
-        assert graph.steps[MIC2].parameters == {**_DEPARTED_AS_READ, **_SIZE}
+        assert graph.steps[MIC2].parameters == {**DEPARTED_PERCENTILE, **_SIZE}
         assert stub_api.named("update_step_search_config") != []
 
     async def test_a_departed_value_the_write_moves_again_is_refused(
@@ -105,9 +106,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         deps = grounded_deps(dict(DEPARTED_PERCENTILE))
 
         with pytest.raises(ModelRetry) as excinfo:
-            await update_leaf_params(
-                ctx(deps), MIC2, {PERCENTILE: NumberValue(value=70)}
-            )
+            await update_leaf_params(ctx(deps), MIC2, {PERCENTILE: 70})
 
         assert "set_criterion" in str(excinfo.value)
         assert "90.0" in str(excinfo.value)
@@ -121,7 +120,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
     ) -> None:
         deps = grounded_deps(dict(DEPARTED_PERCENTILE))
 
-        await update_leaf_params(ctx(deps), MIC2, dict(DEPARTED_PERCENTILE))
+        await update_leaf_params(ctx(deps), MIC2, stated(dict(DEPARTED_PERCENTILE)))
 
         graph = deps.strategy_session.graph
         assert graph is not None
@@ -135,7 +134,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         deps = grounded_deps(dict(STATED_PERCENTILE))
 
         with pytest.raises(ModelRetry) as excinfo:
-            await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
+            await update_leaf_params(ctx(deps), MIC2, stated(dict(_SIZE)))
 
         assert "set_criterion" in str(excinfo.value)
         assert "80" in str(excinfo.value)
@@ -151,7 +150,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         deps = grounded_deps(dict(_DEPARTED_AS_READ))
 
         await replace_subtree(
-            ctx(deps), MIC2, leaf(MIC2, {**DEPARTED_PERCENTILE, **_SIZE})
+            ctx(deps), MIC2, stated_tree(leaf(MIC2, {**DEPARTED_PERCENTILE, **_SIZE}))
         )
 
         graph = deps.strategy_session.graph
@@ -166,7 +165,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         pin_validator(monkeypatch, refuses_a_second_look(seen))
         deps = grounded_deps(dict(STATED_PERCENTILE))
 
-        await update_leaf_params(ctx(deps), MIC2, dict(_SIZE))
+        await update_leaf_params(ctx(deps), MIC2, stated(dict(_SIZE)))
 
         assert len(seen) == 1
         graph = deps.strategy_session.graph
@@ -181,7 +180,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         pin_validator(monkeypatch, records_the_call(seen))
         deps = grounded_deps(dict(STATED_PERCENTILE))
 
-        await update_leaf_params(ctx(deps), MIC2, dict(STATED_PERCENTILE))
+        await update_leaf_params(ctx(deps), MIC2, stated(dict(STATED_PERCENTILE)))
 
         assert len(seen) == 2
         assert stub_api.named("update_step_search_config") == []
@@ -218,7 +217,7 @@ class TestABuildOverADepartedValue:
 
         await build_strategy(
             ctx(deps),
-            _measured_tree(dict(DEPARTED_PERCENTILE)),
+            stated_tree(_measured_tree(dict(DEPARTED_PERCENTILE))),
             base_revision=strategy_revision(graph.to_strategy_ast()),
         )
 
@@ -238,7 +237,7 @@ class TestABuildOverADepartedValue:
         with pytest.raises(ModelRetry) as excinfo:
             await build_strategy(
                 ctx(deps),
-                _measured_tree(dict(DEPARTED_PERCENTILE)),
+                stated_tree(_measured_tree(dict(DEPARTED_PERCENTILE))),
                 base_revision=strategy_revision(graph.to_strategy_ast()),
             )
 
@@ -258,7 +257,7 @@ class TestABuildOverADepartedValue:
         with pytest.raises(ModelRetry):
             await build_strategy(
                 ctx(deps),
-                tree,
+                stated_tree(tree),
                 base_revision=strategy_revision(graph.to_strategy_ast()),
             )
 
@@ -278,7 +277,11 @@ class TestABatchOverADepartedValue:
         await apply_operations(
             ctx(deps),
             strategy_revision(graph.to_strategy_ast()),
-            [UpdateStepParamsOp(step_id=MIC2, parameters=dict(DEPARTED_PERCENTILE))],
+            [
+                StatedUpdateStepParamsOp(
+                    step_id=MIC2, parameters=stated(dict(DEPARTED_PERCENTILE))
+                )
+            ],
         )
 
         assert graph.steps[MIC2].parameters == _DEPARTED_AS_READ
@@ -296,8 +299,8 @@ class TestABatchOverADepartedValue:
                 ctx(deps),
                 strategy_revision(graph.to_strategy_ast()),
                 [
-                    UpdateStepParamsOp(
-                        step_id=MIC2, parameters=dict(DEPARTED_PERCENTILE)
+                    StatedUpdateStepParamsOp(
+                        step_id=MIC2, parameters=stated(dict(DEPARTED_PERCENTILE))
                     )
                 ],
             )

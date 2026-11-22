@@ -24,6 +24,7 @@ from strategist.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
 )
+from strategist.tests._support.stated import stated_tree
 from strategist.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import StubAPI, combine, ctx, install_stub_api, session_with
@@ -109,7 +110,9 @@ class TestASavedStrategyReference:
             await replace_subtree(
                 ctx(deps),
                 interpro,
-                StrategyStepNode(id=interpro, search_name="GenesByInterpro"),
+                stated_tree(
+                    StrategyStepNode(id=interpro, search_name="GenesByInterpro")
+                ),
             ),
             dict[str, JsonValue],
         )
@@ -134,7 +137,9 @@ class TestASavedStrategyReference:
             await replace_subtree(
                 ctx(deps),
                 root_id,
-                StrategyStepNode(id="step_only", search_name="GenesByInterpro"),
+                stated_tree(
+                    StrategyStepNode(id="step_only", search_name="GenesByInterpro")
+                ),
             )
 
         assert saved_root in str(excinfo.value)
@@ -197,10 +202,12 @@ class TestASavedStrategyWithNoCombineOverIt:
             await replace_subtree(
                 ctx(deps),
                 go_term,
-                StrategyStepNode(
-                    id=go_term,
-                    search_name="GenesByGoTerm",
-                    display_name="protein kinase activity",
+                stated_tree(
+                    StrategyStepNode(
+                        id=go_term,
+                        search_name="GenesByGoTerm",
+                        display_name="protein kinase activity",
+                    )
                 ),
             ),
             dict[str, JsonValue],
@@ -224,7 +231,9 @@ class TestASavedStrategyWithNoCombineOverIt:
             await replace_subtree(
                 ctx(deps),
                 root_id,
-                StrategyStepNode(id="step_only", search_name="GenesByInterpro"),
+                stated_tree(
+                    StrategyStepNode(id="step_only", search_name="GenesByInterpro")
+                ),
             )
 
         message = str(excinfo.value)

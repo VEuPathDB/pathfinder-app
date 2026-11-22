@@ -55,7 +55,6 @@ def _domains(lookup: VocabLookup | None) -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         allowed_values=[
             VocabOption(value="PF01395", display="PF01395 : PBP/GOBP family")
         ],

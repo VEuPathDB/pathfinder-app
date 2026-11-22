@@ -7,9 +7,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import ParamValue, StringValue
-from veupathdb.wdk import SiteSearchResponse
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb.wdk import SiteSearchResponse, WDKParameter
+from veupathdb_mcp.catalog import ParamFetcher, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count, frame_spec
@@ -39,7 +40,7 @@ _TEXT = "cysteine-rich protein"
 # GiardiaDB GenesByText over product, Products and Notes in G. muris, read live:
 # the unquoted text 4,497 genes, the quoted phrase 0.
 _WORDS, _PHRASE = 4497, 0
-_PARAMS: dict[str, str | list[str] | None] = {
+_PARAMS: dict[str, JsonValue] = {
     "text_fields": ["product", "Products", "Notes"],
     "document_type": "gene",
     "text_expression": _TEXT,
@@ -55,9 +56,9 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_PUBLISHED])
 
     def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
-        async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
+        async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
             read = _UNDER_CONTEXT if context else _PUBLISHED
-            return format_param_info_typed(list(read.parameters or []))
+            return list(read.parameters or [])
 
         return fetch_at
 
@@ -96,8 +97,8 @@ async def test_a_context_read_gives_the_published_sheet_its_dependent_vocabulari
     published = format_param_info_typed(list(_PUBLISHED.parameters or []))
     under = format_param_info_typed(list(_UNDER_CONTEXT.parameters or []))
 
-    async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
-        return under if context else published
+    async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
+        return list((_UNDER_CONTEXT if context else _PUBLISHED).parameters or [])
 
     sheet = await vocabularies_under(
         fetch_at, published, {"text_expression": StringValue(value=_TEXT)}

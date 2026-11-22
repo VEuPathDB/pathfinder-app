@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A search is bound under the record type the site lists it under
-description: Every read of a search's definition (set_criterion, the qualifier comparison, the Lead's sheets and the analysis kinds) uses the record type the site's catalog lists the search under; a search the catalog lists under none has no sheet and no kind, and the read names it; set_criterion refuses a name the catalog lists under none; a 404 on the search's own lookup is the site's refusal, recorded for the pass and refused by name after that without a site read; past the repetition threshold the pass stops with its own reason, "stopped on a search the site does not serve"; an input-dataset parameter takes typed ids saved as the site's ID list, or a dataset id in the typed form. The root's record type (also as the fallback for an unlisted search), a fix-your-arguments directive, a cap on set_criterion and a named budget in the runtime's guard were rejected.
+description: Every read of a search's definition (set_criterion, the qualifier comparison, the Lead's sheets and the analysis kinds) uses the record type the site's catalog lists the search under; a search the catalog lists under none has no sheet and no kind, and the read names it; set_criterion refuses a name the catalog lists under none; a 404 on the search's own lookup is the site's refusal, recorded for the pass and refused by name after that without a site read; past the repetition threshold the pass stops with its own reason, "stopped on a search the site does not serve"; an input-dataset parameter takes a list of ids saved as the site's ID list, or a dataset id. The root's record type (also as the fallback for an unlisted search), a fix-your-arguments directive, a cap on set_criterion and a named budget in the runtime's guard were rejected.
 tags: [agents, frame, parameters, wdk]
 generated: { by: claude-code/opus-5.5, at: 2026-10-22T00:00:00Z }
 status: stable
@@ -44,13 +44,13 @@ search the site cannot read.
   mapped to `PhaseStopReason.SEARCH_NOT_SERVED` ("stopped on a search the site
   does not serve"). Its words name the search, the site and the record type,
   and the Lead and a continuation pass read them.
-- **An `input-dataset` parameter.** It takes the ids the request states, split
-  on the separators the site's own ID list box splits on (`[;,\s]+`, wdk-client
-  `DatasetParamUtils.idListToArray`). It also takes the typed form the tool
-  server shows, `{"type": "input-dataset", "datasetId": ...}`, which holds the
-  ids or a real dataset id. A plain value is always ids, even a numeric one; a
-  dataset id comes only through the typed form. The ids are saved as an `idList`
-  dataset once per criterion and ids in a pass. A gene set and an edit save
+- **An `input-dataset` parameter.** It takes a list of the ids the request
+  states, or a dataset id (a positive integer). A list is always ids, even a
+  numeric one; a dataset id is never a list. Any other value is refused with
+  the shape the parameter takes
+  ([a value is read by its parameter](a-value-is-read-by-its-parameter.md)).
+  The ids are saved as an `idList` dataset once per criterion and ids in a
+  pass, and the saved dataset's id is the value. A gene set and an edit save
   theirs the same way (`services/strategies/dataset_sources.py`). The bound
   value is the dataset, its label is the ids, and it is stated when a request
   message names them.

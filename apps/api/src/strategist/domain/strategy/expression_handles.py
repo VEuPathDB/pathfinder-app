@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from pydantic import ConfigDict, ValidationError
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
+    HeldValue,
     ParamValue,
     PhyleticExpression,
     PhyleticTree,
@@ -20,7 +21,7 @@ from veupathdb_mcp.catalog import PhyleticPattern
 from strategist.domain.strategy.computed_groups import COMPARISON_PREFIX
 from strategist.domain.strategy.expression_folds import condensed_reading
 from strategist.domain.strategy.operational_spec import OperationalSpec
-from strategist.domain.strategy.value_binding import plain_value
+from strategist.domain.strategy.value_binding import agent_wire, plain_value
 
 READING_LIMIT = 2_000
 _DESCRIBED_LIMIT = 200
@@ -71,8 +72,16 @@ def shown_value(name: str, value: ParamValue) -> str:
     return shown_wire(name, plain_value(value))
 
 
+def shown_param(name: str, value: ParamValue) -> str:
+    match value:
+        case HeldValue():
+            return agent_wire(value)
+        case _:
+            return shown_wire(name, to_wire(value))
+
+
 def shown_params(values: Mapping[str, ParamValue]) -> dict[str, str]:
-    return {name: shown_wire(name, to_wire(value)) for name, value in values.items()}
+    return {name: shown_param(name, value) for name, value in values.items()}
 
 
 def shown_parameters(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:
@@ -162,6 +171,7 @@ __all__ = [
     "held_readings",
     "is_handle",
     "resolved_params",
+    "shown_param",
     "shown_parameters",
     "shown_params",
     "shown_value",

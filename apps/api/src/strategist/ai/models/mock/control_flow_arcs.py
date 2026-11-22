@@ -52,13 +52,10 @@ def _fields_variant(label: str, fields: list[str], organism: str) -> dict[str, A
         "label": label,
         "search_name": "GenesByText",
         "parameters": {
-            "text_expression": {"type": "string", "value": "kinase"},
-            "text_fields": {"type": "multi-pick-vocabulary", "values": fields},
-            "document_type": {"type": "string", "value": "gene"},
-            "text_search_organism": {
-                "type": "multi-pick-vocabulary",
-                "values": [organism],
-            },
+            "text_expression": "kinase",
+            "text_fields": fields,
+            "document_type": "gene",
+            "text_search_organism": [organism],
         },
     }
 

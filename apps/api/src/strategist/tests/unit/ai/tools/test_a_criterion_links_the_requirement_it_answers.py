@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb_mcp.catalog import ValidatedParams
@@ -63,7 +64,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
 async def _bind(
     state: AgentToolState, answers: list[AnsweredRequirement] | None
 ) -> list[RequirementLink]:
-    params: dict[str, str | list[str] | None] = {"organism": None}
+    params: dict[str, JsonValue] = {"organism": None}
     await set_criterion(
         frame_ctx(state),
         criterion_id="c_signal",

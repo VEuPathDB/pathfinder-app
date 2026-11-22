@@ -553,7 +553,7 @@ Fixed in a18: only the search whose parameter names made the word a qualifier ca
 
 ## FND-28 - A range facet has no bindable form
 
-Fixed in a18: the tool server writes a range facet as {min, max} and a member facet as a list (veupathdb-mcp v0.2.0a30), and a proposal carries an object value as its JSON text.
+Fixed in a18: the tool server writes a range facet as {min, max} and a member facet as a list (veupathdb-mcp v0.2.0a30), and a proposal carries an object value as its JSON text. The shorthand and `value_format` quoted below are gone since veupathdb-mcp v0.9.0b13: a statement names its facet and the facet writes the clause ([a filter clause is bound by its facet](../decisions/a-filter-clause-is-bound-by-its-facet.md)).
 
 **What I did.** N1 run 1, FRAME on `GenesByVariantCharacteristics`.
 

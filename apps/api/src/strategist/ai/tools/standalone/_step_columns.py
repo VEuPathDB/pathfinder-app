@@ -66,7 +66,8 @@ def _thresholds(parameter: WDKParameter, value: ParamValue) -> list[Threshold]:
             *([Threshold(high, _wire(high), "at_most")] if high is not None else []),
         ]
     if parameter.type == "number" and value.type == "number":
-        return [Threshold(value.value, value.to_wire())]
+        number = value.value
+        return [] if number is None else [Threshold(number, value.to_wire())]
     if parameter.type == "string" and parameter.is_number and value.type == "string":
         number = _number(value.value)
         return [] if number is None else [Threshold(number, value.value)]

@@ -72,8 +72,8 @@ async def fetch_and_convert(
     *,
     site_id: str,
 ) -> tuple[StrategyAst, bool]:
-    """Fetches a WDK strategy and converts it to the internal payload. Parameter
-    normalization failures are logged, and the raw values are kept.
+    """Fetches a WDK strategy and converts it to the internal payload. A value no
+    parameter kind reads is not normalized, and the raw values are kept.
 
     WDK stores no Strategist metadata, so each EDA step's analysis kind is read
     from the site's catalog here.
@@ -82,14 +82,7 @@ async def fetch_and_convert(
 
     payload, wire_by_step_id = build_snapshot_from_wdk(wdk_strategy)
 
-    try:
-        await canonicalize_synced_parameters(payload, api, wire_by_step_id)
-    except VEuPathDBError as exc:
-        logger.warning(
-            "Parameter normalization failed, storing raw values",
-            wdk_id=wdk_id,
-            error=str(exc),
-        )
+    await canonicalize_synced_parameters(payload, api, wire_by_step_id)
     nodes = [
         node for root in (payload.root, *payload.detached_roots) for node in walk(root)
     ]

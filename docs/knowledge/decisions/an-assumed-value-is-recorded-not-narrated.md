@@ -26,6 +26,13 @@ site placeholder (the radio-off value `N/A`, an example text such as
 "(Example: chr22)") or equals the parameter's `initialDisplayValue` (or WDK
 supplied it). A placeholder is never stated.
 
+The values a bind records are what the parameter's declaration reads from the
+model's native statement, under the values bound before it
+([a value is read by its parameter](a-value-is-read-by-its-parameter.md)); a
+filter value is the clauses its facets bind
+([a filter clause is bound by its facet](a-filter-clause-is-bound-by-its-facet.md)).
+A statement the declaration cannot read is refused and records nothing.
+
 A `BoundValue` is built once, by `operational_spec.bind_values(values, source,
 sheet, basis)`, from the parameter sheet the site publishes: `display_name`
 from the sheet, `label` from the vocabulary (a pick's displays, a filter
@@ -141,8 +148,8 @@ Every vocabulary pick records the label its vocabulary gives it, and a pick the
 call proposed that has no label is refused with the labels nearest to it. The
 per-term `vocabulary_label` measurements and `BoundValue.label` read the same
 `value_label.term_labels`, so the row's label is the terms' labels joined. A
-filter clause is labelled by the `display` of the `filter_fields` entry whose
-`term` its field names, and each member value is its own label, since WDK
+filter clause is labelled by the `display` of the facet (`FilterFacet` in
+`filter_fields`) whose `term` its field names, and each member value is its own label, since WDK
 stores none (WDK-PARAM-014). A phyletic code, in a species list or the
 derived pattern, is labelled by the organism the clade tree names it. The criterion records each parameter's display
 name, which the caveat, the ledger and the tool's `measurements` clauses name

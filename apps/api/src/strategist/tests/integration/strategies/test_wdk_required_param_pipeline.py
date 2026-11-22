@@ -52,7 +52,7 @@ async def test_layer3_validate_parameters_relays_wdks_refusal(
     with pytest.raises(ValidationError) as raised:
         await validate_parameters(
             SearchContext("plasmodb", "transcript", "GenesByText"),
-            parameters={},
+            stated={},
             callbacks=make_validation_callbacks("plasmodb"),
         )
 
@@ -88,7 +88,7 @@ async def test_validate_parameters_autofills_hidden_document_type(
     del wdk_session
     result = await validate_parameters(
         SearchContext("plasmodb", "transcript", "GenesByText"),
-        parameters={
+        stated={
             "text_expression": StringValue(value="kinase"),
             "text_fields": MultiPickValue(values=["product"]),
             "text_search_organism": MultiPickValue(

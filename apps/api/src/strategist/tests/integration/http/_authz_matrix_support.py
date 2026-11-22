@@ -76,6 +76,13 @@ NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
         "/api/v1/product-events",
     ): "Langfuse product event: the id names the Langfuse session, and the "
     "route reads and writes no Strategist-owned resource.",
+    (
+        CONVERSATION.name,
+        "POST",
+        "/api/v1/sites/{siteId}/datasets",
+    ): "Dataset save: a strategy source's strategyId is a WDK strategy id, read "
+    "under the caller's own VEuPathDB login, so WDK owns that refusal; the "
+    "route reads and writes no Strategist-owned resource.",
 }
 
 

@@ -14,12 +14,15 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._stated_values import (
+    StatedAddCombineOp,
+    StatedAddLeafOp,
+    StatedOperation,
+    StatedStepNode,
+)
 from strategist.ai.tools.standalone.strategy import apply_operations
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.operations import (
-    AddCombineOp,
-    AddLeafOp,
-    EditableOperation,
     WireInputOp,
 )
 from strategist.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
@@ -31,6 +34,7 @@ from strategist.tests._support.eda_step_doubles import (
     wire_gene_count,
 )
 from strategist.tests._support.run_context import lead_run_context
+from strategist.tests._support.stated import stated_tree
 from strategist.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
@@ -183,8 +187,8 @@ class TestABatchThatWritesASlot:
         deps = _batch_deps()
         graph = deps.strategy_session.graph
         assert graph is not None
-        op: EditableOperation = AddLeafOp(
-            step=leaf("step_new"),
+        op: StatedOperation = StatedAddLeafOp(
+            step=stated_tree(leaf("step_new")),
             attach=AttachIntoSlot(target_step_id="step_c1", slot="secondary"),
         )
 
@@ -210,7 +214,7 @@ class TestABatchThatWritesASlot:
         deps = _batch_deps()
         graph = deps.strategy_session.graph
         assert graph is not None
-        op: EditableOperation = WireInputOp(
+        op: StatedOperation = WireInputOp(
             target_step_id="step_c1", slot="primary", source_step_id="step_k1"
         )
 
@@ -227,10 +231,10 @@ class TestABatchThatWritesASlot:
         deps = _batch_deps()
         graph = deps.strategy_session.graph
         assert graph is not None
-        ops: list[EditableOperation] = [
-            AddLeafOp(step=leaf("step_new"), attach=AttachNewRoot()),
-            AddCombineOp(
-                step=StrategyStepNode(
+        ops: list[StatedOperation] = [
+            StatedAddLeafOp(step=stated_tree(leaf("step_new")), attach=AttachNewRoot()),
+            StatedAddCombineOp(
+                step=StatedStepNode(
                     id="step_c2",
                     search_name=COMBINE_SEARCH_NAME,
                     operator=CombineOp.INTERSECT,

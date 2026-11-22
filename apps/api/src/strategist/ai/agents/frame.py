@@ -122,10 +122,8 @@ Procedure:
       the term that decides it, and one line of reason on what decided it (the term is
       shown before it). The tool records what it was chosen over:
       - copy vocabulary values EXACTLY from the sheet (a tree parent like "Plasmodium"
-        selects all its children); lists for multi-pick; a filter parameter takes
-        "<member facet>=<v1>,<v2>", or "<range facet><=<n>", "<range facet>>=<n>" or
-        "<range facet>=<lo>..<hi>" for a facet the sheet marks is_range or of type
-        date, or null;
+        selects all its children). Each value takes the shape its sheet entry's
+        schema gives; a filter takes a list of {field, value, includeUnknown};
       - for a multi-pick parameter return EVERY value the criterion covers, never one
         representative: a range covers every value the sheet lists inside it, and a
         sample class or stage covers every sample of it the sheet lists. Only when
@@ -147,10 +145,11 @@ Procedure:
         concept, so `set_criterion` refuses a new entry on it that no lookup of this
         pass matched, unless the request writes the entry out;
       - for a phylogenetic-profile search, name the species or clades that must have an
-        ortholog in `included_species` and those that must not in `excluded_species`
-        (codes or labels from the sheet; a clade selects all its species;
-        `lookup_phyletic_codes(query)` finds a code from a common name); the hidden
-        `profile_pattern` is derived from those two lists, never write it;
+        ortholog in `included_species` and those that must not in `excluded_species`,
+        each one string of codes or labels separated by commas (from the sheet; a clade
+        selects all its species; `lookup_phyletic_codes(query)` finds a code from a
+        common name); the hidden `profile_pattern` is derived from those two
+        parameters, never write it;
       - a count across a list of species beyond every one present and every one absent
         is a phyletic pattern over ortholog groups: on a site with no phyletic pattern
         search, report that requirement as `another_site_answers` with `site`

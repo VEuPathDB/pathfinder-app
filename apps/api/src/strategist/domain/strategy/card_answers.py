@@ -7,11 +7,13 @@ from collections.abc import Callable, Mapping, Sequence
 
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
+    FilterValue,
+    MultiPickValue,
     ParamKind,
     ParamValue,
     PhyleticExpression,
     from_wire,
-    param_value_from_raw,
+    value_kind,
 )
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import ParameterInfo
@@ -32,10 +34,6 @@ from strategist.domain.strategy.readings import AcceptedReading
 from strategist.domain.strategy.spec_replay import criterion_restated
 
 _TEXT: ParamKind = "string"
-# The kinds whose option value is the JSON object the site takes whole.
-_OBJECT_KINDS: frozenset[ParamKind] = frozenset(
-    {"number-range", "date-range", "filter"}
-)
 
 
 def params_held(
@@ -59,20 +57,27 @@ def _not_a_value(name: str, value: str, why: str) -> ValidationError:
 def _option_value(name: str, kind: ParamKind, value: str) -> ParamValue:
     """The option's value in the parameter's kind; a pick option names one term."""
     try:
-        if kind in _OBJECT_KINDS:
-            return from_wire(kind, value)
-        return param_value_from_raw(value, kind)
+        if kind == "multi-pick-vocabulary":
+            return MultiPickValue(values=[value])
+        return from_wire(kind, value)
     except (ValueError, TypeError) as unread:
         raise _not_a_value(name, value, f"it takes a {kind} value") from unread
 
 
-def _card_value(name: str, kind: ParamKind, value: str) -> ParamValue:
+def _card_value(
+    name: str, kind: ParamKind, value: str, sheet: Sequence[ParameterInfo]
+) -> ParamValue:
     if name == PHYLETIC_EXPRESSION_PARAM:
         try:
             PhyleticExpression.parse(value)
         except (ValidationError, ValueError) as refused:
             raise _not_a_value(name, value, str(refused)) from refused
-    return _option_value(name, kind, value)
+    match _option_value(name, kind, value):
+        case FilterValue() as held:
+            facets = next((i.facets() for i in sheet if i.name == name), None)
+            return held if facets is None else facets.held(held)
+        case read:
+            return read
 
 
 def _kind_of(
@@ -84,8 +89,9 @@ def _kind_of(
     """The kind of the parameter: its bound value's, else its slot's, else the
     kind its published sheet gives it."""
     held = criterion.resolved_params.get(name)
-    if held is not None:
-        return held.value.type
+    kind = value_kind(held.value) if held is not None else None
+    if kind is not None:
+        return kind
     kinds: dict[str, ParamKind] = {i.name: i.param_kind for i in sheet}
     kinds |= {s.param_name: s.param_kind for s in slots}
     return kinds.get(name, _TEXT)
@@ -112,7 +118,7 @@ def _card_bound(
         criterion = criterion_restated(
             criterion,
             name,
-            _card_value(name, kind, value),
+            _card_value(name, kind, value, sheet),
             sheet=sheet,
             source="card",
             basis=option_id,
@@ -144,8 +150,8 @@ def spec_bound_by_card(
     expressions: Mapping[str, BuiltPattern],
 ) -> OperationalSpec:
     """The spec with the option's values bound as the card's, each read on the
-    published sheet of its search in ``sheets``. A value takes the kind of the
-    value it replaces or the slot it fills; a gone criterion binds nothing."""
+    criterion's sheet in ``sheets``, keyed by criterion id. A value takes the kind
+    of the value it replaces or the slot it fills; a gone criterion binds nothing."""
     if all(c.id != binding.criterion_id for c in spec.criteria):
         return spec
     try:
@@ -157,7 +163,7 @@ def spec_bound_by_card(
     return spec.model_copy(
         update={
             "criteria": [
-                _card_bound(c, binding, option_id, slots, sheets.get(c.search_name, []))
+                _card_bound(c, binding, option_id, slots, sheets.get(c.id, []))
                 if c.id == binding.criterion_id
                 else c
                 for c in spec.criteria

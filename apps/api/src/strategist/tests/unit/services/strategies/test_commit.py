@@ -62,7 +62,10 @@ class _StubAPI:
         self.calls.append(_Call("delete_step", {"step_id": step_id}))
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del spec, record_type, user_id
         return WDKIdentifier(id=self._alloc())
@@ -122,7 +125,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     list_every_search_under(monkeypatch, "transcript")
 
     async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
-        params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+        params: dict[str, ParamValue] = dict(kwargs["stated"])
         return ValidatedParams(params=params, record_class="transcript")
 
     monkeypatch.setattr(stated_sides, "validate_parameters", _echo_parameters)

@@ -13,6 +13,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.errors import ValidationError, WDKError
 from veupathdb.wdk import NewStepSpec, WDKIdentifier
+from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.services.eval import build_gold_strategy
 from strategist.services.experiment import materialization
@@ -33,6 +34,15 @@ _MIXED = (
     "The INTERSECT of step_protein (Proteins) and step_mammals (Ortholog Groups) "
     "joins two record types."
 )
+
+
+async def _as_stated(*_args: Any, **kwargs: Any) -> ValidatedParams:
+    return ValidatedParams(params=dict(kwargs["stated"]))
+
+
+@pytest.fixture(autouse=True)
+def _the_catalog_takes_each_value_as_stated(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(materialization, "validate_parameters", _as_stated)
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
@@ -154,7 +164,10 @@ class _GoldAPI(StubAPI):
         self.posted = []
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         self.posted.append(dict(spec.search_config.parameters))
         return await super().create_step(spec, record_type, user_id)

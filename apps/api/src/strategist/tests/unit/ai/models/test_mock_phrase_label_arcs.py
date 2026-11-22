@@ -18,8 +18,8 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from veupathdb.domain.parameters import ParamValue
-from veupathdb.wdk import SiteSearchResponse
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb.wdk import SiteSearchResponse, WDKParameter
+from veupathdb_mcp.catalog import ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.agents.strategy_instructions import pinned_frame_sheets
@@ -60,9 +60,9 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_PUBLISHED])
 
     def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
-        async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
+        async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
             read = _UNDER_CONTEXT if context else _PUBLISHED
-            return format_param_info_typed(list(read.parameters or []))
+            return list(read.parameters or [])
 
         return fetch_at
 

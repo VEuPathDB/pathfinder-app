@@ -18,10 +18,9 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from veupathdb.wdk import WDKSearch
+from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
-    ParameterInfo,
     ParamFetcher,
     SearchMatch,
     build_sheet,
@@ -92,8 +91,8 @@ def _serve(
     by_name = {d.url_segment: d for d in served}
 
     def _fetch_at(_site: str, _record_type: str, search_name: str) -> ParamFetcher:
-        async def fetch_at(_context: dict[str, str]) -> list[ParameterInfo]:
-            return format_param_info_typed(by_name[search_name].parameters or [])
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(by_name[search_name].parameters or [])
 
         return fetch_at
 

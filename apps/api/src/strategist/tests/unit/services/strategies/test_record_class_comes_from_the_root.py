@@ -160,7 +160,10 @@ class _RecordingAPI:
         return self.next_id
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del user_id
         self.calls.append(("create_step", spec.search_name, record_type))

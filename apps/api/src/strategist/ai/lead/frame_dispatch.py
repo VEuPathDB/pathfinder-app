@@ -294,7 +294,7 @@ async def _record_the_carried_site_set(state: AgentToolState, site_id: str) -> N
     carried = searches_holding_values(state.operational_spec_draft)
     read = await published_parameters_of_searches(site_id=site_id, search_names=carried)
     for search_name, infos in read.items():
-        state.record_site_set(search_name, infos)
+        state.record_read(search_name, infos)
 
 
 def _another_site_route(deps: LeadDeps, delta: FrameResult) -> str:

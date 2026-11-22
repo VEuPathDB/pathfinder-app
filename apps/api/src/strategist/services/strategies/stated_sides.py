@@ -7,15 +7,18 @@ catalog rewrites is one string on both sides of the batch.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from types import MappingProxyType
 from typing import NamedTuple
 
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb.domain.strategy import (
+    StepValidation,
     StrategyStepNode,
     leaves,
     wdk_search_name,
 )
+from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import (
     ValidationCallbacks,
     make_validation_callbacks,
@@ -38,6 +41,8 @@ from strategist.services.strategies.step_search import (
     states_a_question,
 )
 
+NO_VERDICTS: Mapping[str, StepValidation] = MappingProxyType({})
+
 
 class WrittenStep(NamedTuple):
     """A step a batch writes, and the search that canonicalizes its values."""
@@ -51,12 +56,14 @@ class WrittenStep(NamedTuple):
 class CanonicalSides(NamedTuple):
     """The two sides the stated-value guard compares, in the catalog's form.
 
-    ``stated`` holds the spec's values and ``entry`` what a step held before
-    the batch, both keyed by step id.
+    ``stated`` holds the spec's values, ``entry`` what a step held before the
+    batch and ``written`` what the catalog makes of each step the batch writes,
+    all keyed by step id.
     """
 
     stated: Mapping[str, StatedCriterion]
     entry: Mapping[str, Mapping[str, ParamValue]]
+    written: Mapping[str, Mapping[str, ParamValue]]
 
 
 class CanonicalBatch(NamedTuple):
@@ -113,15 +120,20 @@ async def _canonical_stated(
     """The stated values in the catalog's form, read under the whole binding.
 
     A step the batch adds holds nothing before it, so the binding the batch
-    writes is the only context a dependent parameter can be read under.
+    writes is the only context a dependent parameter can be read under. A value
+    the catalog refuses keeps its own form: only the edit's statement refuses.
     """
     if not _needs_a_second_look(criterion, held=held, names_sent=write.names_sent):
         return criterion
-    overlay = await validate_parameters(
-        write.search,
-        parameters={**write.written, **criterion.values},
-        callbacks=callbacks,
-    )
+    try:
+        overlay = await validate_parameters(
+            write.search,
+            stated=dict(criterion.values),
+            context=write.written,
+            callbacks=callbacks,
+        )
+    except ValidationError:
+        return criterion
     return StatedCriterion(
         text=criterion.text,
         values={
@@ -139,11 +151,15 @@ async def _canonical_entry(
     held: Mapping[str, ParamValue],
     callbacks: ValidationCallbacks,
 ) -> Mapping[str, ParamValue]:
+    entry = {name: held[name] for name in criterion.values if name in held}
     if not _moves_a_stated_value(criterion, held=held, written=write.written):
-        return {name: held[name] for name in criterion.values if name in held}
-    overlay = await validate_parameters(
-        write.search, parameters=dict(held), callbacks=callbacks
-    )
+        return entry
+    try:
+        overlay = await validate_parameters(
+            write.search, stated=entry, context=held, callbacks=callbacks
+        )
+    except ValidationError:
+        return entry
     return {
         name: overlay.params[name]
         for name in criterion.values
@@ -179,11 +195,16 @@ async def canonical_sides(
         entry[write.step_id] = await _canonical_entry(
             criterion, write=write, held=held, callbacks=callbacks
         )
-    return CanonicalSides(stated=canonical, entry=entry)
+    return CanonicalSides(
+        stated=canonical,
+        entry=entry,
+        written={write.step_id: write.written for write in writes},
+    )
 
 
 async def canonicalize_stated_leaves(
     *,
+    graph: StrategyGraph,
     root: StrategyStepNode,
     stated: Mapping[str, StatedCriterion],
     site_id: str,
@@ -200,25 +221,43 @@ async def canonicalize_stated_leaves(
     for node in stated_leaves:
         if not states_a_question(node.search_name):
             continue
-        # A leaf that carries no value has none to put in the catalog's form.
-        if not node.parameters:
+        held = graph.get_step(node.id)
+        context = unmoved(node.parameters, {} if held is None else held.parameters)
+        stated_now = {
+            name: value
+            for name, value in node.parameters.items()
+            if name not in context
+        }
+        # A leaf that states no value has none to put in the catalog's form.
+        if not stated_now:
             continue
         search = SearchContext(
             site_id, listed.get(node.search_name, ""), node.search_name
         )
         validated = await validate_parameters(
-            search, parameters=dict(node.parameters), callbacks=callbacks
+            search, stated=stated_now, context=context, callbacks=callbacks
         )
-        node.parameters = dict(validated.params)
+        node.parameters = {**context, **validated.params}
         writes.append(
             WrittenStep(
                 step_id=node.id,
                 search=search,
-                names_sent=frozenset(node.parameters),
+                names_sent=frozenset(stated_now),
                 written=node.parameters,
             )
         )
     return writes
+
+
+def unmoved(
+    values: Mapping[str, ParamValue], held: Mapping[str, ParamValue]
+) -> dict[str, ParamValue]:
+    """The values a node carries exactly as the step already holds them."""
+    return {
+        name: value
+        for name, value in values.items()
+        if name in held and to_wire(held[name]) == to_wire(value)
+    }
 
 
 class _CanonicalOp(NamedTuple):
@@ -230,6 +269,7 @@ async def _canonical_params_op(
     op: UpdateStepParamsOp,
     *,
     graph: StrategyGraph,
+    validations: Mapping[str, StepValidation],
     site_id: str,
     callbacks: ValidationCallbacks,
 ) -> _CanonicalOp:
@@ -241,17 +281,27 @@ async def _canonical_params_op(
     search = SearchContext(site_id, step.record_class or listed.get(name, ""), name)
     validated = await validate_parameters(
         search,
-        parameters={**step.parameters, **op.parameters},
+        stated=dict(op.parameters),
+        context=step.parameters,
+        held_validation=validations.get(step.id),
         callbacks=callbacks,
     )
     return _CanonicalOp(
-        op=op.model_copy(update={"parameters": dict(validated.params)}),
+        op=op.model_copy(
+            update={
+                "parameters": {
+                    name: validated.params[name]
+                    for name in op.parameters
+                    if name in validated.params
+                }
+            }
+        ),
         writes=[
             WrittenStep(
                 step_id=step.id,
                 search=search,
                 names_sent=frozenset(op.parameters),
-                written=validated.params,
+                written={**step.parameters, **validated.params},
             )
         ],
     )
@@ -260,6 +310,7 @@ async def _canonical_params_op(
 async def _canonical_tree_op(
     op: AddLeafOp | AddTransformOp | ReplaceSubtreeOp | ReplaceStrategyOp,
     *,
+    graph: StrategyGraph,
     stated: Mapping[str, StatedCriterion],
     site_id: str,
     callbacks: ValidationCallbacks,
@@ -273,6 +324,7 @@ async def _canonical_tree_op(
         case _:
             root = written.step
     writes = await canonicalize_stated_leaves(
+        graph=graph,
         root=root,
         stated=stated,
         site_id=site_id,
@@ -287,6 +339,7 @@ async def canonical_batch(
     stated: Mapping[str, StatedCriterion],
     site_id: str,
     ops: Sequence[GraphOperation],
+    validations: Mapping[str, StepValidation] = NO_VERDICTS,
 ) -> CanonicalBatch:
     """The batch in the catalog's form, with the sides the guard reads.
 
@@ -302,6 +355,7 @@ async def canonical_batch(
                 found = await _canonical_params_op(
                     op,
                     graph=graph,
+                    validations=validations,
                     site_id=site_id,
                     callbacks=callbacks,
                 )
@@ -313,6 +367,7 @@ async def canonical_batch(
             ):
                 found = await _canonical_tree_op(
                     op,
+                    graph=graph,
                     stated=stated,
                     site_id=site_id,
                     callbacks=callbacks,

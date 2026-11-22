@@ -6,12 +6,18 @@ from typing import get_args
 
 from veupathdb.model import CamelModel
 
+from strategist.ai.tools.standalone._stated_values import StatedOperation
 from strategist.domain.strategy.operations import EditableOperation, GraphOperation
 
 
 def editable_models() -> set[type[CamelModel]]:
     """Every model ``EditableOperation`` holds."""
     return set(get_args(get_args(EditableOperation)[0]))
+
+
+def stated_models() -> set[type[CamelModel]]:
+    """Every model the model-facing batch reads, values stated natively."""
+    return set(get_args(get_args(StatedOperation)[0]))
 
 
 def refused_models() -> set[type[CamelModel]]:

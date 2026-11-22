@@ -37,7 +37,7 @@ export function buildStepPatch(args: BuildPatchArgs): Partial<Step> {
     const spec = specsByName.get(key);
     if (spec === undefined || isInputStepParam(spec)) return;
     const baseTyped = baseParams[key];
-    const baseRaw = baseTyped === undefined ? null : paramValueToRaw(baseTyped);
+    const baseRaw = baseTyped === undefined ? null : paramValueToRaw(baseTyped, spec);
     if (baseRaw !== null && rawEquals(raw, baseRaw)) return;
     parameters[key] = rawToParamValue(spec, raw);
   };

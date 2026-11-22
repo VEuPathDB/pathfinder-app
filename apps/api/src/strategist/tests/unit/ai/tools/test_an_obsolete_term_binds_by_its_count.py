@@ -9,8 +9,8 @@ from collections.abc import Mapping
 import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
-from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import ParameterInfo, ResolvedParams, format_param_info_typed
+from veupathdb.wdk import WDKParameter, WDKSearch
+from veupathdb_mcp.catalog import ResolvedParams, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count
@@ -32,8 +32,8 @@ _OBSOLETE = "GO:0009296"
 _LABEL = "obsolete flagellum assembly"
 
 
-async def _fetch(_context: dict[str, str]) -> list[ParameterInfo]:
-    return _INFOS
+async def _fetch(_context: dict[str, str]) -> list[WDKParameter]:
+    return [_GO_TYPEAHEAD]
 
 
 def _picked(term: str) -> tuple[CriterionCall, dict[str, BoundValue]]:
@@ -41,8 +41,8 @@ def _picked(term: str) -> tuple[CriterionCall, dict[str, BoundValue]]:
         criterion_id="c_flagellum",
         search_name="GenesByGoTerm",
         text="flagellum assembly genes",
-        params={"go_typeahead": [term]},
-    )
+        params={},
+    ).with_values({"go_typeahead": MultiPickValue(values=[term])})
     bound = {
         "go_typeahead": BoundValue(value=MultiPickValue(values=[term]), source="chosen")
     }

@@ -35,7 +35,6 @@ def _expression() -> ParameterInfo:
             "is_visible": True,
             "site_set": False,
             "help": "",
-            "value_format": "",
         }
     )
 

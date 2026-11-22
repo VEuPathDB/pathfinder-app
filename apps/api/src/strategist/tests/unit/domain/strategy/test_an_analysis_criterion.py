@@ -11,9 +11,9 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    pending_analyses,
 )
 from strategist.domain.strategy.operations import ReplaceSubtreeOp
+from strategist.domain.strategy.pending_analyses import pending_analyses
 from strategist.domain.strategy.spec_diff import diff_specs
 from strategist.domain.strategy.spec_fold import (
     fold_option_criteria,

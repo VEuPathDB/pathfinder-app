@@ -84,12 +84,14 @@ describe("paramValue round trip", () => {
         fc.array(
           fc.record({
             field: fc.string({ minLength: 1 }),
-            operation: fc.constant("in"),
-            values: fc.array(fc.string()),
+            type: fc.constant("string"),
+            isRange: fc.constant(false),
+            includeUnknown: fc.boolean(),
+            value: fc.array(fc.string()),
           }),
         ),
         (filters) => {
-          const raw = JSON.stringify(filters);
+          const raw = JSON.stringify({ filters });
           const parsed = rawToParamValue(spec("filter"), raw);
           expect(paramValueToRaw(parsed)).toBe(raw);
         },

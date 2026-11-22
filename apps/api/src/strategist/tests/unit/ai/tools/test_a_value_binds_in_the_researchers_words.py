@@ -5,9 +5,10 @@ other scale, by the label the site gives it, or by the taxon of its organisms.""
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import to_wire
-from veupathdb.wdk import WDKSearch
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb.wdk import WDKParameter, WDKSearch
+from veupathdb_mcp.catalog import ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_count, frame_spec
@@ -42,8 +43,8 @@ def _serve(monkeypatch: pytest.MonkeyPatch, search: WDKSearch) -> None:
     serve_recorded(monkeypatch, [search])
 
     def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
-        async def fetch_at(_context: dict[str, str]) -> list[ParameterInfo]:
-            return format_param_info_typed(list(search.parameters or []))
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(search.parameters or [])
 
         return fetch_at
 
@@ -59,7 +60,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch, search: WDKSearch) -> None:
 
 
 async def _bound(
-    search: WDKSearch, params: dict[str, str | list[str] | None], said: str
+    search: WDKSearch, params: dict[str, JsonValue], said: str
 ) -> dict[str, BoundValue]:
     state = AgentToolState()
     state.request_messages = [said]
@@ -138,7 +139,7 @@ async def test_the_organisms_of_a_genus_the_researcher_named_are_stated_as_it(
 ) -> None:
     _serve(monkeypatch, _TAXON)
 
-    bound = await _bound(_TAXON, {"organism": BABESIA_LEAVES}, ACROSS_BABESIA)
+    bound = await _bound(_TAXON, {"organism": [*BABESIA_LEAVES]}, ACROSS_BABESIA)
 
     held = bound["organism"]
     assert (held.source, held.basis, held.taxon) == (

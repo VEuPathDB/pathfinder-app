@@ -239,13 +239,9 @@ describe("TreeBoxParam - search filter", () => {
 
 describe("TreeBoxParam - a value stored as a parent term", () => {
   /**
-   * FRAME binds organism scope as a species-level term, e.g.
-   * `organism: ["Plasmodium falciparum"]`, and the backend expands parent
-   * terms to leaves at the WDK boundary (`_expand_tree_params_to_leaves`,
-   * because WDK silently returns 0 genes for a parent node). The tree only
-   * ever matched leaves, so a correctly-scoped step opened showing
-   * "0 of 62 selected" on a REQUIRED field - and any interaction would have
-   * written the tree's own state over the real scope.
+   * A step can hold a parent term, e.g. `organism: ["Plasmodium falciparum"]`,
+   * when WDK holds one; a stated value is made its leaves once, when stated.
+   * The tree shows a parent as the leaves it selects.
    */
 
   it("counts a parent term as its leaves", () => {

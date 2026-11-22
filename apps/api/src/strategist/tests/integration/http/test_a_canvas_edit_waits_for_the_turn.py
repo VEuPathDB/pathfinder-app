@@ -18,7 +18,6 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
 
 from strategist.domain.strategy.operations import (
-    GraphOperation,
     UpdateCombineOperatorOp,
 )
 from strategist.jobs.app import procrastinate_app
@@ -278,27 +277,6 @@ async def test_a_refused_edit_changes_nothing_and_leaves_nothing_claimed(
     await clear()
     assert (await thread.send_edit()).status_code == 200
     assert await thread.canvas_name() == CANVAS_NAME
-
-
-async def test_a_refused_edit_saves_no_dataset_on_the_site(
-    thread: _Thread,
-    saver: AsyncPostgresSaver,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    saved: list[GraphOperation] = []
-
-    async def _save(_site_id: str, op: GraphOperation) -> GraphOperation:
-        saved.append(op)
-        return op
-
-    monkeypatch.setattr(strategy_ops, "save_dataset_sources", _save)
-    clear = await _make_busy("running turn", thread, saver)
-
-    assert (await thread.send_edit()).status_code == 409
-    assert saved == []
-    await clear()
-    assert (await thread.send_edit()).status_code == 200
-    assert len(saved) == 1
 
 
 async def test_an_edit_on_an_idle_thread_applies_and_leaves_nothing_claimed(

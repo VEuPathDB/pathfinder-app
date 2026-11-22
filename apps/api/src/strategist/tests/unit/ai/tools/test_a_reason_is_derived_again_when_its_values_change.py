@@ -5,6 +5,7 @@ only an organism, keeps the reason."""
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue, to_wire
 
@@ -81,7 +82,7 @@ def _state(organism: str = "Apicomplexa") -> AgentToolState:
     return state
 
 
-_EDIT: dict[str, str | list[str] | None] = {
+_EDIT: dict[str, JsonValue] = {
     "text_expression": "rhoptry",
     "text_fields": ["product"],
     "text_search_organism": ["Plasmodium falciparum 3D7"],

@@ -15,7 +15,6 @@ from assistant_core.graph.turn_state import (
 from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelRequest, UserPromptPart
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.parameters import StringValue
 from veupathdb_mcp.controls import (
     ControlTargetData,
     ControlTestResult,
@@ -290,7 +289,7 @@ async def test_a_search_level_test_is_recorded_on_the_turn(
     await experiment.run_control_tests_on_search(
         ctx,
         "GenesByMolecularWeight",
-        {"organism": StringValue(value="Plasmodium falciparum 3D7")},
+        {"organism": ["Plasmodium falciparum 3D7"]},
         control_set_id=SAVED_SET_ID,
     )
 

@@ -59,64 +59,11 @@ def _shape_error_hint(
 ) -> str | None:
     if not isinstance(args, dict):
         return None
-    param_hint = _param_value_shape_hint(args, error)
-    if param_hint is not None:
-        return param_hint
     if len(args) == 1:
         return _wrapped_args_hint(tool_name, args, error)
     if tool_name == "build_strategy":
         return _build_strategy_misplaced_hint(args, error)
     return None
-
-
-_PARAM_VALUE_FIELDS = frozenset(
-    {
-        "context_values",
-        "parameters",
-        "target_parameters",
-        "fixed_parameters",
-        "controls_extra_parameters",
-    }
-)
-
-_PARAM_VALUE_SHAPE_ERROR_TYPES = frozenset(
-    {
-        "union_tag_not_found",
-        "union_tag_invalid",
-        "model_attributes_type",
-        "dict_type",
-    }
-)
-
-
-def _param_value_shape_hint(
-    args: dict[str, object],
-    error: ValidationError,
-) -> str | None:
-    bad: list[tuple[str, object]] = []
-    for entry in error.errors():
-        if entry.get("type") not in _PARAM_VALUE_SHAPE_ERROR_TYPES:
-            continue
-        loc = entry.get("loc") or ()
-        if not loc or loc[0] not in _PARAM_VALUE_FIELDS:
-            continue
-        param_name = loc[1] if len(loc) > 1 and isinstance(loc[1], str) else "<unknown>"
-        bad.append((param_name, entry.get("input")))
-    if not bad:
-        return None
-    listing = ", ".join(f"{name!r}={input_!r}" for name, input_ in bad)
-    return (
-        f"Parameter value(s) {listing} were passed as raw scalars/lists. "
-        "Every parameter value MUST be wrapped as a typed object with a `type` "
-        "discriminator. Common shapes:\n"
-        '  {"type": "string", "value": "..."}\n'
-        '  {"type": "single-pick-vocabulary", "value": "<from allowed_values>"}\n'
-        '  {"type": "multi-pick-vocabulary", "values": ["<from allowed_values>", ...]}\n'
-        '  {"type": "number", "value": <number>}\n'
-        "The exact wrapper per param is in the `valueFormat` field of "
-        "`get_search_overview` / `get_parameter_options`. Copy that format "
-        "verbatim, substitute your chosen value, and re-call."
-    )
 
 
 def _build_strategy_misplaced_hint(

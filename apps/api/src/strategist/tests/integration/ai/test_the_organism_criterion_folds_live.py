@@ -8,6 +8,7 @@ from collections.abc import Generator
 from dataclasses import dataclass, field
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import RunContext
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy import CombineOp
@@ -98,9 +99,7 @@ async def _bound(
     )
     marked = await organism_parameter(ctx.deps.site_id, "transcript", search_name)
     assert marked is not None
-    params: dict[str, str | list[str] | None] = dict.fromkeys(
-        sheet.params_template or {}
-    )
+    params: dict[str, JsonValue] = dict.fromkeys(sheet.params_template or {})
     params[marked] = [held.organism]
     params.update(held.values)
     return returned(

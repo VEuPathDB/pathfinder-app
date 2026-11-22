@@ -166,9 +166,7 @@ class TestARedecidedParamIsDecidedOnce:
         with pytest.raises(ModelRetry) as info:
             await aggregate(st, "median9")
 
-        message = str(info.value)
-        assert "min_max_avg_ref" in message
-        assert "get_parameter_options" in message
+        assert "min_max_avg_ref takes one of" in str(info.value)
         assert st.operational_spec_draft.criteria == []
 
     @pytest.mark.asyncio
@@ -279,42 +277,30 @@ class TestAnOrganismSwapRedecidesItsDependents:
         )
 
     @pytest.mark.asyncio
-    async def test_the_swap_hands_back_the_dependent_it_invalidated(self) -> None:
+    async def test_the_swap_refuses_the_old_value_naming_the_fresh_entries(
+        self,
+    ) -> None:
         state = AgentToolState()
 
-        result = await _profile(state, {"organism": [_PV], "profileset": _DERISI_SET})
+        with pytest.raises(ModelRetry) as refused:
+            await _profile(state, {"organism": [_PV], "profileset": _DERISI_SET})
 
-        assert result.redecide == ["profileset"]
-        pinned = pinned_frame_sheets(frame_ctx(state))
-        assert pinned is not None
-        assert _ZHU in pinned
-        assert state.operational_spec_draft.criteria == [], "nothing is recorded yet"
+        assert refused.value.message == (
+            f"profileset takes one of {_ZHU!r}, for example {_ZHU!r}; it read "
+            f"{_DERISI_SET!r}. Nothing was recorded."
+        )
+        assert state.operational_spec_draft.criteria == []
 
     @pytest.mark.asyncio
     async def test_the_fresh_value_binds_and_the_other_params_are_copied(self) -> None:
         state = AgentToolState()
 
-        await _profile(state, {"organism": [_PV], "profileset": _DERISI_SET})
         result = await _profile(state, {"organism": [_PV], "profileset": _ZHU})
 
         assert result.redecide == []
         assert result.resolved_params["profileset"] == _ZHU
         assert result.resolved_params["organism"] == f'["{_PV}"]'
         assert state.operational_spec_draft.criteria[0].id == "step_expr"
-
-    @pytest.mark.asyncio
-    async def test_the_old_organisms_value_is_refused_on_the_re_call(self) -> None:
-        """A second pass that copies the stale value forward is a retry."""
-        state = AgentToolState()
-
-        await _profile(state, {"organism": [_PV], "profileset": _DERISI_SET})
-        with pytest.raises(ModelRetry) as excinfo:
-            await _profile(state, {"organism": [_PV], "profileset": _DERISI_SET})
-
-        message = str(excinfo.value)
-        assert "profileset" in message
-        assert "get_parameter_options" in message
-        assert state.operational_spec_draft.criteria == []
 
     @pytest.mark.asyncio
     async def test_an_unchanged_organism_re_binds_without_a_redecide(self) -> None:
@@ -327,13 +313,7 @@ class TestAnOrganismSwapRedecidesItsDependents:
         assert result.resolved_params["profileset"] == _DERISI_SET
 
 
-_LABELLED = {**KINASE_PARAMS, "text_search_organism": ["P. falciparum 3D7"]}
 _BINDINGS: list[tuple[str, Proposals, dict[str, str]]] = [
-    (
-        "GenesByText",
-        _LABELLED,
-        {"text_search_organism": '["Plasmodium falciparum 3D7"]'},
-    ),
     (
         "GenesByInterproDomain",
         {"domain_typeahead": "PF00069"},
@@ -357,7 +337,7 @@ _BINDINGS: list[tuple[str, Proposals, dict[str, str]]] = [
         {
             **PHYLETIC_ORGANISM,
             "included_species": "Plasmodium falciparum 3D7",
-            "excluded_species": ["Homo sapiens REF"],
+            "excluded_species": "Homo sapiens REF",
         },
         {"profile_pattern": "%hsap:N%pfal:Y%", "included_species": "pfal"},
     ),

@@ -125,10 +125,15 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
 
     async def _accept_every_value(
-        _ctx: Any, *, parameters: dict[str, Any], callbacks: Any
+        _ctx: Any,
+        *,
+        stated: dict[str, Any],
+        context: Any,
+        held_validation: Any,
+        callbacks: Any,
     ) -> ValidatedParams:
-        del callbacks
-        return ValidatedParams(params=parameters)
+        del context, held_validation, callbacks
+        return ValidatedParams(params=stated)
 
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
@@ -212,7 +217,7 @@ def _context(
 def _serve_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded(monkeypatch, [_DEFINITION])
     sheet = format_param_info_typed(_DEFINITION.parameters or [])
-    serve_params(monkeypatch, lambda _context: sheet)
+    serve_params(monkeypatch, declared=_DEFINITION.parameters or [])
     serve_options_reads(monkeypatch, lambda _name: sheet)
     no_validation(monkeypatch)
     serve_site_listing(monkeypatch, [])

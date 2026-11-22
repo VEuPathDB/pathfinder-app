@@ -289,5 +289,9 @@ class FailingAPI(CountingAPI):
             msg = "WDK rejected this step"
             raise WDKError(msg, 422)
         await super().update_step_search_config(
-            step_id, search_config, record_type, search_name, user_id=user_id
+            step_id,
+            search_config,
+            record_type,
+            search_name,
+            user_id=user_id,
         )

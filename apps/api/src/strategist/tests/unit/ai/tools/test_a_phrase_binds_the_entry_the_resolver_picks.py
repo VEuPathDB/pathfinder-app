@@ -68,9 +68,9 @@ def resolver(monkeypatch: pytest.MonkeyPatch) -> _Resolver:
 async def test_an_exact_entry_is_bound_without_asking_the_resolver(
     resolver: _Resolver,
 ) -> None:
-    bound = await bound_proposal("plasmodb", "GenesByText", _FIELDS, "product")
+    bound = await bound_proposal("plasmodb", "GenesByText", _FIELDS, ["product"])
 
-    assert (bound, resolver.asked) == ("product", [])
+    assert (bound, resolver.asked) == (["product"], [])
 
 
 async def test_a_phrase_binds_the_entry_a_settled_pick_names(
@@ -78,10 +78,10 @@ async def test_a_phrase_binds_the_entry_a_settled_pick_names(
 ) -> None:
     resolver.picks = {"gene product": _pick("product", 0.94)}
 
-    bound = await bound_proposal("plasmodb", "GenesByText", _FIELDS, "gene product")
+    bound = await bound_proposal("plasmodb", "GenesByText", _FIELDS, ["gene product"])
 
     assert (bound, resolver.asked) == (
-        "product",
+        ["product"],
         [("GenesByText", "text_fields", "gene product")],
     )
 
@@ -91,15 +91,14 @@ async def test_a_phrase_an_unsettled_pick_answers_stays_as_proposed(
 ) -> None:
     resolver.picks = {"anything": _pick("product", 0.5), "nothing": _pick(None, 0.9)}
 
-    bound = [
-        await bound_proposal("plasmodb", "GenesByText", _FIELDS, phrase)
-        for phrase in ("anything", "nothing", "unread")
-    ]
+    bound = await bound_proposal(
+        "plasmodb", "GenesByText", _FIELDS, ["anything", "nothing", "unread"]
+    )
 
     assert bound == ["anything", "nothing", "unread"]
 
 
-async def test_a_list_binds_each_phrase_and_keeps_its_shape(
+async def test_a_list_binds_each_phrase_in_order(
     resolver: _Resolver,
 ) -> None:
     resolver.picks = {"gene product": _pick("product", 0.94)}

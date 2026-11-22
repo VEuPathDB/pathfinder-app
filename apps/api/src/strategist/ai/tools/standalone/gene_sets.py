@@ -104,8 +104,8 @@ def _wdk_provenance(session: StrategySession, step_id: str | None) -> WdkProvena
     wdk_step_id = sync_state.wdk_step_ids.get(local_id or "")
     if wdk_step_id is None or step is None:
         return WdkProvenance()
-    # Only a search step can be re-run from its name and parameters alone. A
-    # combine runs no search of its own, and a transform needs its input step.
+    # The values Strategist read from a search step; the WDK step names the
+    # search WDK ran. A combine and a transform record none.
     runs_search = step.kind is StepKind.SEARCH
     return WdkProvenance(
         wdk_strategy_id=sync_state.wdk_strategy_id,

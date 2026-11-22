@@ -3,6 +3,7 @@
 from collections.abc import Collection, Mapping
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.parameters import wire_map
 from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStep,
@@ -16,7 +17,6 @@ from veupathdb.wdk import (
     PatchStepSpec,
     StrategyAPI,
     WDKSearchConfig,
-    encode_params,
 )
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
@@ -201,7 +201,7 @@ async def _put_search_config(
 ) -> None:
     """Write the step's parameters and weight over the ones WDK holds."""
     refuse_a_set_operation(step.id, wdk_search_name(step))
-    str_params: dict[str, str] = encode_params(step.parameters)
+    str_params = wire_map(step.parameters)
     _refuse_an_empty_eda_analysis(str_params)
 
     await api.update_step_search_config(

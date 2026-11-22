@@ -7,6 +7,7 @@ from veupathdb.domain.strategy import (
     CombineOp,
     StepKind,
     StrategyStepNode,
+    walk,
 )
 
 from strategist.domain.strategy.operational_spec import (
@@ -116,13 +117,13 @@ def test_a_write_that_keeps_every_criterion_holds() -> None:
 def test_a_placeholder_name_is_found_and_the_combine_sentinel_is_not() -> None:
     tree = combine("c", leaf("a", search_name="__input_step__"), leaf("b"))
 
-    assert placeholder_names(tree) == ("__input_step__",)
+    assert placeholder_names(n.search_name for n in walk(tree)) == ("__input_step__",)
 
 
 def test_a_tree_of_real_searches_carries_no_placeholder() -> None:
     tree = combine("c", leaf("a"), transform("t", leaf("b")))
 
-    assert placeholder_names(tree) == ()
+    assert placeholder_names(n.search_name for n in walk(tree)) == ()
 
 
 def _spec_over_a_saved_strategy() -> OperationalSpec:
@@ -222,7 +223,10 @@ def test_a_display_name_of_the_sentinel_form_is_not_a_placeholder() -> None:
         id="a", search_name="GenesByText", display_name="__input_step__"
     )
 
-    assert placeholder_names(combine("c", named, leaf("b"))) == ()
+    assert (
+        placeholder_names(n.search_name for n in walk(combine("c", named, leaf("b"))))
+        == ()
+    )
 
 
 def _spec_of_only_a_saved_strategy() -> OperationalSpec:

@@ -157,6 +157,7 @@ async def _build(spec: str) -> tuple[BuildOutcome, WDKSyncState]:
     sync_state = WDKSyncState()
     await spec_build._push_tree_to_wdk(
         nodes=[steps[root.id]],
+        held={},
         site_id="plasmodb",
         sync_state=sync_state,
         outcome=outcome,

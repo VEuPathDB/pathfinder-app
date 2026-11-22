@@ -213,18 +213,9 @@ class _TranscriptSite:
         }
 
 
-def _reporting_as_sent(monkeypatch: pytest.MonkeyPatch) -> VEuPathDBClient:
+def _reporting_as_sent() -> VEuPathDBClient:
     """A client whose report sends the values as given, reading no definition."""
-    client = VEuPathDBClient("https://example.invalid/service")
-
-    async def _as_given(
-        record_type: str, search_name: str, params: dict[str, str]
-    ) -> dict[str, str]:
-        del record_type, search_name
-        return params
-
-    monkeypatch.setattr(client, "expand_tree_params_to_leaves", _as_given)
-    return client
+    return VEuPathDBClient("https://example.invalid/service")
 
 
 @pytest.mark.asyncio
@@ -232,7 +223,7 @@ async def test_a_transcript_search_reports_one_row_per_gene_under_the_cap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     site = _TranscriptSite()
-    client = _reporting_as_sent(monkeypatch)
+    client = _reporting_as_sent()
     monkeypatch.setattr(client, "post", site)
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
 
@@ -333,7 +324,7 @@ async def test_each_unique_gene_carries_the_product_its_record_names(
     monkeypatch: pytest.MonkeyPatch, record_type: str, attribute: str
 ) -> None:
     site = _ProductSite()
-    client = _reporting_as_sent(monkeypatch)
+    client = _reporting_as_sent()
     monkeypatch.setattr(client, "post", site)
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
 
@@ -358,7 +349,7 @@ async def test_a_record_type_that_names_no_product_samples_ids_alone(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     site = _ProductSite()
-    client = _reporting_as_sent(monkeypatch)
+    client = _reporting_as_sent()
     monkeypatch.setattr(client, "post", site)
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
 

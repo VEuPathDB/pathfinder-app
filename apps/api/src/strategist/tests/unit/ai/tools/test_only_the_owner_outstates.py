@@ -7,7 +7,6 @@ search carries it only in its Experiment and Samples labels."""
 from __future__ import annotations
 
 import pytest
-from veupathdb_mcp.catalog import format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
@@ -62,10 +61,7 @@ async def test_a_label_of_another_search_does_not_outstate_the_bound_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_recorded(monkeypatch, [_SIGNAL, _BLOOD])
-    serve_params(
-        monkeypatch,
-        lambda _context: format_param_info_typed(_SIGNAL.parameters or []),
-    )
+    serve_params(monkeypatch, declared=_SIGNAL.parameters or [])
     no_validation(monkeypatch)
     no_count(monkeypatch)
     serve_site_listing(monkeypatch, [])

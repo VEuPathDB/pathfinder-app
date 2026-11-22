@@ -353,11 +353,13 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
     async def _passthrough_validation(
         _ctx: Any,
         *,
-        parameters: dict[str, ParamValue],
+        stated: dict[str, ParamValue],
+        context: Any,
+        held_validation: Any,
         callbacks: Any,
     ) -> ValidatedParams:
-        del callbacks
-        return ValidatedParams(params=dict(parameters), record_class="transcript")
+        del context, held_validation, callbacks
+        return ValidatedParams(params=dict(stated), record_class="transcript")
 
     monkeypatch.setattr(spec_build, "validate_parameters", _passthrough_validation)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _no_reconcile)

@@ -17,7 +17,10 @@ from strategist.tests._support.record_classes import (
     list_searches_under,
     serve_record_classes,
 )
-from strategist.tests._support.recorded_searches import suite_search
+from strategist.tests._support.recorded_searches import (
+    serve_stated_reads,
+    suite_search,
+)
 
 _PROFILE = suite_search("search_genes_by_ortholog_pattern")
 
@@ -39,6 +42,7 @@ async def _profile_definition(
 @pytest.fixture(autouse=True)
 def _recorded_profile_search(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(variant_comparison, "search_parameters", _profile_parameters)
+    serve_stated_reads(monkeypatch, [_PROFILE])
     monkeypatch.setattr(
         variant_comparison, "read_search_definition", _profile_definition
     )
@@ -51,10 +55,7 @@ def _profile(**lists: str) -> VariantInput:
         {
             "label": "in falciparum, not in human",
             "searchName": "GenesByOrthologPattern",
-            "parameters": {
-                name: {"type": "string", "value": value}
-                for name, value in lists.items()
-            },
+            "parameters": dict(lists),
         }
     )
 

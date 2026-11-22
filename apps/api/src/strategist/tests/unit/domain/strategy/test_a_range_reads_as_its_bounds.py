@@ -24,8 +24,10 @@ _SHOWN: dict[str, tuple[str, str]] = {
     "multi-pick-vocabulary": ('["Pf3D7", "PvP01"]', "Pf3D7, PvP01"),
     "filter": (
         (
-            '{"filters": [{"field": "sex", "value": ["female"]}, {"field": "maf", '
-            '"type": "number", "isRange": true, "value": {"max": 0.05}}]}'
+            '{"filters": [{"field": "sex", "type": "string", "isRange": false, '
+            '"includeUnknown": false, "value": ["female"]}, {"field": "maf", '
+            '"type": "number", "isRange": true, "includeUnknown": false, '
+            '"value": {"max": 0.05}}]}'
         ),
         "sex: female; maf: at most 0.05",
     ),
@@ -54,8 +56,8 @@ def test_every_parameter_kind_reads_as_words() -> None:
         (
             "filter",
             (
-                '{"filters": [{"field": "sex", "value": ["female", "male"], '
-                '"includeUnknown": true}]}'
+                '{"filters": [{"field": "sex", "type": "string", "isRange": false, '
+                '"value": ["female", "male"], "includeUnknown": true}]}'
             ),
             "sex: female, male or unknown",
         ),
@@ -63,7 +65,8 @@ def test_every_parameter_kind_reads_as_words() -> None:
             "filter",
             (
                 '{"filters": [{"field": "variants_per_kb", "type": "number", '
-                '"isRange": true, "value": {"min": 0, "max": 0}}]}'
+                '"isRange": true, "includeUnknown": false, '
+                '"value": {"min": 0, "max": 0}}]}'
             ),
             "variants_per_kb: 0",
         ),

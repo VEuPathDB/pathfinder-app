@@ -207,13 +207,13 @@ def validated(monkeypatch: pytest.MonkeyPatch) -> _Validations:
     seen = _Validations()
 
     async def _validate(
-        search: Any, *, parameters: Any, callbacks: Any
+        search: Any, *, stated: Any, context: Any, held_validation: Any, callbacks: Any
     ) -> ValidatedParams:
-        del callbacks
+        del context, held_validation, callbacks
         seen.names.append(search.search_name)
         if search.search_name == _BOOLEAN:
             raise ValidationError(title="invalid parameters", detail=_BQ_REFUSAL)
-        return ValidatedParams(params=dict(parameters))
+        return ValidatedParams(params=dict(stated))
 
     monkeypatch.setattr(spec_build, "validate_parameters", _validate)
     monkeypatch.setattr(spec_build, "make_validation_callbacks", lambda _site: None)
@@ -224,6 +224,7 @@ async def _push(nodes: list[StrategyStep]) -> BuildOutcome:
     outcome = BuildOutcome()
     await spec_build._push_tree_to_wdk(
         nodes=nodes,
+        held={},
         site_id="plasmodb",
         sync_state=WDKSyncState(),
         outcome=outcome,
@@ -338,7 +339,11 @@ class TestASetOperationIsNeverPushedAsASearch:
         sync_state = WDKSyncState(wdk_step_ids={step.id: _COMBINE_WDK_ID})
 
         failure = await step_wdk_push._execute_patch(
-            sync_state, "plasmodb", step, "transcript", _VALUES
+            sync_state,
+            "plasmodb",
+            step,
+            "transcript",
+            _VALUES,
         )
 
         assert failure is not None

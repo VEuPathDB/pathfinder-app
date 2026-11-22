@@ -177,7 +177,7 @@ async def test_a_parameter_no_search_takes_is_refused_before_the_run(
             {
                 "label": label,
                 "searchName": "SA",
-                "parameters": {"input": {"type": "string", "value": "441126163"}},
+                "parameters": {"input": "441126163"},
             }
         )
         for label in ("a", "b")

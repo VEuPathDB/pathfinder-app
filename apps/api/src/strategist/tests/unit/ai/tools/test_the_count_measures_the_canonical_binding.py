@@ -32,12 +32,13 @@ def _expand_the_branch(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _validate(
         _search: object,
         *,
-        parameters: Mapping[str, ParamValue],
+        stated: Mapping[str, ParamValue],
         callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
         return ValidatedParams(
-            params=dict(parameters)
+            params=dict(stated)
             | {"text_search_organism": MultiPickValue(values=[_LEAF])}
         )
 

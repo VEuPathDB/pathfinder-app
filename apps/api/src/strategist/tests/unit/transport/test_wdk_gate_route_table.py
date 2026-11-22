@@ -48,6 +48,8 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/insert-saved"),
         # The researcher's own strategies on one site.
         ("GET", "/api/v1/sites/{siteId}/strategies"),
+        # Saving a list of ids writes a dataset into the researcher's account.
+        ("POST", "/api/v1/sites/{siteId}/datasets"),
         # Publishing a set writes a dataset into the researcher's own account.
         ("POST", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
         ("GET", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),

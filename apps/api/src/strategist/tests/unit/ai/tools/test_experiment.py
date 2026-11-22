@@ -94,7 +94,7 @@ async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None
     returned = await experiment.run_control_tests_on_search(
         agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
-        {"organism": StringValue(value="Plasmodium falciparum 3D7")},
+        {"organism": ["Plasmodium falciparum 3D7"]},
         control_set_id=SAVED_SET_ID,
     )
 
@@ -265,7 +265,7 @@ async def test_a_search_level_test_leaves_the_same_exhibit() -> None:
     returned = await experiment.run_control_tests_on_search(
         agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
-        {"organism": StringValue(value="Plasmodium falciparum 3D7")},
+        {"organism": ["Plasmodium falciparum 3D7"]},
         control_set_id=SAVED_SET_ID,
     )
 

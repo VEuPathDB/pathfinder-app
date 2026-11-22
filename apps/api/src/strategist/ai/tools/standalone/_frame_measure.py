@@ -18,7 +18,6 @@ from veupathdb_mcp.catalog import (
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_count import record_and_count_criterion
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.ai.tools.standalone._qualifier_words import proposal_values
 from strategist.ai.tools.standalone.graph_helpers import counted_noun
 from strategist.domain.strategy.genome_set_names import required_genomes_name
 from strategist.domain.strategy.measurement_clauses import measurement_clauses
@@ -57,8 +56,7 @@ async def labelled_picks(
     proposed = [
         pick
         for pick in read.unlabelled
-        if pick.param in filters
-        or pick.term in proposal_values(call.params.get(pick.param))
+        if pick.param in filters or pick.term in call.terms(pick.param)
     ]
     if proposed:
         pick = proposed[0]

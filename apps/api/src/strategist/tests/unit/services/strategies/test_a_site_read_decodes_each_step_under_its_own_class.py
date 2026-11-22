@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-from veupathdb.domain.parameters import NumberValue, ParamValue
+from veupathdb.domain.parameters import HeldValue, NumberValue, ParamValue
 from veupathdb.domain.strategy import (
     CombineOp,
     StepValidation,
@@ -165,7 +165,12 @@ async def test_a_snp_leaf_under_a_gene_root_is_decoded_under_snp(
             {"start_point": NumberValue(value=3000)},
         ),
         ("snp", {}, [], {}),
-        (None, {"start_point": "3000"}, [], {}),
+        (
+            None,
+            {"start_point": "3000"},
+            [],
+            {"start_point": HeldValue(wire="3000")},
+        ),
     ],
 )
 async def test_a_leaf_the_site_added_under_a_gene_root_is_taken(
@@ -196,7 +201,7 @@ async def test_a_leaf_the_site_added_under_a_gene_root_is_taken(
     assert graph.steps["503"].parameters == decoded
 
 
-async def test_a_retired_leaf_with_no_class_keeps_its_values_and_the_rest_is_read(
+async def test_a_retired_leaf_with_no_class_takes_the_sites_value_as_held(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     retired: dict[str, ParamValue] = {"min_score": NumberValue(value=5)}
@@ -245,10 +250,13 @@ async def test_a_retired_leaf_with_no_class_keeps_its_values_and_the_rest_is_rea
     edits, reads = await _read(monkeypatch, graph, held, live)
 
     assert (edits.valued, reads) == (
-        ["step_weight"],
+        ["step_retired", "step_weight"],
         [("transcript", "GenesByMolecularWeight")],
     )
     assert (
         graph.steps["step_retired"].parameters,
         graph.steps["step_weight"].parameters,
-    ) == (retired, {"min_molecular_weight": NumberValue(value=20000)})
+    ) == (
+        {"min_score": HeldValue(wire="9")},
+        {"min_molecular_weight": NumberValue(value=20000)},
+    )

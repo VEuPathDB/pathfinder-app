@@ -18,6 +18,7 @@ from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.tools.standalone.strategy_edits import replace_subtree
 from strategist.ai.tools.toolsets.execution import build_toolset
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
+from strategist.tests._support.stated import stated_tree
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.conftest import unwrap_function_toolset
 
@@ -79,7 +80,7 @@ async def test_an_applied_replacement_removes_no_stated_step(
     before = set(graph.steps)
 
     payload = returned(
-        await replace_subtree(ctx(deps), "step_c1", leaf("step_c1")),
+        await replace_subtree(ctx(deps), "step_c1", stated_tree(leaf("step_c1"))),
         dict[str, JsonValue],
     )
 

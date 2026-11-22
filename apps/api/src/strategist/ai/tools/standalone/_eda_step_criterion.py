@@ -10,9 +10,9 @@ from strategist.ai.tools.standalone._eda_step_write import AskedPlacement, StepJ
 from strategist.domain.strategy.join_point import branch_step, join_point
 from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
-    pending_analyses,
     structure_criteria,
 )
+from strategist.domain.strategy.pending_analyses import pending_analyses
 from strategist.domain.strategy.session import StrategyGraph
 
 

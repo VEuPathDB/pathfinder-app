@@ -26,7 +26,6 @@ def _answer(display_name: str) -> SearchParametersResult:
                 is_visible=True,
                 site_set=False,
                 help="",
-                value_format="",
             ),
             ParameterInfo(
                 name="unlabelled",
@@ -36,7 +35,6 @@ def _answer(display_name: str) -> SearchParametersResult:
                 is_visible=True,
                 site_set=False,
                 help="",
-                value_format="",
             ),
         ],
         resolved_record_type="transcript",

@@ -33,7 +33,6 @@ def _number(name: str) -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         min=0,
         max=100,
     )

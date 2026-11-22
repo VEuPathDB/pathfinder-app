@@ -6,10 +6,10 @@ from typing import cast
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.types import JSONArray, JSONObject
+from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import ColocationParams, CombineOp, StepKind
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload, tool_error
@@ -25,6 +25,7 @@ from strategist.ai.tools.standalone._edit_refusal import refusal_context
 from strategist.ai.tools.standalone._spec_edit_checks import (
     refuse_a_write_the_spec_did_not_state,
 )
+from strategist.ai.tools.standalone._stated_values import typed_tree, typed_values
 from strategist.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
     StepTreePayload,
@@ -82,7 +83,7 @@ async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
 async def update_leaf_params(
     ctx: RunContext[AgentDeps],
     step_id: str,
-    parameters: dict[str, ParamValue],
+    parameters: dict[str, JsonValue],
     *,
     graph_id: str | None = None,
 ) -> ToolReturn[StepOkResponse | ToolErrorPayload]:
@@ -90,9 +91,8 @@ async def update_leaf_params(
 
     Only the params you pass are changed; the step's other params are kept, so
     you can update one param without re-supplying the whole search config. Each
-    value MUST be wrapped in its typed shape - see the ``valueFormat`` field
-    from ``get_search_overview`` for the exact template per param. Example:
-    ``{"organism": {"type": "multi-pick-vocabulary", "values": ["Pf3D7"]}}``.
+    value takes the shape its parameter's ``statedSchema`` gives, for example
+    ``{"organism": ["Plasmodium falciparum 3D7"]}``.
     """
     deps = ctx.deps
     session = deps.strategy_session
@@ -110,8 +110,11 @@ async def update_leaf_params(
         )
         raise ModelRetry(msg)
 
+    values = await typed_values(
+        deps.site_id, step.search_name or "", parameters, bound=step.parameters
+    )
     result = await _commit_or_retry(
-        deps, UpdateStepParamsOp(step_id=step_id, parameters=dict(parameters))
+        deps, UpdateStepParamsOp(step_id=step_id, parameters=values)
     )
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:
@@ -291,7 +294,8 @@ async def replace_subtree(
         )
         raise ModelRetry(msg)
 
-    op = ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree)
+    subtree = await typed_tree(deps.site_id, new_subtree)
+    op = ReplaceSubtreeOp(step_id=step_id, subtree=subtree)
     refuse_a_write_the_spec_did_not_state(deps, graph, op)
     result = await _commit_or_retry(deps, op)
     refusal = wdk_refused_the_edit(result)

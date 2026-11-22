@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters import VocabOption, WDKVocabTerm
+from veupathdb.domain.parameters import FilterFacet, VocabOption, WDKVocabTerm
 from veupathdb.wdk import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,
 )
-from veupathdb_mcp.catalog import FilterFieldInfo, ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState, SearchOverview
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
@@ -292,15 +292,22 @@ _SAMPLE_WINDOWS = [
     VocabOption(value="17-30h", display="17-30 hours"),
     VocabOption(value="1-16h", display="1-16 hours"),
 ]
-_FILTER_FIELD = FilterFieldInfo(
-    term="Sample type", display="Sample type", type="string", values=["a", "b"]
+_FILTER_FIELD = FilterFacet(
+    term="Sample type",
+    display="Sample type",
+    parent=None,
+    type="string",
+    is_range=False,
+    units=None,
+    precision=0,
+    members=["a", "b"],
 )
 _DERISI = "GenesByMicroarrayDerisi"
 _STATED: Proposals = {
     "min_expression_percentile": "90",
     "samples_percentile_generic": "17-30h",
-    "ref_samples": "Sample type=a",
-    "comp_samples": "Sample type=b",
+    "ref_samples": [{"field": "Sample type", "value": ["a"]}],
+    "comp_samples": [{"field": "Sample type", "value": ["b"]}],
 }
 _REQUEST = "top 10 percent of trophozoite expression in the 17-30h window"
 

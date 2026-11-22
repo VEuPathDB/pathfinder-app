@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from typing import get_args
 
+import pytest
 from veupathdb.domain.parameters import (
-    FilterTermClause,
     FilterValue,
     InputDatasetValue,
     InputStepValue,
@@ -15,7 +15,9 @@ from veupathdb.domain.parameters import (
     ParamKind,
     ParamValue,
     SinglePickValue,
+    StringMembers,
     StringValue,
+    empty_value,
     from_wire,
 )
 
@@ -104,9 +106,19 @@ _SAMPLES: dict[ParamKind, ParamValue] = {
     "timestamp": from_wire("timestamp", "2020-01-01T00:00:00"),
     "single-pick-vocabulary": SinglePickValue(value="up-regulated"),
     "multi-pick-vocabulary": MultiPickValue(values=["product", "Notes"]),
-    "filter": FilterValue(filters=[FilterTermClause(field="sex", value=["female"])]),
+    "filter": FilterValue(
+        filters=[
+            StringMembers(
+                field="sex",
+                type="string",
+                is_range=False,
+                include_unknown=False,
+                value=["female"],
+            )
+        ]
+    ),
     "input-dataset": InputDatasetValue(dataset_id="12345"),
-    "input-step": InputStepValue(step_id="step_1"),
+    "input-step": InputStepValue(step_id="1"),
 }
 
 
@@ -127,6 +139,11 @@ def test_every_value_kind_has_a_source_rule() -> None:
 
 
 def test_a_value_no_researcher_writes_in_words_is_never_stated() -> None:
-    step = InputStepValue(step_id="step_1")
+    step = InputStepValue(step_id="1")
 
     assert _source(step, ["use step 1"]) == "chosen"
+
+
+@pytest.mark.parametrize("kind", get_args(ParamKind))
+def test_nothing_states_an_empty_value(kind: ParamKind) -> None:
+    assert stated_texts(empty_value(kind)) == []

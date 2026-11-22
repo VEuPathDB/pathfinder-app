@@ -15,8 +15,8 @@ from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._stated_values import StatedUpdateStepParamsOp
 from strategist.ai.tools.standalone.strategy import apply_operations
-from strategist.domain.strategy.operations import UpdateStepParamsOp
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.services.strategies import stated_sides
 from strategist.tests._support.eda_step_doubles import (
@@ -70,11 +70,8 @@ async def test_apply_operations_answers_with_the_refusal() -> None:
             ctx(deps),
             strategy_revision(graph.to_strategy_ast()),
             [
-                UpdateStepParamsOp(
-                    step_id="a",
-                    parameters={
-                        "organism": MultiPickValue(values=["NotARealOrganism"])
-                    },
+                StatedUpdateStepParamsOp(
+                    step_id="a", parameters={"organism": ["NotARealOrganism"]}
                 )
             ],
         )

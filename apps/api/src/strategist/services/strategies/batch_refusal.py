@@ -10,7 +10,6 @@ from veupathdb.domain.strategy import subtree_ids
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import (
     JoinContradiction,
-    StatedCriterion,
     ValueContradiction,
     contradicted_joins,
     contradicted_values,
@@ -89,7 +88,7 @@ def refusal_after_the_batch(
     deps: StrategyMutationContext,
     graph: StrategyGraph,
     entry: EntryState,
-    stated_values: Mapping[str, StatedCriterion],
+    sides: CanonicalSides,
     slot_writes: Sequence[SlotWrite],
     replaces_a_subtree: bool,
 ) -> str | None:
@@ -119,5 +118,5 @@ def refusal_after_the_batch(
     if join is not None:
         return join
     return new_value_contradiction(
-        stated=stated_values, graph=graph, before=entry.values
+        stated=sides.stated, graph=graph, before=entry.values, after=sides.written
     )

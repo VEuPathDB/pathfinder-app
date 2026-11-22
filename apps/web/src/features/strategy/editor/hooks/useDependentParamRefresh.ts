@@ -7,7 +7,7 @@ import { refreshDependentParams } from "@/lib/api/sites";
 import { extractVocabOptions, type VocabOption } from "@/lib/utils/vocab";
 import { extractSpecVocabulary } from "@/features/strategy/editor/components/stepEditorUtils";
 import { rawToParamValue } from "@/features/strategy/parameters/paramValue";
-import { statesNothing } from "@/lib/parameters/paramValue";
+import { statesNothing, type ParamValue } from "@/lib/parameters/paramValue";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import type { ParamFormValues } from "./useParamForm";
 
@@ -29,6 +29,14 @@ interface DependentRefreshState {
    * refresh runs only if that parameter declares `dependentParams`.
    */
   handleFieldChange: (changedName: string, allValues: ParamFormValues) => void;
+}
+
+function readableValue(spec: ParamSpec, raw: string | string[]): ParamValue | null {
+  try {
+    return rawToParamValue(spec, raw);
+  } catch {
+    return null;
+  }
 }
 
 export function useDependentParamRefresh(
@@ -67,8 +75,8 @@ export function useDependentParamRefresh(
     for (const spec of specs) {
       const raw = allValues[spec.name];
       if (raw === undefined) continue;
-      const value = rawToParamValue(spec, raw);
-      if (statesNothing(value)) continue;
+      const value = readableValue(spec, raw);
+      if (value === null || statesNothing(value)) continue;
       contextValues[spec.name] = value;
     }
 

@@ -18,7 +18,7 @@ async def test_valid_params_canonicalize_against_real_spec(wdk_session: None) ->
     )
     canonical = await validate_parameters(
         ctx,
-        parameters={"organism": MultiPickValue(values=[_ORGANISM])},
+        stated={"organism": MultiPickValue(values=[_ORGANISM])},
         callbacks=make_validation_callbacks("plasmodb"),
     )
     organism = canonical.params["organism"]
@@ -34,7 +34,7 @@ async def test_unknown_search_raises(wdk_session: None) -> None:
     with pytest.raises(ValidationError):
         await validate_parameters(
             ctx,
-            parameters={"organism": MultiPickValue(values=[_ORGANISM])},
+            stated={"organism": MultiPickValue(values=[_ORGANISM])},
             callbacks=make_validation_callbacks("plasmodb"),
         )
 
@@ -47,7 +47,7 @@ async def test_unknown_param_key_raises(wdk_session: None) -> None:
     with pytest.raises(ValidationError):
         await validate_parameters(
             ctx,
-            parameters={
+            stated={
                 "organism": MultiPickValue(values=[_ORGANISM]),
                 "not_a_real_param": StringValue(value="x"),
             },

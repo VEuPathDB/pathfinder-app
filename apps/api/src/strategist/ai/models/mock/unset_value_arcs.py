@@ -40,7 +40,7 @@ def radio_off_domain_spec(values: SiteValues) -> SpecPlan:
         search_name=ORTHOLOG_PATTERN,
         values={
             "organism": [values.organism],
-            "excluded_species": [HUMAN],
+            "excluded_species": HUMAN,
             "included_species": None,
         },
     )

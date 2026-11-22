@@ -341,7 +341,17 @@ async def test_a_filter_is_counted_at_no_filter(
     serve_counts(monkeypatch, _count)
     params: dict[str, ParamValue] = {
         "variation_sample_meta": FilterValue.model_validate(
-            {"filters": [{"field": "VAR_68bb04bd", "value": ["female"]}]}
+            {
+                "filters": [
+                    {
+                        "field": "VAR_68bb04bd",
+                        "type": "string",
+                        "isRange": False,
+                        "includeUnknown": False,
+                        "value": ["female"],
+                    }
+                ]
+            }
         )
     }
 

@@ -41,8 +41,9 @@ def _record_reads(monkeypatch: pytest.MonkeyPatch) -> list[_Read]:
     reads: list[_Read] = []
 
     async def _echo(ctx: SearchContext, **kwargs: Any) -> ValidatedParams:
-        params: dict[str, ParamValue] = dict(kwargs["parameters"])
-        reads.append(_Read(search_name=ctx.search_name, parameters=params))
+        params: dict[str, ParamValue] = dict(kwargs["stated"])
+        under = {**kwargs.get("context", {}), **params}
+        reads.append(_Read(search_name=ctx.search_name, parameters=under))
         return ValidatedParams(params=params, record_class="transcript")
 
     monkeypatch.setattr(stated_sides, "validate_parameters", _echo)

@@ -8,16 +8,14 @@ A write into an input slot never takes the step that slot holds off the tree.
 
 from __future__ import annotations
 
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass
 
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     StepKind,
     StrategyStep,
-    StrategyStepNode,
     subtree_ids,
-    walk,
 )
 
 from strategist.domain.strategy.operations import GraphOperation
@@ -230,14 +228,13 @@ def working_copy(graph: StrategyGraph) -> StrategyGraph:
     return clone
 
 
-def placeholder_names(root: StrategyStepNode) -> tuple[str, ...]:
-    """The sentinel search names a step tree carries, besides the combine one.
+def placeholder_names(names: Iterable[str]) -> tuple[str, ...]:
+    """The sentinel search names among these, besides the combine one.
 
     A WDK search name never takes the ``__name__`` form, so a step that carries
     one holds a placeholder from the payload instead of a search.
     """
-    found = {node.search_name for node in walk(root) if _is_sentinel(node.search_name)}
-    return tuple(sorted(found))
+    return tuple(sorted({name for name in names if _is_sentinel(name)}))
 
 
 def _is_sentinel(name: str) -> bool:

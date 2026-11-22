@@ -75,7 +75,7 @@ async def test_a_site_set_parameter_error_is_a_named_refusal(
 
 
 @pytest.mark.asyncio
-async def test_the_resolver_derives_the_pattern_from_both_lists_and_the_definition(
+async def test_the_resolver_reads_both_lists_as_stated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
@@ -93,12 +93,7 @@ async def test_the_resolver_derives_the_pattern_from_both_lists_and_the_definiti
         {**PHYLETIC_ORGANISM, "included_species": "pfal"},
     )
 
-    overrides = captured["overrides"]
-    assert isinstance(overrides, dict)
-    assert (
-        overrides["included_species"],
-        "excluded_species" in overrides,
-        "profile_pattern" in overrides,
-    ) == ("pfal", False, False)
-    assert captured["search_name"] == "GenesByOrthologPattern"
-    assert captured["definition"]
+    assert (captured["search_name"], captured["stated"]) == (
+        "GenesByOrthologPattern",
+        {"organism": ["Pf3D7"], "included_species": "pfal"},
+    )

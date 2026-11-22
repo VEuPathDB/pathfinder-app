@@ -58,7 +58,6 @@ async def _two_term_knob(
             is_visible=True,
             site_set=False,
             help="",
-            value_format="",
             allowed_values=[
                 VocabOption(value="a", display="a"),
                 VocabOption(value="b", display="b"),

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { describe, expect, it } from "vitest";
 import { applyOperationEndpointMutationRequestSchema } from "@strategist/shared/generated/zod/applyOperationEndpointSchema";
 import { APIError } from "./http";
@@ -274,13 +275,12 @@ describe("a request body the client refuses before sending", () => {
   }
 
   it("names the parameter that is missing a value", () => {
-    const err = refusal({
-      isSyntenic: { type: "single-pick-vocabulary", value: "yes" },
-      gene_result: { type: "input-step", stepId: "" },
-    });
+    const err = z
+      .object({ parameters: z.object({ organism: z.string().min(1) }) })
+      .safeParse({ parameters: { organism: "" } }).error;
 
     expect(toUserMessage(err, "The step could not be saved")).toBe(
-      "The step could not be saved: gene_result is missing a value",
+      "The step could not be saved: organism is missing a value",
     );
   });
 

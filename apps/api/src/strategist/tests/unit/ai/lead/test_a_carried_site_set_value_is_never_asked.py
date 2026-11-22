@@ -22,6 +22,7 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.questions import SlotQuestion
+from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.services.strategies import sheet_params
 from strategist.tests._support.recorded_searches import (
     client_search,
@@ -119,7 +120,9 @@ async def test_a_pass_starts_with_the_carried_searches_site_set_names(
 
     async def _pass(**kwargs: Any) -> Any:
         agent_deps: AgentDeps = kwargs["agent_deps"]
-        seen.update(agent_deps.agent_state.site_set_read_this_pass)
+        seen.update(
+            SiteSetReads.of(agent_deps.agent_state.infos_read_this_pass).by_search
+        )
         raise _PassStartedError
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _pass)
@@ -202,7 +205,9 @@ async def test_a_carried_search_the_catalog_cannot_read_is_left_out(
 
     async def _pass(**kwargs: Any) -> Any:
         agent_deps: AgentDeps = kwargs["agent_deps"]
-        seen.update(agent_deps.agent_state.site_set_read_this_pass)
+        seen.update(
+            SiteSetReads.of(agent_deps.agent_state.infos_read_this_pass).by_search
+        )
         raise _PassStartedError
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _pass)

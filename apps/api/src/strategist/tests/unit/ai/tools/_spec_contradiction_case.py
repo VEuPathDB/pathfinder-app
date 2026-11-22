@@ -9,9 +9,11 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+import pytest
 from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue, to_wire
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.errors import ValidationError
+from veupathdb.wdk import WDKNumberParam, WDKSearch, WDKStringParam
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.graph.runtime import AgentDeps
@@ -28,6 +30,7 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.recorded_searches import serve_stated_reads
 
 from ._strategy_edit_stubs import combine, leaf, seed
 
@@ -57,6 +60,21 @@ PERCENTILE = "min_expression_percentile"
 STATED_PERCENTILE: dict[str, ParamValue] = {PERCENTILE: NumberValue(value=90)}
 DEPARTED_PERCENTILE: dict[str, ParamValue] = {PERCENTILE: NumberValue(value=80)}
 SECOND_LOOK = "min_expression_percentile: the catalog turns this value down"
+_CASE_SEARCH = WDKSearch(
+    url_segment="GenesByTaxon",
+    parameters=[
+        WDKNumberParam(name=PERCENTILE),
+        *(
+            WDKStringParam(name=name)
+            for name in ("ProfileGeneId", "ProfileNumToReturn", "profile_pattern")
+        ),
+    ],
+)
+
+
+def serve_the_case_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Read a stated value by the kinds the case's steps carry."""
+    serve_stated_reads(monkeypatch, [_CASE_SEARCH])
 
 
 def records_the_call(
@@ -65,7 +83,7 @@ def records_the_call(
     """A catalog that accepts every value and counts what it was asked."""
 
     async def _validate(*_args: Any, **kwargs: Any) -> ValidatedParams:
-        params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+        params: dict[str, ParamValue] = dict(kwargs["stated"])
         seen.append(params)
         return ValidatedParams(params=params, record_class="transcript")
 
@@ -95,8 +113,8 @@ async def writes_the_percentile_as_a_decimal(
     *_args: Any, **kwargs: Any
 ) -> ValidatedParams:
     """A catalog that rewrites the percentile, the way a number param is read."""
-    params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
-    held = params.get(PERCENTILE)
+    params: dict[str, ParamValue] = dict(kwargs["stated"])
+    held = params.get(PERCENTILE) or kwargs.get("context", {}).get(PERCENTILE)
     if held is not None:
         params[PERCENTILE] = _decimal(held)
     return ValidatedParams(params=params, record_class="transcript")
@@ -104,8 +122,10 @@ async def writes_the_percentile_as_a_decimal(
 
 async def cascades_from_the_size(*_args: Any, **kwargs: Any) -> ValidatedParams:
     """A catalog whose percentile answers to the result size."""
-    params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
-    size = params.get("ProfileNumToReturn")
+    params: dict[str, ParamValue] = dict(kwargs["stated"])
+    size = params.get("ProfileNumToReturn") or kwargs.get("context", {}).get(
+        "ProfileNumToReturn"
+    )
     if size is not None and to_wire(size) == "100":
         params[PERCENTILE] = NumberValue(value=80)
     return ValidatedParams(params=params, record_class="transcript")

@@ -35,14 +35,6 @@ _TWO_TERMS = "pfal=0 AND tgon>=1 OR pfal=1 AND tgon>=2"
 _TEXT_PARAM = "text_expression"
 
 
-class _Client:
-    async def expand_tree_params_to_leaves(
-        self, record_type: str, search_name: str, params: dict[str, str]
-    ) -> dict[str, str]:
-        del record_type, search_name
-        return params
-
-
 async def _decode(
     payload: StrategyAst, api: StrategyAPI, wire: dict[str, WireStep]
 ) -> None:
@@ -56,7 +48,6 @@ async def _decode(
 
 @pytest.fixture(autouse=True)
 def the_recorded_site(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(site_changes, "get_wdk_client", lambda _site: _Client())
     monkeypatch.setattr(site_changes, "canonicalize_synced_parameters", _decode)
     monkeypatch.setattr(site_changes, "get_strategy_api", lambda _site: None)
 

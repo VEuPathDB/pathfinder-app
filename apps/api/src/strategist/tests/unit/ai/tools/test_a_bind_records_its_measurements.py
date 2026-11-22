@@ -5,8 +5,10 @@ tool names each measurement in one clause."""
 from __future__ import annotations
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters import FilterValue, SinglePickValue
+from veupathdb.domain.parameters import FilterValue, SinglePickValue, StringMembers
+from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
@@ -36,7 +38,7 @@ from strategist.tests.unit.ai.tools.test_frame_spec import (
 
 _PERCENTILE = suite_search("search_genes_by_rnaseq_gomez_diaz_percentile")
 _REQUEST = "genes expressed in asexual blood stages"
-_PARAMS: dict[str, str | list[str] | None] = {
+_PARAMS: dict[str, JsonValue] = {
     "profileset_generic": None,
     "samples_percentile_generic": ["asexual blood stages"],
     "min_expression_percentile": None,
@@ -56,8 +58,8 @@ def _serve(
     serve_recorded(monkeypatch, [_PERCENTILE])
 
     def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
-        async def fetch_at(_context: dict[str, str]) -> list[ParameterInfo]:
-            return _sheet()
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(_PERCENTILE.parameters or [])
 
         return fetch_at
 
@@ -230,8 +232,8 @@ def _maybe() -> dict[str, BoundValue]:
     }
 
 
-async def _fetch_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
-    return _sheet()
+async def _fetch_sheet(_context: dict[str, str]) -> list[WDKParameter]:
+    return list(_PERCENTILE.parameters or [])
 
 
 def _call(proposed: str | None) -> CriterionCall:
@@ -239,7 +241,11 @@ def _call(proposed: str | None) -> CriterionCall:
         criterion_id="c1",
         search_name=PERCENTILE_SEARCH,
         text=_REQUEST,
-        params={"protein_coding_only": proposed},
+        params={},
+    ).with_values(
+        {}
+        if proposed is None
+        else {"protein_coding_only": SinglePickValue(value=proposed)}
     )
 
 
@@ -266,29 +272,32 @@ def _snps_sheet() -> list[ParameterInfo]:
     return format_param_info_typed(list(_SNPS.parameters or []))
 
 
-async def _fetch_snps(_context: dict[str, str]) -> list[ParameterInfo]:
-    return _snps_sheet()
+async def _fetch_snps(_context: dict[str, str]) -> list[WDKParameter]:
+    return list(_SNPS.parameters or [])
 
 
 @pytest.mark.asyncio
 async def test_a_filter_clause_on_a_field_the_sheet_lacks_is_refused_by_its_labels() -> (
     None
 ):
-    proposal = '{"filters": [{"field": "VAR_00000000", "value": ["female"]}]}'
-    bound = {
-        _SAMPLES: BoundValue(
-            value=FilterValue.model_validate(
-                {"filters": [{"field": "VAR_00000000", "value": ["female"]}]}
-            ),
-            source="chosen",
-        )
-    }
+    held = FilterValue(
+        filters=[
+            StringMembers(
+                field="VAR_00000000",
+                type="string",
+                is_range=False,
+                include_unknown=False,
+                value=["female"],
+            )
+        ]
+    )
+    bound = {_SAMPLES: BoundValue(value=held, source="chosen")}
     call = CriterionCall(
         criterion_id="c1",
         search_name=_SNPS.url_segment,
         text="SNPs in female samples",
-        params={_SAMPLES: proposal},
-    )
+        params={},
+    ).with_values({_SAMPLES: held})
 
     with pytest.raises(ModelRetry) as refused:
         await labelled_picks(_fetch_snps, _snps_sheet(), call, bound)

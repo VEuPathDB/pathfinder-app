@@ -329,12 +329,24 @@ describe("extractDefaults override", () => {
     expect(result["due"]).toBe("2024-01-01");
   });
 
-  it("serializes a typed filter value to JSON", () => {
-    const filters = [{ field: "x", type: "string", value: "y" }];
+  it("serializes a typed filter value as the WDK filter value", () => {
     const result = extractDefaults([specWith({ name: "flt", type: "filter" })], {
-      flt: { type: "filter", filters },
+      flt: {
+        type: "filter",
+        filters: [
+          {
+            field: "x",
+            type: "string",
+            isRange: false,
+            includeUnknown: false,
+            value: ["y"],
+          },
+        ],
+      },
     });
-    expect(result["flt"]).toBe(JSON.stringify(filters));
+    expect(result["flt"]).toBe(
+      '{"filters":[{"field":"x","type":"string","isRange":false,"includeUnknown":false,"value":["y"]}]}',
+    );
   });
 
   it("uses datasetId for a typed input-dataset value", () => {

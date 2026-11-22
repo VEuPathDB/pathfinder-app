@@ -14,10 +14,11 @@ import { parseIdsFromText } from "./datasetParamLogic";
 interface PasteTabProps {
   text: string;
   onTextChange: (text: string) => void;
+  onDone: () => void;
   name: string;
 }
 
-export function PasteTab({ text, onTextChange, name }: PasteTabProps) {
+export function PasteTab({ text, onTextChange, onDone, name }: PasteTabProps) {
   const ids = parseIdsFromText(text);
   return (
     <div className="space-y-2">
@@ -26,6 +27,7 @@ export function PasteTab({ text, onTextChange, name }: PasteTabProps) {
         aria-label="Paste IDs"
         value={text}
         onChange={(event) => onTextChange(event.target.value)}
+        onBlur={onDone}
         placeholder="One ID per line, or comma-separated.&#10;PF3D7_0100100&#10;PF3D7_0200200"
         rows={6}
         className="font-mono text-xs"
@@ -118,10 +120,11 @@ export function UploadTab({ upload, onFileSelected }: UploadTabProps) {
 interface BasketTabProps {
   value: string;
   onChange: (value: string) => void;
+  onDone: () => void;
   name: string;
 }
 
-export function BasketTab({ value, onChange, name }: BasketTabProps) {
+export function BasketTab({ value, onChange, onDone, name }: BasketTabProps) {
   return (
     <div className="space-y-2">
       <label
@@ -135,6 +138,7 @@ export function BasketTab({ value, onChange, name }: BasketTabProps) {
         aria-label="Basket record type"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onDone}
         placeholder="transcript"
       />
       <p className="text-xs text-muted-foreground">

@@ -18,7 +18,7 @@ from itertools import combinations
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from pydantic import Field
+from pydantic import Field, JsonValue
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import (
     ParamValue,
@@ -39,6 +39,7 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     PhyleticListError,
     derive_phyletic_overrides,
+    format_param_info_typed,
     read_search_definition,
     wdk_fetch_at,
 )
@@ -60,16 +61,20 @@ _SAMPLE_UNIQUE = 8
 
 
 class VariantInput(CamelModel):
-    """One variant as a caller names it: a search and its parameter values."""
+    """One variant as a caller names it: a search and its parameter values,
+    each in the shape its parameter's statedSchema gives."""
+
+    label: str
+    search_name: str
+    parameters: dict[str, JsonValue]
+
+
+class VariantSpec(CamelModel):
+    """One variant to run, under the record type the site lists its search under."""
 
     label: str
     search_name: str
     parameters: dict[str, ParamValue]
-
-
-class VariantSpec(VariantInput):
-    """One variant to run, under the record type the site lists its search under."""
-
     record_type: str
 
 
@@ -129,7 +134,8 @@ async def search_parameters(
 ) -> list[ParameterInfo]:
     """The parameters the site's search takes, each with the vocabulary the
     parent values in ``context`` give it."""
-    return await wdk_fetch_at(site_id, record_type, search_name)(context)
+    fetch_at = wdk_fetch_at(site_id, record_type, search_name)
+    return format_param_info_typed(await fetch_at(context))
 
 
 async def phyletic_values(

@@ -18,8 +18,9 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
+from veupathdb.wdk import WDKParameter
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
+from veupathdb_mcp.catalog import ParamFetcher, format_param_info_typed
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.agents.strategy_instructions import (
@@ -74,8 +75,8 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_recorded_definitions(monkeypatch, [_SIGNAL])
 
     def _fetch_at(_site: str, _record_type: str, _search: str) -> ParamFetcher:
-        async def fetch_at(_context: dict[str, str]) -> list[ParameterInfo]:
-            return format_param_info_typed(_SIGNAL.parameters or [])
+        async def fetch_at(_context: dict[str, str]) -> list[WDKParameter]:
+            return list(_SIGNAL.parameters or [])
 
         return fetch_at
 

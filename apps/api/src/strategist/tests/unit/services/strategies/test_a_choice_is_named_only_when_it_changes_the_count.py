@@ -66,7 +66,6 @@ def _life_stages() -> list[ParameterInfo]:
             is_visible=False,
             site_set=True,
             help="",
-            value_format="",
             default_value=_PNA,
             allowed_values=[VocabOption(value=v, display=v) for v in (_PNA, _AMA)],
         )
@@ -357,7 +356,6 @@ async def test_every_option_of_a_large_vocabulary_is_named_with_its_separator() 
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         allowed_values=[
             VocabOption(value=f"PF{n:05d}", display=f"PF{n:05d}")
             for n in range(1, 2442)

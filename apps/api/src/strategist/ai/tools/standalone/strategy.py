@@ -18,6 +18,7 @@ from veupathdb.errors import ValidationError
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._edit_refusal import batch_refusal_context
+from strategist.ai.tools.standalone._stated_values import typed_operations, typed_tree
 from strategist.ai.tools.standalone._validation_helpers import (
     OperationPayload,
     StepTreePayload,
@@ -127,6 +128,8 @@ async def build_strategy(
             },
         )
 
+    Each parameter value takes the shape its ``statedSchema`` gives.
+
     To add a NEW set as a sibling of an existing tree, wrap the existing
     tree in a new combine: the existing tree becomes `primaryInput`, the
     new set becomes `secondaryInput`, and the new combine replaces `root`.
@@ -151,7 +154,7 @@ async def build_strategy(
     try:
         outcome = await build_strategy_from_spec(
             deps=deps.to_strategy_context(),
-            root=root,
+            root=await typed_tree(session.site_id, root),
             description=description,
         )
     except ApplyError as exc:
@@ -226,10 +229,11 @@ async def apply_operations(
         )
         raise ModelRetry(msg)
 
+    typed = await typed_operations(session.site_id, graph, operations)
     try:
         result = await apply_operations_and_commit(
             deps=deps.to_strategy_context(),
-            ops=operations,
+            ops=typed,
         )
     except ApplyError as exc:
         # A refused batch rolls back, so the base revision stays valid.
@@ -240,7 +244,7 @@ async def apply_operations(
         raise ModelRetry(msg) from exc
     except ValidationError as exc:
         raise validation_model_retry(
-            exc, **await batch_refusal_context(deps, operations)
+            exc, **await batch_refusal_context(deps, typed)
         ) from exc
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:

@@ -7,6 +7,7 @@ from uuid import UUID
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters import SinglePickValue
 from veupathdb.wdk import WDKSearch
 from veupathdb.wdk.vdi.client import VdiServiceError
 
@@ -286,8 +287,8 @@ async def test_a_refused_upload_names_one_page_of_uploads(
                 criterion_id="c_list",
                 search_name="GenesByUserDatasetGeneList",
                 text="my list",
-                params={"geneListUserDataset": "bla"},
-            ),
+                params={},
+            ).with_values({"geneListUserDataset": SinglePickValue(value="bla")}),
             [],
             frozenset(),
             AgentToolState(),

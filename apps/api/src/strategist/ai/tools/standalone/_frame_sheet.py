@@ -27,7 +27,6 @@ from strategist.ai.tools.standalone._frame_eda import (
 )
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    ParamProposals,
     refuse_unmatched_value,
 )
 from strategist.ai.tools.standalone._frame_result import (
@@ -35,15 +34,12 @@ from strategist.ai.tools.standalone._frame_result import (
     criterion_return,
 )
 from strategist.ai.tools.standalone._frame_unserved import an_unserved_search_refused
-from strategist.ai.tools.standalone._qualifier_words import proposal_values
 from strategist.domain.strategy.operational_spec import Criterion
 
 
-def _decided_here(info: ParameterInfo, params: ParamProposals) -> bool:
+def _decided_here(info: ParameterInfo, call: CriterionCall) -> bool:
     """The proposal for this param names an entry of the vocabulary shown here."""
-    if info.name not in params:
-        return False
-    values = proposal_values(params[info.name])
+    values = call.terms(info.name)
     options = info.vocabulary()
     return bool(values) and all(
         match_exact_option(options, value) is not None for value in values
@@ -75,16 +71,18 @@ async def reconcile_dependents(
         return []
     context = {name: to_wire(value) for name, value in resolved.params.items()}
     stale: list[ParameterInfo] = []
-    for info in await fetch_at(context):
+    for info in format_param_info_typed(await fetch_at(context)):
         if info.name not in on_the_sheet:
             continue
         options = info.vocabulary()
         changed = {option.value for option in options} != on_the_sheet[info.name]
         asked = state.was_redecided(call.criterion_id, call.search_name, info.name)
-        if changed and not asked and not _decided_here(info, call.params):
+        if changed and not asked and not _decided_here(info, call):
             stale.append(info)
         elif options and info.param_kind != "filter":
-            refuse_unmatched_value(call, info, options)
+            refuse_unmatched_value(
+                call.search_name, info, options, call.terms(info.name)
+            )
     for info in stale:
         state.mark_redecided(call.criterion_id, call.search_name, info.name)
     if not stale:
@@ -100,7 +98,7 @@ def open_parameter_sheet(
 ) -> dict[str, None]:
     """Pin the parameter sheet for one criterion and answer with its template."""
     infos = format_param_info_typed(definition.parameters or [])
-    state.record_site_set(search_name, infos)
+    state.record_read(search_name, infos)
     entries = build_sheet(infos, query=state.operational_spec_draft.goal)
     runs = f"{search_display_name(definition)}: {what_it_finds(definition)}"
     return state.pin_sheet(

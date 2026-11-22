@@ -26,7 +26,11 @@ from strategist.services.experiment.variant_comparison import (
     VariantResult,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.record_classes import list_searches_under
+from strategist.tests._support.record_classes import (
+    list_searches_under,
+    recorded_searches,
+)
+from strategist.tests._support.recorded_searches import serve_stated_reads
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import combine, session_with
@@ -62,10 +66,7 @@ def _variant(label: str, **values: str) -> VariantInput:
         {
             "label": label,
             "searchName": _TM,
-            "parameters": {
-                name: {"type": "string", "value": value}
-                for name, value in values.items()
-            },
+            "parameters": dict(values),
         }
     )
 
@@ -106,6 +107,7 @@ def _site(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: _Reports())
     monkeypatch.setattr(variant_comparison, "compute_plan_step_counts", _counted)
     monkeypatch.setattr(variant_comparison, "search_parameters", _takes)
+    serve_stated_reads(monkeypatch, list(recorded_searches().values()))
     list_searches_under(monkeypatch, "transcript", {_TM})
 
 

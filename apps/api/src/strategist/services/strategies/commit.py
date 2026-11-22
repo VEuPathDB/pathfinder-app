@@ -195,7 +195,11 @@ async def apply_operations_and_commit(
 
     graph = _require_graph(deps)
     batch = await canonical_batch(
-        graph=graph, stated=deps.stated_values, site_id=deps.site_id, ops=ops
+        graph=graph,
+        stated=deps.stated_values,
+        site_id=deps.site_id,
+        ops=ops,
+        validations=ensure_sync_state(deps.strategy_session).step_validations,
     )
     ops = batch.ops
     entry = entry_state(deps, graph, batch.sides)
@@ -230,7 +234,7 @@ async def apply_operations_and_commit(
         deps=deps,
         graph=graph,
         entry=entry,
-        stated_values=batch.sides.stated,
+        sides=batch.sides,
         slot_writes=slot_writes,
         replaces_a_subtree=replaces_a_subtree,
     )

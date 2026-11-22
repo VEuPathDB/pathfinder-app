@@ -106,7 +106,7 @@ def _scripted(*calls: ToolCallPart) -> Script:
 
 _WRONG_THEN_RIGHT = _scripted(
     _call(0, "ByAccession", {"accession": TYPED_GENE_ID}),
-    _call(1, "ByIdList", {"source_ids": TYPED_GENE_ID}),
+    _call(1, "ByIdList", {"source_ids": [TYPED_GENE_ID]}),
 )
 
 

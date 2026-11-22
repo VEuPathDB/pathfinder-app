@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
+
 import pytest
-from veupathdb.domain.parameters import param_value_from_raw
+from veupathdb.domain.parameters import from_wire
 
 from strategist.domain.strategy.constraint_grounding import ground_against_spec
 from strategist.domain.strategy.constraints import (
@@ -64,7 +66,7 @@ def _status(op: CountOp, value: float) -> ConstraintStatus:
         answers=[RequirementLink(requirement=held.id, param="percent_max")],
         resolved_params={
             "percent_max": BoundValue(
-                value=param_value_from_raw({"min": 1, "max": 50}, "number-range"),
+                value=from_wire("number-range", json.dumps({"min": 1, "max": 50})),
                 source="chosen",
             )
         },

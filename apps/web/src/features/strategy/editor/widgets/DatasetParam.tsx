@@ -1,26 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import {
   ClipboardListIcon,
   FileUpIcon,
   FolderIcon,
   ListChecksIcon,
 } from "lucide-react";
+import type { SaveDatasetMutationRequest } from "@strategist/shared/generated/types/SaveDataset";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SAVE_DATASET_KEY, saveDataset } from "@/lib/api/sites";
+import { toUserMessage } from "@/lib/api/errors";
 import { cn } from "@/lib/utils/cn";
 import { parseGeneCsv } from "@/lib/utils/parseGeneCsv";
+import { useSessionStore } from "@/state/useSessionStore";
 import type { ParamWidgetProps } from "./types";
 import {
-  basketNameFromConfig,
-  decodeDatasetValue,
   defaultIdListFromInitial,
-  encodeDatasetValue,
-  initialTabFor,
   parseIdsFromText,
-  pasteTextFromConfig,
-  strategyIdFromConfig,
-  type DatasetConfig,
   type DatasetWidgetTab,
 } from "./datasetParamLogic";
 import {
@@ -40,79 +38,85 @@ export function DatasetParam({
   field,
   disabled = false,
 }: ParamWidgetProps) {
+  const siteId = useSessionStore((s) => s.selectedSite);
   const raw = typeof field.state.value === "string" ? field.state.value : "";
-  const decoded = decodeDatasetValue(raw);
   const defaultIds = defaultIdListFromInitial(spec.initialDisplayValue);
   const hasDefault = defaultIds.length > 0;
 
   const [tab, setTab] = useState<DatasetWidgetTab>(() =>
-    initialTabFor(decoded, hasDefault),
+    hasDefault && raw === "" ? "default" : "paste",
   );
-  const [pasteText, setPasteText] = useState<string>(() =>
-    pasteTextFromConfig(decoded),
-  );
+  const [pasteText, setPasteText] = useState("");
+  const [basketName, setBasketName] = useState("");
+  const [strategyId, setStrategyId] = useState("");
   const [upload, setUpload] = useState<UploadedFile | null>(null);
 
-  const errors = field.state.meta.errors;
-  const hasError = errors.length > 0;
-  const errorMessage = hasError ? String(errors[0]) : null;
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-  const commit = (next: DatasetConfig | null) => {
-    field.handleChange(encodeDatasetValue(next));
+  const commit = (datasetId: string) => {
+    field.handleChange(datasetId);
     field.handleBlur();
   };
 
-  const updatePaste = (text: string) => {
-    setPasteText(text);
-    const ids = parseIdsFromText(text);
-    if (ids.length === 0) {
-      commit(null);
-      return;
-    }
-    commit({ sourceType: "idList", sourceContent: { ids } });
+  const save = useMutation({
+    mutationKey: [...SAVE_DATASET_KEY, siteId],
+    mutationFn: (source: SaveDatasetMutationRequest) => saveDataset(siteId, source),
+  });
+
+  const saveSource = (source: SaveDatasetMutationRequest) => {
+    const key = JSON.stringify(source);
+    if (key === lastSaved) return;
+    setLastSaved(key);
+    save.mutate(source, { onSuccess: commit, onError: () => setLastSaved(null) });
+  };
+
+  const saveIds = (ids: string[]) => {
+    if (ids.length === 0) return;
+    saveSource({ sourceType: "idList", sourceContent: { ids } });
   };
 
   const applyDefault = () => {
-    commit({ sourceType: "idList", sourceContent: { ids: defaultIds } });
     setPasteText(defaultIds.join("\n"));
+    saveIds(defaultIds);
   };
 
   const handleFileSelected = (file: File, content: string) => {
     const ids = parseGeneCsv(content);
     setUpload({ fileName: file.name, idCount: ids.length });
     setPasteText(ids.join("\n"));
-    commit(ids.length === 0 ? null : { sourceType: "idList", sourceContent: { ids } });
+    saveIds(ids);
   };
 
-  const updateBasket = (basketName: string) => {
-    if (basketName.trim() === "") {
-      commit(null);
-      return;
-    }
-    commit({ sourceType: "basket", sourceContent: { basketName } });
+  const saveBasket = () => {
+    const trimmed = basketName.trim();
+    if (trimmed === "") return;
+    saveSource({ sourceType: "basket", sourceContent: { basketName: trimmed } });
   };
 
-  const updateStrategy = (strategyId: string) => {
-    const trimmed = strategyId.trim();
-    if (trimmed === "") {
-      commit(null);
-      return;
-    }
-    commit({ sourceType: "strategy", sourceContent: { strategyId: trimmed } });
+  const pickStrategy = (picked: string) => {
+    setStrategyId(picked);
+    if (picked === "") return;
+    saveSource({
+      sourceType: "strategy",
+      sourceContent: { strategyId: Number(picked) },
+    });
   };
 
-  const isDefaultApplied =
-    decoded !== null &&
-    decoded.sourceType === "idList" &&
-    defaultIds.length > 0 &&
-    decoded.sourceContent.ids.join(",") === defaultIds.join(",");
+  const hasError = field.state.meta.errors.length > 0;
+  const errorMessage = save.isError
+    ? toUserMessage(save.error, "The list was not saved on the site")
+    : hasError
+      ? String(field.state.meta.errors[0])
+      : null;
 
   return (
     <div
       data-testid="dataset-param-root"
       className={cn(
         "rounded-md border bg-card p-3",
-        hasError ? "border-destructive/30 bg-destructive/5" : "border-border",
+        errorMessage !== null
+          ? "border-destructive/30 bg-destructive/5"
+          : "border-border",
       )}
     >
       <Tabs
@@ -146,13 +150,20 @@ export function DatasetParam({
         </TabsList>
 
         <TabsContent value="paste" className="mt-3">
-          <PasteTab text={pasteText} onTextChange={updatePaste} name={name} />
+          <PasteTab
+            text={pasteText}
+            onTextChange={setPasteText}
+            onDone={() => saveIds(parseIdsFromText(pasteText))}
+            name={name}
+          />
         </TabsContent>
         {hasDefault && (
           <TabsContent value="default" className="mt-3">
             <DefaultTab
               defaultIds={defaultIds}
-              isApplied={isDefaultApplied}
+              isApplied={
+                SAVED_DATASET_ID.test(raw) && pasteText === defaultIds.join("\n")
+              }
               onApply={applyDefault}
             />
           </TabsContent>
@@ -162,21 +173,24 @@ export function DatasetParam({
         </TabsContent>
         <TabsContent value="basket" className="mt-3">
           <BasketTab
-            value={basketNameFromConfig(decoded)}
-            onChange={updateBasket}
+            value={basketName}
+            onChange={setBasketName}
+            onDone={saveBasket}
             name={name}
           />
         </TabsContent>
         <TabsContent value="strategy" className="mt-3">
-          <StrategyTab
-            value={strategyIdFromConfig(decoded)}
-            onChange={updateStrategy}
-            disabled={disabled}
-          />
+          <StrategyTab value={strategyId} onChange={pickStrategy} disabled={disabled} />
         </TabsContent>
       </Tabs>
 
-      {raw !== "" && decoded === null && (
+      {save.isPending && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Saving the list on the site...
+        </p>
+      )}
+
+      {raw !== "" && (
         <p className="mt-2 text-xs text-warning">
           {SAVED_DATASET_ID.test(raw)
             ? `This step reads saved ID list ${raw} on the site. Paste or upload IDs to replace it.`
@@ -184,7 +198,7 @@ export function DatasetParam({
         </p>
       )}
 
-      {hasError && errorMessage !== null && (
+      {errorMessage !== null && (
         <p id={`${name}-error`} role="alert" className="mt-2 text-xs text-destructive">
           {errorMessage}
         </p>

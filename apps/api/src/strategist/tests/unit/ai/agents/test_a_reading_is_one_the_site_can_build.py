@@ -72,16 +72,20 @@ def validated(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     sent: list[str] = []
 
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
-        wire = parameters[_EXPRESSION].to_wire()
+        wire = stated[_EXPRESSION].to_wire()
         sent.append(wire)
         if " ".join(wire.split()) == SHARE and wire != _SPACED:
             raise ValidationError(_REFUSAL)
         return ValidatedParams(
             params={
-                **parameters,
+                **stated,
                 _EXPRESSION: StringValue(value=" ".join(wire.split())),
             }
         )
@@ -347,9 +351,13 @@ _UNAVAILABLE = WDKError("Service Unavailable", status=503)
 @pytest.fixture
 def unanswered(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _validate(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
-        del parameters, callbacks
+        del stated, callbacks
         raise _UNAVAILABLE
 
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
@@ -374,14 +382,18 @@ async def test_a_reading_the_site_answered_too_slowly_reaches_the_card_as_writte
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def _slow(
-        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+        _search: object,
+        *,
+        stated: Mapping[str, ParamValue],
+        callbacks: object,
+        **_held: object,
     ) -> ValidatedParams:
         del callbacks
         await asyncio.sleep(_SLOW_SECONDS)
-        wire = parameters[_EXPRESSION].to_wire()
+        wire = stated[_EXPRESSION].to_wire()
         return ValidatedParams(
             params={
-                **parameters,
+                **stated,
                 _EXPRESSION: StringValue(value=" ".join(wire.split())),
             }
         )

@@ -43,7 +43,6 @@ def _info(name: str, param_type: str = "string", **fields: object) -> ParameterI
             "is_visible": True,
             "site_set": False,
             "help": "",
-            "value_format": "",
             **fields,
         }
     )

@@ -3,7 +3,7 @@ the vocabulary lists it, on the recorded organism sheets."""
 
 from __future__ import annotations
 
-from veupathdb.wdk import WDKSearchResponse
+from veupathdb.wdk import WDKParameter, WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamIntent,
@@ -15,7 +15,9 @@ from strategist.ai.tools.standalone._frame_sources import open_slots
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
+from strategist.tests._support.filter_reads import NoFilterReads
 from strategist.tests._support.qa_recording import client_recording
+from strategist.tests._support.sheets import declarations
 
 _PLASMODB = [
     "Plasmodium falciparum 3D7",
@@ -62,12 +64,16 @@ def _vectorbase_exon_count_sheet() -> list[ParameterInfo]:
 
 
 async def _criterion(infos: list[ParameterInfo], text: str) -> Criterion:
-    async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
+    async def fetch_at(context: dict[str, str]) -> list[WDKParameter]:
         del context
-        return infos
+        return declarations(infos)
 
     resolved = await resolve_params_with_intent(
-        fetch_at=fetch_at, intent=ParamIntent(text=text), search_name="GenesByExonCount"
+        fetch_at=fetch_at,
+        filter_reads=NoFilterReads(),
+        intent=ParamIntent(text=text),
+        search_name="GenesByExonCount",
+        stated={},
     )
     return Criterion(
         id="c1",

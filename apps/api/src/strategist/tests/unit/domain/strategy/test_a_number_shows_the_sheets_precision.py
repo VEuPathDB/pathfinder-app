@@ -27,7 +27,6 @@ _FLOOR = ParameterInfo(
     is_visible=True,
     site_set=False,
     help="",
-    value_format="",
     default_value=_TEN_READS,
     allowed_values=[
         VocabOption(value=_TEN_READS, display="10 reads"),
@@ -45,7 +44,6 @@ def _number(initial: str | None) -> ParameterInfo:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
         is_number=True,
         default_value=initial,
     )
@@ -94,7 +92,6 @@ def test_a_text_is_no_number_to_round() -> None:
         is_visible=True,
         site_set=False,
         help="",
-        value_format="",
     )
 
     assert [_shown(StringValue(value="3.14159"), text)] == [None]

@@ -6,15 +6,16 @@ the same step.
 """
 
 from dataclasses import replace
-from typing import Any, Literal
+from typing import Literal
 
 from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters import coerce_context_values
+from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import (
     GetParameterOptionsResult,
     ParameterInfo,
@@ -33,6 +34,7 @@ from strategist.ai.agents.state import AgentToolState, ParamVocabSnapshot
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._catalog_elsewhere import joined
 from strategist.ai.tools.standalone._catalog_models import register_search
+from strategist.ai.tools.standalone._stated_values import typed_values
 from strategist.domain.strategy.requirement_reports import numbered_requirements
 from strategist.domain.strategy.vocab_picks import PickRead
 
@@ -106,7 +108,7 @@ async def get_parameter_options(
     search_name: str,
     parameter_id: str,
     record_type: str | None = None,
-    context_values: dict[str, Any] | None = None,
+    context_values: dict[str, JsonValue] | None = None,
     query: str | list[str] | None = None,
     *,
     requirement: str | None = None,
@@ -134,13 +136,15 @@ async def get_parameter_options(
             this search; copy verbatim, do not paraphrase.
         record_type: Record type. Auto-resolved from search name if omitted (recommended).
         context_values: Current values of the parent parameters this param
-            depends on, for dependent vocab refresh. Pass the RAW value: a
-            string for a single pick, a list for multi-pick; the system types
-            it. Example: ``{"profileset_generic": "<term>"}``.
+            depends on, for dependent vocab refresh, each in the shape its
+            ``statedSchema`` gives. Example: ``{"profileset_generic": "<term>"}``.
         query: One phrase, or a list of the phrasings of one concept, that
             narrows the vocabulary. Hyphen and space match alike, and a phrase
             also matches its words in any order. For a concept with several
             names pass them all, e.g. ["RNA binding", "RNA recognition", "KH"].
+            On a filter parameter, the query also reads the range of up to
+            three range facets it names; a facet it does not name shows no
+            range.
         requirement: The number, such as R2, of the requirement in
             "Requirements the researcher stated" whose value this read finds.
             The read judges the entry it picks against the researcher's words
@@ -149,11 +153,17 @@ async def get_parameter_options(
             binding the pick does not settle is asked of the researcher.
     """
     deps = ctx.deps
-    explicit = coerce_context_values(context_values) if context_values else {}
     # Parents already bound by the spec outrank WDK defaults; an explicit
     # argument outranks both. WDK answers a sent value as the parameter's
     # initial value, so the read sends none of the parameter it reads.
     inherited = deps.agent_state.resolved_params_for(search_name)
+    explicit = await typed_values(
+        deps.site_id,
+        search_name,
+        context_values or {},
+        record_type=record_type,
+        bound=inherited,
+    )
     merged = {
         name: value
         for name, value in {**inherited, **explicit}.items()
@@ -188,7 +198,7 @@ async def get_parameter_options(
             search_name,
             parameter_id,
             record_type=record_type,
-            context_values=typed_context,
+            context_values=merged,
             narrowing=narrowing,
         )
     except SiteSetParameterError as exc:
@@ -199,6 +209,9 @@ async def get_parameter_options(
             f"{exc.detail or exc.title} Find the search's exact name with "
             "search_for_searches."
         )
+        raise ModelRetry(msg) from exc
+    except ValidationError as exc:
+        msg = f"{search_name}: {exc.detail or exc.title}"
         raise ModelRetry(msg) from exc
     match result:
         case ParameterInfo():

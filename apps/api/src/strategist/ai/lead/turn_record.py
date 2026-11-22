@@ -31,8 +31,8 @@ from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.constraints import is_blocking
 from strategist.domain.strategy.operational_spec import (
     Criterion,
-    pending_analyses,
 )
+from strategist.domain.strategy.pending_analyses import pending_analyses
 from strategist.domain.turn_facts import TurnFacts
 
 # The tools the Lead calls to do the turn's work. ``build_strategy`` runs no

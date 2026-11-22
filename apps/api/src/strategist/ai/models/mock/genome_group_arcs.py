@@ -13,8 +13,8 @@ def ortholog_in_a_group_spec(values: SiteValues) -> SpecPlan:
         search_name=ORTHOLOG_PATTERN,
         values={
             "organism": [values.organism],
-            "included_species": ["pber", "pfal"],
-            "excluded_species": ["hsap"],
+            "included_species": "pber, pfal",
+            "excluded_species": "hsap",
         },
     )
     return SpecPlan(

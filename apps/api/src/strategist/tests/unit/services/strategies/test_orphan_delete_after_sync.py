@@ -44,7 +44,10 @@ class _Recorder:
             raise WDKError(_STILL_REFERENCED, status=409)
 
     async def create_step(
-        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+        self,
+        spec: NewStepSpec,
+        record_type: str,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
         del spec, record_type, user_id
         self.next_id += 1
