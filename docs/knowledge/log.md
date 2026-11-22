@@ -2,6 +2,15 @@
 
 ## 2026-11-23
 
+* **A recorded criterion is never refused.** `set_criterion` on an EDA-backed search records the
+  criterion as waiting on its dataset and returns `SetCriterionResult(waits_for_analysis_on=...)`,
+  with the instruction as its summary; it used to record the criterion and then raise the
+  instruction as a refusal, which spent a retry on every waiting criterion (two of three in the
+  recorded five-criterion pass). A missing dataset, an id bound to another search, and an id
+  waiting on another dataset are gathered into one `ProblemsRefusal` keyed `eda_wait`, and
+  nothing is recorded then. Both `set_criterion` paths, the sheet and the binding, branch on the
+  wait before any parameter check.
+
 * **A refusal is counted per key, and a transient failure is not a refusal.** `KeyedRefusalToolset`
   (`platform/refusals.py`) is the outermost refusal layer of the FRAME, execution, VERIFY, EDA,
   Explore, sweep and Lead toolsets. Every refusal a tool body raises (`ProblemsRefusal`, a plain

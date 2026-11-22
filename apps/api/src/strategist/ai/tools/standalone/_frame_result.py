@@ -9,6 +9,7 @@ from pydantic import ConfigDict, Field, JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.wdk import WDKSearch
+from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._catalog_models import (
@@ -88,6 +89,20 @@ class SetCriterionResult(CamelModel):
     measurements: list[str] = Field(
         default_factory=list, exclude_if=lambda clauses: not clauses
     )
+    # The dataset whose analysis workflow realizes the criterion, when the
+    # search is EDA-backed. The criterion waits for it and binds no search.
+    waits_for_analysis_on: str | None = None
+
+
+def wait_instruction(search_name: str, criterion_id: str, dataset: str) -> str:
+    return (
+        f"{search_name} is EDA-backed: its {EDA_ANALYSIS_SPEC_PARAM} "
+        f"is an analysis document only the Lead's EDA tools produce, so no value "
+        f"here realizes {criterion_id}. It is recorded as needing the analysis "
+        f"workflow on dataset {dataset}. Put {criterion_id} in the structure where "
+        f"the request puts it, bind no other search for it, do not call "
+        f"drop_criterion for it, and return spec_ready once the rest is bound."
+    )
 
 
 def criterion_return(
@@ -112,6 +127,10 @@ def _summary_line(
     result: SetCriterionResult, record_type: str
 ) -> tuple[str, ToolSummaryStatus]:
     """The line the call's result writes, before the searches it left out."""
+    if result.waits_for_analysis_on is not None:
+        return wait_instruction(
+            result.search_name, result.criterion_id, result.waits_for_analysis_on
+        ), "ok"
     if result.sheet_pinned:
         return (
             f"{result.criterion_id}: sheet pinned, "

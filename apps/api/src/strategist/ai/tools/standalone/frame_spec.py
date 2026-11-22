@@ -10,6 +10,7 @@ from veupathdb_mcp.catalog import (
     ParamFetcher,
     ResolveContext,
     ResolvedParams,
+    eda_backed_search,
     format_param_info_typed,
     make_validation_callbacks,
     organism_parameter_of,
@@ -39,6 +40,7 @@ from strategist.ai.tools.standalone._frame_datasets import (
 from strategist.ai.tools.standalone._frame_eda import (
     refuse_a_bound_analysis,
     refuse_a_search_the_criterion_cannot_use,
+    wait_for_the_analysis,
 )
 from strategist.ai.tools.standalone._frame_gene_set import set_gene_set_criterion
 from strategist.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
@@ -297,10 +299,12 @@ async def _bind_the_search(
             organism=await organism_parameter_of(ctx.deps.site_id, declarations),
         )
     state.record_read(search_name, infos)
+    if (described := eda_backed_search(definition)) is not None:
+        return wait_for_the_analysis(
+            ctx, stated, described, definition, record_type, params
+        )
     refuse_a_param_the_sheet_lacks(stated.answers, infos)
-    await refuse_a_search_the_criterion_cannot_use(
-        ctx, record_type, definition, stated, params
-    )
+    await refuse_a_search_the_criterion_cannot_use(ctx, record_type, definition, stated)
     call, fixed = left_to_the_site(
         with_stored_expressions(
             state,

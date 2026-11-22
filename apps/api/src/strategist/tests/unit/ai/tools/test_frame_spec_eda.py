@@ -1,5 +1,5 @@
-"""``set_criterion`` never binds an EDA-backed search: the criterion waits for
-the analysis workflow under its own id."""
+"""``set_criterion`` never binds an EDA-backed search: the criterion is recorded
+waiting for the analysis workflow under its own id."""
 
 from __future__ import annotations
 
@@ -19,7 +19,10 @@ from veupathdb_mcp.catalog import (
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import frame_spec
-from strategist.ai.tools.standalone._frame_result import SetCriterionResult
+from strategist.ai.tools.standalone._frame_result import (
+    SetCriterionResult,
+    wait_instruction,
+)
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.services.strategies import sheet_params
@@ -165,25 +168,27 @@ class TestAnEdaBackedSearchWaitsForItsAnalysis:
     def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _serve_the_eda_search(monkeypatch, default=_DATASET_ID)
 
-    async def test_the_sheet_call_is_refused_and_pins_nothing(self) -> None:
+    async def test_the_sheet_call_returns_the_wait_and_pins_nothing(self) -> None:
         state = AgentToolState()
 
-        with pytest.raises(ModelRetry) as excinfo:
-            await _sheet(state)
+        result = await _sheet(state)
 
-        message = str(excinfo.value)
-        assert _MUTAGENESIS_SEARCH in message
-        assert EDA_ANALYSIS_SPEC_PARAM in message
-        assert f"needing the analysis workflow on dataset {_DATASET_ID}" in message
-        assert "Put c_essential in the structure" in message
-        assert "bind no other search for it" in message
+        assert result.waits_for_analysis_on == _DATASET_ID
+        assert result.sheet_pinned is False
         assert state.open_sheets == {}
+
+    def test_the_wait_tells_frame_where_the_criterion_goes(self) -> None:
+        said = wait_instruction(_MUTAGENESIS_SEARCH, "c_essential", _DATASET_ID)
+
+        assert EDA_ANALYSIS_SPEC_PARAM in said
+        assert f"needing the analysis workflow on dataset {_DATASET_ID}" in said
+        assert "Put c_essential in the structure" in said
+        assert "bind no other search for it" in said
 
     async def test_the_criterion_waits_in_the_draft_under_its_own_id(self) -> None:
         state = AgentToolState()
 
-        with pytest.raises(ModelRetry):
-            await _sheet(state)
+        await _sheet(state)
 
         assert state.operational_spec_draft.criteria == [
             _waiting("c_essential", "essential in blood stages")
@@ -194,8 +199,7 @@ class TestAnEdaBackedSearchWaitsForItsAnalysis:
         state = AgentToolState()
 
         for text in ("essential in blood stages", "essential in blood stages (MIS)"):
-            with pytest.raises(ModelRetry):
-                await _sheet(state, text=text)
+            await _sheet(state, text=text)
 
         assert state.operational_spec_draft.criteria == [
             _waiting("c_essential", "essential in blood stages (MIS)")
@@ -205,32 +209,29 @@ class TestAnEdaBackedSearchWaitsForItsAnalysis:
         """One dataset answers as many comparisons as the request states."""
         state = AgentToolState()
 
-        with pytest.raises(ModelRetry):
-            await _sheet(state, criterion_id="c_24h_vs_18_up", text="24 h over 18 h")
-        with pytest.raises(ModelRetry):
-            await _sheet(state, criterion_id="c_24h_vs_36_up", text="24 h over 36 h")
+        await _sheet(state, criterion_id="c_24h_vs_18_up", text="24 h over 18 h")
+        await _sheet(state, criterion_id="c_24h_vs_36_up", text="24 h over 36 h")
 
         assert state.operational_spec_draft.criteria == [
             _waiting("c_24h_vs_18_up", "24 h over 18 h"),
             _waiting("c_24h_vs_36_up", "24 h over 36 h"),
         ]
 
-    async def test_a_proposed_spec_is_refused_and_binds_nothing(self) -> None:
+    async def test_a_proposed_spec_waits_and_binds_nothing(self) -> None:
         state = AgentToolState()
 
-        with pytest.raises(ModelRetry) as excinfo:
-            await bind(
-                state,
-                _MUTAGENESIS_SEARCH,
-                {
-                    EDA_DATASET_ID_PARAM: _DATASET_ID,
-                    EDA_ANALYSIS_SPEC_PARAM: _INVENTED_SPEC,
-                },
-                criterion_id="c_essential",
-                text="essential in blood stages",
-            )
+        result = await bind(
+            state,
+            _MUTAGENESIS_SEARCH,
+            {
+                EDA_DATASET_ID_PARAM: _DATASET_ID,
+                EDA_ANALYSIS_SPEC_PARAM: _INVENTED_SPEC,
+            },
+            criterion_id="c_essential",
+            text="essential in blood stages",
+        )
 
-        assert "needing the analysis workflow" in str(excinfo.value)
+        assert result.waits_for_analysis_on == _DATASET_ID
         assert [c.bound for c in state.operational_spec_draft.criteria] == [False]
 
     async def test_the_named_upload_wins_over_the_sheets_default(self) -> None:
@@ -238,18 +239,15 @@ class TestAnEdaBackedSearchWaitsForItsAnalysis:
         state = AgentToolState()
         upload = "EDAUD_sF88g1cwo00gw"
 
-        with pytest.raises(ModelRetry) as excinfo:
-            await bind(
-                state,
-                _MUTAGENESIS_SEARCH,
-                {EDA_DATASET_ID_PARAM: upload},
-                criterion_id="c_up",
-                text="up in treated",
-            )
-
-        assert f"needing the analysis workflow on dataset {upload}" in str(
-            excinfo.value
+        result = await bind(
+            state,
+            _MUTAGENESIS_SEARCH,
+            {EDA_DATASET_ID_PARAM: upload},
+            criterion_id="c_up",
+            text="up in treated",
         )
+
+        assert result.waits_for_analysis_on == upload
         assert state.operational_spec_draft.criteria == [
             _waiting_on("c_up", "up in treated", upload)
         ]
@@ -272,14 +270,13 @@ class TestASearchThatNamesNoDataset:
     async def test_the_named_dataset_is_the_one_it_waits_on(self) -> None:
         state = AgentToolState()
 
-        with pytest.raises(ModelRetry):
-            await bind(
-                state,
-                _MUTAGENESIS_SEARCH,
-                {EDA_DATASET_ID_PARAM: _DATASET_ID},
-                criterion_id="c_essential",
-                text="essential in blood stages",
-            )
+        await bind(
+            state,
+            _MUTAGENESIS_SEARCH,
+            {EDA_DATASET_ID_PARAM: _DATASET_ID},
+            criterion_id="c_essential",
+            text="essential in blood stages",
+        )
 
         assert state.operational_spec_draft.criteria == [
             _waiting("c_essential", "essential in blood stages")
@@ -321,8 +318,7 @@ class TestAWaitingCriterionKeepsItsDataset:
     async def test_the_same_dataset_rewords_it_and_it_still_waits(self) -> None:
         state = self._state(_DATASET_ID)
 
-        with pytest.raises(ModelRetry):
-            await _sheet(state, criterion_id="c_36", text="24 h over 36 h, up")
+        await _sheet(state, criterion_id="c_36", text="24 h over 36 h, up")
 
         assert state.operational_spec_draft.criteria == [
             _waiting_on("c_36", "24 h over 36 h, up", _DATASET_ID)
@@ -385,16 +381,15 @@ async def test_a_hidden_dataset_parameter_still_names_the_dataset_to_wait_on(
     state = AgentToolState()
     upload = "EDAUD_sF88g1cwo00gw"
 
-    with pytest.raises(ModelRetry) as excinfo:
-        await bind(
-            state,
-            _MUTAGENESIS_SEARCH,
-            {EDA_DATASET_ID_PARAM: upload},
-            criterion_id="c_up",
-            text="up in treated",
-        )
+    result = await bind(
+        state,
+        _MUTAGENESIS_SEARCH,
+        {EDA_DATASET_ID_PARAM: upload},
+        criterion_id="c_up",
+        text="up in treated",
+    )
 
-    assert f"needing the analysis workflow on dataset {upload}" in str(excinfo.value)
+    assert result.waits_for_analysis_on == upload
     assert state.operational_spec_draft.criteria == [
         _waiting_on("c_up", "up in treated", upload)
     ]

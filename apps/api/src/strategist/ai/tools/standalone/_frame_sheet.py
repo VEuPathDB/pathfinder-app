@@ -16,6 +16,7 @@ from veupathdb_mcp.catalog import (
     ParamFetcher,
     ResolvedParams,
     build_sheet,
+    eda_backed_search,
     format_param_info_typed,
     organism_parameter_of,
     read_search_definition,
@@ -30,6 +31,7 @@ from strategist.ai.tools.standalone._catalog_models import (
 )
 from strategist.ai.tools.standalone._frame_eda import (
     refuse_a_search_the_criterion_cannot_use,
+    wait_for_the_analysis,
 )
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone._frame_result import (
@@ -129,9 +131,12 @@ async def open_the_sheet(
         definition = await read_search_definition(
             ctx.deps.site_id, record_type, search_name
         )
-    await refuse_a_search_the_criterion_cannot_use(
-        ctx, record_type, definition, stated, None
-    )
+    described = eda_backed_search(definition)
+    if described is not None:
+        return wait_for_the_analysis(
+            ctx, stated, described, definition, record_type, None
+        )
+    await refuse_a_search_the_criterion_cannot_use(ctx, record_type, definition, stated)
     register_search(ctx.deps.agent_state, definition, record_type)
     return criterion_return(
         ctx,
