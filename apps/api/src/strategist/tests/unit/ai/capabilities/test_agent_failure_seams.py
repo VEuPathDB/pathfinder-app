@@ -23,6 +23,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import ToolDefinition
+from pydantic_ai.toolsets import AbstractToolset, WrapperToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
 from strategist import ai, assistants
@@ -33,8 +34,9 @@ from strategist.ai.capabilities.metering import SpendMeter
 from strategist.ai.capabilities.resilience import ToolResilience
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.dispatch_context import agent_deps_for
+from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.errors import NotFoundError
-from strategist.platform.refusals import ServiceRefusalRetry
+from strategist.platform.refusals import KeyedRefusalToolset, ServiceRefusalRetry
 from strategist.tests._support.sub_agents import agent_tool_names
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -174,6 +176,37 @@ def test_every_agent_that_carries_tools_carries_the_refusal_seam() -> None:
 
     assert unseamed == []
     assert set(with_tools) >= NAMED_FACTORIES
+
+
+def _layers(toolset: AbstractToolset[Any]) -> list[AbstractToolset[Any]]:
+    match toolset:
+        case WrapperToolset(wrapped=inner):
+            return [toolset, *_layers(inner)]
+        case _:
+            return [toolset]
+
+
+def _keyed_above_memory(layers: list[AbstractToolset[Any]]) -> bool:
+    kinds = [type(layer) for layer in layers]
+    memory = kinds.index(RefusalMemoryToolset)
+    return KeyedRefusalToolset in kinds[:memory]
+
+
+def test_every_toolset_that_holds_refusals_counts_them_per_key() -> None:
+    """A refusal is counted per key wherever a refusal is held, never per tool."""
+    stacks = [
+        (name, _layers(toolset))
+        for name, factory in agent_factories().items()
+        for toolset in _built(factory).toolsets
+    ]
+    held = [
+        (name, layers)
+        for name, layers in stacks
+        if any(isinstance(layer, RefusalMemoryToolset) for layer in layers)
+    ]
+
+    assert {name for name, _ in held} >= NAMED_FACTORIES
+    assert [name for name, layers in held if not _keyed_above_memory(layers)] == []
 
 
 async def test_a_defect_in_a_frame_tool_ends_the_run() -> None:

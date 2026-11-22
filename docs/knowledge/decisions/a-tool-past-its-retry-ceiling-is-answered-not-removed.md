@@ -14,18 +14,21 @@ status: stable
 `prepare_tools` filter, so a tool the model has already decided to call is
 still in the list pydantic-ai resolves the name against.
 
-**The ceiling answers the call.** In `on_tool_execute_error`, a transient
-error on a tool whose `ctx.retries` count has reached
-`circuit_break_threshold` returns `_outage_directive` as the tool result
-instead of raising `ModelRetry`. The model reads "temporary VEuPathDB outage,
+**The ceiling answers the call.** In `on_tool_execute_error`, the transient
+error that brings a tool's count of transient failures in the pass
+(`ServiceOutageMemory.record_tool_failure`) to `circuit_break_threshold`
+returns `_outage_directive` as the tool result instead of raising
+`TransientRetry`. The model reads "temporary VEuPathDB outage,
 not a bad call", prefers a different search, or tells the user the search is
 unavailable right now. The directive names the search when the call carries
 one and the tool itself when it does not.
 
-**The threshold and the agent's retry budget are the same number.** The four
-agents are built with `retries=3` and `DEFAULT_CIRCUIT_BREAK_THRESHOLD` is 3,
-so the directive is returned on exactly the call whose `ModelRetry` the run
-would refuse.
+**The breaker counts transient failures only.** A refusal is charged to the
+refusal ledger and answered with `CallRefused`, which spends none of the
+tool's retries (`platform/refusals.py::KeyedRefusalToolset`). The agents are
+built with `retries=3` and `DEFAULT_CIRCUIT_BREAK_THRESHOLD` is 3, so the
+third transient failure is answered with the directive before its retry could
+pass the tool's budget.
 
 # What was rejected
 

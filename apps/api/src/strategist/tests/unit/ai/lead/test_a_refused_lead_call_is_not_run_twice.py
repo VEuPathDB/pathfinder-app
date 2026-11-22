@@ -8,7 +8,8 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from pydantic_ai import ModelRetry, RunContext, ToolFailed
+from assistant_core.capabilities.refused_calls import CallRefused
+from pydantic_ai import RunContext
 from pydantic_ai.toolsets.abstract import AbstractToolset
 
 from strategist.ai.graph.runtime import Context
@@ -17,6 +18,7 @@ from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone.strategy_rename import NO_STRATEGY
 from strategist.domain.strategy.session import StrategySession
+from strategist.platform.refusals import call_key
 from strategist.tests._support.database import no_database
 from strategist.tests._support.run_context import run_context_for
 
@@ -60,11 +62,11 @@ async def test_a_refused_lead_call_sent_again_fails_and_a_third_is_refused() -> 
     toolset = await _mounted("rename_strategy", ctx)
     args = {"name": "Secreted kinases"}
 
-    with pytest.raises(ModelRetry) as first:
+    with pytest.raises(CallRefused) as first:
         await _call(toolset, ctx, args)
-    with pytest.raises(ToolFailed) as second:
+    with pytest.raises(CallRefused) as second:
         await _call(toolset, ctx, args)
-    with pytest.raises(ModelRetry) as third:
+    with pytest.raises(CallRefused) as third:
         await _call(toolset, ctx, args)
 
     assert first.value.message == NO_STRATEGY
@@ -73,3 +75,4 @@ async def test_a_refused_lead_call_sent_again_fails_and_a_third_is_refused() -> 
         "only reads ran since, so it did not run again."
     )
     assert third.value.message == NO_STRATEGY
+    assert ctx.deps.refusal_book.ledger.used(call_key("rename_strategy", args)) == 2

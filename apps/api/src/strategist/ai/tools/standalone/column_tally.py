@@ -20,8 +20,6 @@ from strategist.services.experiment.column_tally import (
 )
 from strategist.services.experiment.variant_comparison import VariantInput
 
-COLUMN_TALLY_REFUSALS = 6
-
 
 def tally_line(tally: ColumnTally) -> str:
     top = tally.rows[0] if tally.rows else None

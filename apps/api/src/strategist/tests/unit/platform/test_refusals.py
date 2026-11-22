@@ -10,7 +10,13 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelRetry
-from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.toolsets.function import FunctionToolset
@@ -35,7 +41,10 @@ from strategist.platform.errors import (
 from strategist.platform.refusals import (
     LISTS_THE_IDS,
     CallerSuppliedIds,
+    KeyedRefusalToolset,
     ServiceRefusalRetry,
+    agent_capabilities,
+    call_key,
 )
 from strategist.services.control_sets import ControlSetService
 from strategist.services.gene_sets.operations import GeneSetService
@@ -195,6 +204,44 @@ async def test_a_turn_whose_tool_refuses_an_id_still_answers(
     result = await agent.run("import my controls", deps=_deps())
 
     assert result.output == "listed the gene sets"
+
+
+@pytest.mark.asyncio
+async def test_a_keyed_lead_toolset_charges_the_refused_id_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _refusing_service(monkeypatch, _not_found())
+    deps = _deps()
+    agent: Agent[LeadDeps, str] = Agent(
+        FunctionModel(_one_call_then_text("listed the gene sets")),
+        deps_type=LeadDeps,
+        toolsets=[
+            KeyedRefusalToolset(
+                wrapped=FunctionToolset[LeadDeps](
+                    tools=[control_sets.read_gene_ids_from_gene_set]
+                )
+            )
+        ],
+        capabilities=agent_capabilities([]),
+        retries=1,
+    )
+
+    result = await agent.run("import my controls", deps=deps)
+
+    (refused,) = [
+        part
+        for message in result.all_messages()
+        for part in message.parts
+        if isinstance(part, ToolReturnPart)
+    ]
+    assert refused.outcome == "failed"
+    assert "list_gene_sets" in str(refused.content)
+    assert (
+        deps.refusal_book.ledger.used(
+            call_key(_TOOL, {"gene_set_id": _MISSING_GENE_SET})
+        )
+        == 1
+    )
 
 
 @pytest.mark.asyncio

@@ -69,10 +69,7 @@ from strategist.ai.lead.turn_contract import (
     hold_the_turn_contract,
 )
 from strategist.ai.lead.verify_dispatch import verify_strategy
-from strategist.ai.tools.standalone.column_tally import (
-    COLUMN_TALLY_REFUSALS,
-    count_by_column,
-)
+from strategist.ai.tools.standalone.column_tally import count_by_column
 from strategist.ai.tools.standalone.control_sets import (
     build_control_set,
     list_control_sets,
@@ -110,7 +107,7 @@ from strategist.ai.tools.toolsets import eda
 from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
-from strategist.platform.refusals import agent_capabilities
+from strategist.platform.refusals import KeyedRefusalToolset, agent_capabilities
 
 
 def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
@@ -137,7 +134,7 @@ def build_sweep_toolset() -> AbstractToolset[LeadDeps]:
             ),
         ],
     )
-    return RefusalMemoryToolset(wrapped=base)
+    return KeyedRefusalToolset(wrapped=RefusalMemoryToolset(wrapped=base))
 
 
 def build_lead_toolset() -> AbstractToolset[LeadDeps]:
@@ -162,9 +159,9 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(verify_strategy),
             Tool(compare_search_variants),
             Tool(count_search),
-            Tool(count_by_column, max_retries=COLUMN_TALLY_REFUSALS),
+            Tool(count_by_column),
             Tool(step_columns),
-            Tool(count_step_by_column, max_retries=COLUMN_TALLY_REFUSALS),
+            Tool(count_step_by_column),
             Tool(genes_in_search),
             Tool(build_control_set),
             Tool(list_control_sets),
@@ -191,9 +188,11 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(adopt_separating_strategy, requires_approval=True),
         ],
     )
-    return ReadOnceToolset(
-        wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS),
-        reads=RECORD_READS,
+    return KeyedRefusalToolset(
+        wrapped=ReadOnceToolset(
+            wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS),
+            reads=RECORD_READS,
+        )
     )
 
 

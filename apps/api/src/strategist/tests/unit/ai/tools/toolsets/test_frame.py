@@ -12,6 +12,7 @@ from strategist.ai.tools.toolsets._dynamic import EnumOverrides, ValidatingEnumT
 from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.ai.tools.toolsets.frame import _frame_enum_overrides, build_toolset
+from strategist.platform.refusals import KeyedRefusalToolset
 from strategist.tests._support.catalog_reads import listing
 from strategist.tests._support.declared_record_types import (
     serve_unanswered_record_types,
@@ -148,7 +149,9 @@ async def test_set_structure_takes_the_structure_node_itself() -> None:
 
 
 def test_the_toolset_guards_its_enums_at_call_time() -> None:
-    toolset = build_toolset()
+    keyed = build_toolset()
+    assert isinstance(keyed, KeyedRefusalToolset)
+    toolset = keyed.wrapped
     assert isinstance(toolset, ReadOnceToolset)
     refusals = toolset.wrapped
     assert isinstance(refusals, RefusalMemoryToolset)

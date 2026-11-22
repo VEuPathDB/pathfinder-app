@@ -102,6 +102,7 @@ STRATEGY_RESOURCES = {
     "turn_markers",
     "ledger_summary",
     "service_outage",
+    "refusal_book",
     "user_prompt",
     "intent",
     "verification_scope",

@@ -238,6 +238,10 @@ def _outage_directive(tool_name: str, subject: str, error: Exception) -> str:
 # ---------------------------------------------------------------------------
 
 
+class TransientRetry(ModelRetry):
+    pass
+
+
 @dataclass
 class ToolResilience(AbstractCapability[AgentDeps]):
     """Route each tool execution error to a recovery strategy by its category.
@@ -295,7 +299,8 @@ class ToolResilience(AbstractCapability[AgentDeps]):
                 seen = ctx.deps.service_outage.record_search_failure(search_name)
                 if seen >= OUTAGE_GIVE_UP_THRESHOLD:
                     return _outage_directive(tool_name, search_name, error)
-            if ctx.retries.get(tool_name, 0) >= self.circuit_break_threshold:
+            failures = ctx.deps.service_outage.record_tool_failure(tool_name)
+            if failures >= self.circuit_break_threshold:
                 logger.warning(
                     "Circuit breaker: answering with the outage directive",
                     tool_name=tool_name,
@@ -306,7 +311,7 @@ class ToolResilience(AbstractCapability[AgentDeps]):
                 f"Transient error in {tool_name}: {error}. "
                 "The service may be temporarily unavailable. Retrying."
             )
-            raise ModelRetry(retry_message)
+            raise TransientRetry(retry_message)
 
         if category == ErrorCategory.SEMANTIC:
             return _semantic_directive(error, tool_name, args, self.search_lookup_tools)

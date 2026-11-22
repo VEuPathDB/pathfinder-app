@@ -47,6 +47,7 @@ from strategist.ai.tools.toolsets._dynamic import (
 )
 from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
+from strategist.platform.refusals import KeyedRefusalToolset
 
 
 def _frame_enum_overrides(ctx: RunContext[AgentDeps]) -> EnumOverrides:
@@ -97,13 +98,15 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             search_memory,
         ],
     )
-    return ReadOnceToolset(
-        wrapped=RefusalMemoryToolset(
-            wrapped=ValidatingEnumToolset(
-                wrapped=base,
-                build_overrides=_frame_enum_overrides,
-                explain=another_sites_entry,
-            )
-        ),
-        reads=RECORD_READS,
+    return KeyedRefusalToolset(
+        wrapped=ReadOnceToolset(
+            wrapped=RefusalMemoryToolset(
+                wrapped=ValidatingEnumToolset(
+                    wrapped=base,
+                    build_overrides=_frame_enum_overrides,
+                    explain=another_sites_entry,
+                )
+            ),
+            reads=RECORD_READS,
+        )
     )

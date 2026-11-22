@@ -5,8 +5,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
+from assistant_core.capabilities.refused_calls import CallRefused
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import SearchMatch
@@ -76,7 +76,7 @@ async def test_another_sites_search_is_refused_naming_both_sites(
 ) -> None:
     ctx = await _after_a_read_showing_cryptodb(monkeypatch)
 
-    with pytest.raises(ModelRetry) as refused:
+    with pytest.raises(CallRefused) as refused:
         await _set_criterion(ctx, CRYPTO_SEARCH)
 
     assert str(refused.value) == (
@@ -92,7 +92,7 @@ async def test_another_sites_dataset_id_is_refused_the_same_way(
 ) -> None:
     ctx = await _after_a_read_showing_cryptodb(monkeypatch)
 
-    with pytest.raises(ModelRetry) as refused:
+    with pytest.raises(CallRefused) as refused:
         await _set_criterion(ctx, "DS_63b0de882c")
 
     assert str(refused.value) == (
@@ -108,7 +108,7 @@ async def test_a_name_no_site_showed_gets_the_known_values(
 ) -> None:
     ctx = await _after_a_read_showing_cryptodb(monkeypatch)
 
-    with pytest.raises(ModelRetry) as refused:
+    with pytest.raises(CallRefused) as refused:
         await _set_criterion(ctx, "GenesByImaginary")
 
     assert str(refused.value) == (
@@ -125,7 +125,7 @@ async def test_a_search_this_site_also_publishes_gets_the_known_values(
     """A name the card lists and this site publishes is not another site's alone."""
     ctx = await _after_a_read_showing_cryptodb(monkeypatch)
 
-    with pytest.raises(ModelRetry) as refused:
+    with pytest.raises(CallRefused) as refused:
         await _set_criterion(ctx, _SHARED_SEARCH)
 
     assert str(refused.value) == (

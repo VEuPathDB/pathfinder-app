@@ -3,21 +3,36 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Protocol
 
-from assistant_core.capabilities.refused_calls import MarkRefusedCalls
+from assistant_core.capabilities.refused_calls import CallRefused, MarkRefusedCalls
 from assistant_core.platform.observability import ReasoningEffortOnSpan
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 from pydantic_ai.capabilities import AgentCapability
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
+from pydantic_ai.toolsets.abstract import ToolsetTool
+from pydantic_ai.toolsets.wrapper import WrapperToolset
+from veupathdb.errors import VEuPathDBError
+from veupathdb.model import CamelModel, computed
 
+from strategist.domain.refusal import (
+    Charge,
+    Problem,
+    Problems,
+    RefusalKey,
+    RefusalLedger,
+)
 from strategist.platform.declined import DeclinedRequests
 from strategist.platform.durable_worker import DurableCallsRefused
 from strategist.platform.errors import AppError, ProviderKeyError
+
+TOOL_REFUSALS_PER_KEY = 3
+ANSWER_REFUSALS_PER_KEY = 2
+TURN_REFUSALS_PER_RULE = 1
 
 _NOT_FOUND_STATUS = 404
 _SERVER_ERROR_STATUS = 500
@@ -97,6 +112,156 @@ class ServiceRefusalRetry(AbstractCapability[AgentDepsT]):
         raise ModelRetry(refusal_retry_message(args, error)) from error
 
 
+class ProblemsRefusal(ModelRetry):
+    def __init__(self, problems: Problems) -> None:
+        if problems.empty:
+            msg = "a refusal names at least one problem"
+            raise ValueError(msg)
+        self.problems = problems
+        super().__init__(problems.text())
+
+
+class SpentRefusal(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    spent: tuple[Problem, ...]
+
+    @computed
+    def note(self) -> str:
+        labels = "; ".join(
+            key.label() for key in dict.fromkeys(p.key for p in self.spent)
+        )
+        return (
+            f"No more attempts for {labels}. The last refusal: "
+            f"{self.spent[0].sentence} Leave it out and report it in your answer."
+        )
+
+
+def problems_of_retry(retry: ModelRetry, key: RefusalKey) -> Problems:
+    match retry:
+        case ProblemsRefusal(problems=problems):
+            return problems.under(criterion=key.criterion, search=key.search)
+        case _:
+            return Problems.one(key, retry.message)
+
+
+class _FaultRow(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    param: str = ""
+    detail: str = ""
+
+
+_FAULT_ROWS = TypeAdapter(list[_FaultRow])
+
+
+def library_problems(error: VEuPathDBError[Any], key: RefusalKey) -> Problems:
+    said = error.detail or error.title
+    rows = _FAULT_ROWS.validate_python(error.errors or [])
+    if not rows:
+        return Problems.one(key, said)
+    return Problems(
+        found=tuple(
+            Problem(
+                key=key.model_copy(update={"parameter": row.param}),
+                sentence=row.detail or said,
+            )
+            for row in rows
+        )
+    )
+
+
+class _CallKey(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    criterion_id: str = ""
+    search_name: str = ""
+    step_id: str = ""
+    label: str = ""
+
+
+def call_key(tool_name: str, args: Mapping[str, Any]) -> RefusalKey:
+    named = _CallKey.model_validate(args)
+    return RefusalKey(
+        check=tool_name,
+        criterion=named.criterion_id or named.step_id or named.label,
+        search=named.search_name,
+    )
+
+
+@dataclass
+class RefusalBook:
+    ledger: RefusalLedger = field(default_factory=RefusalLedger)
+    spent: list[SpentRefusal] = field(default_factory=list)
+
+
+class KeepsRefusals(Protocol):
+    @property
+    def refusal_book(self) -> RefusalBook: ...
+
+
+def _first_sentences(problems: Problems) -> dict[RefusalKey, str]:
+    firsts: dict[RefusalKey, str] = {}
+    for problem in problems.found:
+        firsts.setdefault(problem.key, problem.sentence)
+    return firsts
+
+
+def refusal_text(charge: Charge) -> str:
+    lines = [p.sentence for p in charge.refused.found] + [
+        f"No more attempts for {key.label()}: {sentence} Leave it out and report it."
+        for key, sentence in _first_sentences(charge.spent).items()
+    ]
+    if len(lines) == 1:
+        return lines[0]
+    numbered = [f"{i}. {line}" for i, line in enumerate(lines, start=1)]
+    return "\n".join([f"{len(lines)} problems:", *numbered])
+
+
+def last_answer(ctx: RunContext[Any]) -> bool:
+    return ctx.retry >= ctx.max_retries
+
+
+def _refused_problems(
+    name: str, args: dict[str, Any], error: ModelRetry | AppError
+) -> Problems:
+    key = call_key(name, args)
+    match error:
+        case ModelRetry():
+            return problems_of_retry(error, key)
+        case AppError() if the_model_can_correct(error):
+            return Problems.one(key, refusal_retry_message(args, error))
+        case _:
+            raise error
+
+
+@dataclass
+class KeyedRefusalToolset[DepsT: KeepsRefusals](WrapperToolset[DepsT]):
+    @property
+    def id(self) -> str | None:
+        return None
+
+    async def call_tool(
+        self,
+        name: str,
+        tool_args: dict[str, Any],
+        ctx: RunContext[DepsT],
+        tool: ToolsetTool[DepsT],
+    ) -> Any:
+        try:
+            return await self.wrapped.call_tool(name, tool_args, ctx, tool)
+        except (ModelRetry, AppError) as error:
+            problems = _refused_problems(name, tool_args, error)
+            book = ctx.deps.refusal_book
+            charge = book.ledger.charge(problems, TOOL_REFUSALS_PER_KEY)
+            book.ledger = charge.ledger
+            if not charge.refused.empty:
+                raise CallRefused(refusal_text(charge)) from error
+            spent = SpentRefusal(spent=charge.spent.found)
+            book.spent.append(spent)
+            return spent
+
+
 def agent_capabilities(
     carried: Sequence[AgentCapability[AgentDepsT]],
 ) -> list[AgentCapability[AgentDepsT]]:
@@ -118,10 +283,23 @@ def agent_capabilities(
 
 
 __all__ = [
+    "ANSWER_REFUSALS_PER_KEY",
     "LISTS_THE_IDS",
+    "TOOL_REFUSALS_PER_KEY",
+    "TURN_REFUSALS_PER_RULE",
     "CallerSuppliedIds",
+    "KeepsRefusals",
+    "KeyedRefusalToolset",
+    "ProblemsRefusal",
+    "RefusalBook",
     "ServiceRefusalRetry",
+    "SpentRefusal",
     "agent_capabilities",
+    "call_key",
+    "last_answer",
+    "library_problems",
+    "problems_of_retry",
     "refusal_retry_message",
+    "refusal_text",
     "the_model_can_correct",
 ]

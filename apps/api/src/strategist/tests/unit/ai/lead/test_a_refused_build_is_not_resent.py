@@ -6,7 +6,8 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from pydantic_ai import ModelRetry, RunContext, ToolFailed
+from assistant_core.capabilities.refused_calls import CallRefused
+from pydantic_ai import RunContext
 from pydantic_ai.toolsets.abstract import AbstractToolset
 
 from strategist.ai.graph.runtime import Context
@@ -77,10 +78,10 @@ async def test_a_build_refused_before_a_read_is_not_sent_again() -> None:
     ctx = _lead_context()
     toolsets = list(build_lead_agent().toolsets)
 
-    with pytest.raises(ModelRetry) as first:
+    with pytest.raises(CallRefused) as first:
         await _call(toolsets, ctx, "build_strategy", {})
     await _call(toolsets, ctx, "read_ledger_section", {"section": "build"})
-    with pytest.raises(ToolFailed) as second:
+    with pytest.raises(CallRefused) as second:
         await _call(toolsets, ctx, "build_strategy", {})
 
     assert first.value.message == _LEFT_OUT

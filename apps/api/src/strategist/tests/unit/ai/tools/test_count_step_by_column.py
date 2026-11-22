@@ -6,13 +6,11 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from pydantic_ai.toolsets import FunctionToolset, WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStepTree
 
-from strategist.ai.lead.lead_agent import build_lead_toolset
 from strategist.ai.tools.standalone import step_tally
 from strategist.ai.tools.standalone.step_tally import count_step_by_column
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
@@ -272,14 +270,3 @@ async def test_the_counts_are_lines_of_the_turns_facts(ran: _Ran) -> None:
         ["In all: 523,795 proteins", "Values: 840"],
         True,
     )
-
-
-def test_each_way_the_step_count_is_refused_keeps_a_retry() -> None:
-    read_once = build_lead_toolset()
-    assert isinstance(read_once, WrapperToolset)
-    refusal_memory = read_once.wrapped
-    assert isinstance(refusal_memory, WrapperToolset)
-    base = refusal_memory.wrapped
-    assert isinstance(base, FunctionToolset)
-
-    assert base.tools["count_step_by_column"].max_retries == 6

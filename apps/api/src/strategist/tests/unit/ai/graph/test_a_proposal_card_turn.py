@@ -284,18 +284,18 @@ async def test_yes_on_a_thread_with_no_strategy_asks_the_lead_to_build(
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
 
     assert edits == []
-    retries = [
+    refusals = [
         str(part.content)
         for message in calls[-1]
         if isinstance(message, ModelRequest)
         for part in message.parts
         if isinstance(part, ToolReturnPart)
-        and part.outcome == "retried"
+        and part.outcome == "failed"
         and part.tool_call_id == CALL_ID
     ]
-    assert len(retries) == 1
-    assert "frame_problem" in retries[0]
-    assert CHANGES[0].sentence in retries[0]
+    assert len(refusals) == 1
+    assert "frame_problem" in refusals[0]
+    assert CHANGES[0].sentence in refusals[0]
     assert capture.response is not None
 
 

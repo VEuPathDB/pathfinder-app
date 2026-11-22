@@ -25,6 +25,7 @@ from strategist.ai.tools.standalone.eda_statistics import (
 )
 from strategist.ai.tools.standalone.eda_step import create_eda_step
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
+from strategist.platform.refusals import KeyedRefusalToolset
 
 
 def build_toolset() -> AbstractToolset[LeadDeps]:
@@ -54,4 +55,4 @@ def build_toolset() -> AbstractToolset[LeadDeps]:
             ask_eda_cut,
         ],
     )
-    return RefusalMemoryToolset(wrapped=toolset)
+    return KeyedRefusalToolset(wrapped=RefusalMemoryToolset(wrapped=toolset))

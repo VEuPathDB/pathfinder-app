@@ -60,7 +60,7 @@ from strategist.ai.tools.standalone.record_reads import (
 from strategist.ai.tools.toolsets import eda
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.model_catalog import EXPLORE_MODELS
-from strategist.platform.refusals import agent_capabilities
+from strategist.platform.refusals import KeyedRefusalToolset, agent_capabilities
 
 ExploreAgent = Agent[LeadDeps, str | DeferredToolRequests]
 
@@ -92,7 +92,9 @@ def build_explore_toolset() -> AbstractToolset[LeadDeps]:
             Tool(remember),
         ],
     )
-    return RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS)
+    return KeyedRefusalToolset(
+        wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS)
+    )
 
 
 _SHARED_TOOLS: Final = frozenset(

@@ -23,6 +23,7 @@ from strategist.ai.tools.standalone.step_tally import (
     step_columns,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.platform.refusals import KeyedRefusalToolset
 from strategist.services.experiment.column_tally import ColumnTally
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.recorded_columns import TM_STEP, column_catalog
@@ -230,7 +231,9 @@ async def test_a_step_the_strategy_does_not_hold_is_not_listed(
 
 
 def test_the_lead_lists_and_counts_a_steps_columns() -> None:
-    read_once = build_lead_toolset()
+    keyed = build_lead_toolset()
+    assert isinstance(keyed, KeyedRefusalToolset)
+    read_once = keyed.wrapped
     assert isinstance(read_once, WrapperToolset)
     refusal_memory = read_once.wrapped
     assert isinstance(refusal_memory, WrapperToolset)

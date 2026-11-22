@@ -24,6 +24,7 @@ from strategist.domain.separation import AttachedControls
 from strategist.domain.strategy.session import StrategySession
 from strategist.domain.strategy.spec_edit_guard import spec_stated_values
 from strategist.domain.strategy.step_words import step_words
+from strategist.platform.refusals import RefusalBook
 from strategist.services.strategies.context import StrategyMutationContext
 
 # A search is abandoned once it has failed this many times in a turn. The
@@ -45,11 +46,16 @@ class ServiceOutageMemory:
     """
 
     _counts: dict[str, int] = field(default_factory=dict, init=False, repr=False)
+    _tool_counts: dict[str, int] = field(default_factory=dict, init=False, repr=False)
 
     def record_search_failure(self, search_name: str) -> int:
         """Record one transient failure; returns the running count."""
         self._counts[search_name] = self._counts.get(search_name, 0) + 1
         return self._counts[search_name]
+
+    def record_tool_failure(self, tool_name: str) -> int:
+        self._tool_counts[tool_name] = self._tool_counts.get(tool_name, 0) + 1
+        return self._tool_counts[tool_name]
 
     def unavailable_searches(self) -> frozenset[str]:
         """Searches abandoned for the rest of this turn."""
@@ -112,6 +118,7 @@ class AgentDeps(AssistantDeps):
     turn_markers: TurnMarkers
     ledger_summary: str = ""
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)
+    refusal_book: SkipValidation[RefusalBook] = Field(default_factory=RefusalBook)
     # The request the thread answers, the name of a push with no name yet.
     user_prompt: str = ""
     intent: IntentClassification | None = None

@@ -24,6 +24,7 @@ from strategist.ai.agents.tool_vocabulary import CHECK_READS, RECORD_READS
 from strategist.ai.lead.lead_agent import build_lead_toolset
 from strategist.ai.tools.toolsets import frame, verification
 from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
+from strategist.platform.refusals import KeyedRefusalToolset
 
 # The five genes the portal glycosome sample listed.
 _SAMPLE = [
@@ -143,16 +144,20 @@ async def test_another_run_answers_the_read_again() -> None:
 
 
 def test_the_lead_reads_each_record_once() -> None:
-    toolset = build_lead_toolset()
+    keyed = build_lead_toolset()
 
+    assert isinstance(keyed, KeyedRefusalToolset)
+    toolset = keyed.wrapped
     assert isinstance(toolset, ReadOnceToolset)
     assert toolset.reads == RECORD_READS
     assert "read_gene_record" in RECORD_READS
 
 
 def test_a_check_reads_each_record_and_each_sample_once() -> None:
-    toolset = verification.build_toolset()
+    keyed = verification.build_toolset()
 
+    assert isinstance(keyed, KeyedRefusalToolset)
+    toolset = keyed.wrapped
     assert isinstance(toolset, ReadOnceToolset)
     assert toolset.reads == CHECK_READS
     assert {"get_sample_records", "get_strategy"} <= CHECK_READS
@@ -160,7 +165,9 @@ def test_a_check_reads_each_record_and_each_sample_once() -> None:
 
 
 def test_a_framing_pass_reads_each_record_once() -> None:
-    toolset = frame.build_toolset()
+    keyed = frame.build_toolset()
 
+    assert isinstance(keyed, KeyedRefusalToolset)
+    toolset = keyed.wrapped
     assert isinstance(toolset, ReadOnceToolset)
     assert toolset.reads == RECORD_READS

@@ -33,8 +33,8 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
     """Holds each refusal until a call outside ``reads`` runs.
 
     The same call sent again fails with the refusal and does not run, and
-    spends no retry. Sent a third time it is the refusal again, which the
-    library counts against the tool's retries, so a loop ends the pass.
+    is charged nothing. Sent a third time it is the refusal again, which the
+    refusal ledger charges to the call's key.
     """
 
     reads: frozenset[str] = frozenset()

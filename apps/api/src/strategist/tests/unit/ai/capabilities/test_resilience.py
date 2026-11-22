@@ -17,7 +17,11 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from veupathdb.errors import WDKError
 
 from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
-from strategist.ai.capabilities.resilience import ToolResilience
+from strategist.ai.capabilities.resilience import (
+    DEFAULT_CIRCUIT_BREAK_THRESHOLD,
+    ToolResilience,
+    TransientRetry,
+)
 from strategist.ai.graph.runtime import (
     OUTAGE_GIVE_UP_THRESHOLD,
     AgentDeps,
@@ -31,8 +35,14 @@ def _make_ctx() -> MagicMock:
     ctx: MagicMock = MagicMock()
     ctx.deps = MagicMock()
     ctx.deps.site_id = "qa.plasmodb.org"
+    ctx.deps.service_outage = ServiceOutageMemory()
     ctx.retries = {}
     return ctx
+
+
+def _failed_before(ctx: MagicMock, tool_name: str) -> None:
+    for _ in range(DEFAULT_CIRCUIT_BREAK_THRESHOLD - 1):
+        ctx.deps.service_outage.record_tool_failure(tool_name)
 
 
 def _make_call(tool_name: str = "get_search_overview") -> ToolCallPart:
@@ -66,11 +76,11 @@ class TestOnToolExecuteError:
         assert "search_for_searches" in result
 
     @pytest.mark.asyncio
-    async def test_wdk_500_raises_model_retry(self) -> None:
+    async def test_wdk_500_raises_a_transient_retry(self) -> None:
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
         ctx = _make_ctx()
         error = WDKError("server error", status=500)
-        with pytest.raises(ModelRetry):
+        with pytest.raises(TransientRetry):
             await capability.on_tool_execute_error(
                 ctx,
                 call=_make_call(),
@@ -80,11 +90,11 @@ class TestOnToolExecuteError:
             )
 
     @pytest.mark.asyncio
-    async def test_timeout_raises_model_retry(self) -> None:
+    async def test_timeout_raises_a_transient_retry(self) -> None:
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
         ctx = _make_ctx()
         error = httpx.TimeoutException("connection timed out")
-        with pytest.raises(ModelRetry):
+        with pytest.raises(TransientRetry):
             await capability.on_tool_execute_error(
                 ctx,
                 call=_make_call(),
@@ -109,7 +119,7 @@ class TestOnToolExecuteError:
                 error=error,
             )
 
-        with pytest.raises(ModelRetry):
+        with pytest.raises(TransientRetry):
             await _call()
         result = await _call()
         assert isinstance(result, str)
@@ -126,7 +136,7 @@ class TestOnToolExecuteError:
         ctx.deps.service_outage = ServiceOutageMemory()
         error = WDKError("server error", status=500)
         for name in ("Foo", "Bar"):
-            with pytest.raises(ModelRetry):
+            with pytest.raises(TransientRetry):
                 await capability.on_tool_execute_error(
                     ctx,
                     call=_make_call("get_search_overview"),
@@ -141,8 +151,8 @@ class TestOnToolExecuteError:
         ctx = _make_ctx()
         ctx.deps.service_outage = ServiceOutageMemory()
         error = WDKError("server error", status=500)
-        for _ in range(3):
-            with pytest.raises(ModelRetry):
+        for _ in range(DEFAULT_CIRCUIT_BREAK_THRESHOLD - 1):
+            with pytest.raises(TransientRetry):
                 await capability.on_tool_execute_error(
                     ctx,
                     call=_make_call(),
@@ -186,8 +196,7 @@ class TestTheRetryCeiling:
     async def test_a_call_at_the_ceiling_returns_the_outage_directive(self) -> None:
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
         ctx = _make_ctx()
-        ctx.deps.service_outage = ServiceOutageMemory()
-        ctx.retries = {"set_criterion": 3}
+        _failed_before(ctx, "set_criterion")
         result: Any = await capability.on_tool_execute_error(
             ctx,
             call=_make_call("set_criterion"),
@@ -204,8 +213,7 @@ class TestTheRetryCeiling:
     async def test_a_call_with_no_search_name_names_the_tool(self) -> None:
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
         ctx = _make_ctx()
-        ctx.deps.service_outage = ServiceOutageMemory()
-        ctx.retries = {"list_searches": 3}
+        _failed_before(ctx, "list_searches")
         result: Any = await capability.on_tool_execute_error(
             ctx,
             call=_make_call("list_searches"),
@@ -224,8 +232,8 @@ class TestTheRetryCeiling:
         ctx = _make_ctx()
         ctx.deps.service_outage = ServiceOutageMemory()
         error = WDKError("server error", status=500)
-        for _ in range(OUTAGE_GIVE_UP_THRESHOLD + 1):
-            with pytest.raises(ModelRetry):
+        for _ in range(OUTAGE_GIVE_UP_THRESHOLD):
+            with pytest.raises(TransientRetry):
                 await capability.on_tool_execute_error(
                     ctx,
                     call=_make_call("set_criterion"),

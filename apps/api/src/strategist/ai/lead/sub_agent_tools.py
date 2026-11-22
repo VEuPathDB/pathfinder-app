@@ -44,6 +44,7 @@ from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.platform.config import get_settings
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.platform.model_keys import is_mock_deployment
+from strategist.platform.refusals import RefusalBook
 from strategist.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
 from strategist.services.strategies.measurements import TurnCounts
 
@@ -290,6 +291,7 @@ class LeadDeps:
     # Durable calls the Lead's own tools handed to a worker, keyed by the tool
     # call each worker task answers.
     durable_deferrals: dict[str, DurableDeferral] = field(default_factory=dict)
+    refusal_book: RefusalBook = field(default_factory=RefusalBook)
     # Suspended sub-agent runs whose parked calls a worker answers, keyed by
     # the dispatch tool call that holds the run.
     pending_sub_agent_durables: dict[str, SubAgentDurablePark] = field(

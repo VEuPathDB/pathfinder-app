@@ -22,7 +22,10 @@ so. Protocol 2.2.0 lets a failed call's `data-tool-summary` carry `status: "corr
   `MarkRefusedCalls`, which `agent_capabilities` gives every agent, carries the summary on
   the failed result. The read-once and refused-call toolsets, the Lead's classification
   gate, the edit and delete rules, the check's record budget and a repeated control test
-  raise it.
+  raise it. `KeyedRefusalToolset` (`platform/refusals.py`) raises it for every refusal a
+  tool body raises (`ProblemsRefusal`, a plain `ModelRetry`, a correctable `AppError`)
+  on every toolset that holds refused calls, after it charges the refusal's keys, so a
+  refusal never spends the tool's retries.
 
 A read the site broke off, timed out or refused (`ai/capabilities/site_reads.py`) stays a
 plain `ToolFailed` and draws the red X, and so does a turn that failed. The client reads a

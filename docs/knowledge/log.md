@@ -2,6 +2,19 @@
 
 ## 2026-11-23
 
+* **A refusal is counted per key, and a transient failure is not a refusal.** `KeyedRefusalToolset`
+  (`platform/refusals.py`) is the outermost refusal layer of the FRAME, execution, VERIFY, EDA,
+  Explore, sweep and Lead toolsets. Every refusal a tool body raises (`ProblemsRefusal`, a plain
+  `ModelRetry` keyed by `call_key` from the call's `criterion_id`, `step_id`, `label` and
+  `search_name`, or an `AppError` the model can correct) is charged to the run's `RefusalBook`
+  per key (`TOOL_REFUSALS_PER_KEY` = 3) and answered with `CallRefused`, so it spends none of the
+  tool's retries and two criteria no longer share one budget. A call whose keys are all spent
+  returns `SpentRefusal`, whose note names each key and its last refusal; a call with spent and
+  live keys names the live problems and adds one line per spent key. A refused call sent again
+  is still held without charge, and the next resend is charged to the call's key. A transient
+  error raises `TransientRetry` and is never charged; the breaker counts a tool's transient
+  failures (`ServiceOutageMemory.record_tool_failure`). The count tools' raised retry ceiling
+  (six, one per refusal) is gone with the per-tool budget it fed.
 * **A commit checks the staged files; a push runs the whole-project gates in parallel.**
   `.pre-commit-config.yaml` sets `default_stages: [pre-commit]`, so a push no longer
   repeats the commit hooks; every whole-project hook is `stages: [manual]`, and

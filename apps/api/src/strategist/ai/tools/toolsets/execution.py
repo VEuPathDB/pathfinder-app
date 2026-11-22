@@ -33,6 +33,7 @@ from strategist.ai.tools.toolsets._dynamic import (
     live_step_ids,
 )
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
+from strategist.platform.refusals import KeyedRefusalToolset
 
 _MAX_CONSECUTIVE_GET_STRATEGY = 2
 
@@ -114,9 +115,11 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             search_memory,
         ],
     )
-    return RefusalMemoryToolset(
-        wrapped=DynamicEnumToolset(
-            wrapped=PreparedToolset(wrapped=base, prepare_func=_prepare),
-            build_overrides=_execution_enum_overrides,
+    return KeyedRefusalToolset(
+        wrapped=RefusalMemoryToolset(
+            wrapped=DynamicEnumToolset(
+                wrapped=PreparedToolset(wrapped=base, prepare_func=_prepare),
+                build_overrides=_execution_enum_overrides,
+            )
         )
     )
