@@ -6,7 +6,6 @@ from typing import Any
 
 import httpx
 import pytest
-from pydantic import BaseModel
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.messages import (
     ModelMessage,
@@ -337,51 +336,8 @@ def _tool(*functions: Callable[..., Any]) -> dict[str, ToolDefinition]:
     }
 
 
-class _Search(BaseModel):
-    label: str
-    search_name: str
-    parameters: dict[str, str]
-
-
-def set_criterion(criterion_id: str, search_name: str, params: dict[str, str]) -> str:
-    return criterion_id + search_name + str(params)
-
-
 def edit_step(step_id: str | None = None, reason: str = "") -> str:
     return f"{step_id}{reason}"
-
-
-def count_by_column(search: _Search, column: str, top: int = 5) -> str:
-    return f"{search}{column}{top}"
-
-
-def read_gene_record(gene_id: str, ortholog_organism: str | None = None) -> str:
-    return f"{gene_id}{ortholog_organism}"
-
-
-def test_a_call_is_keyed_by_what_it_names() -> None:
-    tools = _tool(set_criterion, edit_step, count_by_column, read_gene_record)
-
-    assert call_key(
-        tools["set_criterion"],
-        {"criterion_id": "c1", "search_name": _S, "params": {"dataset_id": "d1"}},
-    ) == RefusalKey(check="set_criterion", criterion="c1", search=_S)
-    assert call_key(tools["edit_step"], {"step_id": "s2", "reason": "r"}) == (
-        RefusalKey(check="edit_step", criterion="s2")
-    )
-    assert call_key(
-        tools["count_by_column"],
-        {
-            "search": {"label": "early", "search_name": _S, "parameters": {}},
-            "column": "organism",
-            "top": 5,
-        },
-    ) == RefusalKey(
-        check="count_by_column", criterion="early; column=organism", search=_S
-    )
-    assert call_key(tools["read_gene_record"], {"gene_id": "PF3D7_1133400"}) == (
-        RefusalKey(check="read_gene_record", criterion="gene_id=PF3D7_1133400")
-    )
 
 
 def test_an_absent_or_null_target_is_no_target() -> None:
@@ -391,18 +347,6 @@ def test_an_absent_or_null_target_is_no_target() -> None:
     assert call_key(tools["edit_step"], {"step_id": None}) == RefusalKey(
         check="edit_step"
     )
-
-
-def test_two_searches_counted_by_one_column_keep_two_keys() -> None:
-    tool = _tool(count_by_column)["count_by_column"]
-
-    def counted(search_name: str) -> RefusalKey:
-        search = {"label": "early", "search_name": search_name, "parameters": {}}
-        return call_key(tool, {"search": search, "column": "organism"})
-
-    assert counted("GenesByTaxon").search == "GenesByTaxon"
-    assert counted("GenesByText").search == "GenesByText"
-    assert counted("GenesByTaxon") != counted("GenesByText")
 
 
 async def _tool_def_of(

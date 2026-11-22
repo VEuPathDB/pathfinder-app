@@ -17,6 +17,7 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_ai.toolsets.wrapper import WrapperToolset
+from pydantic_core import to_jsonable_python
 from veupathdb.errors import VEuPathDBError
 from veupathdb.model import CamelModel, computed
 
@@ -114,10 +115,6 @@ class ServiceRefusalRetry(AbstractCapability[AgentDepsT]):
         raise ModelRetry(refusal_retry_message(args, error)) from error
 
 
-class TransientRetry(ModelRetry):
-    pass
-
-
 class ProblemsRefusal(ModelRetry):
     def __init__(self, problems: Problems) -> None:
         if problems.empty:
@@ -209,13 +206,15 @@ class _Arguments(_Model):
 def _targets(
     model: _Model, defs: Mapping[str, _Model], args: Mapping[str, Any], *, nested: bool
 ) -> list[tuple[str, str]]:
+    given = {to_snake(name): value for name, value in args.items()}
     found: list[tuple[str, str]] = []
     for name, declared in model.properties.items():
-        match args.get(name):
+        field = to_snake(name)
+        match given.get(field):
             case bool() | None:
                 continue
-            case str() | int() as value if _identifies(to_snake(name)) and value != "":
-                found.append((to_snake(name), str(value)))
+            case str() | int() as value if _identifies(field) and value != "":
+                found.append((field, str(value)))
             case Mapping() as inner if not nested and declared.model() in defs:
                 found += _targets(defs[declared.model()], defs, inner, nested=True)
             case _:
@@ -225,7 +224,8 @@ def _targets(
 
 def call_key(tool: ToolDefinition, args: Mapping[str, Any]) -> RefusalKey:
     schema = _Arguments.model_validate(tool.parameters_json_schema)
-    found = _targets(schema, schema.defs, args, nested=False)
+    given = to_jsonable_python(args, by_alias=True)
+    found = _targets(schema, schema.defs, given, nested=False)
     searches = [pair for pair in found if pair[0].endswith("search_name")]
     primary = next((pair for pair in found if pair[0] in _PRIMARY), None)
     named = [primary[1]] if primary else []
@@ -277,8 +277,6 @@ def _refused_problems(
 ) -> Problems:
     key = call_key(tool, args)
     match error:
-        case TransientRetry():
-            raise error
         case ModelRetry():
             return problems_of_retry(error, key)
         case AppError() if the_model_can_correct(error):
@@ -356,7 +354,6 @@ __all__ = [
     "RefusalBook",
     "ServiceRefusalRetry",
     "SpentRefusal",
-    "TransientRetry",
     "agent_capabilities",
     "call_key",
     "last_answer",

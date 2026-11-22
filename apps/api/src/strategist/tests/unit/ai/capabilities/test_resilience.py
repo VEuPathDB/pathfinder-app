@@ -17,9 +17,9 @@ from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.capabilities.resilience import (
     DEFAULT_CIRCUIT_BREAK_THRESHOLD,
     ToolResilience,
+    TransientRetry,
 )
 from strategist.ai.graph.runtime import ServiceOutageMemory
-from strategist.platform.refusals import TransientRetry
 
 
 def _make_ctx() -> MagicMock:
