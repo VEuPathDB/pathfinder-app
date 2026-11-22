@@ -90,3 +90,35 @@ async def test_a_comma_list_of_species_codes_derives_one_pattern() -> None:
     assert spec.parameters["profile_pattern"] == StringValue(
         value="%hsap:N%pber:N%pfal:Y%"
     )
+
+
+async def test_a_tree_that_does_not_read_names_the_orthomcl_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    unread = _PROFILE.model_copy(
+        update={
+            "parameters": [
+                p.model_copy(update={"vocabulary": []})
+                if p.name == "phyletic_indent_map"
+                else p
+                for p in _PROFILE.parameters or []
+            ]
+        }
+    )
+
+    async def _unread_definition(
+        site_id: str, record_type: str, search_name: str
+    ) -> WDKSearch:
+        del site_id, record_type, search_name
+        return unread
+
+    monkeypatch.setattr(
+        variant_comparison, "read_search_definition", _unread_definition
+    )
+
+    with pytest.raises(ModelRetry, match="GroupsByPhyleticPattern"):
+        await resolved_variants(
+            StrategySession(site_id="plasmodb"),
+            [_profile(included_species="pfal", excluded_species="hsap")],
+            ResolveContext(site_id="plasmodb"),
+        )

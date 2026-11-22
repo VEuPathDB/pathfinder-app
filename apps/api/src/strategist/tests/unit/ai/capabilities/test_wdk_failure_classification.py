@@ -101,7 +101,11 @@ class TestWdkValid006ARefusalCarriesItsBundle:
         error = wdk_failure("POST", "/users/1/steps", 422, body)
 
         assert error.errors == [
-            {"param": "organism", "messages": ["Invalid value 'Nope'."]}
+            {
+                "param": "organism",
+                "messages": ["Invalid value 'Nope'."],
+                "detail": "Invalid value 'Nope'.",
+            }
         ]
         assert "organism" in str(error)
 

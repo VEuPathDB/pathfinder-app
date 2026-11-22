@@ -4,8 +4,10 @@ from typing import Any
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain import SearchContext
 from veupathdb_mcp.catalog import (
     PhyleticListError,
+    PhyleticNoSelection,
     ResolvedParams,
     SiteSetParameterError,
     resolve_params_with_intent,
@@ -27,7 +29,7 @@ async def test_a_phyletic_list_error_is_a_named_refusal(
     st = AgentToolState()
 
     async def _resolve(**_kw: object) -> ResolvedParams:
-        raise PhyleticListError(None)
+        raise PhyleticListError(PhyleticNoSelection())
 
     serve_for(monkeypatch, "GenesByOptionalPercentile")
     monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _resolve)
@@ -38,9 +40,9 @@ async def test_a_phyletic_list_error_is_a_named_refusal(
         )
 
     assert str(exc.value) == (
-        "GenesByOptionalPercentile: profile_pattern is derived from "
-        "included_species and excluded_species against the search's published "
-        "parameters, and the call passed none. A genus or common name is not a "
+        "GenesByOptionalPercentile: included_species and excluded_species "
+        "select no species, so profile_pattern states no criterion. Name what "
+        "must have an ortholog and what must not. A genus or common name is not a "
         "node: name a species or a clade code from the included_species / "
         "excluded_species vocabulary on the sheet, or call "
         "lookup_phyletic_codes(query). Nothing was recorded."
@@ -54,9 +56,9 @@ async def test_a_site_set_parameter_error_is_a_named_refusal(
 ) -> None:
     st = AgentToolState()
 
-    async def _resolve(*, search_name: str, **_kw: object) -> ResolvedParams:
+    async def _resolve(*, search: SearchContext, **_kw: object) -> ResolvedParams:
         name = "channel"
-        raise SiteSetParameterError(name, search_name, unset=True)
+        raise SiteSetParameterError(name, search.search_name, unset=True)
 
     serve_for(monkeypatch, "GenesByOptionalPercentile")
     monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _resolve)
@@ -93,7 +95,7 @@ async def test_the_resolver_reads_both_lists_as_stated(
         {**PHYLETIC_ORGANISM, "included_species": "pfal"},
     )
 
-    assert (captured["search_name"], captured["stated"]) == (
-        "GenesByOrthologPattern",
+    assert (captured["search"], captured["stated"]) == (
+        SearchContext("plasmodb", "transcript", "GenesByOrthologPattern"),
         {"organism": ["Pf3D7"], "included_species": "pfal"},
     )

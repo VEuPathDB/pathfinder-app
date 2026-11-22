@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic import JsonValue
+from veupathdb.domain import SearchContext
 from veupathdb_mcp.catalog import (
     ParamIntent,
     WDKFilterReads,
@@ -33,7 +34,7 @@ async def _count(site_id: str, stated: dict[str, JsonValue]) -> int | None:
         fetch_at=wdk_fetch_at(site_id, "transcript", _SEARCH),
         filter_reads=WDKFilterReads(site_id, "transcript", _SEARCH),
         intent=ParamIntent(),
-        search_name=_SEARCH,
+        search=SearchContext(site_id, "transcript", _SEARCH),
         stated={"organism_select_none": [_ORGANISM[site_id]], **stated},
     )
     return await count_bound_criterion(site_id, "transcript", _SEARCH, resolved.params)

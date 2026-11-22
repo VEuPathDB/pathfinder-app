@@ -3,6 +3,7 @@ the vocabulary lists it, on the recorded organism sheets."""
 
 from __future__ import annotations
 
+from veupathdb.domain import SearchContext
 from veupathdb.wdk import WDKParameter, WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
@@ -71,7 +72,7 @@ async def _criterion(infos: list[ParameterInfo], text: str) -> Criterion:
         fetch_at=fetch_at,
         filter_reads=NoFilterReads(),
         intent=ParamIntent(text=text),
-        search_name="GenesByExonCount",
+        search=SearchContext("vectorbase", "transcript", "GenesByExonCount"),
         stated={},
     )
     return Criterion(

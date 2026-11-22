@@ -407,7 +407,7 @@ async def resolve_proposals(
             fetch_at=fetch_at,
             filter_reads=_filter_reads(search),
             intent=ParamIntent(text=call.text),
-            search_name=call.search_name,
+            search=search,
             stated={**stated, **radio},
         )
     except UnknownParameterError as exc:

@@ -37,12 +37,11 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.catalog import (
     ParameterInfo,
-    PhyleticListError,
     ResolveContext,
     derive_phyletic_overrides,
     format_param_info_typed,
-    ordered_phyletic_refusal,
     organism_parameter_of,
+    phyletic_refusal,
     read_search_definition,
     wdk_fetch_at,
 )
@@ -148,7 +147,8 @@ async def phyletic_values(
 ) -> dict[str, ParamValue]:
     """The pattern and the two species lists of an orthology profile search,
     derived from the lists as a step of the search derives them. Raises
-    ``PhyleticListError`` for lists that select nothing or name no entry."""
+    ``PhyleticListError`` for lists that select nothing or name no entry, and
+    for a species tree that does not read."""
     definition = await read_search_definition(about.site_id, record_type, search_name)
     declarations = list(definition.parameters or [])
     match derive_phyletic_overrides(declarations, lists):
@@ -158,9 +158,7 @@ async def phyletic_values(
                 for name, value in binding.model_dump().items()
             }
         case refused:
-            raise await ordered_phyletic_refusal(
-                PhyleticListError(refused), declarations, about
-            )
+            raise await phyletic_refusal(refused, declarations, about.site_id, about)
 
 
 def _in_place(ast: StrategyAst, step_id: str, spec: VariantSpec) -> StrategyAst:
