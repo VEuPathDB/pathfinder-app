@@ -13,6 +13,10 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, ResolvedParams
 
+from strategist.ai.capabilities.error_classification import (
+    ErrorCategory,
+    classify_error,
+)
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone.graph_helpers import counted_records
 from strategist.domain.strategy.operational_spec import (
@@ -51,8 +55,9 @@ async def bound_count(
 
     A search that runs on another step answers nothing until that step exists,
     and an open slot leaves a parameter unbound. None is a count that did not
-    arrive in time. A count the site refuses with an error status refuses the
-    binding, because the site cannot run the search at these values.
+    arrive in time. A count the site answers with an error status is recorded
+    as the site's refusal for the pass. A client error refuses the binding; a
+    server error is left to the resilience layer, which retries it.
     """
     if resolved.open_slots or definition.allowed_primary_input_record_class_names:
         return None
@@ -63,6 +68,8 @@ async def bound_count(
     except WDKError as refused:
         answer = f"HTTP {refused.status}: {refused.detail}"
         ctx.deps.agent_state.refused_searches[search_name] = answer
+        if classify_error(refused) is ErrorCategory.TRANSIENT:
+            raise
         msg = (
             f"The site refused to run {search_name} at these values ({answer}). "
             f"The criterion is not bound. Bind another search for this "

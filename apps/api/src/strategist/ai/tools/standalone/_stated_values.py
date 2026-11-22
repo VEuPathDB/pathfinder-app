@@ -26,6 +26,10 @@ from veupathdb_mcp.catalog import (
     read_stated_parameters,
 )
 
+from strategist.ai.capabilities.error_classification import (
+    ErrorCategory,
+    classify_error,
+)
 from strategist.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
@@ -48,6 +52,8 @@ async def _retrying[T](search_name: str, done: str, read: Awaitable[T]) -> T:
     try:
         return await read
     except VEuPathDBError as exc:
+        if classify_error(exc) is ErrorCategory.TRANSIENT:
+            raise
         msg = f"{search_name}: {exc.detail or exc.title} Nothing was {done}."
         raise ModelRetry(msg) from exc
 

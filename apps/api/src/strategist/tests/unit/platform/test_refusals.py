@@ -24,6 +24,7 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import control_sets
+from strategist.domain.refusal import RefusalKey
 from strategist.persistence.models import ControlSet
 from strategist.platform.errors import (
     AppError,
@@ -44,7 +45,6 @@ from strategist.platform.refusals import (
     KeyedRefusalToolset,
     ServiceRefusalRetry,
     agent_capabilities,
-    call_key,
 )
 from strategist.services.control_sets import ControlSetService
 from strategist.services.gene_sets.operations import GeneSetService
@@ -236,12 +236,8 @@ async def test_a_keyed_lead_toolset_charges_the_refused_id_once(
     ]
     assert refused.outcome == "failed"
     assert "list_gene_sets" in str(refused.content)
-    assert (
-        deps.refusal_book.ledger.used(
-            call_key(_TOOL, {"gene_set_id": _MISSING_GENE_SET})
-        )
-        == 1
-    )
+    missing = RefusalKey(check=_TOOL, criterion=f"gene_set_id={_MISSING_GENE_SET}")
+    assert deps.refusal_book.ledger.used(missing) == 1
 
 
 @pytest.mark.asyncio

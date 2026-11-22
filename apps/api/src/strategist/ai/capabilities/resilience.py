@@ -24,6 +24,7 @@ from strategist.ai.capabilities.error_classification import (
 )
 from strategist.ai.graph.runtime import OUTAGE_GIVE_UP_THRESHOLD, AgentDeps
 from strategist.platform.errors import AppError
+from strategist.platform.refusals import TransientRetry
 
 _WDK_STATUS_NOT_FOUND = 404
 _WDK_STATUS_UNPROCESSABLE = 422
@@ -236,10 +237,6 @@ def _outage_directive(tool_name: str, subject: str, error: Exception) -> str:
 # ---------------------------------------------------------------------------
 # ToolResilience capability
 # ---------------------------------------------------------------------------
-
-
-class TransientRetry(ModelRetry):
-    pass
 
 
 @dataclass

@@ -14,7 +14,6 @@ from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.capabilities.resilience import (
     DEFAULT_CIRCUIT_BREAK_THRESHOLD,
     ToolResilience,
-    TransientRetry,
 )
 from strategist.ai.graph.runtime import (
     OUTAGE_GIVE_UP_THRESHOLD,
@@ -23,6 +22,7 @@ from strategist.ai.graph.runtime import (
 )
 from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.domain.strategy.session import StrategySession
+from strategist.platform.refusals import TransientRetry
 from strategist.tests.unit.ai.capabilities.test_resilience import (
     _make_call,
     _make_ctx,

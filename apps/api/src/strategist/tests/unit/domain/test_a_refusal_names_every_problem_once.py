@@ -171,3 +171,27 @@ def test_problems_index_sets() -> None:
         Problem(key=KINASE, sentence=" x\n y "),
     }
     assert found == {Problem(key=KINASE, sentence="x y")}
+
+
+def test_a_charge_records_the_call_that_charged_each_new_key() -> None:
+    ledger = (
+        RefusalLedger().charge(Problems.one(KINASE, "x"), 3, by="set_criterion").ledger
+    )
+    again = ledger.charge(Problems.one(KINASE, "x"), 3, by="drop_criterion").ledger
+
+    assert again.uses == (KeyUse(key=KINASE, used=2, by="set_criterion"),)
+
+
+def test_a_call_that_succeeds_clears_the_keys_it_charged() -> None:
+    elsewhere = RefusalKey(check="unknown_names", criterion="c_other")
+    ledger = (
+        RefusalLedger()
+        .charge(Problems.one(KINASE, "x"), 3, by="set_criterion")
+        .ledger.charge(Problems.one(elsewhere, "y"), 3, by="set_criterion")
+        .ledger.charge(Problems.one(TAXON, "z"), 3, by="read_gene_record")
+        .ledger
+    )
+
+    cleared = ledger.cleared(RefusalKey(check="set_criterion", criterion="c_kinase"))
+
+    assert [use.key for use in cleared.uses] == [elsewhere, TAXON]

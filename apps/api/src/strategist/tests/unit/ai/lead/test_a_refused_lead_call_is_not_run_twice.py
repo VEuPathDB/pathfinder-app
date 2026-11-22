@@ -17,8 +17,8 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone.strategy_rename import NO_STRATEGY
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.session import StrategySession
-from strategist.platform.refusals import call_key
 from strategist.tests._support.database import no_database
 from strategist.tests._support.run_context import run_context_for
 
@@ -75,4 +75,4 @@ async def test_a_refused_lead_call_sent_again_fails_and_a_third_is_refused() -> 
         "only reads ran since, so it did not run again."
     )
     assert third.value.message == NO_STRATEGY
-    assert ctx.deps.refusal_book.ledger.used(call_key("rename_strategy", args)) == 2
+    assert ctx.deps.refusal_book.ledger.used(RefusalKey(check="rename_strategy")) == 2

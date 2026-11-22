@@ -97,7 +97,7 @@ async def test_a_count_the_site_refuses_is_recorded_for_the_pass(
     resolved = SimpleNamespace(open_slots=[], params={})
     definition = SimpleNamespace(allowed_primary_input_record_class_names=[])
 
-    with pytest.raises(ModelRetry, match="refused to run MapProteinsByDiamond"):
+    with pytest.raises(WDKError) as raised:
         await _frame_count.bound_count(
             cast("RunContext[AgentDeps]", ctx),
             cast("ResolvedParams", resolved),
@@ -106,6 +106,7 @@ async def test_a_count_the_site_refuses_is_recorded_for_the_pass(
             cast("WDKSearch", definition),
         )
 
+    assert raised.value is refusal
     assert state.refused_searches == {_DIAMOND: _ANSWER}
 
 

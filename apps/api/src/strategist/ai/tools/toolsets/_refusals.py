@@ -14,6 +14,8 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pydantic_core import to_jsonable_python
 
 from strategist.ai.graph.turn_records import RefusedCall, TurnMarkers
+from strategist.domain.refusal import Problems
+from strategist.platform.refusals import ProblemsRefusal
 
 
 class HoldsTurnMarkers(Protocol):
@@ -26,6 +28,14 @@ class HoldsTurnMarkers(Protocol):
 def _digest(tool_args: dict[str, Any]) -> str:
     text = json.dumps(to_jsonable_python(tool_args), sort_keys=True)
     return hashlib.sha256(text.encode()).hexdigest()[:16]
+
+
+def _problems_of(refused: ModelRetry) -> Problems:
+    match refused:
+        case ProblemsRefusal(problems=problems):
+            return problems
+        case _:
+            return Problems()
 
 
 @dataclass
@@ -67,6 +77,8 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
                 "arguments, and only reads ran since, so it did not run again."
             )
             raise CallRefused(msg)
+        if held is not None and not held.problems.empty:
+            raise ProblemsRefusal(held.problems)
         if held is not None:
             raise ModelRetry(held.refusal)
         try:
@@ -74,7 +86,10 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
         except ModelRetry as refused:
             markers.refused_calls.append(
                 RefusedCall(
-                    tool_name=name, arguments=arguments, refusal=refused.message
+                    tool_name=name,
+                    arguments=arguments,
+                    refusal=refused.message,
+                    problems=_problems_of(refused),
                 )
             )
             raise

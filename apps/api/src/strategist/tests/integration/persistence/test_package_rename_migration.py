@@ -184,9 +184,10 @@ def test_the_upgrade_renames_more_rows_than_one_batch_holds(
         old_thread_database,
         "SELECT DISTINCT blob FROM checkpoint_blobs WHERE thread_id = 'another-thread'",
     )
-    assert [bytes(blob) for (blob,) in renamed] == [
-        _SERDE.dumps_typed(domain_state())[1]
-    ]
+    assert [
+        _SERDE.dumps_typed(_SERDE.loads_typed(("msgpack", bytes(blob))))[1]
+        for (blob,) in renamed
+    ] == [_SERDE.dumps_typed(domain_state())[1]]
 
 
 def test_the_upgrade_runs_where_no_checkpointer_has_opened(

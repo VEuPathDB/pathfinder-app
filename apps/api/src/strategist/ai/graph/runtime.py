@@ -118,7 +118,6 @@ class AgentDeps(AssistantDeps):
     turn_markers: TurnMarkers
     ledger_summary: str = ""
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)
-    refusal_book: SkipValidation[RefusalBook] = Field(default_factory=RefusalBook)
     # The request the thread answers, the name of a push with no name yet.
     user_prompt: str = ""
     intent: IntentClassification | None = None
@@ -126,6 +125,10 @@ class AgentDeps(AssistantDeps):
     # The conversation's last exchanges, as the researcher read them.
     exchanges: list[Exchange] = Field(default_factory=list)
     meter: SkipValidation[Callable[[RunUsage, Model], None]] | None = None
+
+    @property
+    def refusal_book(self) -> RefusalBook:
+        return self.turn_markers.refusal_book
 
     def resolving(self) -> ResolveContext:
         return ResolveContext(

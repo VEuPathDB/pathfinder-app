@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 import httpx
 import pytest
+from pydantic import BaseModel
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.messages import (
     ModelMessage,
@@ -15,6 +17,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.toolsets import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
@@ -27,6 +30,8 @@ from strategist.ai.capabilities.resilience import (
 )
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.dispatch_context import agent_deps_for
+from strategist.ai.lead.lead_agent import build_lead_toolset
+from strategist.ai.tools.toolsets import eda
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.domain.refusal import (
     KeyUse,
@@ -210,7 +215,9 @@ async def test_a_plain_retry_is_charged_to_its_call() -> None:
     ).run("bind", deps=deps)
 
     assert deps.refusal_book.ledger.uses == (
-        KeyUse(key=RefusalKey(check="bind", criterion="c3", search=_S), used=1),
+        KeyUse(
+            key=RefusalKey(check="bind", criterion="c3", search=_S), used=1, by="bind"
+        ),
     )
 
 
@@ -288,7 +295,7 @@ async def test_three_refusals_after_a_transient_failure_precede_the_spent_answer
     assert outcomes == ["retried", "failed", "failed", "failed", "success"]
 
 
-async def test_a_held_resend_is_free_and_the_next_is_charged_to_its_call() -> None:
+async def test_a_held_resend_is_free_and_the_next_keeps_its_problem_keys() -> None:
     body = _Body(raises=_unknown)
     deps = _deps()
 
@@ -299,10 +306,7 @@ async def test_a_held_resend_is_free_and_the_next_is_charged_to_its_call() -> No
 
     assert body.ran == 1
     assert [p.outcome for p in _returns(result.all_messages())] == ["failed"] * 3
-    assert deps.refusal_book.ledger.uses == (
-        KeyUse(key=C1, used=1),
-        KeyUse(key=RefusalKey(check="bind", criterion="c1", search=_S), used=1),
-    )
+    assert deps.refusal_book.ledger.uses == (KeyUse(key=C1, used=2, by="bind"),)
 
 
 def test_a_refusal_reads_as_its_problems() -> None:
@@ -326,18 +330,100 @@ def test_a_refusal_raised_in_a_call_is_placed_under_its_call() -> None:
     assert problems_of_retry(ModelRetry("plain"), key) == Problems.one(key, "plain")
 
 
+def _tool(*functions: Callable[..., Any]) -> dict[str, ToolDefinition]:
+    return {
+        name: tool.tool_def
+        for name, tool in FunctionToolset(list(functions)).tools.items()
+    }
+
+
+class _Search(BaseModel):
+    label: str
+    search_name: str
+    parameters: dict[str, str]
+
+
+def set_criterion(criterion_id: str, search_name: str, params: dict[str, str]) -> str:
+    return criterion_id + search_name + str(params)
+
+
+def edit_step(step_id: str | None = None, reason: str = "") -> str:
+    return f"{step_id}{reason}"
+
+
+def count_by_column(search: _Search, column: str, top: int = 5) -> str:
+    return f"{search}{column}{top}"
+
+
+def read_gene_record(gene_id: str, ortholog_organism: str | None = None) -> str:
+    return f"{gene_id}{ortholog_organism}"
+
+
 def test_a_call_is_keyed_by_what_it_names() -> None:
+    tools = _tool(set_criterion, edit_step, count_by_column, read_gene_record)
+
     assert call_key(
-        "set_criterion",
-        {"criterion_id": "c1", "search_name": _S, "params": {"a": 1}},
+        tools["set_criterion"],
+        {"criterion_id": "c1", "search_name": _S, "params": {"dataset_id": "d1"}},
     ) == RefusalKey(check="set_criterion", criterion="c1", search=_S)
-    assert call_key("edit_step", {"step_id": "s2"}) == RefusalKey(
-        check="edit_step", criterion="s2"
+    assert call_key(tools["edit_step"], {"step_id": "s2", "reason": "r"}) == (
+        RefusalKey(check="edit_step", criterion="s2")
     )
-    assert call_key("propose", {"label": "early"}) == RefusalKey(
-        check="propose", criterion="early"
+    assert call_key(
+        tools["count_by_column"],
+        {
+            "search": {"label": "early", "search_name": _S, "parameters": {}},
+            "column": "organism",
+            "top": 5,
+        },
+    ) == RefusalKey(
+        check="count_by_column", criterion="early; column=organism", search=_S
     )
-    assert call_key("think", {}) == RefusalKey(check="think")
+    assert call_key(tools["read_gene_record"], {"gene_id": "PF3D7_1133400"}) == (
+        RefusalKey(check="read_gene_record", criterion="gene_id=PF3D7_1133400")
+    )
+
+
+def test_an_absent_or_null_target_is_no_target() -> None:
+    tools = _tool(edit_step)
+
+    assert call_key(tools["edit_step"], {}) == RefusalKey(check="edit_step")
+    assert call_key(tools["edit_step"], {"step_id": None}) == RefusalKey(
+        check="edit_step"
+    )
+
+
+def test_two_searches_counted_by_one_column_keep_two_keys() -> None:
+    tool = _tool(count_by_column)["count_by_column"]
+
+    def counted(search_name: str) -> RefusalKey:
+        search = {"label": "early", "search_name": search_name, "parameters": {}}
+        return call_key(tool, {"search": search, "column": "organism"})
+
+    assert counted("GenesByTaxon").search == "GenesByTaxon"
+    assert counted("GenesByText").search == "GenesByText"
+    assert counted("GenesByTaxon") != counted("GenesByText")
+
+
+async def _tool_def_of(
+    toolset: AbstractToolset[Any], deps: Any, name: str
+) -> ToolDefinition:
+    ctx: RunContext[Any] = RunContext(deps=deps, model=TestModel(), usage=RunUsage())
+    return (await toolset.get_tools(ctx))[name].tool_def
+
+
+async def test_the_documented_calls_without_a_target_are_keyed_by_their_tool() -> None:
+    lead = await _tool_def_of(
+        build_lead_toolset(), lead_deps(pipeline_state()), "save_gene_set"
+    )
+    step = await _tool_def_of(eda.build_toolset(), _deps(), "create_eda_step")
+
+    assert call_key(lead, {"name": "kinases", "step_id": None}) == RefusalKey(
+        check="save_gene_set"
+    )
+    assert call_key(step, {"criterion_id": None, "slot": "a"}) == RefusalKey(
+        check="create_eda_step"
+    )
 
 
 def test_a_library_refusal_names_each_row() -> None:

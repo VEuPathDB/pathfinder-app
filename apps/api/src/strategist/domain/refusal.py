@@ -109,6 +109,7 @@ class KeyUse(CamelModel):
 
     key: RefusalKey
     used: Annotated[int, Field(ge=1)]
+    by: str = ""
 
 
 class RefusalLedger(CamelModel):
@@ -127,18 +128,30 @@ class RefusalLedger(CamelModel):
     def used(self, key: RefusalKey) -> int:
         return next((use.used for use in self.uses if use.key == key), 0)
 
-    def charge(self, problems: Problems, per_key: int) -> Charge:
+    def charge(self, problems: Problems, per_key: int, *, by: str = "") -> Charge:
         named = problems.keys()
         live = tuple(key for key in named if self.used(key) < per_key)
         raised = tuple(
-            KeyUse(key=use.key, used=use.used + 1) if use.key in live else use
+            use.model_copy(update={"used": use.used + 1}) if use.key in live else use
             for use in self.uses
         )
-        first = tuple(KeyUse(key=key, used=1) for key in live if self.used(key) == 0)
+        first = tuple(
+            KeyUse(key=key, used=1, by=by) for key in live if self.used(key) == 0
+        )
         return Charge(
             ledger=RefusalLedger(uses=raised + first),
             refused=Problems(found=tuple(p for p in problems.found if p.key in live)),
             spent=Problems(found=tuple(p for p in problems.found if p.key not in live)),
+        )
+
+    def cleared(self, on: RefusalKey) -> RefusalLedger:
+        return RefusalLedger(
+            uses=tuple(
+                use
+                for use in self.uses
+                if (use.by, use.key.criterion, use.key.search)
+                != (on.check, on.criterion, on.search)
+            )
         )
 
 

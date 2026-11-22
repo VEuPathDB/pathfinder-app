@@ -83,9 +83,11 @@ def test_every_recorded_channel_reads_back_as_the_state_it_held(channel: str) ->
 def test_every_recorded_channel_becomes_the_bytes_the_new_package_writes(
     channel: str,
 ) -> None:
+    upgraded = _SERDE.loads_typed(("msgpack", _upgraded(_recorded()[channel])))
+    _, rewritten = _SERDE.dumps_typed(upgraded)
     _, written = _SERDE.dumps_typed(getattr(populated_state(), channel))
 
-    assert _upgraded(_recorded()[channel]) == written
+    assert rewritten == written
 
 
 def test_the_recorded_domain_reads_back_as_its_types() -> None:

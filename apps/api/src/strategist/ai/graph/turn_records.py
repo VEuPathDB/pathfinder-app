@@ -23,10 +23,12 @@ from strategist.domain.last_change import LastChange
 from strategist.domain.membership_facts import MembershipFact
 from strategist.domain.read_facts import ReadFact
 from strategist.domain.record_facts import OrthologFact, SourceFact
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.constraints import StoredConstraint
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.step_words import AddedSearch
 from strategist.domain.tally_facts import TallyFact
+from strategist.platform.refusals import RefusalBook
 
 # What a written reference carries before the identifier itself.
 _REFERENCE_PREFIXES = (
@@ -140,6 +142,7 @@ class RefusedCall(CamelModel):
     tool_name: str
     arguments: str
     refusal: str
+    problems: Problems = Field(default_factory=Problems)
     # The same call came back once and failed without running.
     sent_again: bool = False
 
@@ -203,6 +206,7 @@ class TurnMarkers(CamelModel):
     # The last check of this turn has no digest: it stopped, raised or still runs.
     verification_stopped: bool = False
     output_refusals: int = 0
+    refusal_book: RefusalBook = Field(default_factory=RefusalBook)
     refused_rules: list[str] = Field(default_factory=list)
     unchecked_reply: bool = False
     # The researcher allowed this turn's reads of their account.

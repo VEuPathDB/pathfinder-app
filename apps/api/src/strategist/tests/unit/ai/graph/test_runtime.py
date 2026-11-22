@@ -55,7 +55,6 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
         "turn_markers",
         "ledger_summary",
         "service_outage",
-        "refusal_book",
         "tool_repetition_guard",
         "user_prompt",
         "intent",

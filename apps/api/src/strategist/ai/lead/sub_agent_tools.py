@@ -291,7 +291,6 @@ class LeadDeps:
     # Durable calls the Lead's own tools handed to a worker, keyed by the tool
     # call each worker task answers.
     durable_deferrals: dict[str, DurableDeferral] = field(default_factory=dict)
-    refusal_book: RefusalBook = field(default_factory=RefusalBook)
     # Suspended sub-agent runs whose parked calls a worker answers, keyed by
     # the dispatch tool call that holds the run.
     pending_sub_agent_durables: dict[str, SubAgentDurablePark] = field(
@@ -337,6 +336,10 @@ class LeadDeps:
         return ResolveContext(
             site_id=self.site_id, message="\n".join(self.state.researcher_messages())
         )
+
+    @property
+    def refusal_book(self) -> RefusalBook:
+        return self.state.turn_markers.refusal_book
 
     @property
     def turn_markers(self) -> TurnMarkers:

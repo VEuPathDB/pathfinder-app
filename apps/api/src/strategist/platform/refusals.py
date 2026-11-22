@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 from assistant_core.capabilities.refused_calls import CallRefused, MarkRefusedCalls
 from assistant_core.platform.observability import ReasoningEffortOnSpan
-from pydantic import BaseModel, ConfigDict, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic.alias_generators import to_snake
 from pydantic_ai.capabilities import AgentCapability
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
@@ -31,6 +32,7 @@ from strategist.platform.durable_worker import DurableCallsRefused
 from strategist.platform.errors import AppError, ProviderKeyError
 
 TOOL_REFUSALS_PER_KEY = 3
+TOOL_REFUSALS_PER_TURN = 20
 ANSWER_REFUSALS_PER_KEY = 2
 TURN_REFUSALS_PER_RULE = 1
 
@@ -112,6 +114,10 @@ class ServiceRefusalRetry(AbstractCapability[AgentDepsT]):
         raise ModelRetry(refusal_retry_message(args, error)) from error
 
 
+class TransientRetry(ModelRetry):
+    pass
+
+
 class ProblemsRefusal(ModelRetry):
     def __init__(self, problems: Problems) -> None:
         if problems.empty:
@@ -171,28 +177,72 @@ def library_problems(error: VEuPathDBError[Any], key: RefusalKey) -> Problems:
     )
 
 
-class _CallKey(BaseModel):
+_PRIMARY = ("criterion_id", "step_id", "label")
+_TARGETS = frozenset({"label", "column", "record_type"})
+
+
+def _identifies(name: str) -> bool:
+    return name.endswith(("_id", "search_name")) or name in _TARGETS
+
+
+class _Field(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    ref: str = Field(default="", alias="$ref")
+    any_of: list[_Field] = Field(default_factory=list, alias="anyOf")
+
+    def model(self) -> str:
+        refs = [self.ref, *(choice.model() for choice in self.any_of)]
+        return next((ref.rsplit("/", 1)[-1] for ref in refs if ref), "")
+
+
+class _Model(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    criterion_id: str = ""
-    search_name: str = ""
-    step_id: str = ""
-    label: str = ""
+    properties: dict[str, _Field] = Field(default_factory=dict)
 
 
-def call_key(tool_name: str, args: Mapping[str, Any]) -> RefusalKey:
-    named = _CallKey.model_validate(args)
+class _Arguments(_Model):
+    defs: dict[str, _Model] = Field(default_factory=dict, alias="$defs")
+
+
+def _targets(
+    model: _Model, defs: Mapping[str, _Model], args: Mapping[str, Any], *, nested: bool
+) -> list[tuple[str, str]]:
+    found: list[tuple[str, str]] = []
+    for name, declared in model.properties.items():
+        match args.get(name):
+            case bool() | None:
+                continue
+            case str() | int() as value if _identifies(to_snake(name)) and value != "":
+                found.append((to_snake(name), str(value)))
+            case Mapping() as inner if not nested and declared.model() in defs:
+                found += _targets(defs[declared.model()], defs, inner, nested=True)
+            case _:
+                continue
+    return found
+
+
+def call_key(tool: ToolDefinition, args: Mapping[str, Any]) -> RefusalKey:
+    schema = _Arguments.model_validate(tool.parameters_json_schema)
+    found = _targets(schema, schema.defs, args, nested=False)
+    searches = [pair for pair in found if pair[0].endswith("search_name")]
+    primary = next((pair for pair in found if pair[0] in _PRIMARY), None)
+    named = [primary[1]] if primary else []
+    rest = [
+        f"{n}={v}" for n, v in found if (n, v) not in searches and (n, v) != primary
+    ]
     return RefusalKey(
-        check=tool_name,
-        criterion=named.criterion_id or named.step_id or named.label,
-        search=named.search_name,
+        check=tool.name,
+        criterion="; ".join([*named, *rest]),
+        search=searches[0][1] if searches else "",
     )
 
 
-@dataclass
-class RefusalBook:
-    ledger: RefusalLedger = field(default_factory=RefusalLedger)
-    spent: list[SpentRefusal] = field(default_factory=list)
+class RefusalBook(CamelModel):
+    ledger: RefusalLedger = Field(default_factory=RefusalLedger)
+    spent: list[SpentRefusal] = Field(default_factory=list)
+    charged: int = 0
 
 
 class KeepsRefusals(Protocol):
@@ -223,16 +273,24 @@ def last_answer(ctx: RunContext[Any]) -> bool:
 
 
 def _refused_problems(
-    name: str, args: dict[str, Any], error: ModelRetry | AppError
+    tool: ToolDefinition, args: dict[str, Any], error: ModelRetry | AppError
 ) -> Problems:
-    key = call_key(name, args)
+    key = call_key(tool, args)
     match error:
+        case TransientRetry():
+            raise error
         case ModelRetry():
             return problems_of_retry(error, key)
         case AppError() if the_model_can_correct(error):
             return Problems.one(key, refusal_retry_message(args, error))
         case _:
             raise error
+
+
+def _spend(book: RefusalBook, spent: Problems) -> SpentRefusal:
+    answer = SpentRefusal(spent=spent.found)
+    book.spent.append(answer)
+    return answer
 
 
 @dataclass
@@ -248,18 +306,21 @@ class KeyedRefusalToolset[DepsT: KeepsRefusals](WrapperToolset[DepsT]):
         ctx: RunContext[DepsT],
         tool: ToolsetTool[DepsT],
     ) -> Any:
+        book = ctx.deps.refusal_book
         try:
-            return await self.wrapped.call_tool(name, tool_args, ctx, tool)
+            result = await self.wrapped.call_tool(name, tool_args, ctx, tool)
         except (ModelRetry, AppError) as error:
-            problems = _refused_problems(name, tool_args, error)
-            book = ctx.deps.refusal_book
-            charge = book.ledger.charge(problems, TOOL_REFUSALS_PER_KEY)
+            problems = _refused_problems(tool.tool_def, tool_args, error)
+            if book.charged >= TOOL_REFUSALS_PER_TURN:
+                return _spend(book, problems)
+            charge = book.ledger.charge(problems, TOOL_REFUSALS_PER_KEY, by=name)
             book.ledger = charge.ledger
-            if not charge.refused.empty:
-                raise CallRefused(refusal_text(charge)) from error
-            spent = SpentRefusal(spent=charge.spent.found)
-            book.spent.append(spent)
-            return spent
+            if charge.refused.empty:
+                return _spend(book, charge.spent)
+            book.charged += 1
+            raise CallRefused(refusal_text(charge)) from error
+        book.ledger = book.ledger.cleared(call_key(tool.tool_def, tool_args))
+        return result
 
 
 def agent_capabilities(
@@ -286,6 +347,7 @@ __all__ = [
     "ANSWER_REFUSALS_PER_KEY",
     "LISTS_THE_IDS",
     "TOOL_REFUSALS_PER_KEY",
+    "TOOL_REFUSALS_PER_TURN",
     "TURN_REFUSALS_PER_RULE",
     "CallerSuppliedIds",
     "KeepsRefusals",
@@ -294,6 +356,7 @@ __all__ = [
     "RefusalBook",
     "ServiceRefusalRetry",
     "SpentRefusal",
+    "TransientRetry",
     "agent_capabilities",
     "call_key",
     "last_answer",

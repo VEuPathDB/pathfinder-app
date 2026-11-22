@@ -46,7 +46,7 @@ def _refuse_count(monkeypatch: pytest.MonkeyPatch, status: int) -> None:
         search_name: str,
         params: Mapping[str, ParamValue],
     ) -> int | None:
-        detail = "Server error '500 500'"
+        detail = f"Error '{status}'"
         raise WDKError(detail, status=status)
 
     monkeypatch.setattr(_frame_count, "count_bound_criterion", _count)
@@ -57,14 +57,14 @@ async def test_a_count_the_site_refuses_leaves_no_binding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_search(monkeypatch, genes_by_text)
-    _refuse_count(monkeypatch, 500)
+    _refuse_count(monkeypatch, 400)
     state = AgentToolState()
 
     with pytest.raises(ModelRetry) as refused:
         await bind(state, "GenesByText", _KINASE)
 
     assert state.operational_spec_draft.criteria == []
-    assert "HTTP 500" in str(refused.value)
+    assert "HTTP 400" in str(refused.value)
     assert "GenesByText" in str(refused.value)
     assert "not bound" in str(refused.value)
 
@@ -77,7 +77,7 @@ async def test_a_refused_rebind_keeps_the_binding_it_replaced(
     _serve_count(monkeypatch, 231)
     state = AgentToolState()
     await bind(state, "GenesByText", _KINASE)
-    _refuse_count(monkeypatch, 500)
+    _refuse_count(monkeypatch, 400)
 
     with pytest.raises(ModelRetry):
         await bind(state, "GenesByText", {**_KINASE, "text_expression": "protease"})
@@ -101,3 +101,19 @@ async def test_a_count_that_did_not_arrive_keeps_the_binding_unmeasured(
     [held] = state.operational_spec_draft.criteria
     assert held.search_name == "GenesByText"
     assert held.result_count is None
+
+
+@pytest.mark.asyncio
+async def test_a_server_error_on_the_count_is_retried_and_recorded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, genes_by_text)
+    _refuse_count(monkeypatch, 503)
+    state = AgentToolState()
+
+    with pytest.raises(WDKError) as raised:
+        await bind(state, "GenesByText", _KINASE)
+
+    assert raised.value.status == 503
+    assert state.refused_searches == {"GenesByText": "HTTP 503: Error '503'"}
+    assert state.operational_spec_draft.criteria == []
