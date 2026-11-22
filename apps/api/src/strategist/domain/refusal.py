@@ -38,6 +38,9 @@ class RefusalKey(CamelModel):
         named = [part for part in (self.criterion, self.search, self.parameter) if part]
         return " / ".join(named) if named else self.check
 
+    def __hash__(self) -> int:
+        return hash((self.check, self.criterion, self.search, self.parameter))
+
     def under(self, *, criterion: str, search: str) -> RefusalKey:
         return self.model_copy(
             update={
@@ -52,6 +55,9 @@ class Problem(CamelModel):
 
     key: RefusalKey
     sentence: Sentence
+
+    def __hash__(self) -> int:
+        return hash((self.key, self.sentence))
 
 
 class Problems(CamelModel):
@@ -109,6 +115,14 @@ class RefusalLedger(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     uses: tuple[KeyUse, ...] = ()
+
+    @field_validator("uses", mode="after")
+    @classmethod
+    def _one_row_per_key(cls, uses: tuple[KeyUse, ...]) -> tuple[KeyUse, ...]:
+        if len({use.key for use in uses}) != len(uses):
+            msg = "a refusal ledger holds one row per key"
+            raise ValueError(msg)
+        return uses
 
     def used(self, key: RefusalKey) -> int:
         return next((use.used for use in self.uses if use.key == key), 0)

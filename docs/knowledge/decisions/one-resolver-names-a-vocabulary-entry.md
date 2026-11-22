@@ -24,7 +24,7 @@ A text no entry matches exactly binds nothing. It is refused
 entries `difflib` spells nearest, each entry once. The refusal shows five
 (`SHOWN_CANDIDATES`). Before it is raised to an agent, the candidates are ordered
 by `veupathdb_mcp.catalog.ordered_refusal` (and `ordered_by_vocabulary`,
-`ordered_phyletic_refusal`): one Decisions choice over the first 254 ranked
+`phyletic_refusal`): one Decisions choice over the first 254 ranked
 entries (`DECIDED_CANDIDATES`), under the researcher's message, picks the entry
 the words name or `none_fits`; a picked entry leads the five, and the rest keep
 the ranked order. The choice orders the candidates and never binds. A service

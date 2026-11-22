@@ -158,7 +158,7 @@ async def phyletic_values(
                 for name, value in binding.model_dump().items()
             }
         case refused:
-            raise await phyletic_refusal(refused, declarations, about.site_id, about)
+            raise await phyletic_refusal(refused, declarations, about)
 
 
 def _in_place(ast: StrategyAst, step_id: str, spec: VariantSpec) -> StrategyAst:

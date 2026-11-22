@@ -143,3 +143,31 @@ def test_a_problem_differing_only_in_whitespace_is_named_once() -> None:
         )
     )
     assert found.found == (Problem(key=KINASE, sentence="x y"),)
+
+
+def test_a_ledger_holds_one_row_per_key() -> None:
+    with pytest.raises(ValidationError, match="one row per key"):
+        RefusalLedger(uses=(KeyUse(key=KINASE, used=1), KeyUse(key=KINASE, used=2)))
+
+
+def test_a_ledger_from_a_checkpoint_with_one_key_twice_is_refused() -> None:
+    row = {"key": {"check": "unknown_names", "criterion": "c_kinase"}, "used": 1}
+    with pytest.raises(ValidationError, match="one row per key"):
+        RefusalLedger.model_validate({"uses": [row, row]})
+
+
+def test_keys_index_sets_and_mappings() -> None:
+    same = RefusalKey(check="unknown_names", criterion="c_kinase")
+    keys: set[RefusalKey] = {KINASE, same, TAXON}
+    counts: dict[RefusalKey, int] = {KINASE: 1}
+    counts[same] += 1
+    assert keys == {KINASE, TAXON}
+    assert counts == {KINASE: 2}
+
+
+def test_problems_index_sets() -> None:
+    found: set[Problem] = {
+        Problem(key=KINASE, sentence="x y"),
+        Problem(key=KINASE, sentence=" x\n y "),
+    }
+    assert found == {Problem(key=KINASE, sentence="x y")}
