@@ -32,6 +32,7 @@ from strategist.domain.strategy.reading_choices import (
     operator_choice_lines,
 )
 from strategist.domain.strategy.readings import ReadValues
+from strategist.domain.strategy.step_settings_text import criterion_settings
 
 # The most values one question card offers.
 _OPTION_WINDOW = 8
@@ -141,10 +142,12 @@ def _render_criterion(
     reason = crit.step_rationale
     if reason is not None:
         out.append(f"    WHY {reason.line()}")
+    if settings := criterion_settings(crit):
+        out.append(f"    SETTINGS {settings}")
     if crit.weight is not None:
         out.append(
-            f"    WEIGHT {crit.weight}: a gene this search finds scores "
-            f"{crit.weight} more; the result is sorted by score, highest first"
+            "    RANKED: a gene this search finds scores its weight more; the "
+            "result is sorted by score, highest first"
         )
     out.extend(
         f"    {crit.display_name_of(name)} ({name}) = {stated_text(name, bound.value)} "

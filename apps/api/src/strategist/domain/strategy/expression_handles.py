@@ -82,9 +82,16 @@ def stated_values(values: Mapping[str, ParamValue]) -> dict[str, JsonValue]:
     return {name: stated_value(name, value) for name, value in values.items()}
 
 
-def stated_text(name: str, value: ParamValue) -> str:
+def stated_text(name: str, value: ParamValue, *, limit: int | None = None) -> str:
     handle = _handle(name, value)
-    return shown_stated_text(value) if handle is None else handle
+    text = shown_stated_text(value) if handle is None else handle
+    return text if limit is None else cut_stated(text, limit)
+
+
+def cut_stated(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]} (cut from {len(text):,} characters)"
 
 
 def _bound_texts(spec: OperationalSpec | None) -> list[tuple[str, str]]:
@@ -145,6 +152,7 @@ __all__ = [
     "READING_LIMIT",
     "BuiltPattern",
     "UnknownExpressionError",
+    "cut_stated",
     "expression_handle",
     "expression_reading",
     "handles_in",

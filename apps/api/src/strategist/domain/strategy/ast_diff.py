@@ -1,14 +1,20 @@
 """What changed between two persisted states of one strategy.
 
 A step keeps its id across a write, so the comparison is by step id: a step
-present in both is compared parameter by parameter, and one present in only
+present in both is compared setting by setting, and one present in only
 one of them was added or removed.
 """
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
+from veupathdb.domain.strategy import (
+    StepSettings,
+    StrategyAst,
+    StrategyStepNode,
+    settings_of,
+    walk,
+)
 
 from strategist.domain.strategy.expression_handles import stated_text
 
@@ -17,7 +23,6 @@ __all__ = [
     "StepChange",
     "StepSummary",
     "StrategyAstDiff",
-    "WeightChange",
     "diff_strategy_asts",
     "nodes_of",
 ]
@@ -33,13 +38,6 @@ class ParamChange(BaseModel):
     after: str | None = None
 
 
-class WeightChange(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    before: int | None = None
-    after: int | None = None
-
-
 class StepSummary(BaseModel):
     """A step named by its id and the label the user reads."""
 
@@ -50,7 +48,7 @@ class StepSummary(BaseModel):
 
 
 class StepChange(BaseModel):
-    """One step whose search or parameters moved."""
+    """One step whose search, parameters or other settings moved."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -59,7 +57,9 @@ class StepChange(BaseModel):
     search_before: str | None = None
     search_after: str | None = None
     params: list[ParamChange] = Field(default_factory=list)
-    weight: WeightChange | None = None
+    settings: list[str] = Field(default_factory=list)
+    before: StepSettings = Field(default_factory=StepSettings)
+    after: StepSettings = Field(default_factory=StepSettings)
 
 
 class StrategyAstDiff(BaseModel):
@@ -110,12 +110,9 @@ def _step_change(
 ) -> StepChange | None:
     params = _param_changes(before, after)
     searches_differ = before.search_name != after.search_name
-    weight = (
-        None
-        if before.wdk_weight == after.wdk_weight
-        else WeightChange(before=before.wdk_weight, after=after.wdk_weight)
-    )
-    if not params and not searches_differ and weight is None:
+    was, now = settings_of(before), settings_of(after)
+    settings = [name for name in was.changed(now) if name not in _OWN_LINES]
+    if not params and not searches_differ and not settings:
         return None
     return StepChange(
         step_id=after.id,
@@ -123,8 +120,13 @@ def _step_change(
         search_before=before.search_name if searches_differ else None,
         search_after=after.search_name if searches_differ else None,
         params=params,
-        weight=weight,
+        settings=settings,
+        before=was,
+        after=now,
     )
+
+
+_OWN_LINES = frozenset({"search_name", "parameters"})
 
 
 def _summary(node: StrategyStepNode) -> StepSummary:

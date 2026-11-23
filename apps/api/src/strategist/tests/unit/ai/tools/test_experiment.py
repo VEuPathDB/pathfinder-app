@@ -275,8 +275,7 @@ def test_a_long_parameter_value_is_cut_to_a_readable_length() -> None:
     chunks = experiment._control_test_chunks_from_result(answer, UUID(int=4), "call_4")
 
     shown = _exhibits(chunks)[0].data["targetParameters"][0]["value"]
-    assert shown.endswith(" ...")
-    assert len(shown) <= control_counts.VALUE_CHARS + len(" ...")
+    assert shown == f"{ids[: control_counts.VALUE_CHARS]} (cut from 559 characters)"
 
 
 async def test_a_search_level_test_leaves_the_same_exhibit() -> None:

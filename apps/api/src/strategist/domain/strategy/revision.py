@@ -6,8 +6,8 @@ them historical. Stamping each assistant turn with the revision it observed,
 and comparing that against the live one, is what lets the UI say "superseded"
 without rewriting history.
 
-Only inputs are hashed: search names, parameters, combine operators and tree
-shape. Counts, WDK ids, validations and display labels are excluded so a
+Only inputs are hashed: every step setting and the tree shape, each
+parameter in a form a reordered pick does not move. Counts, WDK ids, validations and display labels are excluded so a
 refresh never masquerades as an edit.
 """
 
@@ -16,8 +16,10 @@ from __future__ import annotations
 import hashlib
 import json
 
-from veupathdb import JSONObject, get_logger
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
+from pydantic import TypeAdapter
+from veupathdb import JSONObject, JSONValue, get_logger
+from veupathdb.domain.parameters import MultiPickValue, ParamValue
+from veupathdb.domain.strategy import StepSettings, StrategyAst, StrategyStepNode
 
 __all__ = [
     "answer_revision",
@@ -30,17 +32,25 @@ __all__ = [
 
 logger = get_logger(__name__)
 
-_INPUT_KEYS: tuple[str, ...] = (
-    "searchName",
-    "parameters",
-    "operator",
-    "colocationParams",
-    "filters",
-    "wdkWeight",
-    "expandedStrategyId",
+_VALUE: TypeAdapter[ParamValue] = TypeAdapter(ParamValue)
+
+_INPUT_KEYS: tuple[str, ...] = tuple(
+    field.alias or name for name, field in StepSettings.model_fields.items()
 )
 
 _REVISION_LENGTH = 16
+
+
+def _canonical(value: ParamValue) -> JSONValue:
+    match value:
+        case MultiPickValue(values=values):
+            value = value.model_copy(update={"values": sorted(values)})
+        case _:
+            pass
+    dumped: JSONValue = _VALUE.dump_python(
+        value, by_alias=True, mode="json", exclude_none=True
+    )
+    return dumped
 
 
 def _node_inputs(node: StrategyStepNode) -> JSONObject:
@@ -51,6 +61,10 @@ def _node_inputs(node: StrategyStepNode) -> JSONObject:
         exclude={"primary_input", "secondary_input"},
     )
     inputs: JSONObject = {key: dumped[key] for key in _INPUT_KEYS if key in dumped}
+    if node.parameters:
+        inputs["parameters"] = {
+            name: _canonical(value) for name, value in node.parameters.items()
+        }
     if node.primary_input is not None:
         inputs["primaryInput"] = _node_inputs(node.primary_input)
     if node.secondary_input is not None:

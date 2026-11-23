@@ -222,9 +222,9 @@ def _criterion_the_step_states(
     restated = _criterion_bound_as_the_step_states(
         criterion, change, node, reading, closed
     )
-    if change.weight is None:
+    if "wdk_weight" not in change.settings:
         return restated
-    return restated.model_copy(update={"weight": change.weight.after})
+    return restated.model_copy(update={"weight": change.after.wdk_weight})
 
 
 def _criterion_bound_as_the_step_states(

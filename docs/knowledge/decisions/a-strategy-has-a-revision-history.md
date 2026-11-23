@@ -24,7 +24,10 @@ strategy name, the message that turn ended with when it is known, and the
 write time. `ConversationRepository._write_strategy` and `clear_strategy` are
 the one seam that appends, so a strategy state that reaches the database
 reaches the history. A write that repeats the newest row's fingerprint, WDK
-strategy id and step count appends nothing.
+strategy id and step count appends nothing. The fingerprint hashes every
+step setting (`StepSettings`: search, parameters, operator, colocation, filters,
+weight, expansion and its name) and the tree shape; a multi-pick is hashed with
+its terms sorted, so a reordered pick is not a new revision.
 
 **A message resolves to the state in force when it was written.** A snapshot
 the message names wins; otherwise the newest snapshot written no later than
