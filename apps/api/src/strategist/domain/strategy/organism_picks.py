@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections.abc import Sequence
 
 from pydantic import ConfigDict, Field
@@ -91,14 +90,14 @@ def asks_an_organism(questions: Sequence[OpenQuestion]) -> bool:
 
 def _restated(
     held: ParamValue, named: set[tuple[str, ...]], organism: str
-) -> str | None:
+) -> str | list[str] | None:
     match held:
         case MultiPickValue(values=values):
             picked = [organism if tuple(words_of(v)) in named else v for v in values]
             kept = list(dict.fromkeys(picked))
             if kept == values:
                 return None
-            return kept[0] if len(kept) == 1 else json.dumps(kept)
+            return kept
         case _:
             return organism if tuple(words_of(to_wire(held))) in named else None
 

@@ -51,29 +51,43 @@ def params_held(
     return held
 
 
-def _not_a_value(name: str, value: str, why: str) -> ValidationError:
+def _not_a_value(name: str, value: str | list[str], why: str) -> ValidationError:
     return ValidationError(title=f"{value!r} is not a value of {name}", detail=why)
 
 
-def _option_value(name: str, kind: ParamKind, value: str) -> ParamValue:
+def _option_value(name: str, kind: ParamKind, value: str | list[str]) -> ParamValue:
     """The option's value in the parameter's kind; a pick option names one term,
-    or a list of terms in the wire's form."""
-    try:
-        if kind == "multi-pick-vocabulary" and not value.startswith("["):
+    or lists its terms."""
+    picks = kind == "multi-pick-vocabulary"
+    match value:
+        case list() if picks:
+            return MultiPickValue(values=value)
+        case list():
+            raise _not_a_value(name, value, f"it takes one {kind} value")
+        case _ if picks:
             return MultiPickValue(values=[value])
-        return from_wire(kind, value)
-    except (ValueError, TypeError) as unread:
-        raise _not_a_value(name, value, f"it takes a {kind} value") from unread
+        case _:
+            try:
+                return from_wire(kind, value)
+            except (ValueError, TypeError) as unread:
+                why = f"it takes a {kind} value"
+                raise _not_a_value(name, value, why) from unread
 
 
 def _card_value(
-    name: str, kind: ParamKind, value: str, sheet: Sequence[ParameterInfo]
+    name: str,
+    kind: ParamKind,
+    value: str | list[str],
+    sheet: Sequence[ParameterInfo],
 ) -> ParamValue:
-    if name == PHYLETIC_EXPRESSION_PARAM:
-        try:
-            PhyleticExpression.parse(value)
-        except (ValidationError, ValueError) as refused:
-            raise _not_a_value(name, value, str(refused)) from refused
+    match value:
+        case str() if name == PHYLETIC_EXPRESSION_PARAM:
+            try:
+                PhyleticExpression.parse(value)
+            except (ValidationError, ValueError) as refused:
+                raise _not_a_value(name, value, str(refused)) from refused
+        case _:
+            pass
     match _option_value(name, kind, value):
         case FilterValue() as held:
             facets = next((i.facets() for i in sheet if i.name == name), None)
@@ -99,7 +113,15 @@ def _kind_of(
     return kinds.get(name, _TEXT)
 
 
-def option_value(criterion: Criterion, name: str, value: str) -> ParamValue:
+def _restates(held: ParamValue, value: str | list[str]) -> bool:
+    match value:
+        case str():
+            return held == HeldValue(wire=value)
+        case _:
+            return False
+
+
+def option_value(criterion: Criterion, name: str, value: str | list[str]) -> ParamValue:
     kind = _kind_of(criterion, name, list(criterion.open_params), [])
     return _option_value(name, kind, value)
 
@@ -121,7 +143,7 @@ def _card_bound(
             criterion,
             name,
             held.value
-            if held is not None and held.value == HeldValue(wire=value)
+            if held is not None and _restates(held.value, value)
             else _card_value(
                 name, _kind_of(criterion, name, slots, sheet), value, sheet
             ),

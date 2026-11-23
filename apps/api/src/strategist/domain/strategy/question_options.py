@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Discriminator, Field
@@ -13,13 +13,14 @@ from strategist.domain.strategy.words import words_of
 
 
 class SetValues(CamelModel):
-    """An option that binds these wire values on one criterion."""
+    """An option that binds these values on one criterion: a list binds each
+    of its terms, and text is one value as written."""
 
     model_config = ConfigDict(frozen=True)
 
     kind: Literal["set_values"] = "set_values"
     criterion_id: str
-    params: dict[str, str] = Field(min_length=1)
+    params: Mapping[str, str | list[str]] = Field(min_length=1)
 
 
 class Withdraw(CamelModel):

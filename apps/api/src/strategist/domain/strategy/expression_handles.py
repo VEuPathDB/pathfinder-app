@@ -129,16 +129,17 @@ def held_readings(built: Mapping[str, BuiltPattern]) -> dict[str, str]:
     return {handle: held.reading for handle, held in built.items()}
 
 
-def resolved_params(
-    params: Mapping[str, str], held: Mapping[str, str]
-) -> dict[str, str]:
-    proposed = params.get(PHYLETIC_EXPRESSION_PARAM)
-    if proposed is None or not is_handle(proposed):
-        return dict(params)
-    handle = proposed.strip()
-    if handle not in held:
-        raise UnknownExpressionError(handle)
-    return {**params, PHYLETIC_EXPRESSION_PARAM: held[handle]}
+def resolved_params[V: (str, str | list[str])](
+    params: Mapping[str, V], held: Mapping[str, str]
+) -> dict[str, V]:
+    match params.get(PHYLETIC_EXPRESSION_PARAM):
+        case str() as proposed if is_handle(proposed):
+            handle = proposed.strip()
+            if handle not in held:
+                raise UnknownExpressionError(handle)
+            return {**params, PHYLETIC_EXPRESSION_PARAM: held[handle]}
+        case _:
+            return dict(params)
 
 
 def site_values(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:

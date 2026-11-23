@@ -13,13 +13,21 @@ from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.readings import ReadValues
 
 
-def _set_to(criterion: Criterion | None, name: str, wire: str) -> str:
+def _as_offered(name: str, value: str | list[str]) -> str:
+    match value:
+        case str():
+            return shown_wire(name, value)
+        case _:
+            return ", ".join(value)
+
+
+def _set_to(criterion: Criterion | None, name: str, value: str | list[str]) -> str:
     if criterion is None:
-        return shown_wire(name, wire)
+        return _as_offered(name, value)
     try:
-        return stated_text(name, option_value(criterion, name, wire))
+        return stated_text(name, option_value(criterion, name, value))
     except ValidationError:
-        return shown_wire(name, wire)
+        return _as_offered(name, value)
 
 
 def _chosen(
