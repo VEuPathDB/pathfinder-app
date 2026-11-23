@@ -16,7 +16,10 @@ from veupathdb_mcp.catalog import (
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone._frame_answers import params_the_sheet_lacks
+from strategist.ai.tools.standalone._frame_answers import (
+    lacked_sentence,
+    params_the_sheet_lacks,
+)
 from strategist.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     criterion_return,
@@ -139,9 +142,6 @@ def eda_wait_problems(
     search_name = definition.url_segment
     found = _held_problems(state, criterion.id, search_name, dataset)
     sheet = format_param_info_typed(definition.parameters or [], organism=None)
-    lacked = params_the_sheet_lacks(criterion.answers, sheet)
-    if lacked is not None:
-        found.append(lacked)
     if dataset is None:
         found.append(
             f"{search_name} is EDA-backed and names no dataset, so "
@@ -150,7 +150,19 @@ def eda_wait_problems(
             f'id>"}} and nothing else, naming the dataset the comparison runs on.'
         )
     key = RefusalKey(check="eda_wait", criterion=criterion.id, search=search_name)
-    return Problems(found=tuple(Problem(key=key, sentence=s) for s in found))
+    lacked = tuple(
+        Problem(
+            key=RefusalKey(
+                check="answers",
+                criterion=criterion.id,
+                search=search_name,
+                parameter=param,
+            ),
+            sentence=lacked_sentence([param], sheet),
+        )
+        for param in params_the_sheet_lacks(criterion.answers, sheet)
+    )
+    return Problems(found=tuple(Problem(key=key, sentence=s) for s in found) + lacked)
 
 
 def record_the_wait(state: AgentToolState, criterion: Criterion, dataset: str) -> None:

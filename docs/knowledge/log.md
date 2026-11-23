@@ -8,7 +8,7 @@
   instruction as a refusal, which spent a retry on every waiting criterion (two of three in the
   recorded five-criterion pass). A missing dataset, an id bound to another search, and an id
   waiting on another dataset and an answer naming a parameter the sheet lacks are gathered
-  into one `ProblemsRefusal` keyed `eda_wait`, and
+  into one `ProblemsRefusal` (keyed `eda_wait`, a lacked parameter keyed `answers` at its parameter), and
   nothing is recorded then. Both `set_criterion` paths, the sheet and the binding, branch on the
   wait before any parameter check.
 

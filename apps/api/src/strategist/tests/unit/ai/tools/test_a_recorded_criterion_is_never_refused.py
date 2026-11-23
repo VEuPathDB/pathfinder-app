@@ -177,7 +177,9 @@ async def test_the_waiting_result_tells_the_model_what_to_do_next() -> None:
 
 
 async def _answering(
-    state: AgentToolState, params: dict[str, JsonValue]
+    state: AgentToolState,
+    params: dict[str, JsonValue],
+    param: str = "phenotype_score",
 ) -> SetCriterionResult:
     state.stated_requirements = [_ESSENTIAL]
     state.record_catalog_read(listing([_MUTAGENESIS_SEARCH]))
@@ -189,7 +191,7 @@ async def _answering(
             text="essential in blood stages",
             search_name=_MUTAGENESIS_SEARCH,
             params=params,
-            answers=[AnsweredRequirement(requirement="R1", param="phenotype_score")],
+            answers=[AnsweredRequirement(requirement="R1", param=param)],
             why=default_why(_MUTAGENESIS_SEARCH, params),
         ),
         SetCriterionResult,
@@ -204,7 +206,29 @@ async def test_an_answer_naming_a_parameter_the_sheet_lacks_is_refused() -> None
         await _answering(state, {EDA_DATASET_ID_PARAM: _DATASET_ID})
 
     assert "['phenotype_score'], which the sheet does not hold" in str(refused.value)
+    assert refused.value.problems.keys() == (
+        RefusalKey(
+            check="answers",
+            criterion="c_essential",
+            search=_MUTAGENESIS_SEARCH,
+            parameter="phenotype_score",
+        ),
+    )
     assert state.operational_spec_draft.criteria == []
+
+
+@pytest.mark.usefixtures("_eda_search")
+async def test_an_answer_naming_a_parameter_the_search_holds_waits_with_it() -> None:
+    state = AgentToolState()
+
+    result = await _answering(
+        state, {EDA_DATASET_ID_PARAM: _DATASET_ID}, param=EDA_DATASET_ID_PARAM
+    )
+
+    assert result.waits_for_analysis_on == _DATASET_ID
+    [waiting] = state.operational_spec_draft.criteria
+    assert waiting.needs_analysis_on == _DATASET_ID
+    assert [link.param for link in waiting.answers] == [EDA_DATASET_ID_PARAM]
 
 
 async def test_a_lacked_parameter_and_a_missing_dataset_are_named_together(

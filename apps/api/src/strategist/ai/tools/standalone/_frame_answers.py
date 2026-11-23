@@ -77,14 +77,16 @@ def linked_requirements(
 
 def params_the_sheet_lacks(
     links: Sequence[RequirementLink], infos: Sequence[ParameterInfo]
-) -> str | None:
+) -> list[str]:
     names = {info.name for info in infos}
-    unknown = [link.param for link in links if link.param and link.param not in names]
-    if not unknown:
-        return None
+    return [link.param for link in links if link.param and link.param not in names]
+
+
+def lacked_sentence(unknown: Sequence[str], infos: Sequence[ParameterInfo]) -> str:
+    names = sorted(info.name for info in infos)
     return (
-        f"answers names the parameters {unknown}, which the sheet does not "
-        f"hold. The sheet holds {sorted(names) or 'none'}; name one of those "
+        f"answers names the parameters {list(unknown)}, which the sheet does not "
+        f"hold. The sheet holds {names or 'none'}; name one of those "
         f"or pass a null param."
     )
 
@@ -92,6 +94,6 @@ def params_the_sheet_lacks(
 def refuse_a_param_the_sheet_lacks(
     links: Sequence[RequirementLink], infos: Sequence[ParameterInfo]
 ) -> None:
-    said = params_the_sheet_lacks(links, infos)
-    if said is not None:
-        raise ModelRetry(said)
+    unknown = params_the_sheet_lacks(links, infos)
+    if unknown:
+        raise ModelRetry(lacked_sentence(unknown, infos))

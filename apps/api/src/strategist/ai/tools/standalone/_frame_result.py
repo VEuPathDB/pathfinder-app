@@ -89,10 +89,7 @@ class SetCriterionResult(CamelModel):
     measurements: list[str] = Field(
         default_factory=list, exclude_if=lambda clauses: not clauses
     )
-    # The dataset whose analysis workflow realizes the criterion, when the
-    # search is EDA-backed. The criterion waits for it and binds no search.
     waits_for_analysis_on: str | None = None
-    # What FRAME does next with a criterion that waits for its analysis.
     next_step: str = Field(default="", exclude_if=lambda said: not said)
 
 

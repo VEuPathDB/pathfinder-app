@@ -277,8 +277,8 @@ search cannot answer it.
 The tell in the catalog: a search whose overview says it carries \
 ``eda_analysis_spec`` is EDA-backed. Do NOT try to propose a value for that \
 parameter and do NOT route it through frame_problem or build_strategy; its \
-value is a whole EDA analysis document. Use the EDA tools instead. FRAME \
-refuses such a search and records the criterion as WAITING for its analysis, \
+value is a whole EDA analysis document. Use the EDA tools instead. For \
+such a search FRAME records the criterion as WAITING for its analysis, \
 under its own id and in its place in the structure; a pinned block names the \
 exact calls, the export last with that id, so make them. An exported step is \
 a BOUND criterion of the spec, and only ``delete_step`` removes it.
