@@ -3997,8 +3997,8 @@ requires-dist = [
     { name = "structlog", specifier = ">=25.0.0" },
     { name = "tenacity", specifier = ">=9.1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
-    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b19" },
-    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b14" },
+    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b20" },
+    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b15" },
 ]
 
 [package.metadata.requires-dev]
@@ -4280,8 +4280,8 @@ wheels = [
 
 [[package]]
 name = "veupathdb-mcp"
-version = "0.9.0b19"
-source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b19#1d28129e16f3e35ed63f1e389f0a6c5096af2fea" }
+version = "0.9.0b20"
+source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b20#93a8dfb7d1f42f1a783a08f037009cfe6c3c144a" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -4318,8 +4318,8 @@ dependencies = [
 
 [[package]]
 name = "veupathdb-py"
-version = "0.9.0b14"
-source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b14#31fa7beabf583bc1e726b35e552b70b9efead171" }
+version = "0.9.0b15"
+source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b15#5a12b305be2a4a3fa4f9b57931db6c91f7215a24" }
 dependencies = [
     { name = "httpx" },
     { name = "json5" },
