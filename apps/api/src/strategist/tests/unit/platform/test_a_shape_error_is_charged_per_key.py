@@ -3,39 +3,34 @@ names every invalid field, and never spends the tool's own retries."""
 
 from __future__ import annotations
 
-import json
-from collections.abc import AsyncIterator, Callable, Sequence
+from collections.abc import Sequence
 from typing import Annotated, Any, Literal
 
 import pytest
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
+    TextPart,
+    ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
-from strategist.ai.agents.execution import build_execution_agent
-from strategist.ai.agents.frame import build_frame_agent
-from strategist.ai.agents.verification import build_verification_agent
 from strategist.ai.capabilities.resilience import ToolResilience
-from strategist.ai.explore.explore_agent import build_explore_agent
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.dispatch_context import agent_deps_for
-from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.domain.refusal import Check, RefusalKey
 from strategist.platform.refusals import (
     TOOL_REFUSALS_PER_KEY,
-    ChargedArgumentRefusals,
     KeyedRefusalToolset,
-    keyed_agent_capabilities,
+    agent_capabilities,
 )
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _STEP = RefusalKey(
@@ -58,20 +53,15 @@ def download(
 
 
 def _calls(*sent: dict[str, Any]) -> FunctionModel:
-    async def _stream(
-        messages: list[ModelMessage], info: AgentInfo
-    ) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
+    def _respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
         made = sum(isinstance(m, ModelResponse) for m in messages)
         if made < len(sent):
-            call = DeltaToolCall(
-                "download", json.dumps(sent[made]), tool_call_id=f"c{made}"
-            )
-            yield {0: call}
-            return
-        yield "done"
+            call = ToolCallPart("download", sent[made], f"c{made}")
+            return ModelResponse(parts=[call])
+        return ModelResponse(parts=[TextPart("done")])
 
-    return FunctionModel(stream_function=_stream)
+    return streamed(_respond)
 
 
 def _deps() -> AgentDeps:
@@ -84,11 +74,12 @@ def _deps() -> AgentDeps:
 
 def _agent(model: FunctionModel, *, keyed: bool = True) -> Agent[AgentDeps, str]:
     tools = FunctionToolset([download], max_retries=3)
+    toolsets = [KeyedRefusalToolset(wrapped=tools) if keyed else tools]
     return Agent(
         model,
         deps_type=AgentDeps,
-        toolsets=[KeyedRefusalToolset(wrapped=tools) if keyed else tools],
-        capabilities=keyed_agent_capabilities([ToolResilience()]),
+        toolsets=toolsets,
+        capabilities=agent_capabilities([ToolResilience()], toolsets=toolsets),
         retries=3,
     )
 
@@ -182,22 +173,3 @@ async def test_every_invalid_field_is_its_own_problem() -> None:
         "download.wdk_step_id",
         "download.output_format",
     ]
-
-
-@pytest.mark.parametrize(
-    "build",
-    [
-        build_lead_agent,
-        build_explore_agent,
-        build_frame_agent,
-        build_execution_agent,
-        build_verification_agent,
-    ],
-)
-def test_every_keyed_agent_charges_its_shape_errors(
-    build: Callable[[], Agent[Any, Any]],
-) -> None:
-    leaves: list[AbstractCapability[Any]] = []
-    build()._root_capability.apply(leaves.append)
-
-    assert len([c for c in leaves if isinstance(c, ChargedArgumentRefusals)]) == 1

@@ -9,6 +9,7 @@ from assistant_core.scratchpad.toolset import (
 )
 from pydantic_ai import Agent, DeferredToolRequests
 from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.toolsets import AgentToolset
 
 from strategist.ai.agents._instructions import (
     pinned_run_budget,
@@ -32,7 +33,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import RecoveryDelta
 from strategist.ai.tools.toolsets.execution import build_toolset
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
-from strategist.platform.refusals import keyed_agent_capabilities
+from strategist.platform.refusals import agent_capabilities
 
 _EXECUTION_INSTRUCTIONS = with_vocabulary(
     """\
@@ -209,25 +210,27 @@ def build_execution_agent() -> ExecutionAgent:
     never reaches another.
     """
     stable = StableInstructions[AgentDeps]()
+    toolsets: list[AgentToolset[AgentDeps]] = [
+        build_toolset(),
+        build_scratchpad_toolset(
+            guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
+            promoted_kind=PROMOTED_NOTE_KIND,
+        ),
+    ]
     agent: ExecutionAgent = Agent(
         EXECUTION_MODEL,
         output_type=[RecoveryDelta, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_EXECUTION_INSTRUCTIONS,
-        toolsets=[
-            build_toolset(),
-            build_scratchpad_toolset(
-                guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
-                promoted_kind=PROMOTED_NOTE_KIND,
-            ),
-        ],
-        capabilities=keyed_agent_capabilities(
+        toolsets=toolsets,
+        capabilities=agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
                 AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),
                 stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         description=(

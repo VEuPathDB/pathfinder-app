@@ -7,7 +7,7 @@ from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.capabilities import ProcessHistory
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import ToolDefinition
-from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
+from pydantic_ai.toolsets import AbstractToolset, AgentToolset, FunctionToolset
 
 from strategist.ai.agents._instructions import pinned_run_budget, pinned_user_memories
 from strategist.ai.agents.research_reads import research_reads, research_served
@@ -60,7 +60,7 @@ from strategist.ai.tools.standalone.record_reads import (
 from strategist.ai.tools.toolsets import eda
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.model_catalog import EXPLORE_MODELS
-from strategist.platform.refusals import KeyedRefusalToolset, keyed_agent_capabilities
+from strategist.platform.refusals import KeyedRefusalToolset, agent_capabilities
 
 ExploreAgent = Agent[LeadDeps, str | DeferredToolRequests]
 
@@ -145,22 +145,24 @@ def hold_the_redirect_short(
 
 
 def build_explore_agent() -> ExploreAgent:
+    toolsets: list[AgentToolset[LeadDeps]] = [
+        build_explore_toolset(),
+        eda.build_toolset().filtered(_explore_may_call),
+        build_sweep_toolset().filtered(_explore_may_call),
+        turn_tool_sources,
+    ]
     agent: ExploreAgent = Agent(
         EXPLORE_MODEL,
         output_type=[str, DeferredToolRequests],
         deps_type=LeadDeps,
         instructions=EXPLORE_INSTRUCTIONS,
-        toolsets=[
-            build_explore_toolset(),
-            eda.build_toolset().filtered(_explore_may_call),
-            build_sweep_toolset().filtered(_explore_may_call),
-            turn_tool_sources,
-        ],
-        capabilities=keyed_agent_capabilities(
+        toolsets=toolsets,
+        capabilities=agent_capabilities(
             [
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         name="explore",

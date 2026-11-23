@@ -13,9 +13,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    TypeAdapter,
     ValidationError,
-    field_validator,
 )
 from pydantic_ai.capabilities import AgentCapability
 from pydantic_ai.capabilities.abstract import AbstractCapability
@@ -27,10 +25,11 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
+from pydantic_ai.toolsets import AgentToolset
 from pydantic_ai.toolsets.abstract import ToolsetTool
+from pydantic_ai.toolsets.combined import CombinedToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pydantic_core import to_jsonable_python
-from veupathdb.errors import VEuPathDBError
 from veupathdb.model import CamelModel, computed
 
 from strategist.domain.refusal import (
@@ -182,46 +181,6 @@ def problems_of_retry(retry: ModelRetry, key: RefusalKey) -> Problems:
             return problems.under(criterion=key.criterion, search=key.search)
         case _:
             return Problems.one(key, retry.message)
-
-
-class FaultRow(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    param: str = ""
-    detail: str = ""
-    value: str = ""
-
-    @field_validator("value", mode="before")
-    @classmethod
-    def _a_term(cls, value: object) -> object:
-        match value:
-            case str():
-                return value
-            case _:
-                return ""
-
-
-_FAULT_ROWS = TypeAdapter(list[FaultRow])
-
-
-def library_rows(error: VEuPathDBError[Any]) -> list[FaultRow]:
-    return _FAULT_ROWS.validate_python(error.errors or [])
-
-
-def library_problems(error: VEuPathDBError[Any], key: RefusalKey) -> Problems:
-    said = error.detail or error.title
-    rows = library_rows(error)
-    if not rows:
-        return Problems.one(key, said)
-    return Problems(
-        found=tuple(
-            Problem(
-                key=key.model_copy(update={"parameter": row.param}),
-                sentence=row.detail or said,
-            )
-            for row in rows
-        )
-    )
 
 
 class CallSpent(ToolFailed):
@@ -429,30 +388,47 @@ class ChargedArgumentRefusals[DepsT: KeepsRefusals](AbstractCapability[DepsT]):
             yield event
 
 
+def _holds_keyed(toolsets: Sequence[AgentToolset[Any]]) -> bool:
+    return any(_is_keyed(toolset) for toolset in toolsets)
+
+
+def _is_keyed(toolset: AgentToolset[Any]) -> bool:
+    match toolset:
+        case KeyedRefusalToolset():
+            return True
+        case WrapperToolset(wrapped=inner):
+            return _is_keyed(inner)
+        case CombinedToolset(toolsets=inner):
+            return _holds_keyed(inner)
+        case _:
+            return False
+
+
 def agent_capabilities(
     carried: Sequence[AgentCapability[AgentDepsT]],
+    *,
+    toolsets: Sequence[AgentToolset[AgentDepsT]],
 ) -> list[AgentCapability[AgentDepsT]]:
     """What one agent runs with, plus the seams every agent here carries.
 
     A refusal this application names answers the model on every assistant, so
     an agent that declares nothing else still answers one. A durable call is
     answered the same way where no worker consumes its job. A call a tool
-    refuses as sent reads as corrected, never as a failure.
+    refuses as sent reads as corrected, never as a failure. An agent whose
+    toolsets count refusals per key charges its shape errors to the same keys.
     """
+    charged: list[AgentCapability[Any]] = (
+        [ChargedArgumentRefusals[Any]()] if _holds_keyed(toolsets) else []
+    )
     return [
         ServiceRefusalRetry[AgentDepsT](),
         DeclinedRequests[AgentDepsT](),
         DurableCallsRefused[AgentDepsT](),
         ReasoningEffortOnSpan(),
         MarkRefusedCalls[AgentDepsT](),
+        *charged,
         *carried,
     ]
-
-
-def keyed_agent_capabilities[DepsT: KeepsRefusals](
-    carried: Sequence[AgentCapability[DepsT]],
-) -> list[AgentCapability[DepsT]]:
-    return [*agent_capabilities([ChargedArgumentRefusals[DepsT]()]), *carried]
 
 
 __all__ = [
@@ -464,7 +440,6 @@ __all__ = [
     "CallSpent",
     "CallerSuppliedIds",
     "ChargedArgumentRefusals",
-    "FaultRow",
     "KeepsRefusals",
     "KeyedRefusalToolset",
     "ProblemsRefusal",
@@ -475,10 +450,7 @@ __all__ = [
     "agent_capabilities",
     "answered",
     "closing_of",
-    "keyed_agent_capabilities",
     "last_answer",
-    "library_problems",
-    "library_rows",
     "problems_of_retry",
     "refusal_retry_message",
     "refusal_text",

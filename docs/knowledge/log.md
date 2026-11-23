@@ -17,8 +17,7 @@
 * **A shape error is charged to the refusal ledger, never to the tool's retries.** Before, an
   argument the schema refused was a pydantic-ai validation retry: it charged no key, and a fourth
   shape error in a row on one tool ended the run (`Tool 'download' exceeded max retries count of
-  3`). Now `ChargedArgumentRefusals` (`platform/refusals.py`), which `keyed_agent_capabilities`
-  gives the Lead, Explore, FRAME, execution and VERIFY agents, answers every argument validation
+  3`). Now `ChargedArgumentRefusals` (`platform/refusals.py`) answers every argument validation
   failure of a tool `KeyedRefusalToolset` holds (the toolset marks each tool definition's
   `metadata`; a tool outside it keeps pydantic-ai's retries, as its body refusals do) in
   `on_tool_validate_error`: a schema error is one problem per invalid field, keyed by
@@ -28,7 +27,10 @@
   `CallSpent`, a `ToolFailed`, which pydantic-ai answers without spending a retry. The capability
   marks the refused result corrected in the event stream, since a validation failure runs no
   execute hook. A call of the tool that runs clears its shape keys, as pydantic-ai resets a
-  tool's count. The event stream wrapper makes a run stream its nodes; every keyed agent already
+  tool's count. `agent_capabilities(carried, toolsets=...)` gives an agent the capability whenever
+  its toolsets hold a `KeyedRefusalToolset` at any depth, so no builder pairs the two by hand, and a
+  test reads every production `Agent(` and refuses one whose capabilities are not built from its
+  own toolsets. The event stream wrapper makes a run stream its nodes; every keyed agent already
   runs through `run_stream_events`.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of

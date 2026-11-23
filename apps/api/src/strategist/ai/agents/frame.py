@@ -9,6 +9,7 @@ from assistant_core.scratchpad.toolset import (
 )
 from pydantic_ai import Agent, DeferredToolRequests
 from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.toolsets import AgentToolset
 
 from strategist.ai.agents._instructions import (
     pinned_conversation_so_far,
@@ -36,7 +37,7 @@ from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.tools.toolsets.frame import build_toolset
 from strategist.domain.strategy.constraints import CONSTRAINT_KINDS
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
-from strategist.platform.refusals import keyed_agent_capabilities
+from strategist.platform.refusals import agent_capabilities
 
 # The kinds are the enum's own values and the cap is the recorded reason's, so
 # neither needs an edit here.
@@ -307,26 +308,28 @@ def build_frame_agent() -> FrameAgent:
     never reaches another.
     """
     stable = StableInstructions[AgentDeps]()
+    toolsets: list[AgentToolset[AgentDeps]] = [
+        build_toolset(),
+        build_scratchpad_toolset(
+            guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
+            promoted_kind=PROMOTED_NOTE_KIND,
+        ),
+        turn_tool_sources,
+    ]
     agent: FrameAgent = Agent(
         FRAME_MODEL,
         output_type=[FrameResult, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_FRAME_INSTRUCTIONS,
-        toolsets=[
-            build_toolset(),
-            build_scratchpad_toolset(
-                guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
-                promoted_kind=PROMOTED_NOTE_KIND,
-            ),
-            turn_tool_sources,
-        ],
-        capabilities=keyed_agent_capabilities(
+        toolsets=toolsets,
+        capabilities=agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
                 AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),
                 stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         description=(

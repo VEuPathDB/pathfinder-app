@@ -41,7 +41,7 @@ def _twice(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
 def test_every_agent_marks_the_calls_its_tools_refuse() -> None:
     assert [
         type(capability)
-        for capability in agent_capabilities([])
+        for capability in agent_capabilities([], toolsets=())
         if isinstance(capability, MarkRefusedCalls)
     ] == [MarkRefusedCalls]
 

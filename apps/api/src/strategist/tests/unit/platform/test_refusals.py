@@ -49,6 +49,7 @@ from strategist.platform.refusals import (
 from strategist.services.control_sets import ControlSetService
 from strategist.services.gene_sets.operations import GeneSetService
 from strategist.tests._support.gene_set_store import InMemoryGeneSetStore
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests._support.sub_agents import agent_tool_names
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -212,17 +213,18 @@ async def test_a_keyed_lead_toolset_charges_the_refused_id_once(
 ) -> None:
     _refusing_service(monkeypatch, _not_found())
     deps = _deps()
-    agent: Agent[LeadDeps, str] = Agent(
-        FunctionModel(_one_call_then_text("listed the gene sets")),
-        deps_type=LeadDeps,
-        toolsets=[
-            KeyedRefusalToolset(
-                wrapped=FunctionToolset[LeadDeps](
-                    tools=[control_sets.read_gene_ids_from_gene_set]
-                )
+    toolsets = [
+        KeyedRefusalToolset(
+            wrapped=FunctionToolset[LeadDeps](
+                tools=[control_sets.read_gene_ids_from_gene_set]
             )
-        ],
-        capabilities=agent_capabilities([]),
+        )
+    ]
+    agent: Agent[LeadDeps, str] = Agent(
+        streamed(_one_call_then_text("listed the gene sets")),
+        deps_type=LeadDeps,
+        toolsets=toolsets,
+        capabilities=agent_capabilities([], toolsets=toolsets),
         retries=1,
     )
 

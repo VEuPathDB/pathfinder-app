@@ -45,7 +45,8 @@ from strategist.domain.strategy.operations import (
 )
 from strategist.domain.strategy.operations.types import AttachPoint
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.platform.refusals import ProblemsRefusal, library_problems
+from strategist.platform.library_refusals import library_problems
+from strategist.platform.refusals import ProblemsRefusal
 
 _NOTHING_BOUND: Mapping[str, ParamValue] = MappingProxyType({})
 

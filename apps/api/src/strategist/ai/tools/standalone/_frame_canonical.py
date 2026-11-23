@@ -12,7 +12,8 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.domain.refusal import Check, RefusalKey
-from strategist.platform.refusals import ProblemsRefusal, library_problems
+from strategist.platform.library_refusals import library_problems
+from strategist.platform.refusals import ProblemsRefusal
 
 
 async def canonical_binding(
