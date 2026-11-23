@@ -12,9 +12,9 @@ from assistant_core.models.scripted import (
 )
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from strategist.ai.conversation.gene_list_marker import parse_gene_list_marker
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.intent import IntentClassification, UserIntent
+from strategist_scripted.gene_list import parse_gene_list_marker
 from strategist_scripted.models.arc_args import variant_args
 from strategist_scripted.models.arc_readings import intent_of
 from strategist_scripted.models.calls import lead_final, narrated

@@ -73,4 +73,11 @@ operator readers keep a one-line branch each.
   reader's prompt nor a decision request carries; carrying it would change
   production requests for the double's sake.
 - **Moving the mock under `tests/`.** The image deletes the tests, and the e2e
-  stack and the devtools' `--mock` run need the double inside an image.
+  stack needs the double inside an image.
+
+The chat debugger's `--mock` run happens on the host (`cd apps/api && uv run
+python -m strategist.devtools.chat run --mock ...`), where the editable install
+reaches the package; a real-model run stays in the api container. No dev-stack
+configuration boots the production stage in mock mode: `docker-compose.yml` and
+`.env.example` require an explicit provider, mock mode needs `API_ENV=test`, and
+only the e2e overlay sets it, on the `e2e` target.

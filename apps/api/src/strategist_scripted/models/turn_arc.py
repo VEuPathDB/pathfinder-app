@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from strategist.ai.conversation.gene_list_marker import parse_gene_list_marker
 from strategist.ai.graph.state import PipelineState
+from strategist_scripted.gene_list import parse_gene_list_marker
 from strategist_scripted.models.directive import ECHO, ArcDirective, directive_of
 
 

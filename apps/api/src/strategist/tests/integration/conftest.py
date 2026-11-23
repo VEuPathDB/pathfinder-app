@@ -28,7 +28,6 @@ from strategist.jobs.completion import open_completion_turn
 from strategist.jobs.job_context import WdkJobContext
 from strategist.jobs.runtime import build_worker_context
 from strategist.platform.identity import APPLICATION_ID
-from strategist.tests._support.decisions import answer_no_decisions
 from strategist.tests._support.declared_record_types import (
     serve_declared_record_types,
 )
@@ -38,11 +37,9 @@ from strategist.tests._support.eda_subset_search_doubles import (
 from strategist.tests._support.network_guard import refuse_veupathdb
 from strategist.tests._support.organism_reads import serve_catalog_marks
 from strategist.tests._support.record_classes import serve_record_classes
+from strategist.tests._support.scripted_flow import a_scripted_flow_reads_no_service
 from strategist.tests._support.second_assistant import second_assistant
 from strategist.tests._support.site_organisms import serve_planned_organisms
-from strategist.tests._support.universal_searches import (
-    serve_the_text_search_as_universal,
-)
 
 
 @pytest.fixture(autouse=True)
@@ -144,4 +141,4 @@ async def open_job_queue(patch_app_db_engine: None) -> AsyncGenerator[None]:
         yield
 
 
-__all__ = ["answer_no_decisions", "serve_the_text_search_as_universal"]
+__all__ = ["a_scripted_flow_reads_no_service"]

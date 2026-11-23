@@ -88,6 +88,13 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **The chat debugger's mock run is a host run.** `--mock` needs `strategist_scripted`, which the dev api
+  image lacks, so `devtools/README.md` documents it on the host through the editable install. The
+  gene-list parser, which only the scripted model reads, moved to `strategist_scripted/gene_list.py`
+  beside the writer's shared prefix. The image test now refuses any production-stage COPY whose source
+  holds `src/strategist_scripted`. One autouse fixture (`tests/_support/scripted_flow.py`) answers no
+  decisions and serves the text search as universal wherever a conftest opts in.
+
 * **Production cannot mint a dev login.** `create_dev_login_token` and `set_dev_login_cookie` are
   `strategist_scripted/dev_login.py`; the minter signs the same `SessionToken` through
   `platform/security.py::encode_session_token`, which `create_user_token` also signs with. A test

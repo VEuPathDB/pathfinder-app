@@ -75,8 +75,7 @@ src/strategist/
     eda/                     #   EDA study catalog, subsetting, compute, export
     eval.py                  #   Thesis evaluation: gold strategies and their gene ids
     eval_data/               #   Eval staging and promotion
-    experiment/              #   Experiment engine (evaluate), scored and variant comparisons,
-                             #     the seed catalog
+    experiment/              #   Experiment engine (evaluate), scored and variant comparisons
     export/                  #   Data export and its sweeper, incl. control downloads
     gene_sets/               #   Gene set store, import, delete, VDI publication
     parameter_optimization/  #   Parameter sweeps, scoring, builders

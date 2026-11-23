@@ -308,7 +308,7 @@ Guarded by `tests/unit/domain/strategy/test_a_value_says_who_set_it.py`,
 `tests/unit/domain/strategy/test_an_unset_value_is_the_sites.py`,
 `tests/unit/domain/strategy/test_a_bound_value_is_built_with_its_sheet.py`,
 `tests/unit/ai/tools/test_a_bound_value_is_sourced_by_its_sheet.py`,
-`tests/unit/ai/models/test_mock_unset_value_arcs.py`,
+`tests/unit/scripted/models/test_mock_unset_value_arcs.py`,
 `tests/unit/ai/tools/test_a_value_binds_in_the_researchers_words.py`,
 `tests/unit/ai/tools/test_an_eda_cut_binds_on_the_computes_scale.py`,
 `tests/unit/ai/lead/test_the_facts_count_an_unread_bind_at_its_step.py` and

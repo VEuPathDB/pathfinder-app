@@ -110,7 +110,7 @@ class SeedMeasurement(BaseModel):
 
 
 class SeedDef(BaseModel):
-    """One seed strategy and its control set, as stored in data/seeds."""
+    """One seed strategy and its control set, as stored in seeds/data."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

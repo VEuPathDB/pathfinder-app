@@ -12,10 +12,6 @@ from uuid import UUID
 import httpx
 import pytest
 
-from strategist.ai.conversation.gene_list_marker import (
-    ParsedGeneList,
-    parse_gene_list_marker,
-)
 from strategist.devtools import eval_runner, evals
 from strategist.devtools.chat import (
     EnvToken,
@@ -40,6 +36,7 @@ from strategist.evals.check_counts import CheckCounts
 from strategist.evals.scoring import ObservedOutcome, score_case
 from strategist.evals.store import ATTACHMENTS_DIR
 from strategist.platform.stage_sites import qa_sites_file
+from strategist_scripted.gene_list import ParsedGeneList, parse_gene_list_marker
 
 _QA = str(qa_sites_file())
 

@@ -196,9 +196,9 @@ def phase_override_kwargs(
     The model is the user pick, else the phase default. Settings always
     accompany it, because caching is provider specific.
     """
-    effective_model = phase_model_id(runtime, role)
-    if not effective_model:
+    if is_mock_deployment():
         return {"model": scripted().model()}
+    effective_model = phase_model_id(runtime, role)
     tier_cfg = _configured_tier_config(role)
     effort = runtime.phase_reasoning.get(role) or (
         tier_cfg.reasoning_effort if tier_cfg is not None else None
