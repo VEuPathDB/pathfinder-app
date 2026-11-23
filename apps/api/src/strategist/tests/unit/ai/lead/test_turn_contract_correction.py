@@ -67,9 +67,7 @@ class TestTheOneCorrection:
         with pytest.raises(ModelRetry):
             hold_the_turn_contract(run_context_for(deps), report)
 
-        assert charged(deps.state.turn_markers.answer_ledger) == [
-            "open_value_in_prose"
-        ]
+        assert charged(deps.state.turn_markers.answer_ledger) == ["open_value_in_prose"]
         assert hold_the_turn_contract(run_context_for(deps), report) == reply(
             ASKING_REPLY
         )
