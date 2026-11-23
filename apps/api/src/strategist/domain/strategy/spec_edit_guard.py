@@ -127,9 +127,16 @@ def _states(
     primary = _brought(graph, step.primary_input_id or "", stated).named
     secondary = _brought(graph, step.secondary_input_id or "", stated).named
     mirrored = MIRRORED_OPERATORS.get(declared)
-    if declared is written and (mirrored is declared or first <= primary):
+    if declared is written and (
+        mirrored is declared or (bool(first) and first <= primary)
+    ):
         return True
-    return mirrored is written and mirrored is not declared and first <= secondary
+    return (
+        mirrored is written
+        and mirrored is not declared
+        and bool(first)
+        and first <= secondary
+    )
 
 
 def new_join_contradictions(

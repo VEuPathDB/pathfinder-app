@@ -487,3 +487,46 @@ def test_a_one_sided_join_over_many_inputs_reversed_departs_from_the_spec(
     assert contradicted_joins(structure, graph_of(reversed_tree), ids) == {
         frozenset(ids): JoinContradiction(declared=operator, written=operator)
     }
+
+
+@pytest.mark.parametrize("operator", [CombineOp.MINUS, CombineOp.LONLY])
+def test_a_one_sided_join_nested_on_the_right_departs_from_the_spec(
+    operator: CombineOp,
+) -> None:
+    ids = ["c_0", "c_1", "c_2"]
+    nested = combine(
+        "step_root",
+        leaf("c_0"),
+        combine("step_inner", leaf("c_1"), leaf("c_2"), operator),
+        operator,
+    )
+    structure = SpecStructure(root=spec_joined(operator, *(spec_leaf(i) for i in ids)))
+
+    assert contradicted_joins(structure, graph_of(nested), ids) == {
+        frozenset({"c_1", "c_2"}): JoinContradiction(
+            declared=operator, written=operator
+        )
+    }
+
+
+@pytest.mark.parametrize(
+    ("operator", "mirrored"),
+    [(CombineOp.MINUS, CombineOp.RMINUS), (CombineOp.LONLY, CombineOp.RONLY)],
+)
+def test_a_mirrored_join_nested_on_its_kept_side_departs_from_the_spec(
+    operator: CombineOp, mirrored: CombineOp
+) -> None:
+    ids = ["c_0", "c_1", "c_2"]
+    nested = combine(
+        "step_root",
+        combine("step_inner", leaf("c_2"), leaf("c_1"), mirrored),
+        leaf("c_0"),
+        mirrored,
+    )
+    structure = SpecStructure(root=spec_joined(operator, *(spec_leaf(i) for i in ids)))
+
+    assert contradicted_joins(structure, graph_of(nested), ids) == {
+        frozenset({"c_1", "c_2"}): JoinContradiction(
+            declared=operator, written=mirrored
+        )
+    }
