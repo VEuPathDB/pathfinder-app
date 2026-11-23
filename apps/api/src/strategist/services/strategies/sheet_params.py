@@ -26,9 +26,13 @@ from veupathdb_mcp.catalog import (
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.spec_hydration import StepRead, sheet_bound
 from strategist.domain.strategy.value_binding import parents_moved
+from strategist.domain.unread import Unread
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.record_classes import search_record_types
 
 logger = get_logger(__name__)
+
+_UNLISTED = Unread(reason="the site lists the search under no record type")
 
 
 async def _listed_under(site_id: str, search_name: str) -> str | None:
@@ -58,14 +62,18 @@ async def catalog_search_definition(
     return response.search_data
 
 
+type SheetReads = dict[str, list[ParameterInfo] | Unread]
+
+
 async def _parameters_read(
     site_id: str, search_names: Collection[str], read: DefinitionRead
-) -> dict[str, list[ParameterInfo]]:
-    sheets: dict[str, list[ParameterInfo]] = {}
+) -> SheetReads:
+    sheets: SheetReads = {}
     for search_name in sorted(set(search_names)):
         try:
             listed_under = await _listed_under(site_id, search_name)
             if listed_under is None:
+                sheets[search_name] = _UNLISTED
                 continue
             definition = await read(site_id, listed_under, search_name)
         except (VEuPathDBError, OSError) as exc:
@@ -74,6 +82,7 @@ async def _parameters_read(
                 search_name=search_name,
                 error=str(exc),
             )
+            sheets[search_name] = Unread(reason=site_words(exc))
             continue
         declarations = definition.parameters or []
         sheets[search_name] = format_param_info_typed(
@@ -82,17 +91,26 @@ async def _parameters_read(
     return sheets
 
 
+def read_sheets(reads: SheetReads) -> dict[str, list[ParameterInfo]]:
+    """The sheets of the searches that were read."""
+    sheets: dict[str, list[ParameterInfo]] = {}
+    for name, sheet in reads.items():
+        match sheet:
+            case Unread():
+                continue
+            case read:
+                sheets[name] = read
+    return sheets
+
+
 async def parameters_of_searches(
     *,
     site_id: str,
     search_names: Collection[str],
-) -> dict[str, list[ParameterInfo]]:
+) -> SheetReads:
     """Every parameter of every search the catalog reads, each read under the
-    record type the catalog lists it under.
-
-    A search the catalog lists under no record type, or cannot read, is left
-    out, so the caller keeps the values it already holds for that search.
-    """
+    record type the catalog lists it under, and why each other search was not
+    read."""
     return await _parameters_read(site_id, search_names, read_search_definition)
 
 
@@ -101,7 +119,9 @@ async def published_parameters_of_searches(
     site_id: str,
     search_names: Collection[str],
 ) -> dict[str, list[ParameterInfo]]:
-    return await _parameters_read(site_id, search_names, catalog_search_definition)
+    return read_sheets(
+        await _parameters_read(site_id, search_names, catalog_search_definition)
+    )
 
 
 async def sheet_params_for_searches(
@@ -109,10 +129,12 @@ async def sheet_params_for_searches(
     site_id: str,
     search_names: Collection[str],
 ) -> dict[str, list[ParameterInfo]]:
-    """The bindable parameters of each search ``parameters_of_searches`` reads."""
+    """The bindable parameters of each search the catalog reads. A search it
+    does not read is left out, so the caller keeps the values it holds."""
     read = await parameters_of_searches(site_id=site_id, search_names=search_names)
     return {
-        name: [info for info in infos if info.bindable] for name, infos in read.items()
+        name: [info for info in infos if info.bindable]
+        for name, infos in read_sheets(read).items()
     }
 
 
