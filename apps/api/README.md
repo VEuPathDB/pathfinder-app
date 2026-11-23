@@ -110,7 +110,6 @@ src/strategist/
         tiers.py             #     Model tier catalog
         user_data.py         #     User data deletion
         veupathdb_auth.py    #     VEuPathDB auth proxy
-        dev.py               #     Dev login (never written into the OpenAPI spec)
       schemas/               #   Pydantic request/response DTOs
       deps.py                #   FastAPI dependencies (auth, DB, site context)
       openapi.py             #   Spec post-passes
@@ -121,6 +120,7 @@ src/strategist_scripted/     # The deterministic test model; only tests and the 
   models/                    #   Strategist's script, one arc per turn shape
   audit/                     #   The audit assistant's scripted auditor, reviewer and synthesis
   judge.py decisions.py      #   The scripted injection judge and the no-decision transport
+  dev_routes.py              #   Dev login and the sample audit run, mounted only in a mock deployment
   seeds/                     #   Curated strategies and their control sets (data/), read by the mock
                              #     and the live tests, and their recorder (python -m strategist_scripted.seeds)
 ```

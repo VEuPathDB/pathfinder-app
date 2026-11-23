@@ -5,14 +5,14 @@ from __future__ import annotations
 import pytest
 from veupathdb_mcp.audit import INTRON_STORE_READS
 
-from strategist.services.audit.sample_run import (
+from strategist.tests._support.audit import PIGA_INTACT
+from strategist.tests._support.audit_answers import PKAC_INTRONS, organelle, strain
+from strategist.tests._support.audit_evidence import PIGA_EVIDENCE
+from strategist_scripted.audit.sample_run import (
     SAMPLE_PATH,
     SampleEvidence,
     SampleRun,
 )
-from strategist.tests._support.audit import PIGA_INTACT
-from strategist.tests._support.audit_answers import PKAC_INTRONS, organelle, strain
-from strategist.tests._support.audit_evidence import PIGA_EVIDENCE
 
 SAMPLE = SampleRun.model_validate_json(SAMPLE_PATH.read_text())
 

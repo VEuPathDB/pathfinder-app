@@ -1,5 +1,6 @@
 """Local development sign-in that sets the cookie a VEuPathDB website sets."""
 
+from typing import Final
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
@@ -14,7 +15,9 @@ from strategist.platform.errors import (
     site_failure_reason,
 )
 
-router = APIRouter(prefix="/api/v1/dev", tags=["dev"], include_in_schema=False)
+DEV_ROUTE_PREFIX: Final = "/api/v1/dev"
+
+router = APIRouter(prefix=DEV_ROUTE_PREFIX, tags=["dev"], include_in_schema=False)
 
 
 @router.get("/site-login")

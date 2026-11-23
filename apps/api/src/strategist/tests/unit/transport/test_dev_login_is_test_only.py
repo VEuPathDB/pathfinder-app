@@ -14,14 +14,12 @@ import strategist
 from strategist.main import create_app
 from strategist.platform.config import get_settings
 from strategist.tests._support.routes import api_routes
-from strategist.transport.http.routers import dev, dev_site_login
+from strategist.transport.http.routers import dev_site_login
+from strategist_scripted import dev_routes
 
 _MINTER = "create_dev_login_token"
 _SITE_LOGIN = "/api/v1/dev/site-login"
-_ALLOWED_MINTERS = {
-    Path("platform/security.py"),
-    Path("transport/http/routers/dev.py"),
-}
+_ALLOWED_MINTERS = {Path("platform/security.py")}
 
 
 def _endpoints(*, include_dev_routes: bool) -> set[object]:
@@ -30,15 +28,18 @@ def _endpoints(*, include_dev_routes: bool) -> set[object]:
 
 
 def test_the_production_app_has_no_dev_login_route() -> None:
-    assert dev.dev_login not in _endpoints(include_dev_routes=False)
+    assert dev_routes.dev_login not in _endpoints(include_dev_routes=False)
 
 
 def test_the_production_app_has_no_sample_audit_route() -> None:
-    assert _endpoints(include_dev_routes=False) & {dev.store_sample_audit_run} == set()
+    assert (
+        _endpoints(include_dev_routes=False) & {dev_routes.store_sample_audit_run}
+        == set()
+    )
 
 
 def test_the_overlay_app_does_have_it() -> None:
-    assert dev.dev_login in _endpoints(include_dev_routes=True)
+    assert dev_routes.dev_login in _endpoints(include_dev_routes=True)
 
 
 def test_only_the_dev_router_mints_a_dev_login_token() -> None:

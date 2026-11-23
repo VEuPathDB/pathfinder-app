@@ -20,8 +20,8 @@ from strategist.platform.readiness import reset_readiness
 from strategist.platform.security import create_dev_login_token
 from strategist.services import wdk_identity
 from strategist.tests._support.routes import api_routes
-from strategist.transport.http.routers import dev
 from strategist.transport.http.routers.veupathdb_auth import router
+from strategist_scripted import dev_routes
 
 _AUTH = "/api/v1/veupathdb/auth"
 _SITE_LOGIN_WRITER = Path("transport/http/routers/dev_site_login.py")
@@ -56,9 +56,9 @@ async def test_dev_login_scopes_its_cookie_to_the_base_path(
     async def _db() -> AsyncGenerator[None]:
         yield None
 
-    monkeypatch.setattr(dev, "get_or_create_user_id", _user_id)
+    monkeypatch.setattr(dev_routes, "get_or_create_user_id", _user_id)
     app = FastAPI()
-    app.include_router(dev.router)
+    app.include_router(dev_routes.router)
     app.dependency_overrides[get_db_session] = _db
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

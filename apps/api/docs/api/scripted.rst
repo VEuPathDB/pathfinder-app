@@ -38,3 +38,20 @@ factors in TriTrypDB).
    :members:
    :undoc-members:
    :show-inheritance:
+
+Dev Routes
+----------
+
+**Purpose:** The routes only a mock deployment mounts: the dev login the
+Playwright suite signs in with, and the stored sample audit run. They are never
+written into the OpenAPI spec.
+
+.. automodule:: strategist_scripted.dev_routes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: strategist_scripted.audit.sample_run
+   :members:
+   :undoc-members:
+   :show-inheritance:

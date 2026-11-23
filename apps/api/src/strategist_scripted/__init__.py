@@ -7,6 +7,7 @@ from strategist_scripted.audit.script import (
     build_synthesis_mock,
 )
 from strategist_scripted.decisions import no_decision
+from strategist_scripted.dev_routes import router
 from strategist_scripted.judge import injection_judge
 from strategist_scripted.models import get_mock_model
 from strategist_scripted.models.reading import scripted_intent, scripted_operators
@@ -22,4 +23,5 @@ SCRIPTED: Final = ScriptedDeployment(
     auditor=build_audit_mock,
     reviewer=build_review_mock,
     synthesis=build_synthesis_mock,
+    dev_router=router,
 )

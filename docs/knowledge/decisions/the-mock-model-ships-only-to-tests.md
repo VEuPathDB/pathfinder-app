@@ -15,14 +15,18 @@ instead of a provider: Strategist's script (`models/`), the audit assistant's
 auditor, reviewer and synthesis (`audit/`), the injection judge (`judge.py`)
 and the no-decision transport (`decisions.py`), and the curated seed strategies
 those scripts bind their values from (`seeds/`: the catalog, the JSON per site, the
-organism marks and their recorder, `python -m strategist_scripted.seeds`). It sits in the same source root
+organism marks and their recorder, `python -m strategist_scripted.seeds`), and the
+routes only a mock deployment mounts (`dev_routes.py`: the dev login and the
+sample audit run, with `audit/sample_run.py` and its JSON). It sits in the same source root
 as `strategist`, so the editable install puts it on the test environment's path,
 but the wheel names only `src/strategist`.
 
 Production reaches it through `strategist/ai/scripted.py`: `scripted()` imports
 the package by the name `platform/config.py::SCRIPTED_PACKAGE` holds and returns
 its `SCRIPTED`, one `ScriptedDeployment` record. Every call sits behind
-`is_mock_deployment()`. `Settings` refuses `STRATEGIST_CHAT_PROVIDER=mock` when
+`is_mock_deployment()`; `create_app` mounts `SCRIPTED.dev_router` only there.
+The OpenAPI generator refuses any path under `DEV_ROUTE_PREFIX`, so it reads no
+scripted router. `Settings` refuses `STRATEGIST_CHAT_PROVIDER=mock` when
 the package is not importable, so the api, the worker and the devtools fail at
 boot, never on a turn.
 

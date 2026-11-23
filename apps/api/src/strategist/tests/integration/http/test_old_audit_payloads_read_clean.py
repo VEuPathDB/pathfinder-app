@@ -10,9 +10,9 @@ from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
 from sqlalchemy import text
 
-from strategist.services.audit.sample_run import store_sample_run
 from strategist.tests._support.audit import seed_thread
 from strategist.tests.integration.http.conftest import client_for
+from strategist_scripted.audit.sample_run import store_sample_run
 
 pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine", "db_cleaner", "site_login_names_the_user"

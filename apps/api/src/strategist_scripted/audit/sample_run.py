@@ -44,7 +44,7 @@ from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.audit.runs import RunOwner, add_run
 from strategist.services.conversations.begin import begin_conversation
 
-SAMPLE_PATH: Traversable = files("strategist") / "data" / "audit" / "sample_run.json"
+SAMPLE_PATH: Traversable = files("strategist_scripted") / "audit" / "sample_run.json"
 SAMPLE_MODEL_ID = "sample"
 
 

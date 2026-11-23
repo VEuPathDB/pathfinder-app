@@ -3,11 +3,11 @@
 from pathlib import Path
 
 import pytest
+from fastapi.routing import APIRoute
 from pydantic import SecretStr
 
 from strategist.devtools.openapi import (
     DevRouteInSpecError,
-    _dev_only_paths,
     _refuse_dev_routes,
     _spec_with_stable_overrides,
     _SpecPaths,
@@ -15,6 +15,9 @@ from strategist.devtools.openapi import (
 )
 from strategist.main import create_app
 from strategist.platform.config import get_settings
+from strategist.transport.http.routers import dev_site_login
+from strategist.transport.http.routers.dev_site_login import DEV_ROUTE_PREFIX
+from strategist_scripted.dev_routes import router as scripted_dev_router
 
 DEV_LOGIN = "/api/v1/dev/login"
 
@@ -30,12 +33,25 @@ def test_the_spec_never_carries_dev_routes(monkeypatch: pytest.MonkeyPatch) -> N
     assert dev_paths == []
 
 
-def test_the_dev_paths_are_read_from_the_dev_router() -> None:
-    assert DEV_LOGIN in _dev_only_paths()
+def test_every_dev_route_lies_under_the_dev_prefix() -> None:
+    paths = sorted(
+        route.path
+        for router in (scripted_dev_router, dev_site_login.router)
+        for route in router.routes
+        if isinstance(route, APIRoute)
+    )
+
+    assert paths == [
+        "/api/v1/dev/audits/sample",
+        DEV_LOGIN,
+        "/api/v1/dev/site-login",
+    ]
+    assert {path.removeprefix(DEV_ROUTE_PREFIX)[:1] for path in paths} == {"/"}
 
 
-def test_the_site_login_path_is_a_dev_path() -> None:
-    assert "/api/v1/dev/site-login" in _dev_only_paths()
+def test_a_spec_naming_the_site_login_is_refused() -> None:
+    with pytest.raises(DevRouteInSpecError):
+        _refuse_dev_routes({"paths": {"/api/v1/dev/site-login": {}}})
 
 
 def test_a_spec_naming_a_dev_route_is_refused_by_name() -> None:

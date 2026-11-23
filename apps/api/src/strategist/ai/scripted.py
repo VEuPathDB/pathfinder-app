@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import import_module
 
+from fastapi import APIRouter
 from pydantic_ai.models import Model
 from veupathdb_mcp.catalog import DecisionsTransport
 
@@ -23,6 +24,7 @@ class ScriptedDeployment:
     auditor: Callable[[], Model]
     reviewer: Callable[[], Model]
     synthesis: Callable[[], Model]
+    dev_router: APIRouter
 
 
 def scripted() -> ScriptedDeployment:

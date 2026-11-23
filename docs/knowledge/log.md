@@ -88,6 +88,11 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **The dev routes ship only to tests.** `routers/dev.py`, `services/audit/sample_run.py` and its
+  JSON are `strategist_scripted/dev_routes.py` and `strategist_scripted/audit/sample_run.*`;
+  `create_app` mounts `scripted().dev_router` only in a mock deployment. The OpenAPI generator refuses
+  any path under `DEV_ROUTE_PREFIX` (`routers/dev_site_login.py`) instead of reading the routers.
+
 * **The seeds move with the scripted model.** `data/seeds/`, the seed catalog and types
   (`services/experiment/seed/`), the organism marks and the recorder (`devtools/seeds.py`, now
   `python -m strategist_scripted.seeds`) are `strategist_scripted/seeds/`; no runtime path read them.
