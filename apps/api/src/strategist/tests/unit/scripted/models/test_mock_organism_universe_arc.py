@@ -117,17 +117,20 @@ def test_the_arc_binds_the_organism_alone_beside_the_signal_peptide() -> None:
         "kind": "combine",
         "criterionId": None,
         "operator": "INTERSECT",
+        "colocationParams": None,
         "inputs": [
             {
                 "kind": "leaf",
                 "criterionId": "organism_genes",
                 "operator": None,
+                "colocationParams": None,
                 "inputs": [],
             },
             {
                 "kind": "leaf",
                 "criterionId": "signal_peptide",
                 "operator": None,
+                "colocationParams": None,
                 "inputs": [],
             },
         ],

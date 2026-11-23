@@ -11,12 +11,12 @@ from veupathdb.model import CamelModel
 
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.operational_spec import (
-    MIN_COMBINE_INPUTS,
     OperationalSpec,
     SpecStructure,
     StructureNode,
     criteria_under,
 )
+from strategist.domain.strategy.structure_reading import MIN_COMBINE_INPUTS
 
 
 class DuplicateDrop(CamelModel):

@@ -30628,6 +30628,16 @@
               }
             ]
           },
+          "colocationParams": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ColocationParams"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "inputs": {
             "items": {
               "$ref": "#/components/schemas/StructureNode"

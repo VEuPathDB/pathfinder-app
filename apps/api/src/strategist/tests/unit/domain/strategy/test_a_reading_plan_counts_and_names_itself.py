@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, StringValue
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import ColocationParams, CombineOp
 
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -119,7 +119,12 @@ def test_a_nested_combination_is_bracketed() -> None:
     ("root", "refusal"),
     [
         (
-            spec_joined(CombineOp.COLOCATE, spec_leaf("a"), spec_leaf("b")),
+            StructureNode(
+                kind="combine",
+                operator=CombineOp.COLOCATE,
+                colocation_params=ColocationParams(),
+                inputs=[spec_leaf("a"), spec_leaf("b")],
+            ),
             "A reading combines searches with INTERSECT, UNION or MINUS, not COLOCATE.",
         ),
         (

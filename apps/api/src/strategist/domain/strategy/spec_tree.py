@@ -6,6 +6,7 @@ from typing import NamedTuple
 
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
+    ColocationParams,
     CombineOp,
     StrategyStepNode,
     clone_with_fresh_ids,
@@ -77,9 +78,15 @@ def _node_to_step(node: StructureNode, by_id: dict[str, Criterion]) -> StrategyS
         _node_to_operand(node.inputs[0], by_id),
         _node_to_operand(node.inputs[1], by_id),
         operator,
+        node.colocation_params,
     )
     for extra in node.inputs[2:]:
-        combined = _combine(combined, _node_to_operand(extra, by_id), operator)
+        combined = _combine(
+            combined,
+            _node_to_operand(extra, by_id),
+            operator,
+            node.colocation_params,
+        )
     return combined.step
 
 
@@ -92,7 +99,12 @@ def _node_to_operand(node: StructureNode, by_id: dict[str, Criterion]) -> _Opera
     return _Operand(step=_node_to_step(node, by_id), saved=saved)
 
 
-def _combine(left: _Operand, right: _Operand, operator: CombineOp) -> _Operand:
+def _combine(
+    left: _Operand,
+    right: _Operand,
+    operator: CombineOp,
+    colocation: ColocationParams | None,
+) -> _Operand:
     """Join two operands, with any saved strategy on the secondary side.
 
     WDK marks the SECONDARY input of a combine as the collapsed saved
@@ -120,6 +132,7 @@ def _combine(left: _Operand, right: _Operand, operator: CombineOp) -> _Operand:
     step = StrategyStepNode(
         search_name=COMBINE_SEARCH_NAME,
         operator=operator,
+        colocation_params=colocation,
         display_name=combine_display_name(operator),
         primary_input=left.step,
         secondary_input=right.step,

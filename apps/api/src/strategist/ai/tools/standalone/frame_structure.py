@@ -234,6 +234,9 @@ async def set_structure(
       "inputs": [<left>, <right>]}`` -- boolean-combine two or more
       subtrees. A tree of one criterion is that criterion's leaf. The inputs
       of a combine return one record type; a transform maps one type to another.
+      A ``"COLOCATE"`` combine keeps the genes of its first input near the
+      features of its second and states ``"colocationParams"`` (operation,
+      strand, regions and offsets); no other node states them.
     - ``{"kind": "transform", "criterionId": "<id>", "inputs": [<subtree>]}``
       -- a search that MAPS the subtree's genes rather than combining with
       them (e.g. ``GenesByOrthologs`` returning orthologs in another

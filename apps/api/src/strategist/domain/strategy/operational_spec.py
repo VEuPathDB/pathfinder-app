@@ -10,7 +10,7 @@ from veupathdb.domain.parameters import (
     UnboundParameter,
     value_kind,
 )
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import ColocationParams, CombineOp
 from veupathdb.model import CamelModel
 
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
@@ -31,10 +31,10 @@ from strategist.domain.strategy.structure_reading import (
     NODE_SHAPES,
     SpareWrapper,
     record_class_at,
+    shape_refusal,
 )
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
-MIN_COMBINE_INPUTS = 2
 
 
 class OpenSlot(UnboundParameter):
@@ -203,6 +203,7 @@ class StructureNode(CamelModel):
     kind: Literal["leaf", "combine", "transform", "copy"]
     criterion_id: str | None = None
     operator: CombineOp | None = None
+    colocation_params: ColocationParams | None = None
     inputs: list[StructureNode] = Field(default_factory=list)
 
     @model_validator(mode="before")
@@ -217,17 +218,15 @@ class StructureNode(CamelModel):
 
     @model_validator(mode="after")
     def _in_the_shape_of_its_kind(self) -> StructureNode:
-        named = self.criterion_id is not None
-        joined = self.operator is not None
-        count = len(self.inputs)
-        fits = {
-            "leaf": named and not joined and count == 0,
-            "combine": joined and not named and count >= MIN_COMBINE_INPUTS,
-            "transform": named and not joined and count == 1,
-            "copy": not named and not joined and count == 1,
-        }[self.kind]
-        if not fits:
-            raise ValueError(NODE_SHAPES[self.kind])
+        refusal = shape_refusal(
+            self.kind,
+            named=self.criterion_id is not None,
+            operator=self.operator,
+            colocated=self.colocation_params is not None,
+            count=len(self.inputs),
+        )
+        if refusal is not None:
+            raise ValueError(refusal)
         return self
 
     @property
