@@ -39,6 +39,7 @@ test.describe("EDA export as a strategy step", () => {
   test("the figure of a compute exports a step the strategy rail lists", async ({
     page,
     context,
+    graphPage,
   }) => {
     const conversationId = await openConversation(context);
     await routeEdaReads(page);
@@ -111,11 +112,7 @@ test.describe("EDA export as a strategy step", () => {
       new RegExp(`/strategist/conversation/${conversationId}$`),
     );
 
-    const panel = page.getByTestId("rail-strategy-panel");
-    if (!(await panel.isVisible())) {
-      await page.getByRole("button", { name: /^(Open|Close) Strategy$/ }).click();
-    }
-    await expect(panel).toBeVisible({ timeout: 20_000 });
+    await graphPage.expectRailPanel();
     await expect(
       page.getByTestId(`compact-step-row-${EXPORTED_STEP.id}`),
     ).toContainText(EXPORTED_STEP.displayName);

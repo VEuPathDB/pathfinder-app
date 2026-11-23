@@ -17,7 +17,7 @@ test.describe("Strategy page smoke", () => {
     const { conversationId } = await seedStrategy(apiClient, siteId);
 
     await page.goto(`conversation/${conversationId}`);
-    await graphPage.openRailStrategyPanel();
+    await graphPage.expectRailPanel();
     await expect(graphPage.railOpenButton).toBeVisible();
     await expect(graphPage.railStepRows).toHaveCount(1);
 
@@ -44,7 +44,7 @@ test.describe("Strategy page smoke", () => {
     const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
     await page.goto(`conversation/${conversationId}`);
-    await graphPage.openRailStrategyPanel();
+    await graphPage.expectRailPanel();
     await graphPage.railStepRow(rootStepId).click();
     await expect(page).toHaveURL(
       new RegExp(`/conversation/${conversationId}/strategy/step/${rootStepId}`),
@@ -77,7 +77,7 @@ test.describe("Strategy page smoke", () => {
 
     await page.keyboard.press("Escape");
     await graphPage.expectOnChatRoute(conversationId);
-    await graphPage.openRailStrategyPanel();
+    await graphPage.expectRailPanel();
     await expect(graphPage.railStepRows).toHaveCount(1);
   });
 

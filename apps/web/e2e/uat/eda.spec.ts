@@ -173,7 +173,7 @@ async function expectOneExportedStep(
   stepName: string,
 ): Promise<number> {
   const counts = await siteCounts(api, conversationId, siteId);
-  await graphPage.openRailStrategyPanel();
+  await graphPage.expectRailPanel();
   await expect(graphPage.railHeadline).toContainText(printed(counts.root));
   await expect(graphPage.railStepRows).toHaveCount(1);
   await expect(graphPage.railStepRows).toContainText(stepName);

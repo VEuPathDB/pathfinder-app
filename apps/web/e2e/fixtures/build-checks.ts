@@ -63,7 +63,7 @@ export async function expectBuild(
   await expect(resultFigure(page, counts.root)).not.toHaveCount(0);
 
   const graph = new GraphPage(page);
-  await graph.openRailStrategyPanel();
+  await graph.expectRailPanel();
   await expect(graph.railHeadline).toContainText(printed(counts.root));
   await expect(graph.railStepRows).toHaveCount(layout.steps);
   await expect(graph.railPanel).toContainText(printed(counts.root));

@@ -88,17 +88,6 @@ export class GraphPage {
     return this.page.getByTestId("strategy-headline");
   }
 
-  /**
-   * Bring the rail's Strategy panel on screen.
-   *
-   * The rail auto-opens Review on the thread's first user message, so the
-   * Strategy toggle reads "Open Strategy" until a spec clicks it.
-   */
-  async openRailStrategyPanel() {
-    await this.showRailStrategy();
-    await this.expectRailPanel();
-  }
-
   /** Bring the rail's Strategy panel on screen, with steps or without. */
   async showRailStrategy() {
     // The rail mounts with the conversation, so a page still rendering is not
@@ -320,8 +309,16 @@ export class GraphPage {
 
   // Compound assertions
   /** Assert the rail panel with steps is visible (planning artifact applied). */
+  /**
+   * Wait for the rail's Strategy panel, opening it when it is closed. The rail
+   * does not open itself when it would float over the thread.
+   */
   async expectRailPanel() {
-    await expect(this.railPanel).toBeVisible({ timeout: BUILD_TURN_BUDGET_MS });
+    const open = this.page.getByRole("button", { name: "Open Strategy", exact: true });
+    await expect(async () => {
+      if (await open.isVisible()) await open.click();
+      await expect(this.railPanel).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: BUILD_TURN_BUDGET_MS });
   }
 
   async expectStrategyTopbar() {

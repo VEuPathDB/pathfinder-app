@@ -159,7 +159,7 @@ test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
     await expect(factsLink).toHaveText(`Open results on ${site}`);
     await expect(factsLink).toHaveAttribute("href", url);
 
-    await graphPage.openRailStrategyPanel();
+    await graphPage.expectRailPanel();
     const railLink = page.getByRole("link", {
       name: `Open strategy on ${site}`,
       exact: true,

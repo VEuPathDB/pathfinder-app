@@ -249,7 +249,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       timeout: 60_000,
     });
     await page.waitForURL(/\/conversation\/[0-9a-f-]{36}$/, { timeout: 60_000 });
-    await graphPage.openRailStrategyPanel();
+    await graphPage.expectRailPanel();
     await expect(graphPage.railPanel).toContainText(printed(counts.root));
 
     await chatPage.newChat(siteId);
