@@ -68,6 +68,7 @@ vi.mock("@testing-library/react", async () => {
   const actual = await vi.importActual<typeof TestingLibraryReact>(
     "@testing-library/react",
   );
+  actual.configure({ asyncUtilTimeout: 5000 });
 
   return {
     ...actual,
