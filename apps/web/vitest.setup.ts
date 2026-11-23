@@ -1,9 +1,77 @@
 import type * as TestingLibraryReact from "@testing-library/react";
-import { createElement, type ComponentType, type ReactNode } from "react";
-import { QueryClientProvider } from "@tanstack/react-query";
+import type { ComponentType, ReactNode } from "react";
 import { afterEach, vi } from "vitest";
-import "@testing-library/jest-dom/vitest";
-import { createTestQueryClient } from "./src/lib/query/testing";
+
+// A file in the node environment renders nothing, so it loads none of the DOM
+// setup. A page file loads it here, before its own mocks can replace a module.
+const inPage = typeof window !== "undefined";
+
+type WrapperComponent = ComponentType<{ children: ReactNode }>;
+
+async function queryClientWrapper(): Promise<
+  (Wrapper?: WrapperComponent) => WrapperComponent
+> {
+  const [{ createElement }, { QueryClientProvider }, { createTestQueryClient }] =
+    await Promise.all([
+      import("react"),
+      import("@tanstack/react-query"),
+      import("./src/lib/query/testing"),
+      import("@testing-library/jest-dom/vitest"),
+    ]);
+  return (Wrapper) => {
+    const queryClient = createTestQueryClient();
+
+    function QueryClientWrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        Wrapper ? createElement(Wrapper, null, children) : children,
+      );
+    }
+
+    return QueryClientWrapper;
+  };
+}
+
+const withQueryClient = inPage ? await queryClientWrapper() : undefined;
+
+vi.mock("@testing-library/react", async () => {
+  const actual = await vi.importActual<typeof TestingLibraryReact>(
+    "@testing-library/react",
+  );
+  if (withQueryClient === undefined) {
+    throw new Error("Testing Library renders only in the jsdom environment");
+  }
+
+  return {
+    ...actual,
+    render: (
+      ui: Parameters<typeof actual.render>[0],
+      options?: Parameters<typeof actual.render>[1],
+    ) =>
+      actual.render(ui, {
+        ...(options ?? {}),
+        wrapper: withQueryClient(options?.wrapper as WrapperComponent | undefined),
+      }),
+    renderHook: <Result, Props>(
+      render: (initialProps: Props) => Result,
+      options?: Parameters<typeof actual.renderHook<Result, Props>>[1],
+    ) =>
+      actual.renderHook(render, {
+        ...(options ?? {}),
+        wrapper: withQueryClient(options?.wrapper as WrapperComponent | undefined),
+      }),
+  };
+});
+
+afterEach(async () => {
+  if (inPage) {
+    const { cleanup } = await import("@testing-library/react");
+    cleanup();
+  }
+  vi.clearAllMocks();
+  vi.unstubAllGlobals();
+});
 
 // Polyfills for libraries (cmdk, radix) that assume browser globals jsdom
 // doesn't ship by default.
@@ -47,52 +115,3 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
     dispatchEvent: () => true,
   });
 }
-
-type WrapperComponent = ComponentType<{ children: ReactNode }>;
-
-function withQueryClient(Wrapper?: WrapperComponent): WrapperComponent {
-  const queryClient = createTestQueryClient();
-
-  function QueryClientWrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      Wrapper ? createElement(Wrapper, null, children) : children,
-    );
-  }
-
-  return QueryClientWrapper;
-}
-
-vi.mock("@testing-library/react", async () => {
-  const actual = await vi.importActual<typeof TestingLibraryReact>(
-    "@testing-library/react",
-  );
-
-  return {
-    ...actual,
-    render: (
-      ui: Parameters<typeof actual.render>[0],
-      options?: Parameters<typeof actual.render>[1],
-    ) =>
-      actual.render(ui, {
-        ...(options ?? {}),
-        wrapper: withQueryClient(options?.wrapper as WrapperComponent | undefined),
-      }),
-    renderHook: <Result, Props>(
-      render: (initialProps: Props) => Result,
-      options?: Parameters<typeof actual.renderHook<Result, Props>>[1],
-    ) =>
-      actual.renderHook(render, {
-        ...(options ?? {}),
-        wrapper: withQueryClient(options?.wrapper as WrapperComponent | undefined),
-      }),
-  };
-});
-
-afterEach(async () => {
-  const { cleanup } = await import("@testing-library/react");
-  cleanup();
-  vi.clearAllMocks();
-  vi.unstubAllGlobals();
-});

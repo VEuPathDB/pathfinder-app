@@ -1,6 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QueryClient, QueryMeta } from "@tanstack/react-query";
 import { APIError } from "@/lib/api/http";
