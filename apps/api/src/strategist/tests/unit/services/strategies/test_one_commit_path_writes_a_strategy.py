@@ -109,6 +109,7 @@ def plan_root(
         display_name="Contains membrane genes",
         operator=CombineOp.COLOCATE,
         colocation_params=coloc,
+        wdk_weight=4,
         primary_input=union,
         secondary_input=_text("step_c", "membrane", "Membrane text"),
     )
@@ -239,7 +240,9 @@ def cells(env: Env, strategy_id: int | None, plan: StrategyStepNode) -> dict[str
             h["searchConfig"]["wdkWeight"] == (n.wdk_weight or 0) for n, h in leaves
         ),
         "weight_combine": all(
-            h["searchConfig"]["wdkWeight"] == (n.wdk_weight or 0) for n, h in booleans
+            h["searchConfig"]["wdkWeight"] == (n.wdk_weight or 0)
+            for n, h in pairs
+            if n.infer_kind() == "combine"
         ),
         "sort_root": root_held["displayPreferences"].get("sortColumns") == _SORTED,
         "filter_added": filters_as_planned(env, strategy_id, plan),

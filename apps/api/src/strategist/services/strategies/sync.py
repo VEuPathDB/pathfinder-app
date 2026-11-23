@@ -1,13 +1,11 @@
-"""The strategy's step tree as WDK keys it, its labels, and what a tree write answers."""
+"""The strategy's step tree as WDK keys it, and what a tree write answers."""
 
 from dataclasses import dataclass
 
-from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import StrategyStepNode
-from veupathdb.errors import VEuPathDBError, WDKError
+from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     MissingWDKStepIdError,
-    StrategyAPI,
     WDKStepTree,
     build_wdk_step_tree,
     walk_wdk_step_tree,
@@ -15,8 +13,6 @@ from veupathdb.wdk import (
 
 from strategist.platform.errors import StrategyCompilationError
 from strategist.services.strategies.sync_state import WDKSyncState
-
-logger = get_logger(__name__)
 
 
 class TreeNotHeldError(WDKError):
@@ -58,42 +54,6 @@ def build_step_tree_from_graph(
         return build_wdk_step_tree(root, wdk_step_ids)
     except MissingWDKStepIdError as exc:
         raise StrategyCompilationError(str(exc)) from exc
-
-
-@dataclass(frozen=True)
-class StrategyLabels:
-    name: str
-    description: str
-
-
-def _lagging(held: str | None, wanted: str) -> str | None:
-    return wanted if held is not None and held != wanted else None
-
-
-async def put_the_strategy_labels(
-    api: StrategyAPI, sync_state: WDKSyncState, labels: StrategyLabels
-) -> None:
-    if sync_state.wdk_strategy_id is None:
-        return
-    name = _lagging(sync_state.wdk_strategy_name, labels.name)
-    description = _lagging(sync_state.wdk_strategy_description, labels.description)
-    if name is None and description is None:
-        return
-    try:
-        await api.update_strategy(
-            sync_state.wdk_strategy_id, name=name, description=description
-        )
-    except VEuPathDBError as exc:
-        logger.warning(
-            "WDK did not take the strategy's labels",
-            wdk_strategy_id=sync_state.wdk_strategy_id,
-            error=str(exc),
-        )
-        return
-    if name is not None:
-        sync_state.wdk_strategy_name = name
-    if description is not None:
-        sync_state.wdk_strategy_description = description
 
 
 def step_tree_is_current(root_step: StrategyStepNode, sync_state: WDKSyncState) -> bool:

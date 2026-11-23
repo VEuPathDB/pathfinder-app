@@ -32,6 +32,7 @@ from strategist.services.strategies._tree_write import (
 )
 from strategist.services.strategies._wdk_step_calls import (
     _sort_a_ranking,
+    finished_step,
     written_step,
 )
 from strategist.services.strategies.record_classes import (
@@ -90,7 +91,6 @@ class _Commit:
     failures: list[StepPushFailure] = field(default_factory=list)
     drafts: dict[str, str] = field(default_factory=dict)
     skipped: list[str] = field(default_factory=list)
-    replaced: list[int] = field(default_factory=list)
 
     @property
     def blocked(self) -> set[str]:
@@ -182,9 +182,38 @@ class _Commit:
             return
         match entry.action:
             case SkipAction():
-                return
-            case CreateAction() | PatchAction() | RecreateAction() as action:
+                if self._unfinished(step):
+                    await self._finish(step)
+            case PatchAction() as action:
+                if not self._unfinished(step) or await self._finish(step):
+                    await self._write(action, step)
+            case CreateAction() | RecreateAction() as action:
                 await self._write(action, step)
+
+    def _unfinished(self, step: StrategyStep) -> bool:
+        return (
+            step.id in self.sync_state.wdk_step_ids
+            and step.id in self.sync_state.wdk_push_errors
+            and step.filters_wdk_added is None
+        )
+
+    async def _finish(self, step: StrategyStep) -> bool:
+        record_type = step_class_of(self.steps, step.id)
+        if record_type is None:
+            self._fail(unclassed_step_failure(step.id, wdk_search_name(step)))
+            return False
+        failure = await finished_step(
+            self.api,
+            self.sync_state,
+            step,
+            record_type,
+            self.before.get(step.id, StepSettings()),
+        )
+        if failure is not None:
+            self._fail(failure)
+            return False
+        self.pushed.append(step.id)
+        return True
 
     async def _write(
         self, action: CreateAction | PatchAction | RecreateAction, step: StrategyStep
@@ -202,7 +231,7 @@ class _Commit:
             before=self.before.get(step.id, StepSettings()),
         )
         if replaced is not None:
-            self.replaced.append(replaced)
+            self.sync_state.replaced_wdk_step_ids.append(replaced)
         if failure is not None:
             self._fail(failure)
             return
@@ -240,12 +269,11 @@ class _Commit:
             != self.steps[sid].wdk_weight
         ]
         await self._sort(root.id, [*reweighed, *moved])
-        await delete_what_the_tree_dropped(
-            self.api, self.steps, self.sync_state, self.replaced
-        )
+        await delete_what_the_tree_dropped(self.api, self.steps, self.sync_state)
         live = await read_the_strategy(self.api, self.sync_state)
         held = held_by_id(live, self.sync_state)
         for node in walk(root):
+            self._record_what_wdk_added(node, held.get(node.id))
             self._departed(node, held.get(node.id))
         sync = (
             None
@@ -264,6 +292,16 @@ class _Commit:
                 error=str(exc)[:300],
             )
 
+    def _record_what_wdk_added(
+        self, node: StrategyStepNode, holds: StepSettings | None
+    ) -> None:
+        step = self.steps[node.id]
+        if holds is None or step.filters_wdk_added is not None:
+            return
+        before = holds.filters_wdk_added(self.before.get(node.id, StepSettings()))
+        after = holds.filters_wdk_added(settings_of(node))
+        step.filters_wdk_added = [f for f in before if f in after]
+
     def _departed(self, node: StrategyStepNode, holds: StepSettings | None) -> None:
         if holds is None:
             return
@@ -273,7 +311,7 @@ class _Commit:
         for name in holds.departures_from(
             self.before.get(node.id, StepSettings()),
             stated,
-            wdk_added=self.sync_state.filters_wdk_added.get(node.id, []),
+            wdk_added=self.steps[node.id].filters_wdk_added or [],
         ):
             if name == _WDK_NAMES_NO_SAVED_STRATEGY:
                 continue
@@ -307,9 +345,8 @@ async def commit_tree(
         new_ast=StrategyAst(record_type="", root=root),
         existing_wdk_ids=sync_state.wdk_step_ids,
     )
-    run = _Commit(
-        get_strategy_api(site_id), site_id, steps, sync_state, _settings_by_id(old)
-    )
+    held_before = _held_before(old, steps, sync_state)
+    run = _Commit(get_strategy_api(site_id), site_id, steps, sync_state, held_before)
     await run.validate(plan)
     for entry in plan:
         await run.push(entry)
@@ -323,14 +360,23 @@ async def commit_tree(
 async def drop_the_tree(
     *, site_id: str, steps: dict[str, StrategyStep], sync_state: WDKSyncState
 ) -> None:
-    await delete_what_the_tree_dropped(get_strategy_api(site_id), steps, sync_state, [])
+    await delete_what_the_tree_dropped(get_strategy_api(site_id), steps, sync_state)
 
 
-def _settings_by_id(old: StrategyAst | None) -> dict[str, StepSettings]:
+def _held_before(
+    old: StrategyAst | None,
+    steps: dict[str, StrategyStep],
+    sync_state: WDKSyncState,
+) -> dict[str, StepSettings]:
     if old is None:
         return {}
     nodes = [*walk(old.root), *(n for r in old.detached_roots for n in walk(r))]
-    return {node.id: settings_of(node) for node in nodes}
+    held = [n for n in nodes if n.id in sync_state.wdk_step_ids]
+    for node in held:
+        step = steps.get(node.id)
+        if step is not None and step.filters_wdk_added is None:
+            step.filters_wdk_added = node.filters_wdk_added
+    return {node.id: settings_of(node) for node in held}
 
 
 def _writes_parameters(action: StepActionT) -> bool:

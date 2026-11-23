@@ -22,11 +22,9 @@ from strategist.services.strategies.organism_params import (
 )
 from strategist.services.strategies.result_list import result_list_url
 from strategist.services.strategies.sync import (
-    StrategyLabels,
     SyncResult,
     TreeNotHeldError,
     build_step_tree_from_graph,
-    put_the_strategy_labels,
     step_tree_is_current,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -34,6 +32,42 @@ from strategist.services.strategies.sync_state import WDKSyncState
 logger = get_logger(__name__)
 
 type StrategyRole = Literal["thread", "saved", "internal"]
+
+
+@dataclass(frozen=True)
+class StrategyLabels:
+    name: str
+    description: str
+
+
+def _lagging(held: str | None, wanted: str) -> str | None:
+    return wanted if held is not None and held != wanted else None
+
+
+async def put_the_strategy_labels(
+    api: StrategyAPI, sync_state: WDKSyncState, labels: StrategyLabels
+) -> None:
+    if sync_state.wdk_strategy_id is None:
+        return
+    name = _lagging(sync_state.wdk_strategy_name, labels.name)
+    description = _lagging(sync_state.wdk_strategy_description, labels.description)
+    if name is None and description is None:
+        return
+    try:
+        await api.update_strategy(
+            sync_state.wdk_strategy_id, name=name, description=description
+        )
+    except VEuPathDBError as exc:
+        logger.warning(
+            "WDK did not take the strategy's labels",
+            wdk_strategy_id=sync_state.wdk_strategy_id,
+            error=str(exc),
+        )
+        return
+    if name is not None:
+        sync_state.wdk_strategy_name = name
+    if description is not None:
+        sync_state.wdk_strategy_description = description
 
 
 @dataclass(frozen=True)
@@ -119,11 +153,9 @@ async def _write_the_tree(
 
 
 async def delete_what_the_tree_dropped(
-    api: StrategyAPI,
-    steps: dict[str, StrategyStep],
-    sync_state: WDKSyncState,
-    replaced: list[int],
+    api: StrategyAPI, steps: dict[str, StrategyStep], sync_state: WDKSyncState
 ) -> None:
+    replaced = list(sync_state.replaced_wdk_step_ids)
     dropped = {
         local: wdk
         for local, wdk in sync_state.wdk_step_ids.items()
@@ -135,11 +167,11 @@ async def delete_what_the_tree_dropped(
     if not dropped and not replaced:
         return
     leftover = set(await api.delete_orphaned_steps([*dropped.values(), *replaced]))
+    sync_state.replaced_wdk_step_ids = [i for i in replaced if i in leftover]
     for local, wdk in dropped.items():
         if wdk not in leftover:
             sync_state.wdk_step_ids.pop(local, None)
             sync_state.wdk_push_errors.pop(local, None)
-            sync_state.filters_wdk_added.pop(local, None)
     if leftover:
         logger.warning(
             "Some orphaned WDK steps could not be deleted", step_ids=sorted(leftover)

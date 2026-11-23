@@ -88,7 +88,9 @@ class RecordingAPI:
         search_name: str,
         *,
         user_id: str | None = None,
+        held: WDKStep | None = None,
     ) -> None:
+        del held
         del user_id, record_type
         self.calls.append(
             Call(

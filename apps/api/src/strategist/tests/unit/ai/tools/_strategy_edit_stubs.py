@@ -165,7 +165,9 @@ class StubAPI:
         search_name: str,
         *,
         user_id: str | None = None,
+        held: WDKStep | None = None,
     ) -> None:
+        del held
         del user_id
         self._record(
             "update_step_search_config",

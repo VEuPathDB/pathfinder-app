@@ -13152,6 +13152,13 @@ components:
           - type: string
           - type: 'null'
           title: Expandedname
+        filtersWdkAdded:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/StepFilter'
+            type: array
+          - type: 'null'
+          title: Filterswdkadded
         id:
           type: string
           title: Id

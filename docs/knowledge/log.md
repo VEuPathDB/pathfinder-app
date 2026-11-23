@@ -318,6 +318,12 @@
   names the field. The edit path, the snapshot materialize and the resync after recovery
   run through it; the filter pass and the sort in `sync.py` and `step_wdk_push.py` are
   gone, and an import-linter contract names the modules that may import the step writers.
+  Each step carries the filters WDK added (`filters_wdk_added`, recorded from the read
+  after its create and persisted with the graph); a held step whose last push failed
+  with no record is finished by the next commit before anything else, the WDK ids a
+  recreate replaced wait in the sync state until a put lands, a step WDK does not hold
+  states every value it carries, and a unit test names every module that calls a WDK
+  strategy write.
 
 * **Every value shown to an agent reads back.** A filter with no clauses is shown `[]`
   and `[]` binds `{"filters":[]}`, the text WDK's no-filter value is; a value stated back

@@ -42,6 +42,7 @@ def _graph_after_the_delete() -> StrategyGraph:
     )
     for step in graph.steps.values():
         step.record_class = "transcript"
+        step.filters_wdk_added = []
     graph.recompute_roots()
     return graph
 

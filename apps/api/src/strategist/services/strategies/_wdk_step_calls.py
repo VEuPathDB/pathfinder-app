@@ -155,7 +155,7 @@ async def _push_combine_step(
         wdk_result = await api.create_transform_step(
             NewStepSpec(
                 search_name=COLOCATION_SEARCH,
-                search_config=WDKSearchConfig(parameters=coloc.to_wdk_params()),
+                search_config=_search_config(coloc.to_wdk_params(), step),
                 custom_name=name,
             ),
             input_step_id=primary_wdk_id,
@@ -236,18 +236,20 @@ async def _put_search_config(
     wdk_id = sync_state.wdk_step_ids[step.id]
     stated = settings_of(step)
     config = WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight or 0)
+    found = None
     if "filters" in stated.changed(before):
-        held = _held_settings(await api.find_step(wdk_id))
+        found = await api.find_step(wdk_id)
         config = WDKSearchConfig(
             parameters=str_params,
             wdk_weight=step.wdk_weight or 0,
-            filters=_on_the_wire(held.filters_to_put(before, stated)),
+            filters=_on_the_wire(_held_settings(found).filters_to_put(before, stated)),
         )
     await api.update_step_search_config(
         step_id=wdk_id,
         search_config=config,
         record_type=record_type,
         search_name=wdk_search_name(step),
+        held=found,
     )
 
 
@@ -318,24 +320,25 @@ async def _put_the_stated_filters(
     sync_state: WDKSyncState,
     step: StrategyStep,
     record_type: str,
+    before: StepSettings,
 ) -> None:
     wdk_id = sync_state.wdk_step_ids[step.id]
     found = await api.find_step(wdk_id)
     held = _held_settings(found)
-    sync_state.filters_wdk_added[step.id] = held.filters_wdk_added(StepSettings())
-    if not step.filters:
-        return
-    await api.update_step_search_config(
-        step_id=wdk_id,
-        search_config=WDKSearchConfig(
-            parameters=dict(found.search_config.parameters),
-            filters=_on_the_wire(
-                held.filters_to_put(StepSettings(), settings_of(step))
+    stated = settings_of(step)
+    wanted = held.filters_to_put(before, stated)
+    if wanted != held.filters:
+        await api.update_step_search_config(
+            step_id=wdk_id,
+            search_config=WDKSearchConfig(
+                parameters=dict(found.search_config.parameters),
+                filters=_on_the_wire(wanted),
             ),
-        ),
-        record_type=record_type,
-        search_name=found.search_name,
-    )
+            record_type=record_type,
+            search_name=found.search_name,
+            held=found,
+        )
+    step.filters_wdk_added = held.filters_wdk_added(before)
 
 
 def _failure(
@@ -356,12 +359,28 @@ async def pushed_step(
     record_type: str,
     parameters: Mapping[str, ParamValue],
 ) -> StepPushFailure | None:
+    step.filters_wdk_added = None
     try:
         wdk_id = await _new_step(api, sync_state, step, record_type, parameters)
         if wdk_id is None:
             return _failure(step, "push returned no wdk step id")
         sync_state.wdk_step_ids[step.id] = wdk_id
-        await _put_the_stated_filters(api, sync_state, step, record_type)
+    except VEuPathDBError as exc:
+        return _failure(step, str(exc), exc.status)
+    except OSError as exc:
+        return _failure(step, str(exc))
+    return await finished_step(api, sync_state, step, record_type, StepSettings())
+
+
+async def finished_step(
+    api: StrategyAPI,
+    sync_state: WDKSyncState,
+    step: StrategyStep,
+    record_type: str,
+    before: StepSettings,
+) -> StepPushFailure | None:
+    try:
+        await _put_the_stated_filters(api, sync_state, step, record_type, before)
     except VEuPathDBError as exc:
         return _failure(step, str(exc), exc.status)
     except OSError as exc:

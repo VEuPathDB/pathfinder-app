@@ -118,7 +118,9 @@ class _SlowAPI(wdk_write_stubs.NoStrategyRead):
         search_name: str,
         *,
         user_id: str | None = None,
+        held: WDKStep | None = None,
     ) -> None:
+        del held
         del step_id, search_config, record_type, search_name, user_id
         await self._maybe_slow(_PARAM_PUSH)
 

@@ -139,7 +139,9 @@ class _Api:
         search_config: WDKSearchConfig,
         record_type: str,
         search_name: str,
+        held: WDKStep | None = None,
     ) -> None:
+        del held
         del step_id, record_type, search_name
         self.written.append(dict(search_config.parameters))
         self._refuse()

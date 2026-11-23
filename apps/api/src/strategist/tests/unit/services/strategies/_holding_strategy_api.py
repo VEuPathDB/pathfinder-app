@@ -78,6 +78,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
     writes: list[Write] = field(default_factory=list)
     drops_the_weight_on_create: bool = False
     refuses_patches: bool = False
+    refuses_once: set[str] = field(default_factory=set)
     next_id: int = 5000
 
     def written(self, method: str, suffix: str = "") -> list[Write]:
@@ -92,6 +93,10 @@ class HoldingWDK(httpx.AsyncBaseTransport):
             self.writes.append(Write(request.method, path, copy.deepcopy(body)))
         if request.method == "PATCH" and self.refuses_patches:
             return httpx.Response(422, json={"message": "refused"})
+        kind = _kind_of(request.method, path)
+        if kind in self.refuses_once:
+            self.refuses_once.discard(kind)
+            return httpx.Response(422, json={"message": f"{kind} refused"})
         answer = self._answer(request.method, path, body)
         if answer is None:
             return httpx.Response(204)
@@ -247,6 +252,14 @@ class HoldingWDK(httpx.AsyncBaseTransport):
                 str(i): self._step_json(i) for i in _tree_ids(tree) if i in self.steps
             },
         }
+
+
+def _kind_of(method: str, path: str) -> str:
+    if method == "GET" and _STEP.fullmatch(path):
+        return "step read"
+    if method == "PUT" and _STEP_CONFIG.fullmatch(path):
+        return "search-config put"
+    return ""
 
 
 def _tree_ids(tree: dict[str, Any] | None) -> list[int]:

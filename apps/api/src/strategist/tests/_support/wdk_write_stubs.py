@@ -25,14 +25,15 @@ from strategist.services.strategies import (
     live_counts,
     stated_sides,
 )
-from strategist.services.strategies._tree_write import TreeTarget, WrittenTree
+from strategist.services.strategies._tree_write import (
+    StrategyLabels,
+    TreeTarget,
+    WrittenTree,
+    put_the_strategy_labels,
+)
 from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.naming import name_for_the_push
-from strategist.services.strategies.sync import (
-    StrategyLabels,
-    put_the_strategy_labels,
-    step_tree_is_current,
-)
+from strategist.services.strategies.sync import step_tree_is_current
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_searches import (

@@ -120,7 +120,9 @@ class CountingAPI(NoStrategyRead):
         search_name: str,
         *,
         user_id: str | None = None,
+        held: WDKStep | None = None,
     ) -> None:
+        del held
         del user_id
         self.calls.append(
             Call(
@@ -277,7 +279,9 @@ class FailingAPI(CountingAPI):
         search_name: str,
         *,
         user_id: str | None = None,
+        held: WDKStep | None = None,
     ) -> None:
+        del held
         if search_name == self.fail_search:
             msg = "WDK rejected this step"
             raise WDKError(msg, 422)
