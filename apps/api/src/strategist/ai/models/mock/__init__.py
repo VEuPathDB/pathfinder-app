@@ -19,8 +19,10 @@ from assistant_core.models.scripted import (
 )
 from pydantic_ai.messages import ModelMessage, TextPart, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.profiles import ModelProfile
 
 from strategist.ai.models.mock.arc import Arc, Role, Script
+from strategist.ai.models.mock.compaction import compaction, compacts_the_notes
 from strategist.ai.models.mock.consult_arc import CONSULT
 from strategist.ai.models.mock.directive import ArcDirective
 from strategist.ai.models.mock.faults import fault_call, without_fault_calls
@@ -98,6 +100,8 @@ def _unmarked(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
     A turn the reading put out of scope offers the Lead and Explore no tool at
     all, so the role table has nothing to read and the agent's own arc answers it.
     """
+    if compacts_the_notes(messages):
+        return compaction(messages)
     if _EXPLORE_MARK in instructions_of(messages):
         return explore_script(messages)
     if is_the_leads_run(messages):
@@ -119,7 +123,19 @@ STRATEGIST_SCRIPT = ScriptedModel(
 
 
 def get_mock_model() -> FunctionModel:
-    return STRATEGIST_SCRIPT.as_function_model()
+    scripted = STRATEGIST_SCRIPT.as_function_model()
+    respond, stream = scripted.function, scripted.stream_function
+    if respond is None or stream is None:
+        msg = "the scripted model answers in both modes"
+        raise TypeError(msg)
+    return FunctionModel(
+        respond,
+        stream_function=stream,
+        model_name=scripted.model_name,
+        profile=ModelProfile(
+            supports_inline_system_prompts=True, supports_json_schema_output=True
+        ),
+    )
 
 
 __all__ = ["STRATEGIST_SCRIPT", "get_mock_model", "role_script", "turn_directive"]

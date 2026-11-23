@@ -37,6 +37,9 @@ says "using GenesByRNASeq with params X").
 """
 
 
+INPUT_NOTES_HEADING = "## Input notes (non-pinned, for compaction)"
+
+
 def _note_text(note: NoteCreate) -> str:
     return "\n".join((note.title, note.summary, " ".join(note.tags), note.body))
 
@@ -72,10 +75,7 @@ def build_compactor_agent(
 
     @agent.instructions
     def _input_notes(ctx: RunContext[CompactorDeps]) -> str:
-        return (
-            "## Input notes (non-pinned, for compaction)\n\n"
-            f"{ctx.deps.input_notes_markdown}"
-        )
+        return f"{INPUT_NOTES_HEADING}\n\n{ctx.deps.input_notes_markdown}"
 
     @agent.output_validator
     def _keeps_every_identifier(
@@ -88,3 +88,6 @@ def build_compactor_agent(
         return output
 
     return agent
+
+
+__all__ = ["INPUT_NOTES_HEADING", "build_compactor_agent"]
