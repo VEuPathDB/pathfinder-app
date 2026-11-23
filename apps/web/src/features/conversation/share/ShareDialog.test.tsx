@@ -20,6 +20,7 @@ interface Stored {
   public: boolean;
   allowCopy: boolean;
   includeAccountReads: boolean;
+  includeContext: boolean;
 }
 
 function serve(initial: Stored | null) {
@@ -82,7 +83,12 @@ describe("ShareDialog", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Create link" }));
 
     expect(puts).toEqual([
-      { public: false, allowCopy: false, includeAccountReads: false },
+      {
+        public: false,
+        allowCopy: false,
+        includeAccountReads: false,
+        includeContext: true,
+      },
     ]);
     expect(await screen.findByLabelText("Password")).toHaveValue("pw-1");
     expect(screen.getByLabelText("Link")).toHaveValue(
@@ -105,14 +111,25 @@ describe("ShareDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Create link" }));
 
     expect(puts).toEqual([
-      { public: true, allowCopy: true, includeAccountReads: false },
+      {
+        public: true,
+        allowCopy: true,
+        includeAccountReads: false,
+        includeContext: true,
+      },
     ]);
     await screen.findByLabelText("Link");
     expect(screen.queryByLabelText("Password")).toBeNull();
   });
 
   it("copies the link", async () => {
-    serve({ token: TOKEN, public: true, allowCopy: false, includeAccountReads: false });
+    serve({
+      token: TOKEN,
+      public: true,
+      allowCopy: false,
+      includeAccountReads: false,
+      includeContext: true,
+    });
     open();
 
     await userEvent.click(await screen.findByRole("button", { name: "Copy link" }));
@@ -128,6 +145,7 @@ describe("ShareDialog", () => {
       public: false,
       allowCopy: false,
       includeAccountReads: false,
+      includeContext: true,
     });
     open();
 
@@ -145,6 +163,7 @@ describe("ShareDialog", () => {
       public: true,
       allowCopy: false,
       includeAccountReads: false,
+      includeContext: true,
     });
     open();
 
@@ -156,7 +175,12 @@ describe("ShareDialog", () => {
 
     await waitFor(() =>
       expect(puts).toEqual([
-        { public: true, allowCopy: true, includeAccountReads: false },
+        {
+          public: true,
+          allowCopy: true,
+          includeAccountReads: false,
+          includeContext: true,
+        },
       ]),
     );
   });
@@ -167,6 +191,7 @@ describe("ShareDialog", () => {
       public: true,
       allowCopy: false,
       includeAccountReads: false,
+      includeContext: true,
     });
     open();
 
@@ -178,7 +203,12 @@ describe("ShareDialog", () => {
 
     await waitFor(() =>
       expect(puts).toEqual([
-        { public: true, allowCopy: false, includeAccountReads: true },
+        {
+          public: true,
+          allowCopy: false,
+          includeAccountReads: true,
+          includeContext: true,
+        },
       ]),
     );
   });
@@ -189,6 +219,7 @@ describe("ShareDialog", () => {
       public: true,
       allowCopy: false,
       includeAccountReads: false,
+      includeContext: true,
     });
     open();
 
@@ -198,5 +229,79 @@ describe("ShareDialog", () => {
     expect(
       await screen.findByRole("button", { name: "Create link" }),
     ).toBeInTheDocument();
+  });
+  it("carries the strategy unless the box is cleared", async () => {
+    const { puts } = serve(null);
+    open();
+
+    expect(
+      await screen.findByRole("checkbox", {
+        name: "Include the strategy and its context",
+      }),
+    ).toBeChecked();
+    await userEvent.click(screen.getByRole("button", { name: "Create link" }));
+
+    expect(puts).toEqual([
+      {
+        public: false,
+        allowCopy: false,
+        includeAccountReads: false,
+        includeContext: true,
+      },
+    ]);
+  });
+
+  it("saves the context box at once", async () => {
+    const { puts } = serve({
+      token: TOKEN,
+      public: true,
+      allowCopy: false,
+      includeAccountReads: false,
+      includeContext: true,
+    });
+    open();
+
+    await userEvent.click(
+      await screen.findByRole("checkbox", {
+        name: "Include the strategy and its context",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(puts).toEqual([
+        {
+          public: true,
+          allowCopy: false,
+          includeAccountReads: false,
+          includeContext: false,
+        },
+      ]),
+    );
+  });
+
+  it("shows a link that leaves the context out with the box cleared", async () => {
+    serve({
+      token: TOKEN,
+      public: true,
+      allowCopy: false,
+      includeAccountReads: false,
+      includeContext: false,
+    });
+    open();
+
+    expect(
+      await screen.findByRole("checkbox", {
+        name: "Include the strategy and its context",
+      }),
+    ).not.toBeChecked();
+  });
+
+  it("says the account box also covers a step's input lists", async () => {
+    serve(null);
+    open();
+
+    expect(
+      await screen.findByText(/and the lists a step takes as input\./),
+    ).toBeVisible();
   });
 });

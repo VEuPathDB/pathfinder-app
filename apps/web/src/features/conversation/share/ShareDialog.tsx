@@ -31,6 +31,7 @@ const NO_SETTINGS: ShareSettings = {
   public: false,
   allowCopy: false,
   includeAccountReads: false,
+  includeContext: true,
 };
 
 export function ShareDialog({
@@ -83,6 +84,7 @@ export function ShareDialog({
           public: share.public,
           allowCopy: share.allowCopy,
           includeAccountReads: share.includeAccountReads,
+          includeContext: share.includeContext,
         };
   const busy = save.isPending || renew.isPending || stop.isPending;
   const change = (next: ShareSettings) =>
@@ -118,8 +120,15 @@ export function ShareDialog({
                 onChange={(value) => change({ ...settings, allowCopy: value })}
               />
               <Choice
+                label="Include the strategy and its context"
+                hint="The strategy, its counts, what the conversation checked and its study, read-only. Nothing in them can be run or changed."
+                checked={settings.includeContext !== false}
+                disabled={busy}
+                onChange={(value) => change({ ...settings, includeContext: value })}
+              />
+              <Choice
                 label="Include what it read from your account"
-                hint="Control sets, gene sets, saved strategies, other conversations and memories it looked up. Otherwise they show as not shared."
+                hint="Control sets, gene sets, saved strategies, other conversations and memories it looked up, and the lists a step takes as input. Otherwise they show as not shared."
                 checked={settings.includeAccountReads === true}
                 disabled={busy}
                 onChange={(value) =>
