@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
+from strategist.domain.strategy.operational_spec import SpecStructure
 from strategist.domain.strategy.question_options import PickTail
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.platform.errors import ConversationFromEarlierBuildError
@@ -91,5 +92,4 @@ def test_a_saved_colocation_without_parameters_loads_unstated() -> None:
 
     spec = state.domain.operational_spec
     assert spec is not None
-    assert spec.structure is not None
-    assert spec.structure.root.colocation_params is None
+    assert spec.structure == SpecStructure.model_validate({"root": colocated})
