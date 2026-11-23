@@ -17,6 +17,7 @@ from veupathdb.domain.strategy import (
 )
 
 from strategist.domain.strategy.expression_handles import stated_text
+from strategist.domain.strategy.step_settings_text import OWN_LINES
 
 __all__ = [
     "ParamChange",
@@ -111,7 +112,7 @@ def _step_change(
     params = _param_changes(before, after)
     searches_differ = before.search_name != after.search_name
     was, now = settings_of(before), settings_of(after)
-    settings = [name for name in was.changed(now) if name not in _OWN_LINES]
+    settings = [name for name in was.changed(now) if name not in OWN_LINES]
     if not params and not searches_differ and not settings:
         return None
     return StepChange(
@@ -124,9 +125,6 @@ def _step_change(
         before=was,
         after=now,
     )
-
-
-_OWN_LINES = frozenset({"search_name", "parameters"})
 
 
 def _summary(node: StrategyStepNode) -> StepSummary:

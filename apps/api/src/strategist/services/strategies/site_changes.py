@@ -48,6 +48,7 @@ from veupathdb_mcp.wdk import (
 
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
+from strategist.domain.strategy.step_settings_text import OWN_LINES
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
@@ -60,8 +61,6 @@ from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_
 from strategist.services.strategies.write_lock import strategy_write_lock
 
 logger = get_logger(__name__)
-
-_OWN_LINES = frozenset({"search_name", "parameters"})
 
 
 __all__ = [
@@ -247,7 +246,7 @@ def _take_the_settings(step: StrategyStep, site: StepSettings) -> bool:
     moved = [
         name
         for name in held.changed(stated)
-        if name in SITE_HELD_SETTINGS and name not in _OWN_LINES
+        if name in SITE_HELD_SETTINGS and name not in OWN_LINES
     ]
     taken = dict(stated)
     for name in moved:

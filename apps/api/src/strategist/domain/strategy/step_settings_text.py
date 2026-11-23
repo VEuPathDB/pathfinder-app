@@ -13,13 +13,14 @@ from strategist.domain.strategy.expression_handles import cut_stated
 from strategist.domain.strategy.operational_spec import Criterion
 
 __all__ = [
+    "OWN_LINES",
     "colocation_text",
     "criterion_settings",
     "settings_change_text",
     "settings_text",
 ]
 
-_OWN_LINES = frozenset({"search_name", "parameters"})
+OWN_LINES = frozenset({"search_name", "parameters"})
 _NAMED_FIRST = ("operation", "strand")
 _UNSET = "(unset)"
 _FILTER_VALUE_CHARS = 24
@@ -80,7 +81,7 @@ def settings_text(settings: StepSettings) -> str:
     texts = (
         _TEXTS[name](settings)
         for name in StepSettings.model_fields
-        if name not in _OWN_LINES
+        if name not in OWN_LINES
     )
     return ", ".join(text for text in texts if text)
 
