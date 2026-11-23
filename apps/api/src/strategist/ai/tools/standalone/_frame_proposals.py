@@ -7,9 +7,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 
 from pydantic import JsonValue
-from pydantic_ai import ModelRetry
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import (
+    PHYLETIC_PARAM_NAMES,
     KeptValue,
     ParamValue,
     StringValue,
@@ -26,17 +26,16 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
     ParamIntent,
-    PhyleticListError,
     Provenance,
     RadioPairIssue,
     ResolveContext,
     ResolvedParams,
-    UnknownParameterError,
     WDKFilterReads,
     check_radio_pairs,
     radio_pairs,
     read_under_parents,
     resolve_params_with_intent,
+    unread_quantity,
 )
 from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 
@@ -56,6 +55,7 @@ from strategist.platform.refusals import (
     ProblemsRefusal,
     library_problems,
     library_rows,
+    refuse_problems,
 )
 
 
@@ -343,6 +343,27 @@ def _radio_retry(
     )
 
 
+_PHYLETIC_ADVICE = (
+    "A genus or common name is not a node: name a species or a clade code from "
+    "the included_species / excluded_species vocabulary on the sheet, or call "
+    "lookup_phyletic_codes(query)."
+)
+
+
+def _resolver_problems(call: CriterionCall, problems: Problems) -> Problems:
+    return Problems(
+        found=tuple(
+            Problem(
+                key=p.key,
+                sentence=f"{call.search_name}: {p.sentence} {_PHYLETIC_ADVICE}",
+            )
+            if p.key.parameter in PHYLETIC_PARAM_NAMES
+            else p
+            for p in problems.found
+        )
+    )
+
+
 async def resolve_proposals(
     search: SearchContext,
     fetch_at: ParamFetcher,
@@ -351,10 +372,14 @@ async def resolve_proposals(
     about: ResolveContext,
 ) -> ResolvedParams:
     """The binding the catalog resolves from every stated value and the off value
-    of each radio half."""
+    of each radio half, refused once for every problem the walk names, the
+    quantities it held back among them."""
     stated = {name: v for name, v in call.params.items() if v is not None}
+    key = RefusalKey(
+        check="resolve", criterion=call.criterion_id, search=search.search_name
+    )
     try:
-        return await resolve_params_with_intent(
+        resolved = await resolve_params_with_intent(
             about=about,
             fetch_at=fetch_at,
             filter_reads=_filter_reads(search),
@@ -362,20 +387,18 @@ async def resolve_proposals(
             search=search,
             stated={**stated, **radio},
         )
-    except UnknownParameterError as exc:
-        msg = (
-            f"{exc.detail} The valid names are listed above; do not request the "
-            f"sheet again."
-        )
-        raise ModelRetry(msg) from exc
-    except PhyleticListError as exc:
-        msg = (
-            f"{call.search_name}: {exc.detail} A genus or common name is not a "
-            f"node: name a species or a clade code from the included_species / "
-            f"excluded_species vocabulary on the sheet, or call "
-            f"lookup_phyletic_codes(query). Nothing was recorded."
-        )
-        raise ModelRetry(msg) from exc
     except ValidationError as exc:
-        msg = f"{exc.detail or exc.title} Nothing was recorded."
-        raise ModelRetry(msg) from exc
+        found = _resolver_problems(call, library_problems(exc, key))
+        raise ProblemsRefusal(nothing_recorded(found)) from exc
+    refuse_problems(
+        Problems(
+            found=tuple(
+                Problem(
+                    key=key.model_copy(update={"parameter": name}),
+                    sentence=unread_quantity(name),
+                )
+                for name in resolved.unread
+            )
+        )
+    )
+    return resolved

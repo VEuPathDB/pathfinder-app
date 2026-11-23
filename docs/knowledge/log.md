@@ -9,8 +9,10 @@
   nearest names) and the undecided required parameters; the read names every parameter the
   library refuses, one row each, with the portal route on the row another site holds; the value
   stage holds the radio pair, the upload, the organism and phrase words of every parameter and
-  the lookup and obsolete picks of every parameter. A later stage runs only once the stages
-  before it pass, and nothing is refused after the criterion is recorded. WDK's verdict on the
+  the lookup and obsolete picks of every parameter; the resolver names every row of the walk's
+  one refusal, the quantities it held back among them, read through `FaultRow` and never by
+  error class. A later stage runs only once the stages before it pass, and nothing is refused
+  after the criterion is recorded. WDK's verdict on the
   binding names each of its rows. The edit path keeps its validation payload until the strategy
   tools move to problems.
 

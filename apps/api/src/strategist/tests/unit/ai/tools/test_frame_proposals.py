@@ -380,7 +380,7 @@ async def test_an_unknown_parameter_error_becomes_a_retry_listing_the_real_names
     message = str(exc.value)
     assert "min_percentile" in message
     assert "min_expression_percentile" in message
-    assert "do not request the sheet again" in message
+    assert "Valid names: ['min_expression_percentile']" in message
     assert "get_search_overview" not in message
     assert st.operational_spec_draft.criteria == []
 

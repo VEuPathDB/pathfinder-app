@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic import JsonValue
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
 from veupathdb.errors import ValidationError
@@ -331,13 +331,6 @@ async def _bind_the_search(
     resolved = keeping_held(
         await resolve_proposals(search, fetch_at, call, radio, about), call, kept
     )
-    if resolved.unread:
-        msg = (
-            f"The criterion states a quantity and {resolved.unread} was left null. "
-            f"Pass the stated value, or say in the criterion text why the default "
-            f"is right."
-        )
-        raise ModelRetry(msg)
     redecide = await reconcile_dependents(
         ctx.deps.site_id, fetch_at, infos, resolved, call, state
     )
