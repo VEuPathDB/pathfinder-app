@@ -40,6 +40,7 @@ from strategist.services.strategies._wdk_step_calls import (
 from strategist.services.strategies.reconcile import (
     held_before_the_commit,
     held_by_id,
+    learn_what_wdk_added,
     reconcile_sync_state_with_wdk,
 )
 from strategist.services.strategies.record_classes import (
@@ -297,7 +298,9 @@ class _Commit:
         live = await read_the_strategy(self.api, self.sync_state)
         held = held_by_id(live, self.sync_state)
         for node in walk(root):
-            self._record_what_wdk_added(node, held.get(node.id))
+            learn_what_wdk_added(
+                self.steps[node.id], node, held.get(node.id), self.before.get(node.id)
+            )
             self._departed(node, held.get(node.id))
         sync = (
             None
@@ -315,14 +318,6 @@ class _Commit:
                 step_id=root_id,
                 error=str(exc)[:300],
             )
-
-    def _record_what_wdk_added(
-        self, node: StrategyStepNode, holds: StepSettings | None
-    ) -> None:
-        step = self.steps[node.id]
-        if holds is None or step.filters_wdk_added is not None:
-            return
-        step.filters_wdk_added = holds.filters_wdk_added(settings_of(node))
 
     def _departed(self, node: StrategyStepNode, holds: StepSettings | None) -> None:
         if holds is None:
@@ -371,7 +366,12 @@ async def commit_tree(
     await provision_the_datasets(api, steps, target.datasets)
     await fill_record_classes(site_id, steps)
     root = rebuild_tree(root_id, steps)
-    before = {**target.copies, **held_before_the_commit(old, root, steps, held)}
+    before = {
+        **target.copies,
+        **held_before_the_commit(
+            old, root, steps, held, unfinished=sync_state.wdk_push_errors
+        ),
+    }
     plan = plan_step_pushes(
         old_ast=old,
         new_ast=StrategyAst(record_type="", root=root),

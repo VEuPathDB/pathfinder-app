@@ -1,6 +1,6 @@
 """What WDK holds for each step a strategy maps, read before a commit plans."""
 
-from collections.abc import Mapping
+from collections.abc import Container, Mapping
 from http import HTTPStatus
 from typing import Protocol
 
@@ -134,6 +134,8 @@ def held_before_the_commit(
     root: StrategyStepNode,
     steps: dict[str, StrategyStep],
     held: Mapping[str, StepSettings],
+    *,
+    unfinished: Container[str],
 ) -> dict[str, StepSettings]:
     nodes = (
         []
@@ -145,6 +147,18 @@ def held_before_the_commit(
         if step is not None and step.filters_wdk_added is None:
             step.filters_wdk_added = node.filters_wdk_added
     was_stated = {node.id: set(node.parameters) for node in nodes}
+    filtered = {node.id: {f.name for f in node.filters} for node in nodes}
+    for node in walk(root):
+        step = steps[node.id]
+        if (
+            node.id in held
+            and node.id not in unfinished
+            and step.filters_wdk_added is None
+        ):
+            named = filtered.get(node.id, set()) | {f.name for f in node.filters}
+            step.filters_wdk_added = [
+                f for f in held[node.id].filters if f.name not in named
+            ]
     return {
         node.id: _as_planned(
             held[node.id],
@@ -176,3 +190,22 @@ def _as_planned(
             "expanded_name": plan.expanded_name or holds.expanded_name,
         }
     )
+
+
+def learn_what_wdk_added(
+    step: StrategyStep,
+    node: StrategyStepNode,
+    holds: StepSettings | None,
+    before: StepSettings | None,
+) -> None:
+    if holds is None:
+        return
+    if step.filters_wdk_added is None:
+        step.filters_wdk_added = holds.filters_wdk_added(settings_of(node))
+        return
+    known = {f.name for f in step.filters_wdk_added}
+    stated = {f.name for f in node.filters}
+    dropped = {
+        f.name for f in (before or StepSettings()).filters if f.name not in stated
+    }
+    step.filters_wdk_added += [f for f in holds.filters if f.name in dropped - known]

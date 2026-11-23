@@ -197,3 +197,32 @@ async def test_a_default_wdk_puts_back_on_an_imported_step_is_recorded_not_refus
 
     recorded = {sid: s.filters_wdk_added for sid, s in graph.steps.items()}
     assert (out.failures, recorded["step_a"]) == ([], [_DEFAULT])
+
+
+async def test_an_unrecorded_strategy_committed_unchanged_writes_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env = Env(monkeypatch)
+    deps = new_thread()
+    await commit_ops(deps, replace_with(plan_root()))
+    graph = deps.strategy_session.graph
+    assert graph is not None
+    ids = dict(ensure_sync_state(deps.strategy_session).wdk_step_ids)
+    for step in graph.steps.values():
+        step.filters_wdk_added = None
+    written = len(env.wdk.writes)
+
+    await commit_ops(deps, replace_with(plan_root()))
+
+    step_writes = [w for w in env.wdk.writes[written:] if "/steps" in w.path]
+    assert step_writes == []
+    assert ensure_sync_state(deps.strategy_session).wdk_step_ids == ids
+    assert _added(deps) == {
+        "step_a": [],
+        "step_b": [_DEFAULT],
+        "step_union": [_UNION_DEFAULT],
+        "step_c": [_DEFAULT],
+        "step_coloc": [],
+        "step_d": [_DEFAULT],
+        "step_root": [_INTERSECT_DEFAULT],
+    }

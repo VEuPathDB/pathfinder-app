@@ -47,9 +47,12 @@ A commit runs in this order:
 A saved or internal strategy is kept whole or not at all: on a refusal, a failed put or a
 departure after the put, the strategy or the steps it made are deleted.
 
-An imported step that has no `filters_wdk_added` record gets one search-config PUT on its
-first commit. The read after that PUT records the filters WDK added as its defaults, so a
-later removal of a filter the plan set is never confused with a WDK default.
+A step that has no `filters_wdk_added` record (an imported step, or one stored before the
+record existed) takes it from the first read of what WDK holds: every held filter whose name
+no plan states is WDK's own. So a commit that changes nothing writes nothing, and the step and
+its combines keep their WDK steps. The default of a filter the plan states is learnt from the
+read after the write that drops that filter, so its removal is never confused with a WDK
+default.
 
 The step-settings field set is `search_name`, `parameters`, `operator`,
 `colocation_params`, `filters`, `wdk_weight`, `expanded_strategy_id` and `expanded_name`

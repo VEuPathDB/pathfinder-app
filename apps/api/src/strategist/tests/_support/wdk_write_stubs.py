@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Container, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -72,8 +72,10 @@ def wdk_holds_the_tree_before_the_edit(monkeypatch: pytest.MonkeyPatch) -> None:
         root: StrategyStepNode,
         steps: dict[str, StrategyStep],
         held: Mapping[str, StepSettings],
+        *,
+        unfinished: Container[str],
     ) -> dict[str, StepSettings]:
-        reconcile.held_before_the_commit(old, root, steps, held)
+        reconcile.held_before_the_commit(old, root, steps, held, unfinished=unfinished)
         return {} if old is None else held_as(old)
 
     monkeypatch.setattr(commit_tree, "reconcile_sync_state_with_wdk", _read)
