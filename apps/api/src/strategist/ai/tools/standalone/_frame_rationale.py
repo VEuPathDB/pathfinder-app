@@ -89,9 +89,6 @@ class _Checked:
 def _held_reason(
     state: AgentToolState, call: CriterionCall
 ) -> tuple[Criterion, SearchRationale | None] | None:
-    """The criterion held on this search and the search reason it keeps, or
-    None when the call states a new why: a criterion not held on the search,
-    or one whose reason the controls chose."""
     held = next(
         (c for c in state.operational_spec_draft.criteria if c.id == call.criterion_id),
         None,
@@ -111,8 +108,6 @@ def _checked(
     read: CatalogRead | None,
     why: SearchChoice | None,
 ) -> _Checked | Problems:
-    """The why a call records, checked against the catalog read it rests on and
-    the reads of this turn its sources cite."""
     bound = None if read is None else read.hit(call.search_name)
     if read is None or bound is None:
         return Problems.one(_WHY, _unread(call.criterion_id, call.search_name))
