@@ -51,6 +51,11 @@ A commit runs in this order:
 A saved or internal strategy is kept whole or not at all: on a refusal, a failed put or a
 departure after the put, the strategy or the steps it made are deleted.
 
+When the turn's read of what changed on the site fails, a canvas edit still commits, and
+the commit's own read of what WDK holds sees a value set on the site that the plan does not
+state. The plan is what the thread states, so the commit writes the plan's value over it.
+This is accepted while that read fails; the turn that reads the site again takes the change.
+
 A step that has no `filters_wdk_added` record (an imported step, or one stored before the
 record existed) takes it from the first read of what WDK holds: every held filter whose name
 no plan states is WDK's own. So a commit that changes nothing writes nothing, and the step and
