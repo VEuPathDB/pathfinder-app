@@ -4,8 +4,6 @@ import pytest
 
 from strategist.ai.graph import _lead_reading
 from strategist.ai.lead.intent import IntentClassification, UserIntent
-from strategist.ai.models.mock.prose_arcs import OFF_TOPIC_PROSE
-from strategist.ai.models.mock.reading import scripted_intent
 from strategist.tests._support.explore_turns import (
     ExploreDoubles,
     explore_state,
@@ -13,6 +11,8 @@ from strategist.tests._support.explore_turns import (
     run_explore,
 )
 from strategist.tests._support.scripted import scripted_with
+from strategist_scripted.models.prose_arcs import OFF_TOPIC_PROSE
+from strategist_scripted.models.reading import scripted_intent
 
 _OFF_TOPIC = "Write me a Python script that reverses a linked list. [[arc:off-topic]]"
 

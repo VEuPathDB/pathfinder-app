@@ -24,7 +24,6 @@ from pydantic_ai.settings import ModelSettings
 from pydantic_ai.usage import RunUsage
 
 from strategist.ai.audit import review, synthesis
-from strategist.ai.audit.mock import build_review_mock
 from strategist.ai.audit.review import ReviewDeps
 from strategist.domain.audit.findings import Certainty, RelativesEvidence
 from strategist.domain.audit.rates import GenomeUse, Importance, Weighing
@@ -53,6 +52,7 @@ from strategist.services.audit.verdicts import VerdictView
 from strategist.services.audit.views import AuditRunView
 from strategist.tests._support.audit import seed_thread
 from strategist.tests.integration.http._wdk_mcp_double import serve_mcp
+from strategist_scripted.audit.script import build_review_mock
 
 GENOME = "Examplea alpha A"
 RESEARCH_TOKEN = "research-mcp-client-secret-0123456789abcdef"

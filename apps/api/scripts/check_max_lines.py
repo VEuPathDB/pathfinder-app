@@ -17,7 +17,7 @@ from pathlib import Path
 
 DEFAULT_LIMIT = 400
 DEFAULT_BASELINE = Path("src/strategist/tests/.max-lines-baseline.txt")
-SRC_ROOTS = (Path("src/strategist"),)
+SRC_ROOTS = (Path("src/strategist"), Path("src/strategist_scripted"))
 
 # Directories and files exempt from the line limit.
 EXEMPT_PATTERNS: set[str] = {

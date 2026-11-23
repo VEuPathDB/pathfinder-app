@@ -7,7 +7,6 @@ import pytest
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
-from strategist.ai.models.mock.explore_arc import ONE_READING
 from strategist.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     NO_READING_PROMPT,
@@ -25,6 +24,7 @@ from strategist.tests.integration.chat._helpers import (
     turn_modes,
     types,
 )
+from strategist_scripted.models.explore_arc import ONE_READING
 
 ECHO_PROMPT = "Show me the current strategy. [[arc:echo]]"
 

@@ -15,12 +15,12 @@ from veupathdb_mcp.controls import (
     ControlTestResult,
 )
 
-from strategist.ai.models.mock import site_values
 from strategist.devtools import seeds
 from strategist.devtools.seeds import marks_json, seeds_json
 from strategist.platform.config import get_settings
 from strategist.services.experiment import materialization
 from strategist.services.experiment.seed.catalog import (
+    MARKS_FILE,
     SEEDS_DIR,
     get_seeds_for_site,
     seed_databases,
@@ -30,6 +30,7 @@ from strategist.tests._support.record_classes import (
     list_each_search_under,
     list_searches_under,
 )
+from strategist_scripted.models import site_values
 
 
 @pytest.mark.parametrize("site_id", seed_databases())
@@ -62,7 +63,7 @@ async def test_the_marks_are_recorded_for_every_search_the_seeds_run(
 
 
 def test_the_marks_file_is_written_back_byte_for_byte() -> None:
-    on_disk = site_values.MARKS_FILE.read_text()
+    on_disk = MARKS_FILE.read_text()
 
     assert marks_json(site_values.recorded_marks_by_site()) == on_disk
 

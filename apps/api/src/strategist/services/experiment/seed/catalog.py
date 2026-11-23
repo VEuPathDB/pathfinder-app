@@ -2,6 +2,7 @@
 
 from importlib.resources import files
 from importlib.resources.abc import Traversable
+from pathlib import Path
 
 from pydantic import TypeAdapter
 from veupathdb.wdk import load_sites_config
@@ -11,6 +12,7 @@ from strategist.platform.errors import ErrorCode, NotFoundError
 from strategist.services.experiment.seed.types import SeedDef
 
 SEEDS_DIR: Traversable = files("strategist") / "data" / "seeds"
+MARKS_FILE = Path(__file__).parents[3] / "data" / "organism_params.json"
 
 
 def seed_databases() -> list[str]:

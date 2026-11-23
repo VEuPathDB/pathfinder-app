@@ -88,6 +88,14 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **The mock leaves the strategist package.** `ai/models/mock/` is `strategist_scripted/models/` and
+  `ai/audit/mock*.py` is `strategist_scripted/audit/`; the tests of the script moved to
+  `tests/unit/scripted/models/`. import-linter forbids production code from importing the package,
+  and a test holds `platform/config.py` as the one file that names it. The seeds' organism marks
+  moved to `data/organism_params.json`. The literal-reach scan of the tool-name guard skips no
+  mock directory, since `strategist_scripted` is outside the packages it scans. See
+  [the mock model ships only to tests](decisions/the-mock-model-ships-only-to-tests.md).
+
 * **Production reaches the scripted model through one seam.** `strategist/ai/scripted.py::scripted()`
   imports `strategist_scripted` by name and returns its `SCRIPTED`, one `ScriptedDeployment` record of
   the stand-ins a mock deployment runs instead of a provider: the model, the intent, route and operator

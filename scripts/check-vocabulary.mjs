@@ -15,6 +15,7 @@ const WEB_TREES = ["apps/web/src"];
 const MODEL_TREES = [
   "apps/api/src/strategist/ai",
   "apps/api/src/strategist/assistants",
+  "apps/api/src/strategist_scripted",
 ];
 const DETAIL_TREES = [
   "apps/api/src/strategist/transport",

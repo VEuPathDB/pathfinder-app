@@ -19,7 +19,6 @@ from strategist.ai.explore.explore_model import resolve_explore_model_context
 from strategist.ai.lead import lead_agent
 from strategist.ai.lead.lead_agent import build_lead_toolset
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.models.mock import _ROLES
 from strategist.ai.tools.toolsets import eda
 from strategist.domain.provider_keys import ProviderKeyring
 from strategist.platform.config import get_settings
@@ -31,6 +30,7 @@ from strategist.tests._support.provider_wire import (
 )
 from strategist.tests._support.sub_agents import agent_info_of, agent_tool_names
 from strategist.tests.unit.ai.tools.conftest import unwrap_function_toolset
+from strategist_scripted.models import _ROLES
 
 TERRA = "openai:gpt-6.1-terra"
 FABLE = "anthropic:claude-fable-5-1"

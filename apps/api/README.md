@@ -31,7 +31,6 @@ src/strategist/
                              #     nodes, stream events, lead-turn helpers
     lead/                    #   Lead agent, InvestigationLedger, sub-agent dispatch and tools,
                              #     case memory, intent gate, ledger rendering
-    models/                  #   Model catalog, tiers, per-provider settings, mock/
     prompts/                 #   Prompt templates and loader
     scratchpad/              #   Scratchpad tools, toolset, rendering, compactor
     tools/                   #   standalone/ (one module per tool family), toolsets/ (what each
@@ -119,6 +118,11 @@ src/strategist/
       openapi.py             #   Spec post-passes
   devtools/                  # Developer CLIs (chat debugger, evals desk, openapi, WDK fixtures)
   tests/                     # Unit + integration tests
+
+src/strategist_scripted/     # The deterministic test model; only tests and the e2e image stage hold it
+  models/                    #   Strategist's script, one arc per turn shape
+  audit/                     #   The audit assistant's scripted auditor, reviewer and synthesis
+  judge.py decisions.py      #   The scripted injection judge and the no-decision transport
 ```
 
 ### Architecture overview

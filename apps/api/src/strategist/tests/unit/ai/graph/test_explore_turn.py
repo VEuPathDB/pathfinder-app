@@ -33,12 +33,12 @@ from strategist.ai.graph._explore_turn import (
 )
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.models.mock.explore_arc import FIRST_LABEL, SECOND_LABEL
 from strategist.ai.tools.standalone.eda_statistics import EDA_PCA
 from strategist.domain.exchanges import Exchange
 from strategist.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from strategist.tests._support.durable_answers import PCA_RESULT
 from strategist.tests._support.run_context import turn_runtime
+from strategist_scripted.models.explore_arc import FIRST_LABEL, SECOND_LABEL
 
 EXPLORE_PROMPT = "Which genes carry a signal peptide?"
 TASK = uuid4()

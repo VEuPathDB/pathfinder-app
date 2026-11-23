@@ -21,10 +21,10 @@ from strategist.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
     LeadResponse,
 )
-from strategist.ai.models.mock import get_mock_model
-from strategist.ai.models.mock.prose_arcs import KINASE_PROSE, OFF_TOPIC_PROSE
 from strategist.tests._support.run_context import turn_runtime
 from strategist.tests.unit.ai.lead.conftest import session_with_one_step
+from strategist_scripted.models import get_mock_model
+from strategist_scripted.models.prose_arcs import KINASE_PROSE, OFF_TOPIC_PROSE
 
 _OFF_TOPIC = "Write me a Python script that reverses a linked list. [[arc:off-topic]]"
 _BIOLOGY = "Which of these genes are kinases? [[arc:kinase-question]]"

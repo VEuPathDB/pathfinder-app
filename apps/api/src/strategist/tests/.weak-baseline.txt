@@ -56,8 +56,8 @@ src/strategist/tests/unit/ai/graph/test_lead_state_delta.py::test_staleness_is_n
 src/strategist/tests/unit/ai/graph/test_pre_turn_seam.py::test_an_unsynced_strategy_reads_nothing_and_stays_fresh
 src/strategist/tests/unit/ai/graph/test_sub_agent_chunk_suppression.py::test_a_tool_output_error_for_a_dispatch_is_suppressed
 src/strategist/tests/unit/ai/graph/test_sub_agent_chunk_suppression.py::test_every_tool_chunk_type_is_classified
-src/strategist/tests/unit/ai/models/test_mock_frame_calls.py::test_every_spec_names_a_search_for_every_criterion
-src/strategist/tests/unit/ai/models/test_mock_lead_sequence.py::test_the_mock_reads_the_real_refusal_message
+src/strategist/tests/unit/scripted/models/test_mock_frame_calls.py::test_every_spec_names_a_search_for_every_criterion
+src/strategist/tests/unit/scripted/models/test_mock_lead_sequence.py::test_the_mock_reads_the_real_refusal_message
 src/strategist/tests/unit/ai/test_eda_kinds_match_shared_ts.py::test_every_eda_kind_has_an_entry_in_the_payload_map
 src/strategist/tests/unit/ai/test_eda_parts.py::test_a_viz_point_may_have_no_p_value
 src/strategist/tests/unit/ai/test_stream_part_registry.py::test_openapi_schema_exposes_every_registered_payload

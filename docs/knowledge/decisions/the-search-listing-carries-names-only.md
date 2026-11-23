@@ -58,7 +58,7 @@ record type and nothing else. Names only holds the threshold without that
 release, and the axis stays available if a site's listing outgrows it.
 
 **The scripted FRAME reads the digest by its line shape.**
-`ai/models/mock/history.py` recognizes a compaction digest by the
+`strategist_scripted/models/history.py` recognizes a compaction digest by the
 `- <tool>(<args>) -> <result>` lines the runtime writes, a shape no runtime
 surface publishes. `test_mock_compacted_history.py` builds its digest through
 the real `compact_history`, so a runtime release that reformats the digest

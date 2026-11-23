@@ -1,16 +1,16 @@
 from typing import Final
 
-from strategist.ai.audit.mock import (
+from strategist.ai.scripted import ScriptedDeployment
+from strategist_scripted.audit.script import (
     build_audit_mock,
     build_review_mock,
     build_synthesis_mock,
 )
-from strategist.ai.models.mock import get_mock_model
-from strategist.ai.models.mock.reading import scripted_intent, scripted_operators
-from strategist.ai.models.mock.route import scripted_route
-from strategist.ai.scripted import ScriptedDeployment
 from strategist_scripted.decisions import no_decision
 from strategist_scripted.judge import injection_judge
+from strategist_scripted.models import get_mock_model
+from strategist_scripted.models.reading import scripted_intent, scripted_operators
+from strategist_scripted.models.route import scripted_route
 
 SCRIPTED: Final = ScriptedDeployment(
     model=get_mock_model,

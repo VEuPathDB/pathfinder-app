@@ -38,8 +38,6 @@ from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.lead_consult import apply_option_bindings
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_dispatch import minted_spec
-from strategist.ai.models.mock import role_script
-from strategist.ai.models.mock.genome_group_arcs import ORTHOLOG_PATTERN
 from strategist.ai.tools.standalone import _frame_count
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone.frame_spec import set_criterion
@@ -66,6 +64,8 @@ from strategist.tests.unit.ai.tools.test_frame_spec import (
     serve_params,
     serve_site_listing,
 )
+from strategist_scripted.models import role_script
+from strategist_scripted.models.genome_group_arcs import ORTHOLOG_PATTERN
 
 pytestmark = pytest.mark.usefixtures("open_job_queue")
 

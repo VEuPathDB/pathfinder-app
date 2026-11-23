@@ -15,7 +15,6 @@ from assistant_core.platform.context import (
 from assistant_core.platform.db import async_session_factory
 from pydantic import BaseModel, ConfigDict, Field
 
-from strategist.ai.models.mock.consult_arc import OPEN_QUESTION
 from strategist.devtools import chat
 from strategist.devtools.capture import RunCapture
 from strategist.devtools.chat import (
@@ -50,6 +49,7 @@ from strategist.tests._support.second_assistant import (
     SITES_PROMPT,
     SITES_REPLY,
 )
+from strategist_scripted.models.consult_arc import OPEN_QUESTION
 
 # The durable tool the separation arc calls, under the name the model uses.
 DURABLE_TOOL = "separate_controls"

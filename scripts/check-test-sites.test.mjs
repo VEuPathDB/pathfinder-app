@@ -157,7 +157,7 @@ test("every file outside docs and local outputs is scanned, and no secret env fi
 
   assert.ok(paths.includes("apps/api/src/strategist/tests/unit/platform/test_stage_sites.py"));
   assert.ok(paths.includes("apps/api/src/strategist/data/seeds/hostdb.json"));
-  assert.ok(paths.includes("apps/api/src/strategist/ai/models/mock/organism_params.json"));
+  assert.ok(paths.includes("apps/api/src/strategist/data/organism_params.json"));
   assert.ok(paths.includes("apps/web/src/features/sidebar/wdkStrategyRef.ts"));
   assert.ok(paths.includes(".github/workflows/ci.yml"));
   assert.ok(paths.includes(".env.example"));

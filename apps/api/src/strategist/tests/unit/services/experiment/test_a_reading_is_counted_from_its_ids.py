@@ -5,9 +5,6 @@ from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.wdk import WDKAnswer
 
-from strategist.ai.models.mock.arc_args import SIGNALP_VERSIONS
-from strategist.ai.models.mock.site_values import SiteValues
-from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from strategist.domain.strategy.operational_spec import StructureNode
 from strategist.services.experiment import reading_count, variant_comparison
 from strategist.services.experiment.reading_count import (
@@ -21,6 +18,9 @@ from strategist.services.experiment.variant_comparison import VariantSpec
 from strategist.tests._support.explore_turns import SITE, RecordedReports
 from strategist.tests._support.record_classes import recorded_searches
 from strategist.tests.unit.domain.strategy._builders import spec_joined, spec_leaf
+from strategist_scripted.models.arc_args import SIGNALP_VERSIONS
+from strategist_scripted.models.site_values import SiteValues
+from strategist_scripted.models.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 
 _ORGANISM = MultiPickValue(values=[SiteValues.for_site(SITE).organism])
 _PEPTIDE = VariantSpec(

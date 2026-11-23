@@ -4,7 +4,7 @@ import re
 
 from strategist.ai.agents.vocabulary import USER_FACING_VOCABULARY
 from strategist.ai.explore._explore_instructions import EXPLORE_INSTRUCTIONS
-from strategist.ai.models.mock.site_values import SiteValues
+from strategist_scripted.models.site_values import SiteValues
 
 GENE_ID_PATTERN = re.compile(r"\b[A-Za-z][A-Za-z0-9]*_[A-Za-z]?\d{3,}\b")
 _GENE_SITES = (

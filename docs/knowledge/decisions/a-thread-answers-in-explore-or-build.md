@@ -48,7 +48,7 @@ the message. The turn goes to Build only when the build probability is at least
 `BUILD_PROBABILITY_FLOOR`, 0.65. A refusal, an error, a key refusal or 5 seconds without an
 answer routes to Explore. For a request with one buildable reading, Explore offers a Build it
 button, and for two or more it offers the readings card. A mock
-deployment routes by the `[[arc:<name>]]` token (`ai/models/mock/route.py`): an arc whose name
+deployment routes by the `[[arc:<name>]]` token (`strategist_scripted/models/route.py`): an arc whose name
 starts with `explore` goes to Explore.
 
 **Who pays for the router.** The router always runs on the deployment's OpenAI key, also when

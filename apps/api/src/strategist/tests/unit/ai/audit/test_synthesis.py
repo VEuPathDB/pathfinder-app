@@ -13,7 +13,6 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.usage import RunUsage
 
-from strategist.ai.audit.mock import build_synthesis_mock
 from strategist.ai.audit.synthesis import (
     NO_FINDING_KEPT,
     SYNTHESIS_LIMITS,
@@ -39,6 +38,7 @@ from strategist.domain.audit.verdicts import (
 from strategist.services.audit.verdicts import VerdictView
 from strategist.services.audit.views import AuditRunSummary, AuditRunView
 from strategist.tests._support.native_answers import answered, feedback
+from strategist_scripted.audit.script import build_synthesis_mock
 
 _GENOME = "Examplea alpha A"
 _OTHER = "Examplea beta B"

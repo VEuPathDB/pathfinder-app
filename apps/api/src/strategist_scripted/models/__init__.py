@@ -1,0 +1,158 @@
+"""The deterministic test model: role detection and arc routing.
+
+A role is read from the tools an agent offers. The arc is the one the turn's
+message names with an ``[[arc:<name>]]`` token; each role then plays that
+arc's script, after any wrong call a ``[[fault:<name>]]`` token inserts. The
+turn's words are read as the arc declares, before the Lead runs.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+
+from assistant_core.models.scripted import (
+    RoleMarkers,
+    ScriptedModel,
+    current_user_text,
+    deferred_tool_resolved,
+    joined_user_text,
+    terminal_call,
+    user_texts,
+)
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
+from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
+from pydantic_ai.profiles import ModelProfile
+
+from strategist_scripted.models.arc import Arc, Role, Script
+from strategist_scripted.models.compaction import compaction, compacts_the_notes
+from strategist_scripted.models.consult_arc import CONSULT
+from strategist_scripted.models.directive import ArcDirective
+from strategist_scripted.models.faults import fault_call, without_fault_calls
+from strategist_scripted.models.lead_flow import is_the_leads_run
+from strategist_scripted.models.reads import instructions_of
+from strategist_scripted.models.registry import arc_named
+from strategist_scripted.models.turn_arc import lead_arc_name, standing_directive
+
+# Ordered: the first role whose markers intersect the agent's tool names wins.
+# The Lead's dispatch tools appear on no sub-agent. A tool that needs approval
+# is left out of the tools an agent offers, so none keys a role.
+_ROLES: tuple[RoleMarkers, ...] = (
+    RoleMarkers(
+        role="lead",
+        markers=frozenset(
+            {
+                "frame_problem",
+                "build_strategy",
+                "verify_strategy",
+                "read_ledger_section",
+            }
+        ),
+    ),
+    RoleMarkers(role="explore", markers=frozenset({"propose_readings"})),
+    RoleMarkers(role="frame", markers=frozenset({"set_criterion", "set_structure"})),
+    RoleMarkers(role="verification", markers=frozenset({"run_control_tests_on_step"})),
+    RoleMarkers(
+        role="execution", markers=frozenset({"update_leaf_params", "replace_subtree"})
+    ),
+)
+
+
+def turn_directive(messages: list[ModelMessage]) -> ArcDirective:
+    """The arc and fault the turn's message names. A run resumed with no
+    message of its own reads the token of the newest message that has one."""
+    return standing_directive(current_user_text.get(), user_texts(messages))
+
+
+def _lead_arc(messages: list[ModelMessage], directive: ArcDirective) -> Arc:
+    """A resolved consult resumes its build, and an attached gene list with no
+    token is the attachment arc, since a file cannot carry a token."""
+    named = lead_arc_name(
+        directive,
+        card_answered=deferred_tool_resolved(messages, CONSULT),
+        texts=joined_user_text(messages),
+    )
+    return arc_named(named)
+
+
+def role_script(role: Role) -> Script:
+    """The script a role plays: the arc's next call, or the wrong call a fault
+    makes in its place."""
+
+    def script(messages: list[ModelMessage]) -> ToolCallPart:
+        directive = turn_directive(messages)
+        seen = without_fault_calls(messages)
+        arc = _lead_arc(seen, directive) if role == "lead" else arc_named(directive.arc)
+        intended = arc.script(role)(seen)
+        wrong = fault_call(directive.fault, role, messages, intended)
+        return intended if wrong is None else wrong
+
+    return script
+
+
+_EXPLORE_MARK = "**Explore mode**"
+
+
+def explore_script(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
+    return arc_named(turn_directive(messages).arc).explore(messages)
+
+
+def _unmarked(messages: list[ModelMessage]) -> ToolCallPart | TextPart:
+    """The script for a step whose tool list names no role.
+
+    A turn the reading put out of scope offers the Lead and Explore no tool at
+    all, so the role table has nothing to read and the agent's own arc answers it.
+    """
+    if compacts_the_notes(messages):
+        return compaction(messages)
+    if _EXPLORE_MARK in instructions_of(messages):
+        return explore_script(messages)
+    if is_the_leads_run(messages):
+        return role_script("lead")(messages)
+    return terminal_call({})
+
+
+STRATEGIST_SCRIPT = ScriptedModel(
+    roles=_ROLES,
+    scripts={
+        **{
+            role: role_script(role)
+            for role in ("lead", "frame", "verification", "execution")
+        },
+        "explore": explore_script,
+    },
+    unknown=_unmarked,
+)
+
+
+def _respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+    return ModelResponse(parts=[STRATEGIST_SCRIPT.response_part(messages, info)])
+
+
+async def _stream(
+    messages: list[ModelMessage], info: AgentInfo
+) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
+    match STRATEGIST_SCRIPT.response_part(messages, info):
+        case TextPart(content=text):
+            yield text
+        case call:
+            yield {
+                0: DeltaToolCall(
+                    name=call.tool_name,
+                    json_args=call.args_as_json_str(),
+                    tool_call_id=call.tool_call_id,
+                )
+            }
+
+
+def get_mock_model() -> FunctionModel:
+    return FunctionModel(
+        _respond,
+        stream_function=_stream,
+        model_name=STRATEGIST_SCRIPT.model_name,
+        profile=ModelProfile(
+            supports_inline_system_prompts=True, supports_json_schema_output=True
+        ),
+    )
+
+
+__all__ = ["STRATEGIST_SCRIPT", "get_mock_model", "role_script", "turn_directive"]

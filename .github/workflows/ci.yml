@@ -171,7 +171,7 @@ jobs:
 
       - name: Run pyright
         working-directory: apps/api
-        run: uv run pyright src/strategist
+        run: uv run pyright src/strategist src/strategist_scripted
 
   lint-api:
     name: Lint API

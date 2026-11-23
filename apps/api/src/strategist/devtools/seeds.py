@@ -29,12 +29,12 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import organism_parameter, resolve_search_record_type
 from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 
-from strategist.ai.models.mock.site_values import MARKS_FILE
 from strategist.jobs.auth_context import attach_wdk_auth
 from strategist.platform.config import get_settings
 from strategist.services.experiment.controls_search import controls_search
 from strategist.services.experiment.materialization import materialize_step_tree
 from strategist.services.experiment.seed.catalog import (
+    MARKS_FILE,
     SEEDS_DIR,
     get_seeds_for_site,
     seed_databases,

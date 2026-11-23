@@ -11,8 +11,6 @@ from strategist.ai.explore.readings_card import card_labels, proposal_counts
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.models.mock import get_mock_model
-from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from strategist.tests._support.explore_turns import (
     EXPLORE_PROMPT,
     FIRST_READING,
@@ -26,6 +24,8 @@ from strategist.tests._support.explore_turns import (
 )
 from strategist.tests._support.recorded_counts import recorded_count
 from strategist.tests._support.run_context import turn_runtime
+from strategist_scripted.models import get_mock_model
+from strategist_scripted.models.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 
 
 @pytest.fixture

@@ -19,6 +19,7 @@ alphabetical index of all documented objects.
    agents
    ai_functions
    ai
+   scripted
    tools
    services
    gene_sets
