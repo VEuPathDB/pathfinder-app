@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from strategist.domain.owner_reads import (
     NOT_SHARED,
     OWNER_READ_TOOLS,
@@ -229,3 +231,64 @@ def test_an_owner_read_keeps_only_what_names_the_call() -> None:
         "input": {},
         "errorText": NOT_SHARED,
     }
+
+
+UPLOAD = "EDAUD_sF88g1cwo00gw"
+
+
+def _upload_thread() -> list[dict[str, object]]:
+    state = {
+        "siteId": "plasmodb",
+        "datasetId": UPLOAD,
+        "studyId": "STUDY_up_3d7",
+        "analysisId": "a-up-1",
+        "revision": 1,
+        "studyDisplayName": "My 3D7 RNA-seq upload",
+        "displayName": "gametocyte subset",
+        "numFilters": 0,
+        "numComputations": 0,
+        "filters": [],
+        "filterSummaries": [],
+        "entityCounts": [],
+        "canExportRows": True,
+    }
+    return [
+        {
+            "type": "tool-input-start",
+            "toolCallId": "c-9",
+            "toolName": "open_eda_analysis",
+        },
+        {
+            "type": "tool-input-available",
+            "toolCallId": "c-9",
+            "toolName": "open_eda_analysis",
+            "input": {"datasetId": UPLOAD, "purpose": "gametocyte subset"},
+        },
+        {
+            "type": "tool-output-available",
+            "toolCallId": "c-9",
+            "output": {
+                "datasetId": UPLOAD,
+                "studyDisplayName": "My 3D7 RNA-seq upload",
+            },
+        },
+        {"type": "data-eda.analysis-state", "id": "a-up-1", "data": state},
+        *_call("c-10", "preview_eda_subset", {"analysisId": "a-up-1", "count": 812}),
+        {"type": "text-delta", "id": "t-1", "delta": f"I opened {UPLOAD} for you."},
+    ]
+
+
+def test_a_read_of_the_owners_upload_is_not_shown() -> None:
+    shown = json.dumps(without_owner_reads(_upload_thread()))
+
+    assert [UPLOAD in shown, "My 3D7 RNA-seq upload" in shown, "812" in shown] == [
+        False,
+        False,
+        False,
+    ]
+
+
+def test_a_read_of_a_curated_study_is_shown() -> None:
+    chunks = _call("c-11", "open_eda_analysis", {"datasetId": "DS_53f554ec6a"})
+
+    assert without_owner_reads(chunks) == chunks

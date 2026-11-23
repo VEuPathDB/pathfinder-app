@@ -29,7 +29,10 @@ opens `/shared/<token>`, inside the website that frames Strategist.
   (`conversation_shares.include_account_reads`, off by default). A copy drops the owner's
   control sets and gene sets from its saved state either way, since they work only in the
   owner's account. A test classes every tool an agent carries as an owner read or not, so a new tool
-  cannot slip past.
+  cannot slip past. A study the owner uploaded (an `EDAUD_` dataset,
+  `domain/account_datasets.py`) is account data too: every call whose input or output names it,
+  or the study and analysis the thread opened on it, keeps its call and loses its contents; a
+  data part that names it is left out; and a reply that quotes its id reads "a private dataset".
 - **Live.** The page asks `GET /api/v1/shared/{token}` every few seconds for the end of the
   thread's completed history and whether a turn is running, and reads the thread again
   (`GET /api/v1/shared/{token}/snapshot`) when that end moves. A running turn shows as a line
