@@ -480,9 +480,9 @@ test.describe("Settings and account", () => {
       await expect(rows).not.toHaveCount(0);
       const toggles = reply.getByRole("button", { name: "Raw", exact: true });
       await expect(toggles).toHaveCount(await rows.count());
-      // A build turn plans the searches once, so that row names one toggle.
+      // A build turn finds searches once, so that row names one toggle.
       const buildCall = reply.getByTestId("tool-call-part").filter({
-        has: page.getByTestId("trace-row").filter({ hasText: "Plan the searches" }),
+        has: page.getByTestId("trace-row").filter({ hasText: "Find searches" }),
       });
       await expect(buildCall).toHaveCount(1);
       const toggle = buildCall.getByRole("button", { name: "Raw", exact: true });
