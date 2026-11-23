@@ -189,6 +189,7 @@ def test_each_recorded_defect_still_contradicts_the_pinned_library(
     shapes = {name: _shape(definitions[name]) for name in names}
     objects = tuple(name for name in names if "properties" in shapes[name])
     holding = tuple(name for name in names if defect.holds(shapes[name]))
+    # weak-ok(nonempty): a type with no object shape holds every defect vacuously.
     assert objects != ()
     assert holding == objects
 

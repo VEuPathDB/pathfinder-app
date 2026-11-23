@@ -95,6 +95,7 @@ describe("the token layer defines every color on both grounds", () => {
   it("adds no dark color token that the light ground does not have", () => {
     const extra = [...dark.keys()].filter((name) => !light.has(name)).sort();
     expect(extra).toEqual([]);
+    // weak-ok(nonempty): a dark ground that parses to no token passes the check above vacuously.
     expect(dark.size).toBeGreaterThan(0);
   });
 

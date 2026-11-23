@@ -73,6 +73,7 @@ test("a new conversation row is painted settled under reduced motion", async ({
   const painted = await page.evaluate(
     () => (window as unknown as { __rowsPaintedAt: string[] }).__rowsPaintedAt,
   );
+  // weak-ok(nonempty): an empty paint record passes the next check vacuously.
   expect(painted.length).toBeGreaterThan(0);
   expect(painted).toEqual(painted.map(() => "1"));
 });

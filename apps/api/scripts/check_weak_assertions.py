@@ -6,10 +6,15 @@ A "weak" assertion survives almost any mutation to the function under test:
 - ``assert isinstance(x, T)``        (type only)
 - ``assert hasattr(x, "...")``
 - ``assert "key" in obj``            (membership without value check)
-- ``assert len(x)`` / ``assert len(x) > 0`` via Call-only
+- ``assert len(x)``                  (Call-only)
 
 A test that contains ONLY weak assertions, OR no assertions at all, fails
-this check. ``pytest.raises(...)``, ``response.raise_for_status()``,
+this check.
+
+A non-empty check (``len(x) > 0``, ``len(x) >= 1``, ``len(x) != 0`` and
+``x != []``) fails on its own line, whatever else the test asserts, unless
+the line or the comment line above it carries
+``# weak-ok(nonempty): <why the count itself is the behavior>``. ``pytest.raises(...)``, ``response.raise_for_status()``,
 ``Model.model_validate(...)``, and any equality / ordering / regex compare
 count as strong evidence of a real behavioral check.
 
@@ -44,15 +49,33 @@ _STRONG_VALIDATING_CALLS = {
 }
 
 
+_NONEMPTY_MARKER = "weak-ok(nonempty):"
+
+_ABOVE_ZERO: dict[type[ast.cmpop], int] = {ast.Gt: 0, ast.GtE: 1, ast.NotEq: 0}
+_MIRRORED: dict[type[ast.cmpop], type[ast.cmpop]] = {
+    ast.Lt: ast.Gt,
+    ast.LtE: ast.GtE,
+    ast.NotEq: ast.NotEq,
+}
+
+
 class _AssertWalker(ast.NodeVisitor):
-    def __init__(self) -> None:
+    def __init__(self, lines: list[str]) -> None:
+        self.lines = lines
         self.weak = 0
         self.strong = 0
         self.has_pytest_raises = False
         self.has_validating_call = False
+        self.unjustified_nonempty: list[int] = []
 
     def visit_Assert(self, node: ast.Assert) -> None:
-        if _is_weak_assert(node.test):
+        if _is_nonempty_check(node.test):
+            if _justified(self.lines, node):
+                self.strong += 1
+            else:
+                self.weak += 1
+                self.unjustified_nonempty.append(node.lineno)
+        elif _is_weak_assert(node.test):
             self.weak += 1
         else:
             self.strong += 1
@@ -113,6 +136,50 @@ def _is_weak_assert(expr: ast.expr) -> bool:
     return False
 
 
+def _is_nonempty_check(expr: ast.expr) -> bool:
+    if not isinstance(expr, ast.Compare) or len(expr.ops) != 1:
+        return False
+    left, op, right = expr.left, type(expr.ops[0]), expr.comparators[0]
+    mirrored = _MIRRORED.get(op)
+    return (
+        _length_above_zero(left, op, right)
+        or (mirrored is not None and _length_above_zero(right, mirrored, left))
+        or (op is ast.NotEq and (_is_empty(left) or _is_empty(right)))
+    )
+
+
+def _length_above_zero(subject: ast.expr, op: type[ast.cmpop], bound: ast.expr) -> bool:
+    floor = _ABOVE_ZERO.get(op)
+    return (
+        floor is not None
+        and isinstance(subject, ast.Call)
+        and isinstance(subject.func, ast.Name)
+        and subject.func.id == "len"
+        and isinstance(bound, ast.Constant)
+        and type(bound.value) is int
+        and bound.value == floor
+    )
+
+
+def _is_empty(node: ast.expr) -> bool:
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return not node.elts
+    return isinstance(node, ast.Dict) and not node.keys
+
+
+def _justified(lines: list[str], node: ast.Assert) -> bool:
+    last = node.end_lineno or node.lineno
+    above = lines[node.lineno - 2].strip() if node.lineno > 1 else ""
+    candidates = [*lines[node.lineno - 1 : last]]
+    if above.startswith("#"):
+        candidates.append(above)
+    for line in candidates:
+        _, marker, reason = line.partition(_NONEMPTY_MARKER)
+        if marker and reason.strip():
+            return True
+    return False
+
+
 def _is_weak_membership(expr: ast.Compare) -> bool:
     """`In`/`NotIn` is strong when EITHER side is a literal — a Constant,
     a Set/List/Tuple/Dict of Constants, or an attribute path on such a
@@ -142,9 +209,9 @@ def _compares_to_none(expr: ast.Compare) -> bool:
 
 
 def _scan_function(
-    fn: ast.FunctionDef | ast.AsyncFunctionDef,
+    fn: ast.FunctionDef | ast.AsyncFunctionDef, lines: list[str]
 ) -> tuple[_AssertWalker, bool]:
-    walker = _AssertWalker()
+    walker = _AssertWalker(lines)
     walker.visit(fn)
     has_strong = (
         walker.strong > 0 or walker.has_pytest_raises or walker.has_validating_call
@@ -164,22 +231,31 @@ def _classify(walker: _AssertWalker, *, has_strong: bool) -> str | None:
     return None
 
 
-def _scan_file(path: Path) -> list[tuple[Path, int, str, str]]:
+type Offender = tuple[Path, int, str, str]
+
+
+def scan_source(source: str, path: Path) -> tuple[list[Offender], list[Offender]]:
     try:
-        tree = ast.parse(path.read_text(), filename=str(path))
+        tree = ast.parse(source, filename=str(path))
     except SyntaxError:
-        return []
-    offenders: list[tuple[Path, int, str, str]] = []
+        return [], []
+    lines = source.splitlines()
+    offenders: list[Offender] = []
+    nonempty: list[Offender] = []
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         if not node.name.startswith("test_"):
             continue
-        walker, has_strong = _scan_function(node)
+        walker, has_strong = _scan_function(node, lines)
         verdict = _classify(walker, has_strong=has_strong)
         if verdict:
             offenders.append((path, node.lineno, node.name, verdict))
-    return offenders
+        nonempty.extend(
+            (path, line, node.name, "nonempty_check")
+            for line in walker.unjustified_nonempty
+        )
+    return offenders, nonempty
 
 
 def _load_baseline(path: Path) -> set[str]:
@@ -227,9 +303,12 @@ def main() -> int:
                 p for p in target.rglob("test_*.py") if p.name not in SKIP_NAMES
             )
 
-    all_offenders: list[tuple[Path, int, str, str]] = []
+    all_offenders: list[Offender] = []
+    nonempty: list[Offender] = []
     for path in sorted(files):
-        all_offenders.extend(_scan_file(path))
+        weak_tests, nonempty_checks = scan_source(path.read_text(), path)
+        all_offenders.extend(weak_tests)
+        nonempty.extend(nonempty_checks)
 
     if args.write_baseline:
         keys = sorted({_key(p, fn) for p, _, fn, _ in all_offenders})
@@ -245,6 +324,7 @@ def main() -> int:
 
     baseline = _load_baseline(args.baseline)
     new_offenders = [o for o in all_offenders if _key(o[0], o[2]) not in baseline]
+    new_offenders.extend(nonempty)
 
     if new_offenders:
         print(f"\n{len(new_offenders)} test(s) with weak-only or missing assertions:\n")
@@ -253,7 +333,10 @@ def main() -> int:
         print(
             "\nFix by replacing truthy / non-null / type / membership-only "
             "assertions with structural value checks (== exact, == [list], "
-            "pytest.raises(SpecificError), Model.model_validate(...))."
+            "pytest.raises(SpecificError), Model.model_validate(...)). A "
+            "non-empty check states the exact count or items instead, or "
+            f"carries '# {_NONEMPTY_MARKER} <reason>' where the count itself "
+            "is the behavior."
         )
         if baseline:
             print(

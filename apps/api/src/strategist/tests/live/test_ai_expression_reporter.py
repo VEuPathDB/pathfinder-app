@@ -139,6 +139,7 @@ async def test_a_gene_the_site_has_summarized_carries_a_whole_summary(
     assert summary is not None
     assert summary.headline != ""
     assert summary.one_paragraph_summary != ""
+    # weak-ok(nonempty): the live site decides how many topics a summary holds.
     assert len(summary.topics) > 0
     assert [topic.headline for topic in summary.topics if not topic.summaries] == []
     experiments = [entry for topic in summary.topics for entry in topic.summaries]

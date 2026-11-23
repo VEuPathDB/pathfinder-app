@@ -55,7 +55,7 @@ describe("state/strategy/historySlice (TQ-cache aware: pure patch logic)", () =>
     const { undoStack, redoStack } = useStrategyStore.getState();
     expect(undoStack).toHaveLength(1);
     expect(redoStack).toHaveLength(0);
-    expect(undoStack[0]?.length).toBeGreaterThan(0);
+    expect(undoStack[0]).toEqual([{ op: "replace", path: ["strategy"], value: prev }]);
   });
 
   it("dropSnapshot keeps the redo entry of an edit already undone", () => {

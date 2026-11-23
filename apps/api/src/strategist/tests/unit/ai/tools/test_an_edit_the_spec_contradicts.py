@@ -84,7 +84,7 @@ class TestAnEditTheSpecContradictsIsRefused:
         assert graph.steps[MIC2].parameters == {
             "ProfileGeneId": StringValue(value="TGME49_201780")
         }
-        assert stub_api.named("update_step_search_config") != []
+        assert stub_api.search_configs() == [(104, {"ProfileGeneId": "TGME49_201780"})]
 
     async def test_a_value_frame_derived_is_applied_after_a_push_error(
         self, stub_api: StubAPI
@@ -106,7 +106,9 @@ class TestAnEditTheSpecContradictsIsRefused:
         assert graph.steps[PROFILE].parameters["profile_pattern"] == StringValue(
             value="%hsap:N%tgme:Y%"
         )
-        assert stub_api.named("update_step_search_config") != []
+        assert stub_api.search_configs() == [
+            (103, {"profile_pattern": "%hsap:N%tgme:Y%"})
+        ]
 
 
 async def test_a_value_a_stated_requirement_grounds_onto_is_refused(

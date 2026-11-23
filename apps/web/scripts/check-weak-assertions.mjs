@@ -25,6 +25,12 @@
  * `queryBy*` returns null and `findBy*` returns a promise, so neither
  * asserts anything on its own and both stay weak.
  *
+ * A non-empty check (`expect(x.length).toBeGreaterThan(0)`,
+ * `.toBeGreaterThanOrEqual(1)`, `.not.toBe(0)`, `.not.toHaveLength(0)`,
+ * `.not.toEqual([])`) fails on its own line, whatever else the test asserts,
+ * unless that line or the comment line above it carries
+ * `// weak-ok(nonempty): <why the count itself is the behavior>`.
+ *
  * Usage:
  *   node scripts/check-weak-assertions.mjs
  */
@@ -93,6 +99,8 @@ const STRONG_MATCHERS = new Set([
 ]);
 
 const TEST_FN_NAMES = new Set(["it", "test"]);
+const NONEMPTY_MARKER = "weak-ok(nonempty):";
+const LENGTH_NAMES = new Set(["length", "size"]);
 
 function* walkFiles(dir) {
   if (!fs.existsSync(dir)) return;
@@ -130,6 +138,47 @@ function isThrowingQueryOnALiteral(node) {
   return ts.isStringLiteralLike(first) || ts.isRegularExpressionLiteral(first);
 }
 
+function isLiteral(node, value) {
+  return node !== undefined && ts.isNumericLiteral(node) && Number(node.text) === value;
+}
+
+function isEmptyArray(node) {
+  return (
+    node !== undefined &&
+    ts.isArrayLiteralExpression(node) &&
+    node.elements.length === 0
+  );
+}
+
+function isLengthLike(node) {
+  if (node === undefined) return false;
+  if (ts.isAwaitExpression(node) || ts.isParenthesizedExpression(node)) {
+    return isLengthLike(node.expression);
+  }
+  if (ts.isArrowFunction(node))
+    return !ts.isBlock(node.body) && isLengthLike(node.body);
+  if (ts.isPropertyAccessExpression(node)) {
+    return LENGTH_NAMES.has(node.name.escapedText?.toString() ?? "");
+  }
+  return ts.isCallExpression(node) && calleeName(node.expression) === "count";
+}
+
+function isNonEmptyCheck(matcher, negated, matcherArgs, subject) {
+  const [bound] = matcherArgs;
+  if (negated) {
+    if (matcher === "toHaveLength") return isLiteral(bound, 0);
+    if (matcher === "toEqual" || matcher === "toStrictEqual") {
+      return isEmptyArray(bound) || (isLiteral(bound, 0) && isLengthLike(subject));
+    }
+    return matcher === "toBe" && isLiteral(bound, 0) && isLengthLike(subject);
+  }
+  if (matcher === "toBeGreaterThan")
+    return isLiteral(bound, 0) && isLengthLike(subject);
+  return (
+    matcher === "toBeGreaterThanOrEqual" && isLiteral(bound, 1) && isLengthLike(subject)
+  );
+}
+
 /** Pull the matcher name off an `expect(x).chain.<matcher>(...)` call. */
 function classifyExpectCall(expr) {
   // expr: CallExpression at the tail of an expect chain
@@ -139,10 +188,12 @@ function classifyExpectCall(expr) {
   let sawWeak = false;
   let chainDepth = 0;
   let expectCall = null;
+  let negated = false;
 
   while (ts.isPropertyAccessExpression(node) || ts.isCallExpression(node)) {
     if (ts.isPropertyAccessExpression(node)) {
       const name = node.name.escapedText?.toString() ?? "";
+      if (name === "not") negated = true;
       if (name === "rejects" || name === "resolves") {
         sawStrong = true;
       } else if (name && name !== "not") {
@@ -168,7 +219,26 @@ function classifyExpectCall(expr) {
   if (expectCall !== null && isThrowingQueryOnALiteral(expectCall.arguments[0])) {
     sawStrong = true;
   }
-  return { sawStrong, sawWeak, lastMatcher };
+  const nonEmpty = isNonEmptyCheck(
+    lastMatcher,
+    negated,
+    expr.arguments,
+    expectCall?.arguments[0],
+  );
+  return { sawStrong: sawStrong && !nonEmpty, sawWeak, lastMatcher, nonEmpty };
+}
+
+function justified(sourceFile, node) {
+  const lines = sourceFile.text.split("\n");
+  const first = sourceFile.getLineAndCharacterOfPosition(node.getStart()).line;
+  const last = sourceFile.getLineAndCharacterOfPosition(node.getEnd()).line;
+  const candidates = lines.slice(first, last + 1);
+  const above = first > 0 ? lines[first - 1].trim() : "";
+  if (above.startsWith("//")) candidates.push(above);
+  return candidates.some((line) => {
+    const at = line.indexOf(NONEMPTY_MARKER);
+    return at >= 0 && line.slice(at + NONEMPTY_MARKER.length).trim() !== "";
+  });
 }
 
 function findTestFunctions(sourceFile) {
@@ -211,14 +281,24 @@ function isDelegatedAssertion(callExpr) {
   return false;
 }
 
-function classifyTest(testNode) {
+function classifyTest(testNode, sourceFile) {
   let strong = 0;
   let weak = 0;
   let expects = 0;
+  const nonEmpty = [];
   function visit(node) {
     if (ts.isCallExpression(node)) {
       const result = classifyExpectCall(node);
-      if (result) {
+      if (result?.nonEmpty && justified(sourceFile, node)) {
+        expects++;
+        strong++;
+      } else if (result?.nonEmpty) {
+        expects++;
+        weak++;
+        nonEmpty.push(
+          sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+        );
+      } else if (result) {
         expects++;
         if (result.sawStrong) strong++;
         else if (result.sawWeak) weak++;
@@ -230,9 +310,9 @@ function classifyTest(testNode) {
     ts.forEachChild(node, visit);
   }
   visit(testNode.body);
-  if (expects === 0) return "no_assertions";
-  if (strong === 0) return "only_weak_assertions";
-  return null;
+  if (expects === 0) return { verdict: "no_assertions", nonEmpty };
+  if (strong === 0) return { verdict: "only_weak_assertions", nonEmpty };
+  return { verdict: null, nonEmpty };
 }
 
 /** Classify every test in one source text. Exported so the checker has tests. */
@@ -240,15 +320,14 @@ export function scanSource(source, filePath = "test.tsx") {
   const sf = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
   const offenders = [];
   for (const t of findTestFunctions(sf)) {
-    const verdict = classifyTest(t);
+    const { verdict, nonEmpty } = classifyTest(t, sf);
+    const file = path.relative(ROOT, filePath);
     if (verdict) {
       const { line } = sf.getLineAndCharacterOfPosition(t.node.getStart());
-      offenders.push({
-        file: path.relative(ROOT, filePath),
-        line: line + 1,
-        title: t.title,
-        verdict,
-      });
+      offenders.push({ file, line: line + 1, title: t.title, verdict });
+    }
+    for (const line of nonEmpty) {
+      offenders.push({ file, line, title: t.title, verdict: "nonempty_check" });
     }
   }
   return offenders;
@@ -276,7 +355,9 @@ function main() {
     console.log(
       "\nFix by adding at least one strong matcher: toEqual, toBe (with a literal), " +
         "toMatchObject, toThrow, toHaveBeenCalledWith, toBeVisible, toHaveValue, " +
-        "toHaveTextContent, toHaveLength, etc.",
+        "toHaveTextContent, toHaveLength, etc. A non-empty check states the " +
+        `exact count or items instead, or carries '// ${NONEMPTY_MARKER} <reason>' ` +
+        "where the count itself is the behavior.",
     );
     return 1;
   }

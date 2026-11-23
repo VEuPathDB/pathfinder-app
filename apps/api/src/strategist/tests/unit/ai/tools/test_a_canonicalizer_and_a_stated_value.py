@@ -68,7 +68,9 @@ class TestACanonicalizerAndTheStatedValueGuard:
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[MIC2].parameters == {**STATED_PERCENTILE, **_SIZE}
-        assert stub_api.named("update_step_search_config") != []
+        assert stub_api.search_configs() == [
+            (104, {"min_expression_percentile": "90", "ProfileNumToReturn": "100"})
+        ]
 
     async def test_the_same_canonicalizer_still_refuses_a_real_change(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
@@ -97,7 +99,9 @@ class TestACanonicalizerAndTheStatedValueGuard:
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[MIC2].parameters == {**DEPARTED_PERCENTILE, **_SIZE}
-        assert stub_api.named("update_step_search_config") != []
+        assert stub_api.search_configs() == [
+            (104, {"min_expression_percentile": "80", "ProfileNumToReturn": "100"})
+        ]
 
     async def test_a_departed_value_the_write_moves_again_is_refused(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
@@ -171,7 +175,9 @@ class TestACanonicalizerAndTheStatedValueGuard:
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[MIC2].parameters == {**STATED_PERCENTILE, **_SIZE}
-        assert stub_api.named("update_step_search_config") != []
+        assert stub_api.search_configs() == [
+            (104, {"min_expression_percentile": "90", "ProfileNumToReturn": "100"})
+        ]
 
     async def test_a_patch_on_a_stated_value_asks_for_its_canonical_form(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
@@ -224,7 +230,7 @@ class TestABuildOverADepartedValue:
         rebuilt = deps.strategy_session.graph
         assert rebuilt is not None
         assert rebuilt.steps[MIC2].parameters == _DEPARTED_AS_READ
-        assert stub_api.named("create_step") != []
+        assert stub_api.created_searches() == ["GenesByTaxon"] * 5
 
     async def test_a_build_that_moves_a_stated_value_is_refused(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch

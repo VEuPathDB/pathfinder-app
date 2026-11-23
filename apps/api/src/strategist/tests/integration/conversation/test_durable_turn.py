@@ -173,6 +173,7 @@ async def test_post_chat_does_not_replay_prior_turn_events(
 
     assert post_res.status_code == 200
     ids = _event_ids(post_res.text)
+    # weak-ok(nonempty): with no event, the replay check below passes vacuously.
     assert len(ids) >= 1
     assert all(i > prior_done_id for i in ids), (
         f"POST replayed prior events (ids ≤ {prior_done_id}): {ids}"

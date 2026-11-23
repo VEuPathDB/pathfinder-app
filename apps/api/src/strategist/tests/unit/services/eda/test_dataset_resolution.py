@@ -9,7 +9,12 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda import EdaClient, EdaStudiesResponse, EdaStudyOverview
+from veupathdb.eda import (
+    EdaClient,
+    EdaPermissionsResponse,
+    EdaStudiesResponse,
+    EdaStudyOverview,
+)
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from strategist.services.eda import catalog
@@ -208,7 +213,11 @@ async def test_two_accounts_in_one_process_hold_two_permission_maps(
     restricted_cards = await catalog.browse_studies("plasmodb", limit=100)
     await client.close()
 
-    assert len(first_cards) > 0
+    granted = EdaPermissionsResponse.model_validate(_permissions()).per_dataset
+    studies = await _fixture_studies("plasmodb")
+    assert sorted(c.dataset_id for c in first_cards) == sorted(
+        s.dataset_id for s in studies if s.dataset_id in granted
+    )
     assert restricted_cards == []
 
 

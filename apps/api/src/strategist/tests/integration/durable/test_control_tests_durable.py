@@ -213,8 +213,7 @@ async def test_control_tests_impl_emits_progress_and_returns_dict(
             ).scalars()
         )
 
-    assert len(rows) >= 1
-    assert rows[0].percent <= rows[-1].percent
+    assert [r.percent for r in rows] == pytest.approx([0.0, 1 / 3, 2 / 3, 0.9, 1.0])
 
 
 @pytest.mark.asyncio

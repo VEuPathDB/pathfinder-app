@@ -390,6 +390,7 @@ test.describe("First run and navigation", () => {
       `Build and refine multi-step ${siteShortName(siteId)} search strategies with guided parameter selection and validation.`,
     );
     const suggestions = suggestionsFor(siteId);
+    // weak-ok(nonempty): an empty list passes the loop below vacuously.
     expect(suggestions.length).toBeGreaterThan(0);
     for (const suggestion of suggestions) {
       await expect(
@@ -861,6 +862,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       ),
     );
     await chatPage.approveCard();
+    // weak-ok(nonempty): the live model words the memory; a stored memory is the behavior.
     await expect
       .poll(async () => (await memoryItems(apiClient)).length, { timeout: 60_000 })
       .toBeGreaterThan(0);

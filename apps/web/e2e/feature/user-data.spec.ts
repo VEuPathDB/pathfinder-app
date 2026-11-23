@@ -43,9 +43,11 @@ test.describe(
       await chatPage.send("toxodb data");
       await chatPage.expectAssistantMessage(/\[mock\]/);
 
+      // weak-ok(nonempty): a thread on each site is the behavior; the purge below removes both.
       expect((await listConversations(apiClient, "plasmodb")).length).toBeGreaterThan(
         0,
       );
+      // weak-ok(nonempty): a thread on each site is the behavior; the purge below removes both.
       expect((await listConversations(apiClient, "toxodb")).length).toBeGreaterThan(0);
 
       const purgeResp = await apiClient.delete("api/v1/user/data");
@@ -92,6 +94,7 @@ test.describe(
       const stratResp = await apiClient.get(`api/v1/conversations/${strategyId}`);
       const strategy = (await stratResp.json()) as ConversationResponse;
       expect(strategy.wdkStrategyId ?? 0).toBeGreaterThan(0);
+      // weak-ok(nonempty): a saved gene set is the behavior; the purge below removes it.
       expect((await allGeneSets(apiClient)).length).toBeGreaterThan(0);
 
       const purgeResp = await apiClient.delete("api/v1/user/data?deleteWdk=true");

@@ -51,7 +51,11 @@ describe("ZeroResultHoverCard", () => {
     });
     const card = await screen.findByTestId("zero-result-content");
     expect(card.textContent).toContain("0 results");
-    expect(card.querySelectorAll("li").length).toBeGreaterThan(0);
+    expect([...card.querySelectorAll("li")].map((li) => li.textContent)).toEqual([
+      "Relax overly strict parameters/filters (broader thresholds, stages, experiments).",
+      "Check that the organism / life stage / strain matches the experiment or search you picked.",
+      "Try an alternative search with similar meaning (broader keyword / different experiment).",
+    ]);
     expect(card).toHaveClass("border-warning/40", "text-warning");
     expect(card.className).not.toContain("amber");
   });

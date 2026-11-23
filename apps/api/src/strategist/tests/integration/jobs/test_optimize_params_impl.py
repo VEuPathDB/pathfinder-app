@@ -296,13 +296,19 @@ async def test_per_variant_progress_tags(
     )
     await run_impl(variants_count=3)
 
-    assert len(progress_sink.rows) > 0
-    variant_ids = {
-        r.data["variantId"]
+    tagged = sorted(
+        (r.data["variantId"], r.percent)
         for r in progress_sink.rows
         if r.data and "variantId" in r.data
-    }
-    assert variant_ids == {"v0", "v1", "v2"}
+    )
+    assert tagged == [
+        ("v0", 0.5),
+        ("v0", 1.0),
+        ("v1", 0.5),
+        ("v1", 1.0),
+        ("v2", 0.5),
+        ("v2", 1.0),
+    ]
 
 
 async def test_concurrency_cap_respected(

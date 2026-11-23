@@ -133,5 +133,9 @@ async def test_the_finished_turn_replays_the_queued_status(
         if chunk["type"] == "data-turn-status"
     ]
 
-    assert labels[0] == "Queued"
-    assert labels[1:] != []
+    assert labels == [
+        "Queued",
+        "Starting the turn",
+        "Recalling earlier work and reading the conversation",
+        "Thinking...",
+    ]

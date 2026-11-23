@@ -48,9 +48,13 @@ describe("computeDeleteChoices", () => {
   test("every choice accounts for the steps it removes", () => {
     const steps = [step("a"), step("b"), step("c", "a", "b", "combine")];
 
-    for (const choice of computeDeleteChoices(steps, "a")) {
-      expect(choice.willDelete.length).toBeGreaterThan(0);
-    }
+    expect(
+      computeDeleteChoices(steps, "a").map((c) => [c.resolution, c.willDelete]),
+    ).toEqual([
+      ["collapse-combine", ["a", "c"]],
+      ["orphan-sibling", ["a"]],
+      ["delete-subtree", ["a", "c"]],
+    ]);
   });
 
   test("leaf of nested combine: sibling reconnects to grandparent", () => {

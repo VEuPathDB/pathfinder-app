@@ -42,6 +42,7 @@ _CRITERIA = {
     "step_snp": "SNP filter",
 }
 
+_REJOINED = [(103, 104), (201, 9001), (9002, 203), (9004, 107), (9005, 108)]
 _WDK_STEP_IDS = {
     "step_k1": 101,
     "step_k2": 102,
@@ -166,7 +167,7 @@ class TestReplaceSubtreeAgainstTheSpec:
         assert payload["ok"] is True
         assert len(graph.steps) == 16
         assert graph.steps["step_u2"].operator == CombineOp.INTERSECT
-        assert stub_api.named("create_combined_step") != []
+        assert stub_api.combines() == [(*ids, "INTERSECT") for ids in _REJOINED]
 
     async def test_a_replacement_that_mints_a_stated_criterion_is_applied(
         self, stub_api: StubAPI
@@ -198,7 +199,7 @@ class TestReplaceSubtreeAgainstTheSpec:
         assert payload["ok"] is True
         assert graph.steps["step_k5"].search_name == "GenesByTaxon"
         assert graph.steps["step_u4"].operator == CombineOp.UNION
-        assert stub_api.named("create_step") != []
+        assert stub_api.created_searches() == ["GenesByTaxon"]
 
     @pytest.mark.usefixtures("stub_api")
     async def test_a_placeholder_search_name_never_validates(self) -> None:
@@ -360,7 +361,7 @@ class TestAnExportedEdaStep:
         assert len(graph.steps) == 5
         assert graph.steps["step_c1"].operator == CombineOp.UNION
         assert graph.steps["step_eda1"].search_name == "GenesByEdaSubset"
-        assert stub_api.named("create_combined_step") != []
+        assert stub_api.combines() == [(900, 901, "UNION"), (9001, 903, "INTERSECT")]
 
     async def test_a_replacement_that_drops_the_eda_step_is_refused(
         self, stub_api: StubAPI
@@ -469,4 +470,4 @@ class TestAnOptionCriterion:
         assert graph is not None
         assert payload["ok"] is True
         assert graph.steps["step_u2"].operator == CombineOp.INTERSECT
-        assert stub_api.named("create_combined_step") != []
+        assert stub_api.combines() == [(*ids, "INTERSECT") for ids in _REJOINED]

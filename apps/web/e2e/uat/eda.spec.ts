@@ -250,6 +250,7 @@ test.describe("Studies", () => {
     });
     // The account holds uploads on this site (uat/sites-and-accounts.md).
     const uploads = await ownDatasets(apiClient, siteId);
+    // weak-ok(nonempty): the account decides its uploads; an empty list passes the row count vacuously.
     expect(uploads.length, `uploads on ${siteId}`).toBeGreaterThan(0);
     const rows = datasets.getByTestId(/^eda-own-dataset-/);
     await expect(rows).toHaveCount(uploads.length);

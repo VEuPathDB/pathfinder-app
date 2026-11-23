@@ -1409,6 +1409,7 @@ async def test_fork_preserves_blob_bytes_exactly(
             {"src_t": str(source_id), "dst_t": str(fork_id)},
         )
         rows = result.all()
+        # weak-ok(nonempty): with no blob, the byte comparison below passes vacuously.
         assert len(rows) > 0, "source has no blobs to compare - fixture bug"
         for channel, version, src_type, src_blob, dst_type, dst_blob in rows:
             assert dst_type is not None, (

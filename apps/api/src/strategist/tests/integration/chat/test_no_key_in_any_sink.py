@@ -232,6 +232,7 @@ async def test_an_answered_keyed_run_leaves_the_key_in_no_row_and_no_span(
 
     assert [h["authorization"] for h in wire.sent_headers()] == [f"Bearer {_SENTINEL}"]
     assert ANSWER_TEXT in stored
+    # weak-ok(nonempty): with no span, the span check below passes vacuously.
     assert spans != []
     assert _SENTINEL not in stored
     assert _SENTINEL not in _span_text(spans)

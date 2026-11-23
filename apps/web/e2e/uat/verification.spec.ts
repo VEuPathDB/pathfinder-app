@@ -216,6 +216,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       "Why",
     ]);
     const genes = await bodyCells(sampled);
+    // weak-ok(nonempty): the live site decides the sample; an empty sample passes the loop below vacuously.
     expect(genes.length).toBeGreaterThan(0);
     for (const gene of genes) {
       expect(gene[0] ?? "").toMatch(new RegExp(`^${siteGeneIdPrefix(siteId)}`));
@@ -446,6 +447,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       timeout: 90_000,
     });
 
+    // weak-ok(nonempty): the measured spec decides the layout; a stored step is the behavior.
     await expect
       .poll(async () => (await storedNodes(apiClient, id)).length, { timeout: 240_000 })
       .toBeGreaterThan(0);

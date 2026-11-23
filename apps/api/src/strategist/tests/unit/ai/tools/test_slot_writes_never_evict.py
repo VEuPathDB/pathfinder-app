@@ -149,7 +149,9 @@ class TestAnEdaExportIntoASlot:
             graph.steps[exported].search_name
             == "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
         )
-        assert stub_api.named("create_step") != []
+        assert stub_api.created_searches() == [
+            "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC"
+        ]
         stated = run_ctx.deps.state.domain.operational_spec
         assert stated is not None
         assert [c.id for c in stated.criteria] == ["step_k1", exported]
@@ -255,4 +257,7 @@ class TestABatchThatWritesASlot:
         assert payload["applied"] == 3
         assert graph.steps["step_c1"].secondary_input_id == "step_c2"
         assert graph.steps["step_c2"].primary_input_id == "step_ms"
-        assert stub_api.named("create_combined_step") != []
+        assert stub_api.combines() == [
+            (105, 9001, "INTERSECT"),
+            (201, 9002, "INTERSECT"),
+        ]

@@ -235,7 +235,7 @@ class TestABatchTheSpecContradicts:
 
         assert payload["applied"] == 2
         assert graph.steps["step_c2"].operator == CombineOp.UNION
-        assert stub_api.named("create_combined_step") != []
+        assert stub_api.combines() == [(301, 9001, "UNION")]
 
 
 class TestTheCommitService:
@@ -325,7 +325,11 @@ class TestTheCommitService:
         }
         assert graph.steps["step_k1"].search_name == "GenesByMolecularWeight"
         assert graph.steps["step_c2"].secondary_input_id == "step_k3"
-        assert stub_api.named("create_combined_step") != []
+        assert stub_api.combines() == [
+            (9001, 102, "UNION"),
+            (9002, 105, "INTERSECT"),
+            (9003, 9004, "INTERSECT"),
+        ]
 
     async def test_a_batch_the_spec_does_not_address_is_left_alone(
         self, stub_api: StubAPI
@@ -344,4 +348,4 @@ class TestTheCommitService:
 
         assert result.description != ""
         assert graph.steps["step_p1"].search_name == "GenesByTaxon"
-        assert stub_api.named("create_step") != []
+        assert stub_api.created_searches() == ["GenesByTaxon"]

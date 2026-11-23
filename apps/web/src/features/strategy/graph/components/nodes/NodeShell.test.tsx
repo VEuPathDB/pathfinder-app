@@ -111,7 +111,7 @@ describe("NodeShell motion stagger", () => {
   it("wraps the shell in a motion.div that applies fade-in-up enter animation", () => {
     renderShell({ enterDelayIndex: 0 });
 
-    expect(motionDivCalls.length).toBeGreaterThan(0);
+    expect(motionDivCalls).toHaveLength(1);
     const props = motionDivCalls[0]!;
     expect(props.initial).toEqual({ opacity: 0, y: 6 });
     expect(props.animate).toEqual({ opacity: 1, y: 0 });

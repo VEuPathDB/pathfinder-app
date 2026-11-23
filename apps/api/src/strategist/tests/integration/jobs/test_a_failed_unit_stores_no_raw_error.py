@@ -265,7 +265,7 @@ async def test_a_read_the_site_refused_shows_a_fixed_sentence_everywhere(
             t for t in (_BODY, "record-types", "HTTP 422") if t in response.text
         ] == []
     assert [t for t in lines if _BODY in t or "HTTP 422" in t] == []
-    assert [t for t in lines if stated in t] != []
+    assert len([t for t in lines if stated in t]) == 1
 
 
 async def test_a_read_the_site_never_answered_shows_a_fixed_sentence_everywhere(
