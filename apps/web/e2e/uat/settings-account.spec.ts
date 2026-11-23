@@ -27,6 +27,7 @@ import { readsLabel } from "@/lib/models/attachments";
 import { phaseLabel } from "@/lib/models/phaseRoles";
 
 import { test, expect } from "../fixtures/test";
+import { WHOLE_ACCOUNT_TAG } from "../fixtures/account-lock";
 import { prompt } from "../fixtures/arcs";
 import {
   type ApiClient,
@@ -316,90 +317,89 @@ test.describe("Settings and account", () => {
     },
   );
 
-  test("A4 - The data tab", async ({
-    chatPage,
-    sidebarPage,
-    settingsPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const otherSite = siteId === "toxodb" ? "plasmodb" : "toxodb";
-    const siteName = siteShortName(siteId);
-    await chatPage.startOn(siteId);
-    await chatPage.sendTurn("A4 data tab", /\[mock\]/);
-    const conversationId = chatPage.lastStrategyId ?? "";
-    await importGeneSet(apiClient, siteId, "UAT A4 here");
-    const kept = await importGeneSet(apiClient, otherSite, "UAT A4 elsewhere");
+  test(
+    "A4 - The data tab",
+    { tag: WHOLE_ACCOUNT_TAG },
+    async ({ chatPage, sidebarPage, settingsPage, apiClient, page, siteId }) => {
+      const otherSite = siteId === "toxodb" ? "plasmodb" : "toxodb";
+      const siteName = siteShortName(siteId);
+      await chatPage.startOn(siteId);
+      await chatPage.sendTurn("A4 data tab", /\[mock\]/);
+      const conversationId = chatPage.lastStrategyId ?? "";
+      await importGeneSet(apiClient, siteId, "UAT A4 here");
+      const kept = await importGeneSet(apiClient, otherSite, "UAT A4 elsewhere");
 
-    await openSettingsTab(page, settingsPage, "Data");
-    const dialog = settingsDialog(page);
-    for (const action of [
-      "Clear strategies",
-      "Clear site data",
-      "Clear ALL data",
-      "Clear ALL + VEuPathDB",
-    ]) {
+      await openSettingsTab(page, settingsPage, "Data");
+      const dialog = settingsDialog(page);
+      for (const action of [
+        "Clear strategies",
+        "Clear site data",
+        "Clear ALL data",
+        "Clear ALL + VEuPathDB",
+      ]) {
+        await expect(
+          dialog.getByRole("button", { name: action, exact: true }),
+        ).toBeVisible();
+      }
+      await expect(dialog).toContainText(
+        `Remove the ${siteName} conversations. One linked to a VEuPathDB strategy moves to Recently deleted, and the strategy stays.`,
+      );
+      await expect(dialog).toContainText(
+        `Delete the ${siteName} gene sets, runs, audits, control sets and copies waiting for review, and the judgements made about your genes. Conversations move to Recently deleted. Strategies and memories stay.`,
+      );
+      await expect(dialog).toContainText(
+        "Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site, and the judgements made about your genes. Conversations move to Recently deleted. Strategies stay but stop syncing.",
+      );
+      await expect(dialog.getByTestId("wdk-purge-description")).toContainText(
+        "Everything above, plus the strategies Strategist created in VEuPathDB.",
+      );
+
+      await dialog
+        .getByRole("button", { name: "Clear site data", exact: true })
+        .click();
+      const sitePurge = purgeResponse(page);
+      await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+      // The page reloads on the answer, so its body is read as state afterwards.
+      expect((await sitePurge).status()).toBe(200);
+      await expect(dialog).toHaveCount(0, { timeout: 30_000 });
+
+      expect(await geneSetsOn(apiClient, siteId)).toEqual([]);
+      expect((await geneSetsOn(apiClient, otherSite)).map((set) => set.id)).toEqual([
+        kept.id,
+      ]);
+      expect(await listConversations(apiClient, siteId)).toEqual([]);
+      const dismissed = await listConversations(apiClient, siteId, "dismissed");
+      expect(dismissed.map((row) => row.id)).toEqual([conversationId]);
+      await openSite(page, siteId);
+      await sidebarPage.expectDismissedCount(1);
+
+      await openSettingsTab(page, settingsPage, "Data");
+      await dialog
+        .getByRole("button", { name: "Clear ALL + VEuPathDB", exact: true })
+        .click();
+      const confirm = dialog.getByRole("button", { name: "Confirm", exact: true });
+      await expect(confirm).toBeDisabled();
+      await dialog.getByPlaceholder("delete my data").fill("delete my data");
+      await expect(confirm).toBeEnabled();
+      const allPurge = purgeResponse(page);
+      await confirm.click();
+      const allResult = (await (await allPurge).json()) as PurgeUserDataResponse;
+      expect(allResult.deleted.wdkStrategiesKept).toBe(0);
+      await expect(page.getByText("Data cleared", { exact: true })).toBeVisible();
       await expect(
-        dialog.getByRole("button", { name: action, exact: true }),
+        page.getByText(
+          `VEuPathDB strategies deleted: ${String(allResult.deleted.wdkStrategies)}. Memories deleted: ${String(allResult.deleted.memories)}.`,
+          { exact: true },
+        ),
       ).toBeVisible();
-    }
-    await expect(dialog).toContainText(
-      `Remove the ${siteName} conversations. One linked to a VEuPathDB strategy moves to Recently deleted, and the strategy stays.`,
-    );
-    await expect(dialog).toContainText(
-      `Delete the ${siteName} gene sets, runs, audits, control sets and copies waiting for review, and the judgements made about your genes. Conversations move to Recently deleted. Strategies and memories stay.`,
-    );
-    await expect(dialog).toContainText(
-      "Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site, and the judgements made about your genes. Conversations move to Recently deleted. Strategies stay but stop syncing.",
-    );
-    await expect(dialog.getByTestId("wdk-purge-description")).toContainText(
-      "Everything above, plus the strategies Strategist created in VEuPathDB.",
-    );
-
-    await dialog.getByRole("button", { name: "Clear site data", exact: true }).click();
-    const sitePurge = purgeResponse(page);
-    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
-    // The page reloads on the answer, so its body is read as state afterwards.
-    expect((await sitePurge).status()).toBe(200);
-    await expect(dialog).toHaveCount(0, { timeout: 30_000 });
-
-    expect(await geneSetsOn(apiClient, siteId)).toEqual([]);
-    expect((await geneSetsOn(apiClient, otherSite)).map((set) => set.id)).toEqual([
-      kept.id,
-    ]);
-    expect(await listConversations(apiClient, siteId)).toEqual([]);
-    const dismissed = await listConversations(apiClient, siteId, "dismissed");
-    expect(dismissed.map((row) => row.id)).toEqual([conversationId]);
-    await openSite(page, siteId);
-    await sidebarPage.expectDismissedCount(1);
-
-    await openSettingsTab(page, settingsPage, "Data");
-    await dialog
-      .getByRole("button", { name: "Clear ALL + VEuPathDB", exact: true })
-      .click();
-    const confirm = dialog.getByRole("button", { name: "Confirm", exact: true });
-    await expect(confirm).toBeDisabled();
-    await dialog.getByPlaceholder("delete my data").fill("delete my data");
-    await expect(confirm).toBeEnabled();
-    const allPurge = purgeResponse(page);
-    await confirm.click();
-    const allResult = (await (await allPurge).json()) as PurgeUserDataResponse;
-    expect(allResult.deleted.wdkStrategiesKept).toBe(0);
-    await expect(page.getByText("Data cleared", { exact: true })).toBeVisible();
-    await expect(
-      page.getByText(
-        `VEuPathDB strategies deleted: ${String(allResult.deleted.wdkStrategies)}. Memories deleted: ${String(allResult.deleted.memories)}.`,
-        { exact: true },
-      ),
-    ).toBeVisible();
-    await expect.poll(async () => (await geneSetsOn(apiClient)).length).toBe(0);
-    const everywhere = await listBody<ConversationRow>(
-      await apiClient.get("api/v1/conversations/dismissed"),
-      "dismissed conversations",
-    );
-    expect(everywhere).toEqual([]);
-  });
+      await expect.poll(async () => (await geneSetsOn(apiClient)).length).toBe(0);
+      const everywhere = await listBody<ConversationRow>(
+        await apiClient.get("api/v1/conversations/dismissed"),
+        "dismissed conversations",
+      );
+      expect(everywhere).toEqual([]);
+    },
+  );
 
   test("A5 - Privacy", async ({ page, settingsPage, siteId }) => {
     await openSite(page, siteId);

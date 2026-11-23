@@ -3,9 +3,10 @@ import {
   type ApiClient,
   CSRF_HEADERS,
   continuePastDataNotice,
-  clearUserData,
   createApiClient,
 } from "./api-client";
+import { WHOLE_ACCOUNT_TAG, holdAlone, holdShared } from "./account-lock";
+import { OwnedData } from "./owned-data";
 import { ChatPage } from "../pages/chat.page";
 import { SidebarPage } from "../pages/sidebar.page";
 import { GraphPage } from "../pages/graph.page";
@@ -18,7 +19,9 @@ import * as path from "node:path";
 
 /** Test-scoped fixtures (fresh per test). */
 type TestFixtures = {
-  _autoCleanup: void;
+  _owned: OwnedData;
+  _accountHold: void;
+  _deleteOwned: void;
   chatPage: ChatPage;
   sidebarPage: SidebarPage;
   graphPage: GraphPage;
@@ -60,8 +63,9 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   siteId: [DEFAULT_SITE, { option: true, scope: "worker" }],
 
   /**
-   * Each worker signs in as its own Strategist user (`/dev/login?user_id=worker-{N}`)
-   * and carries the registered VEuPathDB token in the `Authorization` cookie.
+   * Each worker carries the registered VEuPathDB token in the `Authorization`
+   * cookie, which names the account's own Strategist user ahead of the dev login.
+   * So every worker acts as one user, and a test deletes only what it created.
    */
   workerStorageState: [
     async ({ browser }, use, workerInfo) => {
@@ -69,7 +73,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       const dir = path.resolve("e2e/.auth");
       const fileName = path.join(dir, `worker-${id}.json`);
 
-      // Always re-authenticate to ensure a clean session.
       fs.mkdirSync(dir, { recursive: true });
 
       // No page loads the app here: its own auth refresh would race the dev
@@ -93,9 +96,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
         throw new Error(`data notice failed for worker-${id}: ${noticeResp.status()}`);
       }
 
-      // Clean up stale data from previous runs for THIS worker's user.
-      await clearUserData(req, BASE_URL);
-
       await context.storageState({ path: fileName });
       await context.close();
 
@@ -110,15 +110,36 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
    */
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
-  // Test-scoped: auto-cleanup
+  _owned: async ({}, use) => {
+    await use(new OwnedData());
+  },
 
-  /** Clear gene sets, strategies, and dismissed strategies before each test. */
-  _autoCleanup: [
-    async ({ context }, use) => {
-      await clearUserData(context.request, BASE_URL);
-      await use(undefined);
+  context: async ({ context, _owned }, use) => {
+    _owned.watchPages(context);
+    Object.defineProperty(context, "request", { value: _owned.track(context.request) });
+    await use(context);
+  },
+
+  _accountHold: [
+    async ({}, use, testInfo) => {
+      const release = testInfo.tags.includes(WHOLE_ACCOUNT_TAG)
+        ? await holdAlone()
+        : await holdShared();
+      try {
+        await use(undefined);
+      } finally {
+        await release();
+      }
     },
-    { auto: true },
+    { auto: true, timeout: 600_000 },
+  ],
+
+  _deleteOwned: [
+    async ({ context, _owned, _accountHold }, use) => {
+      await use(_accountHold);
+      await _owned.deleteAll(context.request, BASE_URL);
+    },
+    { auto: true, timeout: 240_000 },
   ],
 
   // Test-scoped: page objects
@@ -144,9 +165,9 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   },
 
   // Test-scoped: API client for postcondition verification
-  apiClient: async ({ context }, use) => {
+  apiClient: async ({ context, _owned }, use) => {
     const client = await createApiClient(context, APP_ROOT);
-    await use(client);
+    await use(_owned.track(client));
     await client.dispose();
   },
 });

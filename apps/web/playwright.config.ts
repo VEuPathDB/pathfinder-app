@@ -54,8 +54,11 @@ const NAMED_SITE_TAG = /@named-site\b/;
  * cookie of the per-worker storage state (`e2e/.auth/worker-{N}.json`), which is
  * the token the API forwards to WDK. The website login names the account's own
  * Strategist user ahead of the `/dev/login` cookie, so parallel workers share
- * one user. The postcondition client in `e2e/fixtures/api-client.ts` copies the whole browser
- * cookie jar, so it carries both cookies too.
+ * one user. A test deletes only what it created (`e2e/fixtures/owned-data.ts`),
+ * and a test tagged `@whole-account` runs while no other test holds the account
+ * (`e2e/fixtures/account-lock.ts`). The postcondition client in
+ * `e2e/fixtures/api-client.ts` copies the whole browser cookie jar, so it
+ * carries both cookies too.
  */
 export default defineConfig<SiteOption>({
   testDir: "./e2e",

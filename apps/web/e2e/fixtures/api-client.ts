@@ -199,7 +199,7 @@ export async function fetchConversationMessages(
 }
 
 /** The gene-set list of every site the suite serves, and the unscoped one. */
-function geneSetListUrls(baseURL: string): string[] {
+export function geneSetListUrls(baseURL: string): string[] {
   return [
     `${baseURL}/api/v1/gene-sets`,
     ...E2E_SITE_IDS.map((siteId) => `${baseURL}/api/v1/gene-sets?siteId=${siteId}`),
@@ -226,21 +226,8 @@ async function clearGeneSets(req: APIRequestContext, baseURL: string): Promise<v
   }
 }
 
-/**
- * Delete all gene sets for the current user via the API.
- *
- * Uses `page.context().request` so cookies are shared with the browser.
- * Call from `beforeEach` in specs that assert gene-set counts, for test isolation.
- */
-export async function clearAllGeneSets(
-  context: BrowserContext,
-  baseURL: string,
-): Promise<void> {
-  await clearGeneSets(context.request, baseURL);
-}
-
 /** A delete that neither succeeded nor found the row gone fails with its answer. */
-async function deleted(resp: APIResponse, what: string): Promise<void> {
+export async function deleted(resp: APIResponse, what: string): Promise<void> {
   if (resp.ok() || resp.status() === 404) return;
   throw new Error(`deleting ${what} answered ${resp.status()}: ${await resp.text()}`);
 }

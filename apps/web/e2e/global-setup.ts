@@ -2,7 +2,9 @@ import { expect, request } from "@playwright/test";
 import type { APIRequestContext } from "@playwright/test";
 
 import { BASE_PATH } from "../src/lib/basePath";
-import { siteLoginToken } from "./fixtures/wdk-account";
+import { resetAccountLock } from "./fixtures/account-lock";
+import { clearUserData, continuePastDataNotice } from "./fixtures/api-client";
+import { siteLoginToken, wdkTestToken } from "./fixtures/wdk-account";
 
 /**
  * One request per route pattern the suite enters. The production server loads
@@ -90,6 +92,23 @@ async function mintWdkTestToken(api: APIRequestContext): Promise<void> {
   process.env["WDK_TEST_TOKEN"] = await siteLoginToken(site.baseUrl, email, password);
 }
 
+/** Every test deletes what it made, so the account starts the run empty once. */
+async function clearTheAccount(origin: string): Promise<void> {
+  const account = await request.newContext({
+    extraHTTPHeaders: { cookie: `Authorization=${wdkTestToken()}` },
+  });
+  try {
+    const appRoot = `${origin}${BASE_PATH}`;
+    const notice = await continuePastDataNotice(account, appRoot);
+    if (!notice.ok()) {
+      throw new Error(`the data notice answered ${notice.status()}`);
+    }
+    await clearUserData(account, appRoot);
+  } finally {
+    await account.dispose();
+  }
+}
+
 export default async function warmRoutes(): Promise<void> {
   const origin = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
   const baseURL = `${origin}${BASE_PATH}/`;
@@ -98,6 +117,8 @@ export default async function warmRoutes(): Promise<void> {
     await waitForServer(api);
     await mintWdkTestToken(api);
     await waitForSiteCatalogs(api);
+    resetAccountLock();
+    await clearTheAccount(origin);
     for (const route of ROUTES) {
       await api.get(route, { timeout: COLD_RENDER_BUDGET_MS });
     }

@@ -56,7 +56,6 @@ test.describe("Saved strategies", () => {
     apiClient,
     siteId,
   }) => {
-    await apiClient.delete("api/v1/user/data?deleteWdk=true");
     await chatPage.goto();
     const id = await makeSaved(apiClient, siteId, "Kinase sweep");
     const deletes: string[] = [];

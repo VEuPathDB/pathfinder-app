@@ -25,6 +25,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
+import { WHOLE_ACCOUNT_TAG } from "../fixtures/account-lock";
 import { prompt } from "../fixtures/arcs";
 import {
   type ApiClient,
@@ -444,48 +445,46 @@ test.describe("The website is the site", { tag: "@named-site" }, () => {
 });
 
 test.describe("First run and navigation with the model", { tag: "@turn" }, () => {
-  test("F4 - The conversation list", async ({
-    chatPage,
-    sidebarPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const built = await buildOn(
-      chatPage,
-      siteId,
-      prompt("single", S1_TEXT(siteOrganism(siteId))),
-    );
-    await expectBuild(page, apiClient, built, siteId, LAYOUTS.single);
-    await renamed(apiClient, built, "UAT F4 alpha");
-    const empty = await namedConversation(apiClient, siteId, "UAT F4 beta");
+  test(
+    "F4 - The conversation list",
+    { tag: WHOLE_ACCOUNT_TAG },
+    async ({ chatPage, sidebarPage, apiClient, page, siteId }) => {
+      const built = await buildOn(
+        chatPage,
+        siteId,
+        prompt("single", S1_TEXT(siteOrganism(siteId))),
+      );
+      await expectBuild(page, apiClient, built, siteId, LAYOUTS.single);
+      await renamed(apiClient, built, "UAT F4 alpha");
+      const empty = await namedConversation(apiClient, siteId, "UAT F4 beta");
 
-    await sidebarPage.refresh();
-    await expect(page.getByTestId("conversations-search-input")).toBeVisible();
-    await expect(sidebarPage.item(built)).toContainText("UAT F4 alpha", {
-      timeout: 30_000,
-    });
-    await expect(sidebarPage.item(built)).toContainText(
-      new RegExp(`UAT F4 alpha${LAYOUTS.single.steps} step · ${TODAY_TIME}`),
-    );
-    await expect(sidebarPage.item(empty)).toContainText(
-      new RegExp(`UAT F4 beta${TODAY_TIME}`),
-    );
-    await expect.poll(() => rowIds(page)).toEqual([empty, built]);
+      await sidebarPage.refresh();
+      await expect(page.getByTestId("conversations-search-input")).toBeVisible();
+      await expect(sidebarPage.item(built)).toContainText("UAT F4 alpha", {
+        timeout: 30_000,
+      });
+      await expect(sidebarPage.item(built)).toContainText(
+        new RegExp(`UAT F4 alpha${LAYOUTS.single.steps} step · ${TODAY_TIME}`),
+      );
+      await expect(sidebarPage.item(empty)).toContainText(
+        new RegExp(`UAT F4 beta${TODAY_TIME}`),
+      );
+      await expect.poll(() => rowIds(page)).toEqual([empty, built]);
 
-    await sidebarPage.search("al");
-    await expect(sidebarPage.items).toHaveCount(1);
-    await expect(sidebarPage.item(built)).toBeVisible();
-    await sidebarPage.search("zq");
-    await expect(sidebarPage.items).toHaveCount(0);
-    await expect(page.getByText("No conversations match your search.")).toBeVisible();
-    await sidebarPage.clearSearch();
+      await sidebarPage.search("al");
+      await expect(sidebarPage.items).toHaveCount(1);
+      await expect(sidebarPage.item(built)).toBeVisible();
+      await sidebarPage.search("zq");
+      await expect(sidebarPage.items).toHaveCount(0);
+      await expect(page.getByText("No conversations match your search.")).toBeVisible();
+      await sidebarPage.clearSearch();
 
-    await renamed(apiClient, built, "UAT F4 alpha again");
-    await sidebarPage.refresh();
-    await expect(sidebarPage.item(built)).toContainText("UAT F4 alpha again");
-    await expect.poll(() => rowIds(page)).toEqual([built, empty]);
-  });
+      await renamed(apiClient, built, "UAT F4 alpha again");
+      await sidebarPage.refresh();
+      await expect(sidebarPage.item(built)).toContainText("UAT F4 alpha again");
+      await expect.poll(() => rowIds(page)).toEqual([built, empty]);
+    },
+  );
 
   test("F6 - Rename", async ({
     chatPage,
@@ -548,56 +547,54 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     await expect(graphPage.strategyPageNameInput).toHaveValue(strategyName);
   });
 
-  test("F7 - Delete, dismiss and restore", async ({
-    chatPage,
-    sidebarPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const message = prompt("single", S1_TEXT(siteOrganism(siteId)));
-    const id = await buildOn(chatPage, siteId, message);
-    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-    const wdkStrategyId = (await readConversation(apiClient, id)).wdkStrategyId ?? 0;
-    expect(wdkStrategyId).toBeGreaterThan(0);
-    const site = siteShortName(siteId);
+  test(
+    "F7 - Delete, dismiss and restore",
+    { tag: WHOLE_ACCOUNT_TAG },
+    async ({ chatPage, sidebarPage, apiClient, page, siteId }) => {
+      const message = prompt("single", S1_TEXT(siteOrganism(siteId)));
+      const id = await buildOn(chatPage, siteId, message);
+      await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+      const wdkStrategyId = (await readConversation(apiClient, id)).wdkStrategyId ?? 0;
+      expect(wdkStrategyId).toBeGreaterThan(0);
+      const site = siteShortName(siteId);
 
-    const row = sidebarPage.item(id);
-    const title = (await row.locator("div[title]").getAttribute("title")) ?? "";
-    await openRowMenu(row);
-    await page.getByRole("menuitem", { name: "Delete" }).click();
-    const dialog = page.getByRole("dialog", { name: "Delete conversation" });
-    await expect(dialog).toContainText(
-      `Delete "${title}"? It moves to Recently deleted and can be restored later.`,
-    );
-    await expect(dialog).toContainText(`Also delete strategy from ${site}`);
-    await expect(dialog.getByRole("checkbox")).not.toBeChecked();
-    await expect(dialog.getByTestId("delete-linked-strategy-note")).toHaveText(
-      `Strategist created this strategy in ${site}. Deleting it is permanent, and the conversation will not be recoverable.`,
-    );
-    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-    await expect(row).toHaveCount(0, { timeout: 15_000 });
-    await sidebarPage.expectDismissedCount(1);
-    expect(await accountStrategyIds(apiClient, siteId)).toContain(wdkStrategyId);
+      const row = sidebarPage.item(id);
+      const title = (await row.locator("div[title]").getAttribute("title")) ?? "";
+      await openRowMenu(row);
+      await page.getByRole("menuitem", { name: "Delete" }).click();
+      const dialog = page.getByRole("dialog", { name: "Delete conversation" });
+      await expect(dialog).toContainText(
+        `Delete "${title}"? It moves to Recently deleted and can be restored later.`,
+      );
+      await expect(dialog).toContainText(`Also delete strategy from ${site}`);
+      await expect(dialog.getByRole("checkbox")).not.toBeChecked();
+      await expect(dialog.getByTestId("delete-linked-strategy-note")).toHaveText(
+        `Strategist created this strategy in ${site}. Deleting it is permanent, and the conversation will not be recoverable.`,
+      );
+      await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+      await expect(row).toHaveCount(0, { timeout: 15_000 });
+      await sidebarPage.expectDismissedCount(1);
+      expect(await accountStrategyIds(apiClient, siteId)).toContain(wdkStrategyId);
 
-    await sidebarPage.expandDismissed();
-    await sidebarPage.restoreDismissed(id);
-    await expect(row).toBeVisible({ timeout: 15_000 });
-    await sidebarPage.selectConversation(id);
-    await expect(chatPage.userMessage(message)).toHaveCount(1, { timeout: 30_000 });
+      await sidebarPage.expandDismissed();
+      await sidebarPage.restoreDismissed(id);
+      await expect(row).toBeVisible({ timeout: 15_000 });
+      await sidebarPage.selectConversation(id);
+      await expect(chatPage.userMessage(message)).toHaveCount(1, { timeout: 30_000 });
 
-    await openRowMenu(row);
-    await page.getByRole("menuitem", { name: "Delete" }).click();
-    await dialog.getByRole("checkbox").check();
-    await dialog.getByRole("button", { name: "Delete", exact: true }).click();
-    await expect(row).toHaveCount(0, { timeout: 15_000 });
-    await sidebarPage.expectNoDismissedSection();
-    const dismissed = await listConversations(apiClient, siteId, "dismissed");
-    expect(dismissed.map((d) => d.id)).not.toContain(id);
-    await expect
-      .poll(() => accountStrategyIds(apiClient, siteId), { timeout: 30_000 })
-      .not.toContain(wdkStrategyId);
-  });
+      await openRowMenu(row);
+      await page.getByRole("menuitem", { name: "Delete" }).click();
+      await dialog.getByRole("checkbox").check();
+      await dialog.getByRole("button", { name: "Delete", exact: true }).click();
+      await expect(row).toHaveCount(0, { timeout: 15_000 });
+      await sidebarPage.expectNoDismissedSection();
+      const dismissed = await listConversations(apiClient, siteId, "dismissed");
+      expect(dismissed.map((d) => d.id)).not.toContain(id);
+      await expect
+        .poll(() => accountStrategyIds(apiClient, siteId), { timeout: 30_000 })
+        .not.toContain(wdkStrategyId);
+    },
+  );
 
   test("F8 - Branch", async ({ chatPage, sidebarPage, apiClient, page, siteId }) => {
     const buildText = prompt("minus", S4_TEXT(siteOrganism(siteId)));

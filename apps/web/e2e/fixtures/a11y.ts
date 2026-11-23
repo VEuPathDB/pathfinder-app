@@ -1,7 +1,6 @@
 import { expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
-import { BASE_URL, test as baseTest } from "./test";
-import { clearAllGeneSets } from "./api-client";
+import { test as baseTest } from "./test";
 
 interface SeriousViolation {
   id: string;
@@ -26,9 +25,6 @@ export const test = baseTest.extend({
     // Run with reduced motion so entrance animations don't leave text at
     // transient sub-contrast opacity when the post-test audit fires.
     await page.emulateMedia({ reducedMotion: "reduce" });
-    // Journey specs are serial and read gene-set lists; start each from a
-    // clean slate so set assertions are not polluted by leftovers.
-    await clearAllGeneSets(page.context(), BASE_URL);
     await use(page);
     if (testInfo.status === "skipped") return;
     if (page.isClosed()) return;
