@@ -22,6 +22,33 @@ _TURN_SOURCES: tuple[object, ...] = (
 )
 
 
+RETIRED_TOOLS: frozenset[str] = frozenset(
+    {"create_leaf_step", "combine_steps", "update_step", "undo_last_change"}
+)
+
+ALLOWED: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "_model_reading",
+        "remember",
+        "`remember`: the message asks to keep",
+        "an intent the message reader returns, not a tool it is told to call",
+    ),
+    (
+        "execution",
+        "clear_strategy",
+        "call clear_strategy to remove every step",
+        (
+            "the Lead's branch of _delete_rules._the_way_to_clear; a building "
+            "pass receives the other branch"
+        ),
+    ),
+)
+
+
+def allowed_in(text: str) -> frozenset[str]:
+    return frozenset(tool for _, tool, sentence, _ in ALLOWED if sentence in text)
+
+
 def served_tool_names() -> set[str]:
     return {
         f"{RESEARCH_TOOL_SOURCE.name}_{tool}"
@@ -55,13 +82,14 @@ def all_tool_names() -> frozenset[str]:
 
 def _mention(name: str) -> re.Pattern[str]:
     if "_" in name:
-        return re.compile(rf"(?<![\w.\-/]){re.escape(name)}(?![\w=])")
+        return re.compile(rf"(?<![\w.\-/]){re.escape(name)}(?![\w=]|:\S)")
     return re.compile(rf"`{re.escape(name)}`|(?<![\w.\-/]){re.escape(name)}\(")
 
 
 @functools.cache
 def _mentions() -> tuple[tuple[str, re.Pattern[str]], ...]:
-    return tuple((name, _mention(name)) for name in sorted(all_tool_names()))
+    vocabulary = all_tool_names() | RETIRED_TOOLS
+    return tuple((name, _mention(name)) for name in sorted(vocabulary))
 
 
 def named_tools(text: str) -> frozenset[str]:

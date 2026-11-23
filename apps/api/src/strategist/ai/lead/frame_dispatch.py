@@ -29,7 +29,7 @@ from strategist.ai.lead.dispatch_messages import (
     stopped_pass_work_order,
 )
 from strategist.ai.lead.edit_messages import edit_continuation_work_order
-from strategist.ai.lead.frame_questions import questions_that_bind_to_nothing
+from strategist.ai.lead.frame_questions import unheld_questions
 from strategist.ai.lead.frame_requirements import (
     questions_for_the_card,
     requirements_the_site_lacks,
@@ -367,7 +367,7 @@ def _without_what_an_unbound_question_moved(
     if (
         found is None
         or delta.disposition != "needs_user"
-        or not questions_that_bind_to_nothing(delta, draft, state.sets_the_site)
+        or not unheld_questions(delta, draft, state.sets_the_site)
     ):
         return draft
     as_found = {c.id: c for c in found.criteria}

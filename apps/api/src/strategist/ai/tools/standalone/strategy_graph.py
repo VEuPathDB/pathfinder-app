@@ -59,7 +59,7 @@ class StrategySummaryResponse(CamelModel):
     description: str | None = None
     steps: list[ShownStep] | None = None
     revision: str = ""
-    """Fingerprint of the strategy's inputs; pass to ``apply_operations``.
+    """Fingerprint of the strategy's inputs; an edit passes it as its base revision.
 
     Hashes search names, parameters, operators and tree shape only, so a
     refreshed count never looks like an edit. Empty for no strategy.

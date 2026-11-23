@@ -139,6 +139,9 @@ def _deps() -> LeadDeps:
     return lead_deps(pipeline_state(user_prompt=_PROMPT))
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub frame toolset receives the production work order"
+)
 async def test_a_pass_refused_past_its_retries_is_continued_in_one_dispatch(
     scripted_frame: list[str],
 ) -> None:
@@ -162,6 +165,9 @@ async def test_a_pass_refused_past_its_retries_is_continued_in_one_dispatch(
     assert [c.id for c in spec.criteria] == ["c_sp", "c_tm"]
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub frame toolset receives the production work order"
+)
 async def test_the_continuation_names_the_refusal_it_continues_after(
     scripted_frame: list[str],
 ) -> None:

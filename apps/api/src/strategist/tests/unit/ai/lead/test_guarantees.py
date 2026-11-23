@@ -106,6 +106,9 @@ def test_the_pin_renders_the_same_text_the_renderer_builds() -> None:
     assert pin() == render_machine_guarantees(registered_tools(agent.toolsets))
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent carries the Lead's pin and none of its tools"
+)
 async def test_the_preamble_reaches_the_model_that_reads_it() -> None:
     """A pin with no context argument still renders into the request."""
     seen: list[str] = []

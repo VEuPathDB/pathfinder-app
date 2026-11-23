@@ -25,9 +25,9 @@ _LEFT_OUT = (
     "The build cannot place these criteria: c_singleton_genes (Transform Groups "
     "to Proteins) runs FromGroups, states no value and is not in the structure. "
     "Nothing was built and the strategy is unchanged. A criterion that runs a "
-    "search of its own is a node of the structure: call set_structure again with "
-    "a structure that includes c_singleton_genes, and drop_criterion on a "
-    "criterion the strategy does not need."
+    "search of its own is a node of the structure, so the structure includes "
+    "c_singleton_genes, and a criterion the strategy does not need is dropped. "
+    "Frame the request again, so the framing pass states that structure."
 )
 
 

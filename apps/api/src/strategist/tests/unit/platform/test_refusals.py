@@ -193,6 +193,9 @@ def _refusing_service(monkeypatch: pytest.MonkeyPatch, error: AppError) -> None:
     monkeypatch.setattr(control_sets, "control_ids_from_saved_gene_set", _refuse)
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds one Lead tool without its listing tool"
+)
 @pytest.mark.asyncio
 async def test_a_turn_whose_tool_refuses_an_id_still_answers(
     monkeypatch: pytest.MonkeyPatch,
@@ -206,6 +209,9 @@ async def test_a_turn_whose_tool_refuses_an_id_still_answers(
     assert result.output == "listed the gene sets"
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds one Lead tool without its listing tool"
+)
 @pytest.mark.asyncio
 async def test_a_keyed_lead_toolset_charges_the_refused_id_once(
     monkeypatch: pytest.MonkeyPatch,

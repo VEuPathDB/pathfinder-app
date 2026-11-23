@@ -87,3 +87,19 @@ def test_a_worker_result_is_a_task_exchange() -> None:
         kind="task_result",
         reply="4 of 5 positive controls are in the result.",
     )
+
+
+def test_an_approval_card_is_named_in_words() -> None:
+    ctx = lead_run_context(user_prompt=_ASKED)
+    capture = LeadRunCapture(
+        pending_approval=PendingApproval(
+            phase="lead",
+            tool_call_id="call_offer",
+            tool_name="adopt_separating_strategy",
+            tool_args={"reply": "The separation found a strategy."},
+        )
+    )
+
+    assert turn_exchange(ctx.deps.state, capture).card == (
+        "approve adopt separating strategy"
+    )

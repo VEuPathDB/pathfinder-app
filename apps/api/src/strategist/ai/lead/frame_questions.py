@@ -13,21 +13,30 @@ from strategist.domain.strategy.questions import SlotQuestion
 _ASKED_WINDOW = 4
 
 
+def unheld_questions(
+    result: FrameResult,
+    draft: OperationalSpec,
+    sets_the_site: Callable[[str, str], bool],
+) -> list[SlotQuestion]:
+    """The questions that name a slot no criterion of the draft holds."""
+    held = params_held(draft, sets_the_site)
+    return [
+        q
+        for q in result.open_questions
+        if (q.criterion_id or q.param_name)
+        and q.param_name not in held.get(q.criterion_id, set())
+    ]
+
+
 def _unheld_slot_questions(
-    questions: Sequence[SlotQuestion],
+    unheld: Sequence[SlotQuestion],
     draft: OperationalSpec,
     sets_the_site: Callable[[str, str], bool],
 ) -> str:
     """Why a question names a slot no criterion of the draft holds, or empty."""
-    held = params_held(draft, sets_the_site)
-    unheld = [
-        q
-        for q in questions
-        if (q.criterion_id or q.param_name)
-        and q.param_name not in held.get(q.criterion_id, set())
-    ]
     if not unheld:
         return ""
+    held = params_held(draft, sets_the_site)
     named = "; ".join(
         f"{q.question!r} names {q.criterion_id or '?'}.{q.param_name or '?'}"
         for q in unheld[:_ASKED_WINDOW]
@@ -53,4 +62,5 @@ def questions_that_bind_to_nothing(
 ) -> str:
     """Why a pass that stops on the user asks about a slot no criterion of the
     draft holds, or "". A slot question binds its criterion's parameter."""
-    return _unheld_slot_questions(result.open_questions, draft, sets_the_site)
+    unheld = unheld_questions(result, draft, sets_the_site)
+    return _unheld_slot_questions(unheld, draft, sets_the_site)

@@ -245,9 +245,6 @@ def _resumed_work_order(
     return "\n".join(lines)
 
 
-_RECORDING_TOOLS = "set_criterion, set_structure, drop_criterion"
-
-
 def frame_claimed_more_than_it_bound(summary: str) -> str:
     """Why a ``spec_ready`` over a draft with no bound criterion is refused.
 
@@ -257,8 +254,8 @@ def frame_claimed_more_than_it_bound(summary: str) -> str:
     return (
         f"FRAME reported spec_ready with the summary {summary[:200]!r}, and the "
         "spec holds no bound criterion, so the pass recorded nothing. Dispatch "
-        f"frame_problem again and tell it to record its work with "
-        f"{_RECORDING_TOOLS}; a summary alone binds no search."
+        "frame_problem again and tell it to record its work in the spec; a "
+        "summary alone binds no search."
     )
 
 
@@ -296,10 +293,10 @@ def option_binds_no_step_message(spec: OperationalSpec, unplaced: Sequence[str])
         f"The build cannot place the value(s) these criteria state: "
         f"{'; '.join(problems)}. Nothing was built and the strategy is "
         f"unchanged. A choice inside a search is a value in that search's own "
-        f"parameters: call set_criterion on the criterion that runs the "
-        f"search, with the value in its params, and drop_criterion on the one "
-        f"that states it alone. A criterion that runs a search of its own "
-        f"belongs in set_structure instead."
+        f"parameters, on the criterion that runs the search, and the criterion "
+        f"that states it alone is dropped. A criterion that runs a search of "
+        f"its own is a node of the structure instead. Frame the request again, "
+        f"so the framing pass states them that way."
     )
 
 
@@ -313,9 +310,9 @@ def _left_out_message(left_out: Sequence[Criterion]) -> str:
     return (
         f"The build cannot place these criteria: {named}. Nothing was built and "
         "the strategy is unchanged. A criterion that runs a search of its own is "
-        "a node of the structure: call set_structure again with a structure that "
-        f"includes {ids}, and drop_criterion on a criterion the strategy does not "
-        "need."
+        f"a node of the structure, so the structure includes {ids}, and a "
+        "criterion the strategy does not need is dropped. Frame the request "
+        "again, so the framing pass states that structure."
     )
 
 

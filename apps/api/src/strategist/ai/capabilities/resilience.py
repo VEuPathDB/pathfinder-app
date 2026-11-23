@@ -62,11 +62,12 @@ def _shape_error_hint(
     if len(args) == 1:
         return _wrapped_args_hint(tool_name, args, error)
     if tool_name == "build_strategy":
-        return _build_strategy_misplaced_hint(args, error)
+        return _build_strategy_misplaced_hint(tool_name, args, error)
     return None
 
 
 def _build_strategy_misplaced_hint(
+    tool_name: str,
     args: object,
     error: ValidationError,
 ) -> str | None:
@@ -81,14 +82,14 @@ def _build_strategy_misplaced_hint(
         return None
     del error
     return (
-        f"build_strategy received {misplaced!r} at the top level of the "
+        f"{tool_name} received {misplaced!r} at the top level of the "
         "tool arguments. These fields belong INSIDE `root`, not next to "
         "it. The whole strategy tree - including every combine and every "
         "leaf - must be nested under a single `root`. To add a new set "
         "as a sibling of the existing tree, wrap the existing tree in a "
         "new combine: existing tree becomes `primaryInput`, new set "
         "becomes `secondaryInput`, the new combine replaces `root`. "
-        "See the build_strategy docstring for a worked example."
+        "See the tool's own description for a worked example."
     )
 
 

@@ -49,6 +49,10 @@ class Exchange(CamelModel):
         ]
 
 
+def approval_card(tool_name: str) -> str:
+    return f"approve {tool_name.replace('_', ' ')}"
+
+
 def kept_exchanges(held: Sequence[Exchange], exchange: Exchange) -> list[Exchange]:
     """The held exchanges with this one, the last ``EXCHANGE_WINDOW`` of them."""
     if exchange.empty():
@@ -71,6 +75,7 @@ __all__ = [
     "EXCHANGE_WINDOW",
     "Exchange",
     "ExchangeKind",
+    "approval_card",
     "exchanges_section",
     "exchanges_text",
     "kept_exchanges",
