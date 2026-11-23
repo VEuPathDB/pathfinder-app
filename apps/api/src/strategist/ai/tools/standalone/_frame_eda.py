@@ -24,7 +24,7 @@ from strategist.ai.tools.standalone._frame_result import (
 )
 from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import Criterion
-from strategist.platform.refusals import refusal_of
+from strategist.platform.refusals import ProblemsRefusal
 
 
 def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
@@ -45,7 +45,7 @@ def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
         f"restate its comparison with another search. Only the Lead removes it, "
         f"with delete_step."
     )
-    raise refusal_of(
+    raise ProblemsRefusal(
         Problems.one(RefusalKey(check="bound_analysis", criterion=criterion_id), msg)
     )
 
@@ -166,7 +166,7 @@ def wait_for_the_analysis(
         eda_wait_problems(state, definition, stated, dataset)
     )
     if dataset is None or not problems.empty:
-        raise refusal_of(problems)
+        raise ProblemsRefusal(problems)
     record_the_wait(state, stated, dataset)
     return criterion_return(
         ctx,

@@ -11,7 +11,7 @@ from veupathdb.errors import VEuPathDBError, WDKError
 from strategist.ai.agents.unserved import SearchNotServedError, UnservedSearch
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.domain.refusal import Problems, RefusalKey
-from strategist.platform.refusals import ProblemsRefusal, refusal_of
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.record_classes import search_record_types
 
 _ANY_RECORD_TYPE = "any record type"
@@ -28,7 +28,9 @@ async def listed_record_type(
 ) -> str:
     if not search_name:
         found = Problems.one(RefusalKey(check="search"), _NO_SEARCH)
-        raise refusal_of(early.plus(found).under(criterion=criterion_id, search=""))
+        raise ProblemsRefusal(
+            early.plus(found).under(criterion=criterion_id, search="")
+        )
     unserved = ctx.deps.agent_state.unserved_searches
     if search_name in unserved:
         raise _refusal(ctx, criterion_id, search_name, early)
@@ -106,4 +108,4 @@ def _refusal(
             f"requirement only {search_name} answers is site_refused_the_search, "
             f"with {search_name} named."
         )
-    return refusal_of(placed.plus(Problems.one(key, said)))
+    return ProblemsRefusal(placed.plus(Problems.one(key, said)))

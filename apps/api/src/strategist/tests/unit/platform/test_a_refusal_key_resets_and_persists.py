@@ -116,7 +116,7 @@ async def test_a_server_error_reading_stated_values_is_not_a_refusal() -> None:
         raise WDKError(msg, status=502)
 
     with pytest.raises(WDKError):
-        await _stated_values._retrying("GenesByText", "written", _down())
+        await _stated_values._retrying("GenesByText", "Nothing was written.", _down())
 
 
 async def test_a_client_error_reading_stated_values_is_a_refusal() -> None:
@@ -125,7 +125,9 @@ async def test_a_client_error_reading_stated_values_is_a_refusal() -> None:
         raise WDKError(msg, status=422)
 
     with pytest.raises(ModelRetry, match="Nothing was written"):
-        await _stated_values._retrying("GenesByText", "written", _refused())
+        await _stated_values._retrying(
+            "GenesByText", "Nothing was written.", _refused()
+        )
 
 
 def test_a_parked_turn_resumes_with_its_refusal_book() -> None:

@@ -52,9 +52,9 @@ from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
 from strategist.platform.refusals import (
     FaultRow,
+    ProblemsRefusal,
     library_problems,
     library_rows,
-    refusal_of,
     refuse_problems,
 )
 
@@ -215,7 +215,7 @@ async def read_call(
             state,
             search.site_id,
         )
-        raise refusal_of(problems) from exc
+        raise ProblemsRefusal(problems) from exc
     read = call.with_read(values)
     given_back = {name for name in call.params if name not in read.params}
     kept = {
@@ -385,7 +385,7 @@ async def resolve_proposals(
         )
     except ValidationError as exc:
         found = _resolver_problems(call, library_problems(exc, key))
-        raise refusal_of(found) from exc
+        raise ProblemsRefusal(found) from exc
     refuse_problems(
         Problems(
             found=tuple(

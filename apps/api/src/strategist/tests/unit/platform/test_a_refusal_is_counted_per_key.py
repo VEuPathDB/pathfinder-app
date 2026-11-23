@@ -47,6 +47,7 @@ from strategist.platform.refusals import (
     SpentRefusal,
     agent_capabilities,
     call_key,
+    closing_of,
     last_answer,
     library_problems,
     problems_of_retry,
@@ -199,7 +200,7 @@ async def test_a_spent_key_beside_a_live_one_is_named_and_not_charged() -> None:
         "2 problems:\n"
         "1. c2 names nothing.\n"
         f"2. No more attempts for c1 / {_S}: c1 names nothing. "
-        "Leave it out and report it."
+        "Leave it out and report it. Nothing was recorded."
     )
     assert deps.refusal_book.ledger.used(C1) == TOOL_REFUSALS_PER_KEY
     assert deps.refusal_book.ledger.used(C2) == 1
@@ -310,8 +311,19 @@ async def test_a_held_resend_is_free_and_the_next_keeps_its_problem_keys() -> No
 
 def test_a_refusal_reads_as_its_problems() -> None:
     problems = Problems.one(C1, "a").plus(Problems.one(C2, "b"))
-    assert str(ProblemsRefusal(problems)) == "2 problems:\n1. a\n2. b"
+    assert str(ProblemsRefusal(problems)) == (
+        "2 problems:\n1. a\n2. b Nothing was recorded."
+    )
     assert ProblemsRefusal(problems).problems == problems
+
+
+def test_a_refusal_closes_with_the_sentence_it_was_built_with() -> None:
+    read = ProblemsRefusal(Problems.one(C1, "a"), "Nothing was read.")
+    assert [closing_of(read), closing_of(ModelRetry("plain"))] == [
+        "Nothing was read.",
+        None,
+    ]
+    assert str(read) == "a Nothing was read."
 
 
 def test_a_refusal_names_at_least_one_problem() -> None:

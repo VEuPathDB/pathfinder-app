@@ -44,7 +44,7 @@ _TEXT = suite_search("search_genes_by_text")
 _VARIANTS = suite_search("search_genes_by_variant_characteristics")
 _RECORDED = {d.url_segment: d for d in (_TEXT, _VARIANTS)}
 _ORGANISM = "Plasmodium falciparum 3D7"
-_FIELDS_LACK = "GenesByText: text_fields has no entry 'gene_name'."
+_FIELDS_LACK = "All text fields: GenesByText: text_fields has no entry 'gene_name'."
 
 
 contexts: list[dict[str, str]] = []
@@ -181,7 +181,8 @@ async def test_an_empty_pick_the_parameter_does_not_allow_is_refused(
 
     assert ran == []
     assert refused.value.message == (
-        "GenesByText: text_fields takes a value, not the empty value []. "
+        "All text fields: GenesByText: text_fields takes a value, not the empty "
+        "value []. "
         "Nothing was recorded."
     )
 
@@ -214,7 +215,8 @@ async def test_a_word_that_is_no_organism_is_refused_and_sent_to_its_entries(
 
     assert ran == []
     assert refused.value.message.startswith(
-        "GenesByText: text_search_organism has no entry 'some'. Candidates: "
+        "Some organisms: GenesByText: text_search_organism has no entry 'some'. "
+        "Candidates: "
     )
     assert "get_parameter_options" not in refused.value.message
 

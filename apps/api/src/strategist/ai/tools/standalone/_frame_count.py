@@ -24,7 +24,7 @@ from strategist.domain.strategy.operational_spec import (
     Criterion,
     ParameterAlternatives,
 )
-from strategist.platform.refusals import refusal_of, refuse_problems
+from strategist.platform.refusals import ProblemsRefusal, refuse_problems
 from strategist.services.strategies.obsolete_terms import obsolete_picks
 from strategist.services.strategies.wdk_counts import count_bound_criterion
 
@@ -72,7 +72,7 @@ async def bound_count(
         ctx.deps.agent_state.refused_searches[search_name] = answer
         if classify_error(refused) is ErrorCategory.TRANSIENT:
             raise
-        raise refusal_of(
+        raise ProblemsRefusal(
             Problems.one(
                 RefusalKey(check="count", search=search_name),
                 f"The site refused to run {search_name} at these values ({answer}). "

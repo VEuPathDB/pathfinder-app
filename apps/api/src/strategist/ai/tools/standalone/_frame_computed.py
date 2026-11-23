@@ -16,7 +16,7 @@ from strategist.ai.tools.standalone._frame_stages import input_stage
 from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
-from strategist.platform.refusals import refusal_of
+from strategist.platform.refusals import ProblemsRefusal
 
 GROUPS_DISPLAY_NAME = "Groups"
 
@@ -32,13 +32,13 @@ def _held(ctx: RunContext[AgentDeps], handle: str) -> HeldComparison:
             "turn is held under that handle. Call build_phyletic_expression and "
             "pass the handle of its computed answer."
         )
-        raise refusal_of(Problems.one(_COMPUTED, msg))
+        raise ProblemsRefusal(Problems.one(_COMPUTED, msg))
     if held.answer.groups == 0:
         msg = (
             f"The computed comparison {held.handle} selects no group, so there is "
             "no list to save."
         )
-        raise refusal_of(Problems.one(_COMPUTED, msg))
+        raise ProblemsRefusal(Problems.one(_COMPUTED, msg))
     return held
 
 
@@ -51,7 +51,7 @@ def _refuse_an_unasked_save(ctx: RunContext[AgentDeps], handle: str) -> None:
         "turn neither asks for a strategy nor answers a card that offered the save. "
         "Answer from the counts; the card offers the save."
     )
-    raise refusal_of(Problems.one(_COMPUTED, msg))
+    raise ProblemsRefusal(Problems.one(_COMPUTED, msg))
 
 
 async def _saved_list(site_id: str, held: HeldComparison, name: str) -> IdListDataset:

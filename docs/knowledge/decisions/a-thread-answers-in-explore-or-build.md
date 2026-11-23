@@ -119,9 +119,11 @@ When Explore's model never answers, its stop reply names the Exploring stage
 many turns end on research, hypotheses, forecasts or experiments alone. A proposal
 (`ProposedReading`, `services/experiment/reading_count.py`) is the catalog searches of one plan
 and how they combine, plus words (`also`) for what the searches cannot state, such as a map to
-orthologs, a study analysis or a saved strategy. `propose_readings` resolves each search, builds
+orthologs, a study analysis or a saved strategy. The model sends drafts; a proposal is built
+from a draft only when its shape holds (`drafted`). `propose_readings` resolves each search, builds
 the plan's `OperationalSpec`, writes the plan from its searches, values and operators
-(`domain/strategy/reading_plan.py::reading_label`) under the short title the model gives it, and counts it
+(`domain/strategy/reading_plan.py::reading_label`) under the short title the model gives it,
+refuses every problem of every proposal at once, a plan stated twice included, and only then counts each
 locally: each search's gene ids are read (up to 50,000) and combined here, so no step is saved on
 the site. A search with more ids than the read holds leaves the plan not counted yet. Every
 proposal is counted before any is recorded, so a failed call records none. Each proposal is kept

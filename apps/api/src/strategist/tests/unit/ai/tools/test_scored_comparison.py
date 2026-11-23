@@ -189,7 +189,8 @@ async def test_a_parameter_no_search_takes_is_refused_before_the_run(
         )
 
     assert str(refused.value).startswith(
-        "SA takes no parameter input (a, b). The parameters it takes: fold_change."
+        "2 problems:\n"
+        "1. SA takes no parameter input (a, b). The parameters it takes: fold_change."
     )
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import re
 from collections.abc import Callable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import Annotated
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
@@ -20,12 +20,20 @@ from strategist.ai.tools.standalone import catalog, catalog_discovery
 from strategist.ai.tools.standalone.record_reads import record_columns_block
 from strategist.ai.tools.standalone.search_reads import resolved_search
 from strategist.domain.comparison_facts import ComparedVariant, ComparisonFact
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.ranking import score_rows
 from strategist.domain.strategy.reading_plan import OfferedReading
 from strategist.platform.refusals import problems_of_retry, refuse_problems
-from strategist.services.evidence.comparisons import run_reading_count
-from strategist.services.experiment.reading_count import ProposedReading
+from strategist.services.evidence.comparisons import (
+    run_reading_count,
+    run_reading_spec,
+)
+from strategist.services.experiment.reading_count import (
+    ProposedReading,
+    ProposedReadingDraft,
+    drafted,
+)
 from strategist.services.experiment.variant_comparison import VariantSpec
 
 _GENES = "transcript"
@@ -42,61 +50,77 @@ class ProposedCount(CamelModel):
     scores: dict[int, int] = Field(default_factory=dict)
 
 
-async def checked_proposals(
-    ctx: RunContext[LeadDeps], readings: list[ProposedReading]
-) -> list[list[VariantSpec]]:
+@dataclass(frozen=True)
+class CheckedProposal:
+    proposal: ProposedReading
+    searches: list[VariantSpec]
+    spec: OperationalSpec
+
+
+async def _resolved(
+    ctx: RunContext[LeadDeps], draft: ProposedReadingDraft
+) -> tuple[list[VariantSpec], Problems]:
     found = Problems()
-    checked: list[list[VariantSpec]] = []
-    for proposal in readings:
-        shape = RefusalKey(check="proposal_shape", criterion=proposal.title)
-        found = found.plus(
-            Problems(
-                found=tuple(
-                    Problem(key=shape, sentence=said)
-                    for said in proposal.shape_problems()
-                )
-            )
+    searches: list[VariantSpec] = []
+    for search in draft.searches:
+        key = RefusalKey(
+            check="proposal_search", criterion=draft.title, search=search.label
         )
-        specs: list[VariantSpec] = []
-        for search in proposal.searches:
-            key = RefusalKey(check="proposal_search")
-            try:
-                specs.append(await resolved_search(ctx, search, record_type=_GENES))
-            except ModelRetry as refused:
-                found = found.plus(
-                    Problems(
-                        found=tuple(
-                            Problem(
-                                key=p.key.model_copy(
-                                    update={
-                                        "criterion": proposal.title,
-                                        "search": search.label,
-                                    }
-                                ),
-                                sentence=f"{search.label}: {p.sentence}",
-                            )
-                            for p in problems_of_retry(refused, key).found
-                        )
-                    )
-                )
-        checked.append(specs)
-    titles = [proposal.title for proposal in readings]
-    if len(set(titles)) < len(titles):
-        found = found.plus(
-            Problems.one(
-                RefusalKey(check="proposal_title"),
-                f"Two proposals carry the same title: {titles}. Give each plan its own.",
-            )
+        try:
+            searches.append(await resolved_search(ctx, search, record_type=_GENES))
+        except ModelRetry as refused:
+            found = found.plus(problems_of_retry(refused, key))
+    return searches, found
+
+
+def _repeated(check: str, named: list[str], what: str, fix: str) -> Problems:
+    if len(set(named)) == len(named):
+        return Problems()
+    return Problems.one(
+        RefusalKey(check=check), f"Two proposals {what}: {named}. {fix}"
+    )
+
+
+async def checked_proposals(
+    ctx: RunContext[LeadDeps], drafts: list[ProposedReadingDraft]
+) -> list[CheckedProposal]:
+    found = Problems()
+    checked: list[CheckedProposal] = []
+    for draft in drafts:
+        searches, refused = await _resolved(ctx, draft)
+        match drafted(draft):
+            case Problems() as shape:
+                found = found.plus(shape).plus(refused)
+            case proposal if refused.empty:
+                spec = await run_reading_spec(ctx.deps.site_id, proposal, searches)
+                checked.append(CheckedProposal(proposal, searches, spec))
+            case _:
+                found = found.plus(refused)
+    found = found.plus(
+        _repeated(
+            "proposal_title",
+            [draft.title for draft in drafts],
+            "carry the same title",
+            "Give each plan its own.",
         )
+    ).plus(
+        _repeated(
+            "proposal_plan",
+            [held.spec.goal for held in checked],
+            "state the same plan",
+            "Propose each plan once.",
+        )
+    )
     refuse_problems(found)
     return checked
 
 
 async def _offered(
-    ctx: RunContext[LeadDeps], proposal: ProposedReading, specs: list[VariantSpec]
+    ctx: RunContext[LeadDeps], checked: CheckedProposal
 ) -> OfferedReading:
+    proposal = checked.proposal
     counted = await run_reading_count(
-        ctx.deps.site_id, specs, proposal.root, proposal.weights
+        ctx.deps.site_id, proposal, checked.searches, checked.spec
     )
     return OfferedReading(
         label=proposal.title,
@@ -118,7 +142,7 @@ def _fact(offered: OfferedReading, gene_count: int) -> ComparisonFact:
 
 async def propose_readings(
     ctx: RunContext[LeadDeps],
-    readings: Annotated[list[ProposedReading], Field(min_length=1)],
+    readings: Annotated[list[ProposedReadingDraft], Field(min_length=1)],
 ) -> ToolReturn[list[ProposedCount]]:
     """Propose plans Build can build, each counted when it can be. Read-only.
 
@@ -139,16 +163,10 @@ async def propose_readings(
     Args:
         readings: One proposal at least, each one plan.
     """
-    checked = await checked_proposals(ctx, readings)
     offered = [
-        await _offered(ctx, proposal, specs)
-        for proposal, specs in zip(readings, checked, strict=True)
+        await _offered(ctx, held) for held in await checked_proposals(ctx, readings)
     ]
     labels = [reading.label for reading in offered]
-    plans = [reading.plan for reading in offered]
-    if len(set(plans)) < len(plans):
-        msg = f"Two proposals state the same plan: {plans}. Propose each plan once."
-        refuse_problems(Problems.one(RefusalKey(check="proposal_plan"), msg))
     state = ctx.deps.state
     state.turn_markers.proposed_readings = labels
     for reading in offered:

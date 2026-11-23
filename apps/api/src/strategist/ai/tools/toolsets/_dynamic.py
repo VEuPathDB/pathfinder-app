@@ -11,7 +11,7 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.domain.refusal import Problems, RefusalKey
-from strategist.platform.refusals import refusal_of
+from strategist.platform.refusals import ProblemsRefusal
 
 EnumOverrides = dict[tuple[str, str], list[Any]]
 EnumOverrideBuilder = Callable[[RunContext[AgentDepsT]], EnumOverrides]
@@ -110,7 +110,7 @@ class ValidatingEnumToolset(WrapperToolset[AgentDepsT]):
                     f"Choose one of: {', '.join(sorted(allowed))}. "
                     "Copy it verbatim - do not paraphrase or invent."
                 )
-                raise refusal_of(
+                raise ProblemsRefusal(
                     Problems.one(RefusalKey(check=name, parameter=arg), said)
                 )
         return await self.wrapped.call_tool(name, tool_args, ctx, tool)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import (
     BeforeValidator,
@@ -22,6 +22,10 @@ def _one_line(value: object) -> object:
         case _:
             return value
 
+
+type Closing = Literal[
+    "Nothing was recorded.", "Nothing was written.", "Nothing was read."
+]
 
 Sentence = Annotated[str, BeforeValidator(_one_line), StringConstraints(min_length=1)]
 

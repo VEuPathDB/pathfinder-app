@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 from pydantic_ai import ModelRetry
 
 from strategist.ai.explore.explore_tools import ProposedCount, propose_readings
@@ -12,7 +12,12 @@ from strategist.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from strategist.ai.models.mock.site_values import SiteValues
 from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from strategist.domain.comparison_facts import ComparedVariant
-from strategist.services.experiment.reading_count import ProposedReading
+from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.services.experiment.reading_count import (
+    ProposedReading,
+    ProposedReadingDraft,
+    drafted,
+)
 from strategist.tests._support.explore_turns import (
     GENE_TYPE_REPORT,
     SIGNAL_PEPTIDE_REPORT,
@@ -52,8 +57,8 @@ _MINUS = {
 _PROPOSED: TypeAdapter[list[ProposedCount]] = TypeAdapter(list[ProposedCount])
 
 
-def _proposal(**fields: Any) -> ProposedReading:
-    return ProposedReading.model_validate({"title": "a plan", **fields})
+def _proposal(**fields: Any) -> ProposedReadingDraft:
+    return ProposedReadingDraft.model_validate({"title": "a plan", **fields})
 
 
 async def test_a_combined_proposal_is_counted_and_kept(
@@ -130,19 +135,49 @@ async def test_two_proposals_of_one_plan_are_refused(
     assert ctx.deps.state.domain.offered_readings == {}
 
 
+def _shape_of(draft: ProposedReadingDraft) -> str:
+    match drafted(draft):
+        case Problems(found=(Problem(key=key, sentence=said),)):
+            assert key == RefusalKey(check="proposal_shape", criterion="a plan")
+            return said
+        case held:
+            raise AssertionError(held)
+
+
 def test_two_searches_need_a_structure() -> None:
-    [said] = _proposal(searches=[_CODING, _PEPTIDE]).shape_problems()
+    said = _shape_of(_proposal(searches=[_CODING, _PEPTIDE]))
 
     assert "states how its 2 searches combine" in said
 
 
 def test_a_structure_that_leaves_out_a_search_is_refused() -> None:
-    [said] = _proposal(
-        searches=[_CODING, _PEPTIDE],
-        structure={"kind": "leaf", "criterionId": "coding"},
-    ).shape_problems()
+    said = _shape_of(
+        _proposal(
+            searches=[_CODING, _PEPTIDE],
+            structure={"kind": "leaf", "criterionId": "coding"},
+        )
+    )
 
     assert "leaves out peptide" in said
+
+
+def test_a_proposal_of_a_bad_shape_cannot_be_built() -> None:
+    with pytest.raises(ValidationError, match="leaves out peptide"):
+        ProposedReading.model_validate(
+            {
+                "title": "a plan",
+                "searches": [_CODING, _PEPTIDE],
+                "structure": {"kind": "leaf", "criterionId": "coding"},
+            }
+        )
+
+
+def test_a_proposal_of_a_good_shape_is_drafted_whole() -> None:
+    draft = _proposal(searches=[_CODING, _PEPTIDE], structure=_MINUS)
+
+    assert drafted(draft) == ProposedReading.model_validate(
+        draft.model_dump(by_alias=True)
+    )
 
 
 async def test_a_later_call_replaces_the_turns_proposals(

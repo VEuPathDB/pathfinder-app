@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from veupathdb import strip_html_tags
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
@@ -14,6 +14,7 @@ from veupathdb_mcp.catalog import (
     read_search_definition,
 )
 
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
@@ -59,7 +60,7 @@ class ProposedSearch(VariantInput):
     )
 
 
-class ProposedReading(CamelModel):
+class ProposedReadingDraft(CamelModel):
     title: str = Field(
         min_length=3,
         max_length=80,
@@ -98,33 +99,51 @@ class ProposedReading(CamelModel):
         ),
     )
 
+
+def _root(
+    searches: list[ProposedSearch], structure: StructureNode | None
+) -> StructureNode:
+    if structure is not None:
+        return structure
+    leaves = [StructureNode(kind="leaf", criterion_id=s.label) for s in searches]
+    if len(leaves) == 1:
+        return leaves[0]
+    return StructureNode(kind="combine", operator=CombineOp.UNION, inputs=leaves)
+
+
+def _shape_problem(draft: ProposedReadingDraft) -> str | None:
+    names = [search.label for search in draft.searches]
+    if len(set(names)) < len(names):
+        return f"Each search of a proposal has its own label; these repeat: {names}."
+    weighted = any(search.weight is not None for search in draft.searches)
+    if draft.structure is None and len(names) > 1 and not weighted:
+        return f"A proposal states how its {len(names)} searches combine in structure."
+    return reading_shape_refusal(_root(draft.searches, draft.structure), names)
+
+
+class ProposedReading(ProposedReadingDraft):
+    @model_validator(mode="after")
+    def _one_plan(self) -> Self:
+        said = _shape_problem(self)
+        if said is not None:
+            raise ValueError(said)
+        return self
+
     @property
     def weights(self) -> dict[str, int]:
         return {s.label: s.weight for s in self.searches if s.weight is not None}
 
     @property
     def root(self) -> StructureNode:
-        if self.structure is not None:
-            return self.structure
-        leaves = [
-            StructureNode(kind="leaf", criterion_id=s.label) for s in self.searches
-        ]
-        if len(leaves) == 1:
-            return leaves[0]
-        return StructureNode(kind="combine", operator=CombineOp.UNION, inputs=leaves)
+        return _root(self.searches, self.structure)
 
-    def shape_problems(self) -> list[str]:
-        names = [search.label for search in self.searches]
-        if len(set(names)) < len(names):
-            return [
-                f"Each search of a proposal has its own label; these repeat: {names}."
-            ]
-        if self.structure is None and len(names) > 1 and not self.weights:
-            return [
-                f"A proposal states how its {len(names)} searches combine in structure."
-            ]
-        refusal = reading_shape_refusal(self.root, names)
-        return [] if refusal is None else [refusal]
+
+def drafted(draft: ProposedReadingDraft) -> ProposedReading | Problems:
+    said = _shape_problem(draft)
+    if said is not None:
+        key = RefusalKey(check="proposal_shape", criterion=draft.title)
+        return Problems.one(key, said)
+    return ProposedReading.model_validate(draft.model_dump(by_alias=True))
 
 
 class CountedReading(CamelModel):
@@ -200,12 +219,12 @@ async def _count(
     return len(kept), scores, ""
 
 
-async def count_reading(
+async def reading_spec(
     site_id: str,
     searches: list[VariantSpec],
     root: StructureNode,
     weights: Mapping[str, int],
-) -> CountedReading:
+) -> OperationalSpec:
     roles = reading_roles(root)
     criteria = []
     for search in searches:
@@ -223,15 +242,32 @@ async def count_reading(
             )
         )
     spec = OperationalSpec(criteria=criteria, structure=SpecStructure(root=root))
-    label = reading_label(spec)
+    return spec.model_copy(update={"goal": reading_label(spec)})
+
+
+async def count_reading(
+    site_id: str,
+    searches: list[VariantSpec],
+    root: StructureNode,
+    weights: Mapping[str, int],
+    spec: OperationalSpec,
+) -> CountedReading:
     gene_count, scores, not_counted = await _count(site_id, searches, root, weights)
     return CountedReading(
-        label=label,
+        label=spec.goal,
         gene_count=gene_count,
-        spec=spec.model_copy(update={"goal": label}),
+        spec=spec,
         not_counted=not_counted,
         scores=scores,
     )
 
 
-__all__ = ["CountedReading", "ProposedReading", "ProposedSearch", "count_reading"]
+__all__ = [
+    "CountedReading",
+    "ProposedReading",
+    "ProposedReadingDraft",
+    "ProposedSearch",
+    "count_reading",
+    "drafted",
+    "reading_spec",
+]

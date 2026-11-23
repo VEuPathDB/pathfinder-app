@@ -136,6 +136,13 @@ def _genes(count: int | None) -> str:
     return "" if count is None else f" ({count:,} genes)"
 
 
+_IN_PLACE = Problems.one(
+    RefusalKey(check="in_place"),
+    "A step of the strategy is never a parameter: each variant is counted in "
+    "place in the strategy's result.",
+)
+
+
 def _unknown_parameters(
     search_name: str, named: list[VariantInput], infos: list[ParameterInfo]
 ) -> str | None:
@@ -241,6 +248,18 @@ async def _derived_phyletic(
         return library_problems(refused, RefusalKey(check="phyletic", search=search[1]))
 
 
+def _of_variant(problems: Problems, variant: VariantInput) -> Problems:
+    return Problems(
+        found=tuple(
+            Problem(
+                key=p.key.under(criterion=variant.label, search=variant.search_name),
+                sentence=f"{variant.label}: {p.sentence}",
+            )
+            for p in problems.found
+        )
+    )
+
+
 def required_problems(
     variant: VariantInput, infos: Mapping[str, ParameterInfo], every: set[str]
 ) -> Problems:
@@ -251,7 +270,7 @@ def required_problems(
                     check="required", search=variant.search_name, parameter=name
                 ),
                 sentence=(
-                    f"{variant.label}: {variant.search_name} requires "
+                    f"{variant.search_name} requires "
                     f"{info.display_name or info.name}; state a value."
                 ),
             )
@@ -293,15 +312,18 @@ async def _variant_spec(
         record_type=search[0],
         parameters={**_published_defaults(variant, infos), **entries, **site_set},
     )
+    required = required_problems(variant, infos, every)
     if not is_phyletic_sheet(list(infos.values())):
-        return spec
+        return spec if required.empty else required
     match await _derived_phyletic(about, search, values):
         case Problems() as refused:
-            return refused
-        case derived:
+            return required.plus(refused)
+        case derived if required.empty:
             return spec.model_copy(
                 update={"parameters": {**spec.parameters, **derived}}
             )
+        case _:
+            return required
 
 
 async def checked_variants(
@@ -310,7 +332,13 @@ async def checked_variants(
     """The variants as ``resolved_variants`` reads them. Refuses a variant of a
     search no step of the strategy runs, since each one is counted in place."""
     _refuse_a_search_no_step_runs(stated, session)
-    return await resolved_variants(session, stated, about)
+    try:
+        return await resolved_variants(session, stated, about)
+    except ProblemsRefusal as refused:
+        checks = {problem.key.check for problem in refused.problems.found}
+        if "variant_parameters" not in checks:
+            raise
+        raise ProblemsRefusal(refused.problems.plus(_IN_PLACE)) from refused
 
 
 async def resolved_variants(
@@ -343,10 +371,7 @@ async def resolved_variants(
             found=tuple(
                 Problem(
                     key=RefusalKey(check="variant_parameters", search=search[1]),
-                    sentence=(
-                        f"{said} A step of the strategy is never a parameter: each "
-                        "variant is counted in place in the strategy's result."
-                    ),
+                    sentence=said,
                 )
                 for search, infos in published.items()
                 if (
@@ -369,7 +394,6 @@ async def resolved_variants(
             for name, value in variant.parameters.items()
             if _names_every_entry(sheet[name], value)
         }
-        problems = required_problems(variant, sheet, every)
         try:
             stated_read = await typed_values(
                 about,
@@ -383,7 +407,14 @@ async def resolved_variants(
                 bound=_held_values(session, variant.search_name),
             )
         except ProblemsRefusal as refused:
-            problems = problems.plus(refused.problems)
+            unparented = {
+                name: info
+                for name, info in sheet.items()
+                if not set(info.wire_parents) & set(variant.parameters)
+            }
+            problems = required_problems(variant, unparented, every).plus(
+                refused.problems
+            )
         else:
             match await _variant_spec(
                 about,
@@ -395,11 +426,10 @@ async def resolved_variants(
                 infos_at=infos_at,
             ):
                 case Problems() as refused_spec:
-                    problems = problems.plus(refused_spec)
+                    problems = refused_spec
                 case spec:
                     checked.append(spec)
-        found = found.plus(
-            problems.under(criterion=variant.label, search=variant.search_name)
-        )
+                    problems = Problems()
+        found = found.plus(_of_variant(problems, variant))
     refuse_problems(found)
     return checked

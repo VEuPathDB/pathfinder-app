@@ -2,17 +2,22 @@
 
 ## 2026-11-23
 
-* **Explore checks every proposal and every variant at once.** `propose_readings` checks every
-  proposal before it counts any (`checked_proposals`): each proposal's shape (its labels, its
-  structure, `ProposedReading.shape_problems`, no longer a schema refusal), every search of every
-  proposal keyed by the proposal's title and the search's label, and a title used twice, in one
-  refusal; a plan with its ranking weights inside `parameters` is named for its structure and
-  for each search at once. `resolved_variants` reads every variant and names each one's stated
-  values, phyletic lists and required parameters with no value (a required parameter with no
-  stated, site-set or published value, which WDK answers "Cannot be empty") in one refusal keyed
-  by the variant's label. A stated-value refusal names each library row, prefixed with its
-  search; a transient error is still never a refusal. A refusal's closing sentence is carried on
-  the refusal, not written into its last problem, so a refusal gathered into another closes once.
+* **Explore checks every proposal and every variant at once.** `propose_readings` takes loose
+  drafts (`ProposedReadingDraft`) and checks every one before it counts any
+  (`checked_proposals`): each draft's shape, every search of every draft, a title used twice and
+  a plan stated twice, in one refusal. A strict `ProposedReading` keeps its shape on the type and
+  is built only through `drafted`, which returns the strict proposal or every shape problem. The
+  plan's label is the spec's, read from the catalog definitions (`reading_spec`) before any id is
+  read, so a repeated plan is refused with the other problems and before any count. A plan with its
+  ranking weights inside `parameters` is named for its structure and for each search at once.
+  `resolved_variants` reads every variant and names each one's stated values, phyletic lists and
+  required parameters with no value (a required parameter with no stated, site-set or published
+  value under the variant's stated parents, which WDK answers "Cannot be empty") in one refusal;
+  each problem is keyed and prefixed by the variant's label once. A comparison counted in place
+  adds "A step of the strategy is never a parameter" once to a refusal that names an unknown
+  parameter. A transient error is still never a refusal. A `ProblemsRefusal` closes with one
+  sentence chosen when it is built ("Nothing was recorded.", "written" or "read"), and
+  `closing_of` is its one reader, so a refusal gathered into another closes once.
 
 * **A criterion call names every independent problem once.** `set_criterion` runs its checks in
   stages (`ai/tools/standalone/_frame_stages.py`), and each stage names every problem it finds in

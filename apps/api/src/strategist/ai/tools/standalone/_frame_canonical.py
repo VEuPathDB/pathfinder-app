@@ -12,7 +12,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.domain.refusal import RefusalKey
-from strategist.platform.refusals import library_problems, refusal_of
+from strategist.platform.refusals import ProblemsRefusal, library_problems
 
 
 async def canonical_binding(
@@ -30,6 +30,6 @@ async def canonical_binding(
         )
     except ValidationError as exc:
         key = RefusalKey(check="validation", search=search.search_name)
-        raise refusal_of(library_problems(exc, key)) from exc
+        raise ProblemsRefusal(library_problems(exc, key)) from exc
     canonical = resolved.model_copy(update={"params": validated.params})
     return canonical, validated.substituted

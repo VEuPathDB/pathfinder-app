@@ -30,9 +30,15 @@ from strategist.ai.tools.standalone import (
     _stated_values,
     catalog_discovery,
 )
-from strategist.domain.strategy.operational_spec import Criterion, StructureNode
+from strategist.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+)
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.experiment.reading_count import ProposedReading
+from strategist.services.experiment.reading_count import (
+    ProposedReading,
+    ProposedReadingDraft,
+)
 from strategist.services.experiment.variant_comparison import VariantSpec
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.explore_turns import serve_recorded_readings
@@ -69,8 +75,8 @@ def _taxon_graph() -> StrategyGraph:
     return graph_with(StrategyStepNode(id="step_t", search_name="GenesByTaxon"))
 
 
-def _variant_plan(stats: JsonValue) -> ProposedReading:
-    return ProposedReading.model_validate(
+def _variant_plan(stats: JsonValue) -> ProposedReadingDraft:
+    return ProposedReadingDraft.model_validate(
         {
             "title": "Genes with many variants",
             "searches": [
@@ -92,11 +98,11 @@ def _counted(monkeypatch: pytest.MonkeyPatch) -> list[VariantSpec]:
 
     async def _count(
         site_id: str,
+        proposal: ProposedReading,
         specs: Sequence[VariantSpec],
-        root: StructureNode,
-        weights: Mapping[str, int],
+        spec: OperationalSpec,
     ) -> object:
-        del site_id, root, weights
+        del site_id, proposal, spec
         counted.extend(specs)
         raise ModelRetry(COUNTED)
 
@@ -143,7 +149,7 @@ class TestAReadingReadsNativeValues:
     ) -> None:
         serve_recorded_readings(monkeypatch)
         counted = _counted(monkeypatch)
-        plan = ProposedReading.model_validate(
+        plan = ProposedReadingDraft.model_validate(
             {
                 "title": "Genes with a signal peptide",
                 "searches": [
@@ -207,8 +213,8 @@ def _snps_under_their_organism(monkeypatch: pytest.MonkeyPatch) -> list[dict[str
     return contexts
 
 
-def _snps_plan(organism: str) -> ProposedReading:
-    return ProposedReading.model_validate(
+def _snps_plan(organism: str) -> ProposedReadingDraft:
+    return ProposedReadingDraft.model_validate(
         {
             "title": "SNPs in the Peru isolates",
             "searches": [

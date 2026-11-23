@@ -23,6 +23,7 @@ from veupathdb.model import CamelModel, computed
 
 from strategist.domain.refusal import (
     Charge,
+    Closing,
     Problem,
     Problems,
     RefusalKey,
@@ -115,30 +116,29 @@ class ServiceRefusalRetry(AbstractCapability[AgentDepsT]):
         raise ModelRetry(refusal_retry_message(args, error)) from error
 
 
-NOTHING_RECORDED = "Nothing was recorded."
-
-
-def _closed(text: str, closing: str) -> str:
-    return f"{text} {closing}" if closing else text
-
-
 class ProblemsRefusal(ModelRetry):
-    def __init__(self, problems: Problems, closing: str = "") -> None:
+    def __init__(
+        self, problems: Problems, closing: Closing = "Nothing was recorded."
+    ) -> None:
         if problems.empty:
             msg = "a refusal names at least one problem"
             raise ValueError(msg)
         self.problems = problems
-        self.closing = closing
-        super().__init__(_closed(problems.text(), closing))
+        self.closing: Closing = closing
+        super().__init__(f"{problems.text()} {closing}")
 
 
-def refusal_of(problems: Problems, closing: str = NOTHING_RECORDED) -> ProblemsRefusal:
-    return ProblemsRefusal(problems, closing)
+def closing_of(error: BaseException) -> Closing | None:
+    match error:
+        case ProblemsRefusal(closing=closing):
+            return closing
+        case _:
+            return None
 
 
 def refuse_problems(problems: Problems) -> None:
     if not problems.empty:
-        raise refusal_of(problems)
+        raise ProblemsRefusal(problems)
 
 
 class SpentRefusal(CamelModel):
@@ -316,14 +316,6 @@ def _refused_problems(
             raise error
 
 
-def _closing(error: ModelRetry | AppError) -> str:
-    match error:
-        case ProblemsRefusal(closing=closing):
-            return closing
-        case _:
-            return ""
-
-
 def _spend(book: RefusalBook, spent: Problems) -> SpentRefusal:
     answer = SpentRefusal(spent=spent.found)
     book.spent.append(answer)
@@ -355,7 +347,9 @@ class KeyedRefusalToolset[DepsT: KeepsRefusals](WrapperToolset[DepsT]):
             if charge.refused.empty:
                 return _spend(book, charge.spent)
             book.charged += 1
-            raise CallRefused(_closed(refusal_text(charge), _closing(error))) from error
+            said = refusal_text(charge)
+            closing = closing_of(error)
+            raise CallRefused(f"{said} {closing}" if closing else said) from error
         book.ledger = book.ledger.cleared(call_key(tool.tool_def, tool_args))
         return result
 
@@ -383,7 +377,6 @@ def agent_capabilities(
 __all__ = [
     "ANSWER_REFUSALS_PER_KEY",
     "LISTS_THE_IDS",
-    "NOTHING_RECORDED",
     "TOOL_REFUSALS_PER_KEY",
     "TOOL_REFUSALS_PER_TURN",
     "TURN_REFUSALS_PER_RULE",
@@ -397,11 +390,11 @@ __all__ = [
     "SpentRefusal",
     "agent_capabilities",
     "call_key",
+    "closing_of",
     "last_answer",
     "library_problems",
     "library_rows",
     "problems_of_retry",
-    "refusal_of",
     "refusal_retry_message",
     "refusal_text",
     "refuse_problems",

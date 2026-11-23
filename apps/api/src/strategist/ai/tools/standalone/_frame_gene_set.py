@@ -16,7 +16,7 @@ from strategist.ai.tools.standalone._frame_stages import input_stage
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
 from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
-from strategist.platform.refusals import refusal_of
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.evidence.gene_sets import list_stored_gene_sets
 from strategist.services.gene_sets.homes import ID_LIST_SEARCHES, site_kind
 from strategist.services.gene_sets.types import GeneSet
@@ -50,7 +50,7 @@ async def _bind(
         (gs for gs in listed if named in (gs.id.casefold(), gs.name.casefold())), None
     )
     if match is None:
-        raise refusal_of(
+        raise ProblemsRefusal(
             Problems.one(
                 RefusalKey(check="gene_set", criterion=stated.id),
                 _unresolved_message(reference, listed),

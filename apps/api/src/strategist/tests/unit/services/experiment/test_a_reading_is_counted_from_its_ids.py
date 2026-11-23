@@ -8,11 +8,14 @@ from veupathdb.wdk import WDKAnswer
 from strategist.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from strategist.ai.models.mock.site_values import SiteValues
 from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
+from strategist.domain.strategy.operational_spec import StructureNode
 from strategist.services.experiment import reading_count, variant_comparison
 from strategist.services.experiment.reading_count import (
+    CountedReading,
     ProposedReading,
     ProposedSearch,
     count_reading,
+    reading_spec,
 )
 from strategist.services.experiment.variant_comparison import VariantSpec
 from strategist.tests._support.explore_turns import SITE, RecordedReports
@@ -38,6 +41,16 @@ _CODING = VariantSpec(
         "geneType": MultiPickValue(values=["protein coding"]),
     },
 )
+
+
+async def _counted(
+    site_id: str,
+    searches: list[VariantSpec],
+    root: StructureNode,
+    weights: dict[str, int],
+) -> CountedReading:
+    spec = await reading_spec(site_id, searches, root, weights)
+    return await count_reading(site_id, searches, root, weights, spec)
 
 
 _CODING_IDS = [f"PF3D7_00{n:02d}00" for n in range(10)]
@@ -90,7 +103,7 @@ async def test_a_minus_counts_the_genes_of_the_left_the_right_lacks(
     del reports
     root = spec_joined(CombineOp.MINUS, spec_leaf("coding"), spec_leaf("peptide"))
 
-    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
+    counted = await _counted(SITE, [_PEPTIDE, _CODING], root, {})
 
     assert counted.gene_count == 6
 
@@ -101,7 +114,7 @@ async def test_the_counted_spec_states_both_searches_under_the_structure(
     del reports
     root = spec_joined(CombineOp.MINUS, spec_leaf("coding"), spec_leaf("peptide"))
 
-    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
+    counted = await _counted(SITE, [_PEPTIDE, _CODING], root, {})
 
     spec = counted.spec
     assert [(c.id, c.search_name, c.role) for c in spec.criteria] == [
@@ -118,7 +131,7 @@ async def test_a_search_that_fills_the_read_is_offered_not_counted(
     monkeypatch.setattr(variant_comparison, "READ_CAP", 10)
     reports.answers[GENE_TYPE] = _answer(_CODING_IDS, total=50_001)
 
-    counted = await count_reading(SITE, [_CODING], spec_leaf("coding"), {})
+    counted = await _counted(SITE, [_CODING], spec_leaf("coding"), {})
 
     assert (counted.gene_count, counted.not_counted) == (
         None,
@@ -134,7 +147,7 @@ async def test_a_reading_reads_every_transcript_of_its_searches(
 ) -> None:
     root = spec_joined(CombineOp.MINUS, spec_leaf("coding"), spec_leaf("peptide"))
 
-    await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
+    await _counted(SITE, [_PEPTIDE, _CODING], root, {})
 
     assert reports.filters == [None, None]
 
@@ -146,7 +159,7 @@ async def test_a_gene_whose_transcripts_fall_apart_is_not_intersected(
     reports.answers[SIGNAL_PEPTIDE] = _answer(_CODING_IDS[:2], transcript="2")
     root = spec_joined(CombineOp.INTERSECT, spec_leaf("coding"), spec_leaf("peptide"))
 
-    counted = await count_reading(SITE, [_PEPTIDE, _CODING], root, {})
+    counted = await _counted(SITE, [_PEPTIDE, _CODING], root, {})
 
     assert counted.gene_count == 0
 
@@ -157,7 +170,7 @@ async def test_a_ranking_reading_counts_the_genes_of_each_score(
     del reports
     root = spec_joined(CombineOp.UNION, spec_leaf("coding"), spec_leaf("peptide"))
 
-    counted = await count_reading(
+    counted = await _counted(
         SITE, [_PEPTIDE, _CODING], root, {"peptide": 1, "coding": 1}
     )
 

@@ -10,13 +10,13 @@ from strategist.ai.explore.readings_card import proposal_counts
 from strategist.ai.models.mock.arc_args import SIGNALP_VERSIONS
 from strategist.ai.models.mock.site_values import SiteValues
 from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
-from strategist.services.experiment.reading_count import ProposedReading
+from strategist.services.experiment.reading_count import ProposedReadingDraft
 from strategist.tests._support.explore_turns import SITE, serve_recorded_readings
 from strategist.tests._support.run_context import lead_run_context
 
 
-def _reading(label: str, search_name: str, **parameters: Any) -> ProposedReading:
-    return ProposedReading.model_validate(
+def _reading(label: str, search_name: str, **parameters: Any) -> ProposedReadingDraft:
+    return ProposedReadingDraft.model_validate(
         {
             "title": label,
             "searches": [

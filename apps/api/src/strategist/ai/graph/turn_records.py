@@ -23,7 +23,7 @@ from strategist.domain.last_change import LastChange
 from strategist.domain.membership_facts import MembershipFact
 from strategist.domain.read_facts import ReadFact
 from strategist.domain.record_facts import OrthologFact, SourceFact
-from strategist.domain.refusal import Problems
+from strategist.domain.refusal import Closing, Problems
 from strategist.domain.strategy.constraints import StoredConstraint
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.step_words import AddedSearch
@@ -143,7 +143,7 @@ class RefusedCall(CamelModel):
     arguments: str
     refusal: str
     problems: Problems = Field(default_factory=Problems)
-    closing: str = ""
+    closing: Closing | None = None
     # The same call came back once and failed without running.
     sent_again: bool = False
 

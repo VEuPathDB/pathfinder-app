@@ -30,7 +30,7 @@ from strategist.ai.capabilities.error_classification import (
     ErrorCategory,
     classify_error,
 )
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Closing, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
@@ -45,12 +45,12 @@ from strategist.domain.strategy.operations import (
 )
 from strategist.domain.strategy.operations.types import AttachPoint
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.platform.refusals import library_problems, refusal_of
+from strategist.platform.refusals import ProblemsRefusal, library_problems
 
 _NOTHING_BOUND: Mapping[str, ParamValue] = MappingProxyType({})
 
 
-async def _retrying[T](search_name: str, done: str, read: Awaitable[T]) -> T:
+async def _retrying[T](search_name: str, closing: Closing, read: Awaitable[T]) -> T:
     try:
         return await read
     except VEuPathDBError as exc:
@@ -63,7 +63,7 @@ async def _retrying[T](search_name: str, done: str, read: Awaitable[T]) -> T:
                 for p in library_problems(exc, key).found
             )
         )
-        raise refusal_of(named, closing=f"Nothing was {done}.") from exc
+        raise ProblemsRefusal(named, closing) from exc
 
 
 async def typed_values(
@@ -76,7 +76,7 @@ async def typed_values(
 ) -> BoundValues:
     return await _retrying(
         search_name,
-        "written",
+        "Nothing was written.",
         read_stated_parameters(
             about.site_id,
             search_name,
@@ -98,7 +98,7 @@ async def typed_context_read(
 ) -> tuple[BoundValues, list[MovedParentError]]:
     return await _retrying(
         search_name,
-        "read",
+        "Nothing was read.",
         read_stated_context(
             about.site_id,
             search_name,
