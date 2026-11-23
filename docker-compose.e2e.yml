@@ -42,6 +42,8 @@ services:
       # catalogs would only slow the boot.
       VEUPATHDB_SITES_CONFIG: /app/e2e-sites.yaml
       MAX_TURNS_IN_FLIGHT_PER_USER: "8"
+      # The memory specs read what a turn writes, so every suite account remembers.
+      MEMORY_ON_BY_DEFAULT: "true"
     volumes:
       - ./e2e-sites.yaml:/app/e2e-sites.yaml:ro
     healthcheck:
@@ -63,6 +65,7 @@ services:
       # The measured capacity of one runner at two Playwright workers
       # (docs/knowledge/decisions/the-e2e-stack-serves-the-production-build.md).
       WORKER_CONCURRENCY: "8"
+      MEMORY_ON_BY_DEFAULT: "true"
     volumes:
       - ./e2e-sites.yaml:/app/e2e-sites.yaml:ro
 
