@@ -2,6 +2,16 @@
 
 ## 2026-11-23
 
+* **Every view renders the one step model.** `step_settings_text` renders a step's settings
+  other than its search and values (operator, colocation, filters, weight, expansion), and a
+  change to one. The turn briefing names every setting an outside edit moved (`StepChange.settings`
+  from `StepSettings.changed`), and "the combinations changed" when only the shape moved; the
+  pinned plan, the ledger and a case row name each criterion's settings, and the structure line
+  names a colocation. The site read takes every setting the site moved through the same
+  comparison, a colocation included; a filter WDK added on its own is not taken. A value is cut
+  by one rule beside `stated_text` (`cut_stated`). A consult answer that names an organism
+  rebinds every criterion whose organism value names the asked words, through the card binding.
+
 * **The canvas keeps every setting through undo and redo.** `serializeStrategyAst` carries
   each step's weight, filters, analyses and saved-strategy expansion into the plan an undo
   or a redo replays, and the optimistic replace shows them on the canvas until the server
