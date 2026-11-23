@@ -75,3 +75,7 @@ def test_a_marker_without_a_reason_justifies_nothing() -> None:
 )
 def test_a_count_or_a_value_is_not_a_non_empty_check(check: str) -> None:
     assert _flagged(f"    assert {check}\n") == []
+
+
+def test_a_schemathesis_validating_call_counts_as_strong() -> None:
+    assert _flagged("    case.call_and_validate(checks=[])\n") == []

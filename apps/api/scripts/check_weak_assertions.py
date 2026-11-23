@@ -43,6 +43,7 @@ _WEAK_BUILTINS = {"isinstance", "hasattr", "callable", "len", "bool", "any", "al
 # Calls that, when executed, raise on bad data — counts as strong.
 _STRONG_VALIDATING_CALLS = {
     "raise_for_status",
+    "call_and_validate",
     "model_validate",
     "model_validate_json",
     "model_validate_strings",
