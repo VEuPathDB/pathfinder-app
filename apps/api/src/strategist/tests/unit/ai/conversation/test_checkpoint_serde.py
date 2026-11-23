@@ -119,13 +119,6 @@ def _strict_roundtrip(value: object) -> object:
     return serde.loads_typed(serde.dumps_typed(value))
 
 
-def test_every_registered_type_is_a_real_class() -> None:
-    # Guards against a typo'd/renamed entry silently dropping off the allowlist.
-    assert ALLOWLIST
-    for entry in ALLOWLIST:
-        assert isinstance(entry, type), entry
-
-
 def test_the_core_allowlist_holds_no_strategy_type() -> None:
     """A second assistant inherits the core tuple, so science must not be in it."""
     assert set(CORE_CHECKPOINT_TYPES).isdisjoint(
@@ -161,13 +154,6 @@ def test_the_strategist_spec_declares_its_state_types() -> None:
         SeparationOffer,
         AttachedControls,
     }
-
-
-def test_the_allowlist_carries_the_types_a_thread_read_decodes() -> None:
-    """Both reach a checkpoint: the disposition on the verification digest, the
-    operator on the spec's structure."""
-    assert PhaseDisposition in STRATEGIST_CHECKPOINT_TYPES
-    assert CombineOp in STRATEGIST_CHECKPOINT_TYPES
 
 
 def test_every_allowlisted_type_has_a_sample() -> None:

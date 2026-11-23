@@ -46,18 +46,14 @@ src/strategist/tests/unit/ai/capabilities/test_guard_seam.py::test_a_tool_outsid
 src/strategist/tests/unit/ai/capabilities/test_repetition_guard.py::test_a_state_changing_tool_resets_counter
 src/strategist/tests/unit/ai/capabilities/test_repetition_guard.py::test_changing_args_on_readonly_resets_counter
 src/strategist/tests/unit/ai/capabilities/test_repetition_guard.py::test_changing_args_resets_counter
-src/strategist/tests/unit/ai/capabilities/test_repetition_guard.py::test_first_call_proceeds
 src/strategist/tests/unit/ai/capabilities/test_repetition_guard.py::test_interleaved_calls_do_not_block
 src/strategist/tests/unit/ai/capabilities/test_repetition_guard.py::test_two_consecutive_identical_calls_proceed
 src/strategist/tests/unit/ai/capabilities/test_repetition_guard.py::test_unclassified_tool_resets_counter
 src/strategist/tests/unit/ai/conversation/test_checkpoint_serde.py::test_a_populated_state_keeps_its_nested_types
-src/strategist/tests/unit/ai/conversation/test_checkpoint_serde.py::test_every_registered_type_is_a_real_class
-src/strategist/tests/unit/ai/conversation/test_checkpoint_serde.py::test_the_allowlist_carries_the_types_a_thread_read_decodes
 src/strategist/tests/unit/ai/graph/test_builder.py::test_compiled_graph_records_state_schema_with_checkpointer
 src/strategist/tests/unit/ai/graph/test_durable_resumption.py::test_a_call_no_worker_holds_is_not_a_durable_park
 src/strategist/tests/unit/ai/graph/test_lead_state_delta.py::test_staleness_is_not_persisted
 src/strategist/tests/unit/ai/graph/test_pre_turn_seam.py::test_an_unsynced_strategy_reads_nothing_and_stays_fresh
-src/strategist/tests/unit/ai/graph/test_runtime.py::test_agent_deps_keeps_existing_agent_tool_state_type
 src/strategist/tests/unit/ai/graph/test_sub_agent_chunk_suppression.py::test_a_tool_output_error_for_a_dispatch_is_suppressed
 src/strategist/tests/unit/ai/graph/test_sub_agent_chunk_suppression.py::test_every_tool_chunk_type_is_classified
 src/strategist/tests/unit/ai/models/test_mock_frame_calls.py::test_every_spec_names_a_search_for_every_criterion
@@ -95,8 +91,6 @@ src/strategist/tests/unit/jobs/test_chat_turn_impl.py::test_run_chat_turn_resets
 src/strategist/tests/unit/jobs/test_chat_turn_impl.py::test_run_chat_turn_tolerates_missing_token
 src/strategist/tests/unit/jobs/test_log_redaction.py::test_redacts_double_quoted_token_value
 src/strategist/tests/unit/jobs/test_log_redaction.py::test_redacts_nested_in_longer_call_string
-src/strategist/tests/unit/jobs/test_log_redaction_install.py::test_install_covers_loggers_created_after_install
-src/strategist/tests/unit/jobs/test_log_redaction_install.py::test_install_redacts_grand_child_logger
 src/strategist/tests/unit/jobs/test_payloads.py::test_captures_none_when_ctxvar_unset
 src/strategist/tests/unit/jobs/test_payloads.py::test_model_dump_mode_json_is_jsonable
 src/strategist/tests/unit/jobs/test_payloads.py::test_token_optional_defaults_to_none

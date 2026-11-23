@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 from assistant_core.memory.schemas import MemoryValue
@@ -100,8 +100,3 @@ async def test_search_returns_real_keys(
     hits = resp.json()["hits"]
     assert hits
     assert hits[0]["key"] == key
-
-
-def test_uuid_import_placeholder() -> None:
-    """Trivial sanity test to keep uuid4 import referenced for future growth."""
-    assert uuid4() is not None

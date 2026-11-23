@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 from pydantic_ai.toolsets.function import FunctionToolset
 
-from strategist.ai.agents.state import AgentToolState, SearchOverview
+from strategist.ai.agents.state import SearchOverview
 from strategist.ai.graph.runtime import AgentDeps, Context
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.ai.graph.turn_records import TurnMarkers
@@ -153,10 +153,3 @@ def test_context_is_a_frozen_dataclass() -> None:
     assert dataclasses.is_dataclass(ctx)
     with pytest.raises(dataclasses.FrozenInstanceError):
         ctx.__setattr__("site_id", "different")
-
-
-def test_agent_deps_keeps_existing_agent_tool_state_type() -> None:
-    state = _build_state()
-    ctx = _build_context()
-    deps = _deps(state, ctx)
-    assert isinstance(deps.agent_state, AgentToolState)

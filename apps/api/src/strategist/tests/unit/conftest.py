@@ -1,15 +1,11 @@
 """Shared fixtures for unit tests."""
 
-from collections.abc import AsyncGenerator, Iterator
-from uuid import UUID, uuid4
+from collections.abc import Iterator
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.persistence.models import User
-from strategist.persistence.repositories import ConversationRepository
 from strategist.platform.config import get_settings
 from strategist.tests._support.declared_record_types import (
     serve_declared_record_types,
@@ -63,31 +59,6 @@ def _catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_record_classes(monkeypatch)
     serve_planned_organisms(monkeypatch)
     serve_declared_record_types(monkeypatch)
-
-
-@pytest.fixture
-async def db_session(
-    session_maker: async_sessionmaker[AsyncSession],
-    db_cleaner: None,
-) -> AsyncGenerator[AsyncSession]:
-    async with session_maker() as session:
-        yield session
-
-
-@pytest.fixture
-async def conv_repo(
-    db_session: AsyncSession,
-) -> ConversationRepository:
-    return ConversationRepository(db_session)
-
-
-@pytest.fixture
-async def user_id(db_session: AsyncSession) -> UUID:
-    """Create a User row and return its id."""
-    uid = uuid4()
-    db_session.add(User(id=uid))
-    await db_session.flush()
-    return uid
 
 
 def populate_graph(graph: StrategyGraph, *steps: StrategyStepNode) -> None:
