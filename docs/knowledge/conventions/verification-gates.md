@@ -11,17 +11,34 @@ status: stable
 Gates passing is necessary, not sufficient: see the definition of done in `CLAUDE.md`. These are the commands.
 
 `.github/workflows/ci.yml` runs them in tiers, and the cadence is part of the
-gate: the lint and unit tiers run on every push and every pull request; the
-full-stack Playwright tier and the API integration tier run on every pull
-request and on a hand-started run, never on a bare push to `main`, because the
-pull request that landed the commit already ran them and the private
-repository's Actions minutes are metered. Nothing runs on a schedule. A
-hand-started run treats every path as changed and refreshes the recorded API
-test durations (the `test-durations` artifact). CI makes no live call: every
-job reads recorded or replayed responses
+gate: the lint tier, `next build`, the API unit tier and the API integration
+tier run on every push and every pull request; the full-stack Playwright tier
+runs on every pull request and on a hand-started run, never on a bare push.
+Nothing runs on a schedule. A hand-started run treats every path as changed and
+refreshes the recorded API test durations (the `test-durations` artifact).
+`strategist.devtools.split_tests` splits each API tier into groups of whole
+test files, the longest file first into the lightest group by those durations,
+so each xdist worker imports only its own group's files; the "API groups cover
+the suite" job checks that every test file is in exactly one group.
+CI makes no live call: every job reads recorded or replayed responses
 ([CI runs recorded tests only](../decisions/ci-runs-recorded-tests-only.md)).
 The full-stack tier reaches live sites, so the repository variable
 `E2E_ENABLED` keeps it off until it runs on replayed recordings.
+
+The hooks in `.pre-commit-config.yaml` run the same commands at three stages.
+A commit runs only the cheap checks on the staged files: ruff check and format,
+prettier and eslint on the staged web and shared-ts files, the punctuation scan
+and the test-site scan (`default_stages: [pre-commit]`). A push runs every hook
+marked `stages: [manual]` over the files the push changes, through
+`scripts/pre-push.mjs`: it reads those hook ids from the config, runs
+`shared-ts-openapi` alone first (it rewrites `packages/shared-ts/src/generated`,
+which tsc, eslint and vitest read), then starts the rest together and prints
+each hook's output whole. pytest takes `-n 4` and vitest `--maxWorkers=3`, so
+the parallel jobs fit eight cores. `pre-commit run <id> --hook-stage manual`
+runs one of them by hand. `next build`, `pip-audit`, the Sphinx build, both
+coverage thresholds and the integration tier run only in CI. Jenkins builds
+and publishes `:latest` on every push to `main` without waiting for CI, and its
+web image runs `next build`, so a build that fails stops the image either way.
 
 The full-stack tier builds once and runs in shards. `e2e-build` builds the api
 and web images on the Actions layer cache and hands them to the shards as one

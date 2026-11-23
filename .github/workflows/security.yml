@@ -64,20 +64,45 @@ jobs:
           extra_args: --only-verified --exclude-detectors=Lob
 
   codeql:
-    name: CodeQL Analysis
+    name: CodeQL Analysis (${{ matrix.language }})
     runs-on: ubuntu-latest
     if: ${{ !github.event.repository.private }}
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
     steps:
       - uses: actions/checkout@v4
 
+      # Both languages are interpreted, so the analysis reads the source with no build.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: python, javascript
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+          languages: ${{ matrix.language }}
+          build-mode: none
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
 
+  # Every analysis on main caches its database. Only the newest of each kind is
+  # read again, so the older ones are deleted to keep the cache under its limit.
+  codeql-cache:
+    name: Prune CodeQL caches
+    runs-on: ubuntu-latest
+    needs: codeql
+    if: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      actions: write
+    steps:
+      - name: Delete all but the newest CodeQL database of each kind
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --key codeql-overlay-base-database- \
+            --sort created_at --order desc --limit 200 --json id,key \
+            | jq -r 'reduce .[] as $c ({seen: {}, drop: []};
+                ($c.key | split("-") | .[:-4] | join("-")) as $g
+                | if .seen[$g] then .drop += [$c.id] else .seen[$g] = true end) | .drop[]' \
+            | xargs -r -n 1 gh cache delete --repo "$GITHUB_REPOSITORY"

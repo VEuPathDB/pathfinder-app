@@ -2,6 +2,20 @@
 
 ## 2026-11-23
 
+* **A commit checks the staged files; a push runs the whole-project gates in parallel.**
+  `.pre-commit-config.yaml` sets `default_stages: [pre-commit]`, so a push no longer
+  repeats the commit hooks; every whole-project hook is `stages: [manual]`, and
+  `scripts/pre-push.mjs` runs them at push, `shared-ts-openapi` first and the rest together.
+  `next build` and `pip-audit` left the hooks: CI's new `build-web` job builds with a
+  `.next/cache` cache, and the API integration tier runs on every push. See
+  [verification gates](conventions/verification-gates.md).
+* **The test tiers load less and split by file.** Each CI API group runs whole test files
+  (`strategist.devtools.split_tests`), so a worker imports only its group, and the groups check
+  reads no test; pytest loads no langsmith or logfire plugin; vitest loads Testing Library,
+  jest-dom and the query client only in a jsdom file and msw only in a file that imports its
+  server. The mypy cache is keyed by commit alone, CodeQL runs one job per language with no
+  build and keeps only its newest database of each kind, and a change to `.github/` or
+  `packages/spec/` runs the jobs it can break.
 * **CI runs recorded tests only.** No CI job reaches a live site or a model, and nothing
   runs on a schedule: `ci.yml` lost its nightly trigger, and a hand-started run refreshes
   the recorded API test durations. `wdk-nightly.yml` and `mcp-nightly.yml` are deleted;

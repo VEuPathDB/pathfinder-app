@@ -49,9 +49,10 @@ pytestmark = pytest.mark.usefixtures(
 _USER = 376
 _STRAIN = "Plasmodium falciparum Dd2"
 _REFERENCE = "Plasmodium falciparum 3D7"
+_CONFIRM_LIMIT = 6
 _PAIRS = tuple(
     GenePairTarget(check="pseudogene_call", genes=(f"PfDd2_{k:09d}", f"PF3D7_{k:07d}"))
-    for k in range(150)
+    for k in range(_CONFIRM_LIMIT)
 )
 _GENES = 2 * len(_PAIRS)
 _STAGES: tuple[StageBody, ...] = (
@@ -172,7 +173,10 @@ async def _stored_stages(run_id: UUID, owner: RunOwner) -> RunStages:
 async def test_a_run_and_a_rerun_of_its_finished_screen_read_each_gene_once() -> None:
     owner = await seed_thread()
     run_id = await create_run(
-        owner=owner, scope=AuditScope(site_id="plasmodb", targets=_PAIRS)
+        owner=owner,
+        scope=AuditScope(
+            site_id="plasmodb", targets=_PAIRS, confirm_limit=_CONFIRM_LIMIT
+        ),
     )
 
     with listed_genes() as wire:
@@ -192,7 +196,10 @@ async def test_a_screen_resumed_after_an_unanswered_read_starts_from_the_first_g
 ):
     owner = await seed_thread()
     run_id = await create_run(
-        owner=owner, scope=AuditScope(site_id="plasmodb", targets=_PAIRS)
+        owner=owner,
+        scope=AuditScope(
+            site_id="plasmodb", targets=_PAIRS, confirm_limit=_CONFIRM_LIMIT
+        ),
     )
 
     with listed_genes(unanswered=6) as wire:
