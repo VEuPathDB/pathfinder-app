@@ -63,7 +63,7 @@ export default defineConfig<SiteOption>({
   // pattern once so the first spec to enter one does not pay the cold render
   // inside its own budget.
   globalSetup: "./e2e/global-setup.ts",
-  timeout: isCI ? 120_000 : 60_000,
+  timeout: 180_000,
   expect: { timeout: 15_000 },
   retries: isCI ? 1 : 0,
   forbidOnly: isCI,
@@ -90,19 +90,16 @@ export default defineConfig<SiteOption>({
       name: `turns@${siteId}`,
       grep: TURN_TAG,
       grepInvert: NAMED_SITE_TAG,
-      timeout: 300_000,
       use: { siteId },
     })),
     {
       name: "feature@plasmodb",
       grepInvert: [TURN_TAG, NAMED_SITE_TAG],
-      timeout: 120_000,
       use: { siteId: "plasmodb" },
     },
     {
       name: "sites",
       grep: NAMED_SITE_TAG,
-      timeout: 300_000,
       use: { siteId: "plasmodb" },
     },
   ],

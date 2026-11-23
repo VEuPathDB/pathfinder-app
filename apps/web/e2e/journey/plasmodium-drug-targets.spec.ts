@@ -23,8 +23,6 @@ import {
 } from "../fixtures/strategy-builds";
 
 test.describe("Candidate drug-targets journey", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 900_000 });
-
   test("vague request -> questions and a build -> second build -> add a step -> canvas flip -> impact", async ({
     chatPage,
     graphPage,

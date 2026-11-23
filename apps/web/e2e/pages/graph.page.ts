@@ -1,4 +1,4 @@
-import { type Locator, type Page, expect, test } from "@playwright/test";
+import { type Locator, type Page, expect } from "@playwright/test";
 
 import { ROUTE_TIMEOUT_MS } from "./navigation";
 
@@ -25,8 +25,6 @@ const BUILD_TURN_BUDGET_MS = 180_000;
  */
 export class GraphPage {
   constructor(private page: Page) {}
-
-  private buildBudgetGranted = false;
 
   // Rail panel (read-only step list on /conversation/[id])
   /** The vertical step list panel rendered in the right rail. */
@@ -321,17 +319,8 @@ export class GraphPage {
   }
 
   // Compound assertions
-  /**
-   * Assert the rail panel with steps is visible (planning artifact applied).
-   *
-   * A test that waits on a build turn carries that turn's budget on top of its
-   * own. The grant is made once per test.
-   */
+  /** Assert the rail panel with steps is visible (planning artifact applied). */
   async expectRailPanel() {
-    if (!this.buildBudgetGranted) {
-      this.buildBudgetGranted = true;
-      test.setTimeout(test.info().timeout + BUILD_TURN_BUDGET_MS);
-    }
     await expect(this.railPanel).toBeVisible({ timeout: BUILD_TURN_BUDGET_MS });
   }
 

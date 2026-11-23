@@ -441,8 +441,6 @@ test.describe("Slash commands", () => {
 });
 
 test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("C5 - /export of the conversation and the strategy", async ({
     page,
     chatPage,

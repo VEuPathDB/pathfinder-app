@@ -175,8 +175,6 @@ async function runSeparation(chatPage: ChatPage, page: Page, siteId: string) {
 }
 
 test.describe("Verification flows", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("V1 - The evidence card of a build", async ({
     chatPage,
     apiClient,
@@ -348,7 +346,6 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     page,
     siteId,
   }) => {
-    test.setTimeout(900_000);
     const id = await buildOn(
       chatPage,
       siteId,
@@ -398,7 +395,6 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     page,
     siteId,
   }) => {
-    test.setTimeout(900_000);
     await chatPage.startOn(siteId);
     const id = chatPage.lastStrategyId ?? "";
     const { result, card } = await runSeparation(chatPage, page, siteId);
@@ -488,7 +484,6 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     page,
     siteId,
   }) => {
-    test.setTimeout(900_000);
     await chatPage.startOn(siteId);
     const id = chatPage.lastStrategyId ?? "";
     const { card } = await runSeparation(chatPage, page, siteId);

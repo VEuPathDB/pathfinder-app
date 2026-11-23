@@ -23,8 +23,6 @@ import {
 const EDITED_GO_TERM = "GO:0016301";
 
 test.describe("Dependent-parameter strategy", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("a GO step edited in the editor keeps its id and its whole parameter set", async ({
     chatPage,
     graphPage,

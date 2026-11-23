@@ -27,10 +27,6 @@ function echoOf(text: string): RegExp {
 }
 
 test.describe("Thread branching", { tag: "@turn" }, () => {
-  // The journey drives five turns through the worker, and one queued behind
-  // another suite's build waits minutes.
-  test.describe.configure({ timeout: 600_000 });
-
   test("a branch of a branch carries its own message ids and reverts on them", async ({
     chatPage,
     sidebarPage,

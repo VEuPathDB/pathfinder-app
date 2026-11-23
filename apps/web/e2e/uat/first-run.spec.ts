@@ -243,7 +243,6 @@ async function openSlash(page: Page, chatPage: ChatPage, command: string) {
 
 test.describe("First run and navigation", () => {
   test("F1 - Sign in", async ({ browser, siteId }) => {
-    test.setTimeout(300_000);
     const context = await browser.newContext({
       storageState: { cookies: [], origins: [] },
     });
@@ -445,8 +444,6 @@ test.describe("The website is the site", { tag: "@named-site" }, () => {
 });
 
 test.describe("First run and navigation with the model", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("F4 - The conversation list", async ({
     chatPage,
     sidebarPage,

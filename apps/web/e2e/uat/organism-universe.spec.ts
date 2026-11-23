@@ -15,8 +15,6 @@ import { buildOn, nodeBySearch, paramText } from "../fixtures/strategy-builds";
 const SITE = "vectorbase";
 
 test.describe("An organism named alone", { tag: "@named-site" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("The organism criterion leaves the tree", async ({
     chatPage,
     apiClient,

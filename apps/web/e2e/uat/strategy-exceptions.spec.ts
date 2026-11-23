@@ -166,8 +166,6 @@ async function openCanvas(graphPage: GraphPage, conversationId: string) {
 }
 
 test.describe("Strategy exception flows", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("N1 - An ambiguous request asks first", async ({
     chatPage,
     graphPage,
@@ -621,8 +619,6 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
 });
 
 test.describe("Another site's experiment", { tag: "@named-site" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("N9 - Another site's experiment is shown, never bound", async ({
     chatPage,
     apiClient,

@@ -220,8 +220,6 @@ test.describe("Studies", () => {
     page,
     siteId,
   }) => {
-    // The site's study listing and each tab render read the live site.
-    test.setTimeout(300_000);
     const study = await ownStudy(apiClient, siteId);
     await chatPage.startOn(siteId);
     await chatPage.sendTurn("Which studies can I explore here?", /\[mock\]/);
@@ -289,8 +287,6 @@ test.describe("Studies", () => {
   });
 
   test.describe("The assistant's comparison", { tag: "@turn" }, () => {
-    test.describe.configure({ timeout: 600_000 });
-
     test("E2 - The assistant runs a comparison", async ({
       chatPage,
       apiClient,

@@ -29,8 +29,6 @@ async function intersectWithACopy(page: Page, stepId: string): Promise<void> {
 }
 
 test.describe("Rename a step and intersect it with a copy", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("a renamed step keeps its name and its id when a copy is intersected with it", async ({
     chatPage,
     graphPage,

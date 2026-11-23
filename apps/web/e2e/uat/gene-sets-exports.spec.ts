@@ -73,8 +73,6 @@ function literal(text: string): string {
 }
 
 test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("G1 - Save a gene set from a strategy", async ({
     page,
     chatPage,
@@ -179,7 +177,6 @@ test.describe("Publishing a gene set", { tag: "@named-site" }, () => {
     apiClient,
     siteId,
   }) => {
-    test.setTimeout(900_000);
     const { counts } = await buildIntersect(page, chatPage, apiClient, siteId);
     const figure = await saveGeneSet(page, chatPage, "UAT G3");
     const set = await savedSet(apiClient, siteId, "UAT G3");

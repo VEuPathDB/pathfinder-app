@@ -22,8 +22,6 @@ import {
 } from "../fixtures/strategy-builds";
 
 test.describe("Complex combine strategy edited on the canvas", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("an operator flip and a leaf edit both persist, and the model reads them", async ({
     chatPage,
     graphPage,

@@ -34,7 +34,6 @@ function pickedValues(node: AstNode, name: string): string[] {
 
 test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
   test.use({ viewport: { width: 1680, height: 900 } });
-  test.describe.configure({ timeout: 900_000 });
 
   test("build five nodes -> edit a text and a multi-pick parameter -> flip -> delete -> variants -> count", async ({
     page,

@@ -44,8 +44,6 @@ async function targetStepId(api: ApiClient, conversationId: string): Promise<str
 }
 
 test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("a saved id that does not load answers 404 and a malformed body 422", async ({
     chatPage,
     apiClient,

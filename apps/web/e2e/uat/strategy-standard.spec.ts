@@ -61,8 +61,6 @@ function savedRow(page: Page, name: string) {
 }
 
 test.describe("Standard strategy flows", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("S1 - One search", async ({ chatPage, apiClient, page, siteId }) => {
     const organism = siteOrganism(siteId);
     const id = await buildOn(chatPage, siteId, prompt("single", S1_TEXT(organism)));

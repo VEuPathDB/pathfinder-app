@@ -22,8 +22,6 @@ async function geneSetsOn(api: ApiClient, siteId: string): Promise<GeneSet[]> {
 }
 
 test.describe("Full researcher lifecycle", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("chat, build, gene set, another site, settings and a last round", async ({
     chatPage,
     sidebarPage,

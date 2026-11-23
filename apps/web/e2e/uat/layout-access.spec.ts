@@ -200,7 +200,6 @@ test.describe("Layout and access", () => {
     "L3 - Keyboard only",
     { tag: "@turn" },
     async ({ chatPage, graphPage, apiClient, page, siteId }) => {
-      test.setTimeout(900_000);
       const keyboard = page.keyboard;
       await gotoOnSite(page, siteId, "conversation");
       await expect(chatPage.messageInput).toBeFocused({ timeout: 60_000 });
@@ -341,7 +340,6 @@ test.describe("Layout and access", () => {
     "L5 - Screen-reader names",
     { tag: "@turn" },
     async ({ chatPage, apiClient, page, siteId }) => {
-      test.setTimeout(900_000);
       await chatPage.startOn(siteId);
       await expect(page.getByRole("log")).toBeVisible();
       await expect(

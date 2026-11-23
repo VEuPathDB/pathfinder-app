@@ -16,8 +16,6 @@ const DROP_OPTION = "Drop 2-fold";
 const KEEP_OPTION = "Keep 2-fold";
 
 test.describe("Requirement withdrawal", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("N14 - A requirement no search states is dropped on the card", async ({
     chatPage,
     apiClient,

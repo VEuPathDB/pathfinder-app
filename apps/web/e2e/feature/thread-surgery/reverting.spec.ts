@@ -19,10 +19,6 @@ function echoOf(text: string): RegExp {
 }
 
 test.describe("Thread reverting", { tag: "@turn" }, () => {
-  // The journey drives four turns through the worker, and one queued behind
-  // another suite's build waits minutes.
-  test.describe.configure({ timeout: 600_000 });
-
   test("a revert to an already-deleted message is a no-op the dialog does not error on", async ({
     chatPage,
     apiClient,

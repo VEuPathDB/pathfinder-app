@@ -167,14 +167,11 @@ async function expectOrthologs(
 }
 
 test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("X1 - The same request on plasmodb and vectorbase", async ({
     chatPage,
     apiClient,
     page,
   }) => {
-    test.setTimeout(900_000);
     const served = await servedSites(apiClient);
     const id = await sendOn(
       chatPage,
@@ -244,7 +241,6 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     apiClient,
     page,
   }) => {
-    test.setTimeout(900_000);
     const served = await servedSites(apiClient);
     for (const siteId of comparedSites()) {
       const { id, counts } = await buildS2(chatPage, apiClient, page, siteId);
@@ -260,7 +256,6 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     apiClient,
     page,
   }) => {
-    test.setTimeout(1_200_000);
     const served = await servedSites(apiClient);
     const sites = ["vectorbase", "toxodb"].filter((site) => served.includes(site));
     expect(sites).toContain("vectorbase");
@@ -286,7 +281,6 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     apiClient,
     page,
   }) => {
-    test.setTimeout(900_000);
     const portal = "veupathdb";
     const { id, counts } = await buildS2(chatPage, apiClient, page, portal);
 
@@ -316,7 +310,6 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     apiClient,
     page,
   }) => {
-    test.setTimeout(900_000);
     const cases = [
       { siteId: "vectorbase", target: siteOrganism("plasmodb") },
       { siteId: "plasmodb", target: siteOrganism("toxodb") },

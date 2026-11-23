@@ -20,7 +20,6 @@ test.describe("The data notice at first sign-in", () => {
   test("shows once, and Continue with the box unticked turns learning off", async ({
     browser,
   }) => {
-    test.setTimeout(180_000);
     const context = await newResearcher(browser);
     const page = await context.newPage();
     await gotoOnSite(page, DEFAULT_SITE, `${BASE_URL}/conversation`);

@@ -180,8 +180,6 @@ async function secondUser(browser: Browser, userId: string): Promise<BrowserCont
 }
 
 test.describe("Memory and notes", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("M1 - Like an answer", async ({
     chatPage,
     settingsPage,

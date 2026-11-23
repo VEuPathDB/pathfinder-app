@@ -60,7 +60,6 @@ test.describe("User data purge after a build", { tag: "@turn" }, () => {
     page,
     siteId,
   }) => {
-    test.setTimeout(600_000);
     await chatPage.startOn(siteId);
     await chatPage.sendAndSettle(
       prompt(

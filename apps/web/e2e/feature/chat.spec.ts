@@ -92,8 +92,6 @@ test.describe("Chat", () => {
 });
 
 test.describe("Chat builds", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   const buildMessage = (siteId: string) =>
     prompt(
       "single",

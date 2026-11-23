@@ -32,8 +32,6 @@ async function installedUpload(api: ApiClient, siteId: string): Promise<string> 
 }
 
 test.describe("User-dataset flows", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 900_000 });
-
   test("UD1 - DESeq2 on an upload at a stated cut", async ({
     chatPage,
     apiClient,

@@ -145,8 +145,6 @@ function controlLines(siteId: string): string {
 }
 
 test.describe("Fault arcs", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: TURN_BUDGET_MS });
-
   test("A search the listing never named is refused", async ({
     chatPage,
     apiClient,

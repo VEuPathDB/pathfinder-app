@@ -250,7 +250,6 @@ test.describe("Settings and account", () => {
     "A3 - The usage figures",
     { tag: "@turn" },
     async ({ chatPage, apiClient, page, siteId }) => {
-      test.setTimeout(600_000);
       const quota = () => readJson<QuotaResponse>(apiClient, "api/v1/me/quota");
       const before = await quota();
 
@@ -325,7 +324,6 @@ test.describe("Settings and account", () => {
     page,
     siteId,
   }) => {
-    test.setTimeout(300_000);
     const otherSite = siteId === "toxodb" ? "plasmodb" : "toxodb";
     const siteName = siteShortName(siteId);
     await chatPage.startOn(siteId);

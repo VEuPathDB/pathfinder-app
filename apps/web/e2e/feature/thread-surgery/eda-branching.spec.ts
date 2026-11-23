@@ -71,9 +71,6 @@ interface AnalysisRead {
 
 test.describe("Branching a thread with a study open", () => {
   test.skip(EDA_RECORDING_MISSING, NEEDS_QA_RECORDING);
-  // Each journey drives three to five turns through the worker, and one queued
-  // behind another suite's build waits minutes.
-  test.describe.configure({ timeout: 600_000 });
 
   test("a branch opens its own analysis and leaves the parent's site subset alone", async ({
     chatPage,

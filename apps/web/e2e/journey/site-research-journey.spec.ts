@@ -126,8 +126,6 @@ for (const journey of JOURNEYS) {
     `${journey.title} journey on ${journey.siteId}`,
     { tag: "@named-site" },
     () => {
-      test.describe.configure({ timeout: 600_000 });
-
       test("chat rounds, a build and a follow-up", async ({
         chatPage,
         page,

@@ -12,8 +12,6 @@ import { readNodes, siteOrganism } from "../fixtures/site-reads";
 import { buildOn, combineWith, openCanvas } from "../fixtures/strategy-builds";
 
 test.describe("Execution phase", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("a UNION build feeds both searches into its combine and draws every node", async ({
     chatPage,
     graphPage,

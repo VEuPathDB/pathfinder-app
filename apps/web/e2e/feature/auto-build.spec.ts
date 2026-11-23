@@ -43,8 +43,6 @@ async function builtGeneSet(
 }
 
 test.describe("Auto-build", { tag: "@turn" }, () => {
-  test.describe.configure({ timeout: 600_000 });
-
   test("a build stores its WDK strategy, its step and its gene set, and a reload keeps them", async ({
     chatPage,
     apiClient,
