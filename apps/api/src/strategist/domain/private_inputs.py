@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from typing import Final
 
@@ -38,7 +39,11 @@ class ViewerInputs(BaseModel):
         )
 
     def untyped[T: JsonValue](self, value: T, *, withheld: T) -> T:
-        return value if self.account_reads else withheld
+        shown = self.account_reads and not self.names_account_data(json.dumps(value))
+        return value if shown else withheld
+
+    def hiding(self, values: frozenset[str]) -> ViewerInputs:
+        return self.model_copy(update={"hidden_values": values})
 
 
 class _StudyInput(BaseModel):

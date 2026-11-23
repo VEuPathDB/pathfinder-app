@@ -9,7 +9,11 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict
 
 from strategist.domain.eda_parts import EdaAnalysisState
-from strategist.domain.private_inputs import inputs_for_viewer, is_account_dataset
+from strategist.domain.private_inputs import (
+    ViewerInputs,
+    inputs_for_viewer,
+    is_account_dataset,
+)
 from strategist.services.conversations.responses import ConversationResponse
 from strategist.services.strategies.schemas import StepResponse
 
@@ -125,13 +129,8 @@ def _viewer_id(token: str) -> UUID:
     return uuid5(NAMESPACE_URL, f"strategist:shared:{token}")
 
 
-def _viewer_step(
-    step: StepResponse, *, include_account_reads: bool
-) -> tuple[StepResponse, list[str]]:
-    inputs = inputs_for_viewer(
-        step.parameters or {}, include_account_reads=include_account_reads
-    )
-    shown = step.model_copy(
+def _viewer_step(step: StepResponse, inputs: ViewerInputs) -> StepResponse:
+    return step.model_copy(
         update={
             **STEP_CLEARED,
             "parameters": None if step.parameters is None else inputs.shown,
@@ -160,24 +159,31 @@ def _viewer_step(
             else WITHHELD_PUSH_ERROR,
         }
     )
-    return shown, inputs.withheld
 
 
 def viewer_strategy(
     detail: ConversationResponse, *, token: str, include_account_reads: bool
 ) -> tuple[ConversationResponse, dict[str, list[str]]]:
-    read = [
-        _viewer_step(step, include_account_reads=include_account_reads)
+    inputs = {
+        step.id: inputs_for_viewer(
+            step.parameters or {}, include_account_reads=include_account_reads
+        )
         for step in detail.steps
-    ]
+    }
+    hidden = frozenset[str]().union(*(read.hidden_values for read in inputs.values()))
     shown = detail.model_copy(
         update={
             **CONVERSATION_CLEARED,
             "id": _viewer_id(token),
-            "steps": [step for step, _ in read],
+            "steps": [
+                _viewer_step(step, inputs[step.id].hiding(hidden))
+                for step in detail.steps
+            ],
         }
     )
-    return shown, {step.id: withheld for step, withheld in read if withheld}
+    return shown, {
+        step_id: read.withheld for step_id, read in inputs.items() if read.withheld
+    }
 
 
 def newest_study(

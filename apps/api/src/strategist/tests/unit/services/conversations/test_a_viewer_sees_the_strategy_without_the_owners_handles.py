@@ -206,3 +206,19 @@ def test_a_study_on_the_owners_upload_is_account_data(
     seen = viewer_study(upload, include_account_reads=include_account_reads)
 
     assert (seen is not None) is shown
+
+
+@pytest.mark.parametrize(
+    ("include_account_reads", "kept"), [(False, False), (True, True)]
+)
+def test_a_reason_quoting_another_steps_private_list_is_cleared(
+    include_account_reads: bool, kept: bool
+) -> None:
+    shown, _ = viewer_strategy(
+        DETAIL, token="tok-1", include_account_reads=include_account_reads
+    )
+
+    step = next(s for s in shown.steps if s.id == "s-text")
+    assert step.parameters == {"text_expression": StringValue(value="kinase")}
+    assert (step.rationale is not None) is kept
+    assert (PRIVATE_DATASET_ID in shown.model_dump_json()) is kept

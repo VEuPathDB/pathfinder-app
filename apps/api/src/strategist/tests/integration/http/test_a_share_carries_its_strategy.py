@@ -265,8 +265,10 @@ async def test_no_step_field_carries_the_private_list(
     async with anonymous(app) as viewer:
         got = await viewer.get(f"/api/v1/shared/{token}/context")
 
-    step = next(s for s in got.json()["strategy"]["steps"] if s["id"] == "s-list")
+    steps = {s["id"]: s for s in got.json()["strategy"]["steps"]}
+    step = steps["s-list"]
     assert PRIVATE_DATASET_ID in owner.text
+    assert steps["s-text"]["rationale"] is None
     assert PRIVATE_DATASET_ID not in got.text
     assert (step["rationale"], step["validation"]["errors"]) == (None, None)
     assert step["wdkPushError"] == "This step failed on the site."

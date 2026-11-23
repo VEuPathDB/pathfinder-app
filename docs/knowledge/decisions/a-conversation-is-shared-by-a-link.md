@@ -31,10 +31,11 @@ opens `/shared/<token>`, inside the website that frames Strategist.
   dataset input (an uploaded list, a gene set, a basket, a file) and a value whose kind was never
   read are withheld and named in `privateInputs`, and a step input (an owner step id) is
   withheld always. A study on the owner's own upload (an `EDAUD_` dataset) is account data by
-  the same rule. Every field derived from the inputs follows it: a step's reason is cleared when
-  it names a withheld value or an upload (`for_viewer` on each reason type), and keeps only the
+  the same rule. Every field derived from the inputs follows it, against the values withheld
+  anywhere in the strategy, not only on the step itself: a step's reason is cleared when it
+  names a withheld value or an upload (`for_viewer` on each reason type), and keeps only the
   shown inputs it was derived from; a filter or step-analysis value has no parameter kind, so it
-  is withheld unless the account box is ticked. The site's own words are never shown: a failed
+  is withheld unless the account box is ticked and it names no withheld value. The site's own words are never shown: a failed
   push reads "This step failed on the site.", and a validation keeps its outcome without its
   messages, since WDK quotes the values it refused in them. The study is the newest state the thread showed of the bound analysis; a study
   no turn showed is not shared. The owner's notes and tasks are not shared. A viewer needs no

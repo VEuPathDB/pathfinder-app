@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import get_args
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import (
     HeldValue,
     InputDatasetValue,
@@ -184,3 +185,18 @@ def test_a_controls_reason_that_quotes_a_withheld_input_is_cleared() -> None:
     assert controls.model_copy(update={"basis": "the thread"}).for_viewer(
         LIST_INPUTS
     ) == controls.model_copy(update={"basis": "the thread"})
+
+
+def test_an_untyped_value_shows_only_with_the_account_reads_and_no_handle() -> None:
+    owned = inputs_for_viewer(
+        {"bq_input_step": InputStepValue(step_id="900117")}, include_account_reads=True
+    )
+    closed = inputs_for_viewer({}, include_account_reads=False)
+    genes: JsonValue = {"ids": "PF3D7_0100100"}
+    handle: JsonValue = {"step": "900117"}
+
+    assert [
+        owned.untyped(genes, withheld=None),
+        owned.untyped(handle, withheld=None),
+        closed.untyped(genes, withheld=None),
+    ] == [genes, None, None]

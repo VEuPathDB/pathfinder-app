@@ -72,7 +72,16 @@ SHARED_AST = StrategyAst.model_validate(
                     "reason": f"It reads the saved list {PRIVATE_DATASET_ID}.",
                     "toolCallId": "c-1",
                     "derivedFrom": {"ds_gene_ids": PRIVATE_DATASET_ID},
-                }
+                },
+                "s-text": {
+                    "kind": "search",
+                    "searchName": "GenesByText",
+                    "basis": "parameter",
+                    "term": "Text term",
+                    "reason": f"Kinases beside the saved list {PRIVATE_DATASET_ID}.",
+                    "toolCallId": "c-2",
+                    "derivedFrom": {"text_expression": "kinase"},
+                },
             }
         },
     }
