@@ -147,8 +147,8 @@ async def test_three_refusals_of_one_key_spend_no_tool_retry() -> None:
     assert [p.outcome for p in (first, second, third)] == ["failed"] * 3
     assert [_summaries(p) for p in (first, second, third)] == [["corrected"]] * 3
     assert body.retries_seen == [0, 0, 0, 0]
-    assert fourth.outcome == "success"
-    assert SpentRefusal.model_validate(fourth.content).note.startswith(
+    assert (fourth.outcome, _summaries(fourth)) == ("failed", [])
+    assert str(fourth.content).startswith(
         f"No more attempts for c1 / {_S}. The last refusal: c1 names nothing."
     )
     assert deps.refusal_book.ledger.used(C1) == TOOL_REFUSALS_PER_KEY
@@ -168,7 +168,7 @@ async def test_two_criteria_each_keep_their_own_budget() -> None:
     ).run("bind", deps=deps)
 
     outcomes = [p.outcome for p in _returns(result.all_messages())]
-    assert outcomes == ["failed"] * 6 + ["success"] * 2
+    assert outcomes == ["failed"] * 8
     assert deps.refusal_book.ledger.used(C1) == TOOL_REFUSALS_PER_KEY
     assert deps.refusal_book.ledger.used(C2) == TOOL_REFUSALS_PER_KEY
 
@@ -292,7 +292,7 @@ async def test_three_refusals_after_a_transient_failure_precede_the_spent_answer
     ).run("bind", deps=deps)
 
     outcomes = [p.outcome for p in _returns(result.all_messages())]
-    assert outcomes == ["retried", "failed", "failed", "failed", "success"]
+    assert outcomes == ["retried", "failed", "failed", "failed", "failed"]
 
 
 async def test_a_held_resend_is_free_and_the_next_keeps_its_problem_keys() -> None:

@@ -42,7 +42,7 @@ def test_a_spent_output_budget_is_named_in_the_words_the_stop_reads() -> None:
 
     assert spent.message == "Exceeded maximum output retries (3)"
     assert spent_its_output_retries(spent) is True
-    stop = early_stop(spent, None)
+    stop = early_stop(spent, {})
     assert stop is not None
     assert (stop.reason, stop.refusal) == (PhaseStopReason.OUTPUT_RETRIES, None)
 
@@ -62,7 +62,7 @@ def test_a_spent_tool_budget_is_named_in_the_words_the_stop_reads() -> None:
         "Tool '_refuse' exceeded max retries count of 3. Consider raising the retry "
         "limit"
     )
-    stop = early_stop(spent, refusal)
+    stop = early_stop(spent, {refusal.tool_name: refusal})
     assert stop is not None
     assert (stop.reason, stop.refusal) == (PhaseStopReason.TOOL_RETRIES, refusal)
 
@@ -74,5 +74,5 @@ def test_another_fault_of_the_class_is_no_stop() -> None:
     assert (
         fault.message,
         spent_its_output_retries(fault),
-        early_stop(fault, refusal),
+        early_stop(fault, {refusal.tool_name: refusal}),
     ) == ("Received empty model response", False, None)

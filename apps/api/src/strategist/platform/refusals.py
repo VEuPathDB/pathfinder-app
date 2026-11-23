@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 from pydantic.alias_generators import to_snake
 from pydantic_ai.capabilities import AgentCapability
 from pydantic_ai.capabilities.abstract import AbstractCapability
-from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
 from pydantic_ai.toolsets.abstract import ToolsetTool
@@ -270,6 +270,10 @@ def call_key(tool: ToolDefinition, args: Mapping[str, Any]) -> RefusalKey:
     )
 
 
+class CallSpent(ToolFailed):
+    pass
+
+
 class SpentCall(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -375,11 +379,13 @@ class KeyedRefusalToolset[DepsT: KeepsRefusals](WrapperToolset[DepsT]):
             problems = _refused_problems(tool.tool_def, tool_args, error)
             run_id = ctx.run_id or ""
             if book.charged >= TOOL_REFUSALS_PER_TURN:
-                return book.spend(problems, by=name, run_id=run_id)
+                spent = book.spend(problems, by=name, run_id=run_id)
+                raise CallSpent(spent.note) from error
             charge = book.ledger.charge(problems, TOOL_REFUSALS_PER_KEY, by=name)
             book.ledger = charge.ledger
             if charge.refused.empty:
-                return book.spend(charge.spent, by=name, run_id=run_id)
+                spent = book.spend(charge.spent, by=name, run_id=run_id)
+                raise CallSpent(spent.note) from error
             book.charged += 1
             said = refusal_text(charge)
             closing = closing_of(error)
@@ -414,6 +420,7 @@ __all__ = [
     "TOOL_REFUSALS_PER_KEY",
     "TOOL_REFUSALS_PER_TURN",
     "TURN_REFUSALS_PER_RULE",
+    "CallSpent",
     "CallerSuppliedIds",
     "FaultRow",
     "KeepsRefusals",

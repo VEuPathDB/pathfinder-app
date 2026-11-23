@@ -34,7 +34,7 @@ def test_a_retry_on_the_arguments_names_each_message() -> None:
 
     assert refusal_of(_result(errors)) == ToolRefusal(
         tool_name="set_criterion",
-        text="Field required; Input should be a string",
+        text="value: Field required; param: Input should be a string",
     )
 
 

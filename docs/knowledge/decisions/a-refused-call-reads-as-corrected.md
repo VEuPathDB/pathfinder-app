@@ -26,7 +26,9 @@ so. Protocol 2.2.0 lets a failed call's `data-tool-summary` carry `status: "corr
   raise it. `KeyedRefusalToolset` (`platform/refusals.py`) raises it for every refusal a
   tool body raises (`ProblemsRefusal`, a plain `ModelRetry`, a correctable `AppError`)
   on every toolset that holds refused calls, after it charges the refusal's keys, so a
-  refusal never spends the tool's retries.
+  refusal never spends the tool's retries. Once a key is spent it raises `CallSpent`, a plain
+  `ToolFailed` carrying "No more attempts for ...", which no summary marks corrected: the call is
+  final and draws the red X with that line, never a success.
 
 A read the site broke off, timed out or refused (`ai/capabilities/site_reads.py`) stays a
 plain `ToolFailed` and draws the red X, and so does a turn that failed. The client reads a

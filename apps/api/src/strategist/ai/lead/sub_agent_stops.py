@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from assistant_core.capabilities.repetition_guard import BlockRule
+from pydantic import ValidationError
 from pydantic_ai.exceptions import (
     ModelAPIError,
     ModelHTTPError,
+    ToolRetryError,
     UnexpectedModelBehavior,
     UsageLimitExceeded,
 )
@@ -20,7 +24,6 @@ from strategist.ai.agents.unserved import SearchNotServedError
 from strategist.ai.capabilities.error_classification import RETRY_DETAILS
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason
-from strategist.ai.lead.sub_agent_progress import record_stopped_usage
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 
 GUARD_STOP_REASON: dict[BlockRule, PhaseStopReason] = {
@@ -51,12 +54,29 @@ def refusal_of(event: FunctionToolResultEvent) -> ToolRefusal | None:
     part = event.part
     if part.outcome != "retried":
         return None
-    match part.content:
+    return ToolRefusal(tool_name=part.tool_name, text=_said(part.content))
+
+
+def _said(content: object) -> str:
+    match content:
         case str() as said:
-            text = said
+            return said
         case details:
-            text = "; ".join(d.msg for d in RETRY_DETAILS.validate_python(details))
-    return ToolRefusal(tool_name=part.tool_name, text=text)
+            return "; ".join(
+                ": ".join([*map(str, d.loc[-1:]), d.msg])
+                for d in RETRY_DETAILS.validate_python(details)
+            )
+
+
+def answer_refusal(exc: UnexpectedModelBehavior) -> str:
+    """What the last check of a spent answer said, or nothing."""
+    match exc.__cause__:
+        case ToolRetryError(tool_retry=retry):
+            return _said(retry.content)
+        case ValidationError() as invalid:
+            return _said(invalid.errors())
+        case _:
+            return ""
 
 
 _OUTPUT_RETRIES_SPENT = "Exceeded maximum output retries ("
@@ -66,21 +86,25 @@ def spent_its_output_retries(exc: UnexpectedModelBehavior) -> bool:
     return exc.message.startswith(_OUTPUT_RETRIES_SPENT)
 
 
+_TOOL_RETRIES_SPENT = re.compile(
+    r"^Tool '(?P<tool>.+)' exceeded max retries count of \d+"
+)
+
+
 def exhausted_its_retries(
-    exc: UnexpectedModelBehavior,
-    refusal: ToolRefusal | None,
+    exc: UnexpectedModelBehavior, refusals: Mapping[str, ToolRefusal]
 ) -> ToolRefusal | None:
-    """The refusal the library says ran out of retries, or nothing.
+    """The refusal of the tool whose retries the library says ran out, or nothing.
 
     The library raises this class itself for a spent tool or output budget, a
     token limit or a provider fault, with no field that names which, so the
     raised message is the discriminator: it names the tool the budget held.
     """
-    if refusal is None:
+    spent = _TOOL_RETRIES_SPENT.match(exc.message)
+    if spent is None:
         return None
-    if not exc.message.startswith(f"Tool {refusal.tool_name!r} exceeded max retries"):
-        return None
-    return refusal
+    tool = spent["tool"]
+    return refusals.get(tool, ToolRefusal(tool_name=tool, text=""))
 
 
 @dataclass(frozen=True)
@@ -93,7 +117,7 @@ class EarlyStop:
     fields: dict[str, Any]
 
 
-def early_stop(exc: Exception, refusal: ToolRefusal | None) -> EarlyStop | None:
+def early_stop(exc: Exception, refusals: Mapping[str, ToolRefusal]) -> EarlyStop | None:
     """The stop an exception of the run is, or None for an error to raise.
 
     The sub-agent writes each result into the shared draft as it goes, so every
@@ -126,13 +150,13 @@ def early_stop(exc: Exception, refusal: ToolRefusal | None) -> EarlyStop | None:
                 {"error": message},
             )
         case UnexpectedModelBehavior():
-            return _spent_retries(exc, refusal)
+            return _spent_retries(exc, refusals)
         case _:
             return None
 
 
 def _spent_retries(
-    exc: UnexpectedModelBehavior, refusal: ToolRefusal | None
+    exc: UnexpectedModelBehavior, refusals: Mapping[str, ToolRefusal]
 ) -> EarlyStop | None:
     if spent_its_output_retries(exc):
         return EarlyStop(
@@ -141,7 +165,7 @@ def _spent_retries(
             "sub-agent exhausted its output retries; keeping partial progress",
             {"error": str(exc), "cause": str(exc.__cause__)},
         )
-    exhausted = exhausted_its_retries(exc, refusal)
+    exhausted = exhausted_its_retries(exc, refusals)
     if exhausted is None:
         return None
     return EarlyStop(
@@ -167,12 +191,8 @@ class Stopping:
 def stopped(
     reason: PhaseStopReason, stopping: Stopping, *, refusal: ToolRefusal | None = None
 ) -> None:
-    """Record the stop as the run's typed result and the usage it spent."""
-    deps = stopping.deps
-    deps.last_phase_stop = phase_stop(reason, stopping, refusal=refusal)
-    record_stopped_usage(
-        deps, stopping.role, stopping.parent_tool_call_id, stopping.usage
-    )
+    """Record the stop as the run's typed result."""
+    stopping.deps.last_phase_stop = phase_stop(reason, stopping, refusal=refusal)
 
 
 def a_provider_call_failed(error: Exception) -> bool:

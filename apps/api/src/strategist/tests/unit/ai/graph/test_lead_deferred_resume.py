@@ -2,7 +2,7 @@
 
 When the Lead's first action is the deferred tool, ``new_messages()`` holds
 only the assistant ``ToolCallPart`` with no leading ``ModelRequest`` - which
-pydantic-ai rejects on resume as 'message history is empty'. ``_absorb_run_result``
+pydantic-ai rejects on resume as 'message history is empty'. ``absorb_run_result``
 must capture ``all_messages()`` (request + tool call) into ``prior_messages_json``.
 """
 
@@ -29,11 +29,11 @@ from pydantic_ai.messages import (
 from pydantic_ai.usage import RunUsage
 
 from strategist.ai.graph._lead_capture import LeadRunCapture
+from strategist.ai.graph._lead_result import absorb_run_result
 from strategist.ai.graph._lead_turn import (
     ConcurrentSubAgentApprovalsError,
     pending_approval,
 )
-from strategist.ai.graph.lead_node import _absorb_run_result
 from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.sub_agent_tools import LeadDeps
@@ -103,7 +103,7 @@ def test_deferred_resume_history_includes_user_request() -> None:
     )
     capture = LeadRunCapture()
     event: Any = SimpleNamespace(result=result)
-    _absorb_run_result(event, capture, _deps())
+    absorb_run_result(event, capture, _deps())
 
     assert capture.pending_approval is not None
     assert capture.pending_approval.phase == "lead"

@@ -2,6 +2,18 @@
 
 ## 2026-11-23
 
+* **Every stop names its tool and its refusal, and every spend is charged.** A Lead or Explore
+  run whose tool spent its retries ends on "I stopped this turn when <tool> refused every attempt:
+  ...", from the refusals the run noted per tool (`LeadRunCapture.refusals`), never the generic
+  error; an answer that spent its retries quotes the last check of the answer. A sub-agent stop
+  names the tool the library says ran out (`exhausted_its_retries` reads the message), not the
+  last refusal of another tool, and its usage is recorded in a `finally`. A message reader that
+  spent its output retries raises `MessageNotReadError`; the Lead and Explore end on "I could not
+  read your message into its requirements: ..." and charge what the reader spent. Explore charges
+  in a `finally` and sets the Decisions spend sink around the reader and the run. A cancelled
+  model reading is awaited so its spend lands. A spent refusal key answers as a final failed call
+  (`CallSpent`), never as a success.
+
 * **Readers answer in strict output, and the compactor names every identifier.** The message
   reader's two agents (`_ModelReading`, `StatedRequest`), the note compactor (`CompactionResult`)
   and the audit synthesis (`SynthesisDraft`) ask for `NativeOutput(..., strict=True)`, so a

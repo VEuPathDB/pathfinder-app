@@ -378,6 +378,7 @@ async def test_a_validation_refusal_reaches_the_ledger_without_its_json() -> Non
     )
     assert (
         stop.refusal
-        == "Input should be a valid integer, unable to parse string as an integer"
+        == "count: Input should be a valid integer, unable to parse string as an "
+        "integer"
     )
     assert "```" not in stop.render()

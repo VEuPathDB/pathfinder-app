@@ -267,7 +267,7 @@ async def stream_sub_agent[OutputT: BaseModel](
     answered = inputs.answered
     output: OutputT | None = None
     wait: SubAgentApprovalWait | None = None
-    refusal: ToolRefusal | None = None
+    refusals: dict[str, ToolRefusal] = {}
     usage = RunUsage()
     usage_recorded = False
     stopping = Stopping(
@@ -325,7 +325,9 @@ async def stream_sub_agent[OutputT: BaseModel](
                         event=event,
                     )
                     if isinstance(event, FunctionToolResultEvent):
-                        refusal = refusal_of(event) or refusal
+                        refusal = refusal_of(event)
+                        if refusal is not None:
+                            refusals[refusal.tool_name] = refusal
                         if _after_tool_result(
                             event,
                             stopping,
@@ -341,14 +343,15 @@ async def stream_sub_agent[OutputT: BaseModel](
             UnexpectedModelBehavior,
             SearchNotServedError,
         ) as exc:
-            stop = early_stop(exc, refusal)
+            stop = early_stop(exc, refusals)
             if stop is None:
                 raise
             logger.warning(stop.event, role=role, **stop.fields)
             stopped(stop.reason, stopping, refusal=stop.refusal)
             return None
-    if not usage_recorded:
-        record_stopped_usage(deps, role, parent_tool_call_id, usage)
+        finally:
+            if not usage_recorded:
+                record_stopped_usage(deps, role, parent_tool_call_id, usage)
     return wait if wait is not None else output
 
 

@@ -73,6 +73,9 @@ class SpendMeter:
         """The capability that meters each run of an agent on ``model_id``."""
         return _MeteredRuns(model_id=model_id, spent=self.spent)
 
+    def absorb(self, tokens: int, cost_usd: Decimal, paid_by: PaidBy) -> None:
+        self.spent.append(ModelSpend(tokens=tokens, cost_usd=cost_usd, paid_by=paid_by))
+
     @property
     def tokens(self) -> int:
         return sum(spend.tokens for spend in self.spent)

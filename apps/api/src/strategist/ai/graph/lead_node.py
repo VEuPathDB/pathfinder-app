@@ -39,7 +39,6 @@ from langgraph.types import Command
 from pydantic_ai import AgentRunResultEvent
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import AgentStreamEvent, UserContent
-from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.usage import RunUsage
 
 from strategist.ai.capabilities.decisions_spend import decisions_spend_to
@@ -57,7 +56,6 @@ from strategist.ai.graph._lead_card_hold import CardHold
 from strategist.ai.graph._lead_delta import _build_state_delta
 from strategist.ai.graph._lead_durable import (
     durable_resume_hints,
-    pending_durable_call,
 )
 from strategist.ai.graph._lead_emit import (
     emit_each,
@@ -70,7 +68,11 @@ from strategist.ai.graph._lead_events import (
 from strategist.ai.graph._lead_exchange import turn_exchange
 from strategist.ai.graph._lead_facts import show_the_facts
 from strategist.ai.graph._lead_model import resolve_lead_model_context
-from strategist.ai.graph._lead_reading import read_the_words
+from strategist.ai.graph._lead_reading import MessageNotReadError, read_the_words
+from strategist.ai.graph._lead_result import (
+    absorb_run_result,
+    ask_about_what_it_parks,
+)
 from strategist.ai.graph._lead_site import (
     a_dead_site_changes_nothing,
     naming_a_dead_site,
@@ -87,7 +89,6 @@ from strategist.ai.graph._lead_stops import (
 from strategist.ai.graph._lead_turn import (
     TurnResumption,
     memory_index,
-    pending_approval,
     resolve_turn_resumption,
     retrieve_memories,
     turn_ends_before_the_run,
@@ -104,16 +105,13 @@ from strategist.ai.graph.turn_status import (
     RECALLING_AND_READING,
     turn_step_status,
 )
-from strategist.ai.lead.deleted_steps import ask_about_the_removals
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.lead_agent import LeadAgent
-from strategist.ai.lead.lead_memory_tools import ask_about_the_preferences
 from strategist.ai.lead.linked_pages import read_linked_pages
 from strategist.ai.lead.recorded_cards import completed_hint
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_budget import lead_token_budget, lead_usage_limits
-from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.domain.strategy.questions import OpenQuestion
 
 logger = get_logger(__name__)
@@ -143,44 +141,6 @@ def _run_prompt(
     if resumption.parked is not None and resumption.user_prompt is None:
         return None
     return state.user_content
-
-
-def _absorb_run_result(
-    event: AgentRunResultEvent[Any],
-    capture: LeadRunCapture,
-    deps: LeadDeps,
-) -> None:
-    run_result = event.result
-    capture.new_messages = list(run_result.new_messages())
-    response = run_result.response
-    if response.finish_reason:
-        capture.finish_reason = response.finish_reason
-    output = run_result.output
-    if isinstance(output, LeadResponse):
-        capture.response = output
-    elif isinstance(output, DeferredToolRequests):
-        messages = list(run_result.all_messages())
-        capture.pending_durable_call = pending_durable_call(
-            output=output,
-            deps=deps,
-            messages=messages,
-        )
-        if capture.pending_durable_call is None:
-            capture.pending_approval = pending_approval(
-                output=output,
-                deps=deps,
-                messages=messages,
-            )
-
-
-async def _ask_about_what_it_parks(
-    event: AgentRunResultEvent[Any], deps: LeadDeps, writer: Any
-) -> None:
-    """Write the question of each parked removal and preference before its card is drawn."""
-    output = event.result.output
-    if isinstance(output, DeferredToolRequests):
-        await ask_about_the_removals(deps, output, writer)
-        ask_about_the_preferences(output, writer)
 
 
 def _stream_ends_after(
@@ -274,14 +234,14 @@ async def _drive_lead_stream(
         # The budget stop is absorbed here, not around the emitter: the emitter
         # answers an exception of the run with an error chunk of its own. A
         # stream that ends instead leaves the turn its own reply.
-        await read_the_words(
-            state,
-            deps,
-            new_message=resume_prompt is not None,
-            model_id=agent_model,
-            capture=capture,
-        )
         try:
+            await read_the_words(
+                state,
+                deps,
+                new_message=resume_prompt is not None,
+                model_id=agent_model,
+                capture=capture,
+            )
             async with agent.run_stream_events(
                 resume_prompt,
                 deps=deps,
@@ -294,8 +254,8 @@ async def _drive_lead_stream(
                 async for event in events:
                     capture.note_model_output(event)
                     if isinstance(event, AgentRunResultEvent):
-                        _absorb_run_result(event, capture, deps)
-                        await _ask_about_what_it_parks(event, deps, writer)
+                        absorb_run_result(event, capture, deps)
+                        await ask_about_what_it_parks(event, deps, writer)
                     else:
                         handle_sub_agent_event(
                             deps,
@@ -315,8 +275,14 @@ async def _drive_lead_stream(
                     yield event
                     if _stream_ends_after(event, guard, capture):
                         return
-        except (UsageLimitExceeded, UnexpectedModelBehavior) as exc:
-            capture.response = run_stop_reply(exc, deps, usage_acc, limits)
+        except (
+            UsageLimitExceeded,
+            UnexpectedModelBehavior,
+            MessageNotReadError,
+        ) as exc:
+            capture.response = run_stop_reply(
+                exc, deps, usage_acc, limits, capture.refusals
+            )
         finally:
             capture.record_run_spend(usage_acc)
 

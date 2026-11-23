@@ -22,7 +22,12 @@ from assistant_core.graph.turn_state import (
 )
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import PaidBy, ReasoningEffort
-from pydantic_ai.messages import AgentStreamEvent, ModelMessage, PartStartEvent
+from pydantic_ai.messages import (
+    AgentStreamEvent,
+    FunctionToolResultEvent,
+    ModelMessage,
+    PartStartEvent,
+)
 from pydantic_ai.run import AgentRunResultEvent
 from pydantic_ai.ui.vercel_ai.response_types import (
     TextDeltaChunk,
@@ -36,6 +41,7 @@ from veupathdb.wdk import SiteInfo
 from strategist.ai.capabilities.metering import RunPricing, SpendMeter
 from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import PipelineState
+from strategist.ai.lead.sub_agent_stops import ToolRefusal, refusal_of
 from strategist.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.domain.reply_note import render_note
@@ -113,6 +119,7 @@ class LeadRunCapture:
         default_factory=SpendOutsideTheLead,
     )
     sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(default_factory=dict)
+    refusals: dict[str, ToolRefusal] = field(default_factory=dict)
     lead_model: str = ""
     lead_reasoning_effort: ReasoningEffort | None = None
     pending_approval: PendingApproval | None = None
@@ -131,9 +138,17 @@ class LeadRunCapture:
         self,
         event: AgentStreamEvent | AgentRunResultEvent[Any],
     ) -> None:
-        """Take a part the model started as proof that the model answered."""
-        if isinstance(event, PartStartEvent):
-            self.model_answered = True
+        """Take a part the model started as proof that the model answered, and
+        keep the last refusal of each tool."""
+        match event:
+            case PartStartEvent():
+                self.model_answered = True
+            case FunctionToolResultEvent():
+                refusal = refusal_of(event)
+                if refusal is not None:
+                    self.refusals[refusal.tool_name] = refusal
+            case _:
+                return
 
     @property
     def charged_tokens(self) -> int:

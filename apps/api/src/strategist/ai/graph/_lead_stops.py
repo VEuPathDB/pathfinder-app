@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from typing import Any, Literal
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
@@ -16,10 +16,14 @@ from pydantic_ai.usage import RunUsage, UsageLimits
 
 from strategist.ai.agents.roles import StageRole
 from strategist.ai.graph._lead_capture import GuardStop, LeadRunCapture
+from strategist.ai.graph._lead_reading import MessageNotReadError
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.sub_agent_stops import (
+    ToolRefusal,
     a_provider_call_failed,
+    answer_refusal,
+    exhausted_its_retries,
     spent_its_output_retries,
 )
 from strategist.ai.lead.sub_agent_tools import LeadDeps, UnansweredStage
@@ -249,22 +253,51 @@ def _refused_deployment_prose(*, change: StrategyChange) -> str | None:
     return prose if change == "unchanged" else f"{prose} {_NEXT[change]}"
 
 
-def unwritten_reply(state: PipelineState) -> LeadResponse:
+def _sentence(text: str) -> str:
+    return text if text.endswith((".", "?", "!")) else f"{text}."
+
+
+def unwritten_reply(state: PipelineState, refusal: str = "") -> LeadResponse:
     change = strategy_change(state)
+    said = (
+        f" The last check of the answer said: {_sentence(refusal)}" if refusal else ""
+    )
     return stop_response(
-        f"I could not write the answer to this turn. {_NEXT[change]}",
+        f"I could not write the answer to this turn.{said} {_NEXT[change]}",
+    )
+
+
+def tool_stop_reply(state: PipelineState, refusal: ToolRefusal) -> LeadResponse:
+    said = _sentence(refusal.text or "its arguments did not match its schema")
+    return stop_response(
+        f"I stopped this turn when {refusal.tool_name} refused every attempt: "
+        f"{said} {_NEXT[strategy_change(state)]}"
+    )
+
+
+def reader_stop_reply(refusal: str) -> LeadResponse:
+    return stop_response(
+        f"I could not read your message into its requirements: {_sentence(refusal)} Nothing "
+        "was changed. Send the message again."
     )
 
 
 def run_stop_reply(
-    exc: UsageLimitExceeded | UnexpectedModelBehavior,
+    exc: UsageLimitExceeded | UnexpectedModelBehavior | MessageNotReadError,
     deps: LeadDeps,
     spent: RunUsage,
     limits: UsageLimits,
+    refusals: Mapping[str, ToolRefusal],
 ) -> LeadResponse:
     state = deps.state
     conversation_id = str(state.conversation_id)
     match exc:
+        case MessageNotReadError(refusal=refusal):
+            logger.warning(
+                "the message reader exhausted its output retries",
+                conversation_id=conversation_id,
+            )
+            return reader_stop_reply(refusal)
         case UsageLimitExceeded():
             logger.warning(
                 "lead reached its turn budget",
@@ -288,9 +321,17 @@ def run_stop_reply(
                 error=str(exc),
                 cause=str(exc.__cause__),
             )
-            return unwritten_reply(state)
-        case _:
-            raise exc
+            return unwritten_reply(state, answer_refusal(exc))
+        case UnexpectedModelBehavior():
+            exhausted = exhausted_its_retries(exc, refusals)
+            if exhausted is None:
+                raise exc
+            logger.warning(
+                "lead exhausted a tool's retries",
+                conversation_id=conversation_id,
+                tool=exhausted.tool_name,
+            )
+            return tool_stop_reply(state, exhausted)
 
 
 def _unanswered_site_prose(site_name: str, *, change: StrategyChange) -> str:

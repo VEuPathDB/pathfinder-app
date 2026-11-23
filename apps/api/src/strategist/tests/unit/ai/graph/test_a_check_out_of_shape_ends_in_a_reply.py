@@ -55,7 +55,8 @@ _REPLY = (
 )
 
 _UNWRITTEN = (
-    "I could not write the answer to this turn. The change shown beside this "
+    "I could not write the answer to this turn. The last check of the answer "
+    "said: prose: Field required. The change shown beside this "
     "reply landed and was not checked. Ask me to check it and I will go on "
     "from there."
 )

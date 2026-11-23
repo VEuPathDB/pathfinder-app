@@ -3,6 +3,7 @@ the turn is held to."""
 
 from __future__ import annotations
 
+from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.messages import BinaryContent, UserContent
 from pydantic_ai.ui.vercel_ai.request_types import FileUIPart
 
@@ -13,6 +14,10 @@ from strategist.ai.lead.held_intent import hold_the_intent
 from strategist.ai.lead.intent import UserIntent
 from strategist.ai.lead.message_intent import intent_of
 from strategist.ai.lead.message_reader import ReaderInput, read_message
+from strategist.ai.lead.sub_agent_stops import (
+    answer_refusal,
+    spent_its_output_retries,
+)
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.models.mock.reading import scripted_intent
 from strategist.domain.exchanges import exchanges_text
@@ -20,6 +25,12 @@ from strategist.domain.strategy.requirement_reports import numbered_requirements
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.platform.model_keys import is_mock_deployment, keyed_model
 from strategist.services.strategies.record_classes import record_class_names
+
+
+class MessageNotReadError(Exception):
+    def __init__(self, refusal: str) -> None:
+        self.refusal = refusal
+        super().__init__(refusal)
 
 
 def _words(state: PipelineState, *, new_message: bool) -> str | None:
@@ -99,15 +110,21 @@ async def _intent_of_words(
 ) -> UserIntent:
     if is_mock_deployment():
         return scripted_intent(deps.state, words)
-    reading, request = await read_message(
-        _reader_input(
-            state, deps, words, await record_class_names(deps.runtime.site_id)
-        ),
-        files=_files(state) if new_message else [],
-        model=keyed_model(model_id),
-        model_id=model_id,
-        meter=meter,
+    read = _reader_input(
+        state, deps, words, await record_class_names(deps.runtime.site_id)
     )
+    try:
+        reading, request = await read_message(
+            read,
+            files=_files(state) if new_message else [],
+            model=keyed_model(model_id),
+            model_id=model_id,
+            meter=meter,
+        )
+    except UnexpectedModelBehavior as exc:
+        if not spent_its_output_retries(exc):
+            raise
+        raise MessageNotReadError(answer_refusal(exc) or exc.message) from exc
     return intent_of(reading, request)
 
 
@@ -145,4 +162,4 @@ async def classify_the_words(
     state.turn_markers.intent_classified = True
 
 
-__all__ = ["read_the_words"]
+__all__ = ["MessageNotReadError", "classify_the_words", "read_the_words"]

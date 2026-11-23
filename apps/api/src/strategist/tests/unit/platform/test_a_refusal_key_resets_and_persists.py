@@ -16,7 +16,6 @@ from strategist.domain.refusal import KeyUse, Problems, RefusalKey
 from strategist.platform.refusals import (
     TOOL_REFUSALS_PER_TURN,
     KeyedRefusalToolset,
-    SpentRefusal,
 )
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from strategist.tests.unit.platform.test_a_refusal_is_counted_per_key import (
@@ -105,8 +104,8 @@ async def test_the_turn_ceiling_ends_every_refusal_past_it() -> None:
     ).run("read", deps=deps)
 
     (answered,) = _returns(result.all_messages())
-    assert answered.outcome == "success"
-    assert SpentRefusal.model_validate(answered.content).spent[0].key == _KEY
+    assert answered.outcome == "failed"
+    assert str(answered.content).startswith(f"No more attempts for {_KEY.label()}")
     assert deps.refusal_book.ledger.uses == ()
 
 
@@ -156,5 +155,5 @@ async def test_a_success_after_a_spent_key_clears_its_spent_call() -> None:
     ).run("read", deps=deps)
 
     outcomes = [p.outcome for p in _returns(result.all_messages())]
-    assert outcomes == ["failed", "failed", "failed", "success", "success"]
+    assert outcomes == ["failed", "failed", "failed", "failed", "success"]
     assert (deps.refusal_book.ledger.uses, deps.refusal_book.spent) == ((), [])

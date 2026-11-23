@@ -31,6 +31,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 )
 from pydantic_ai.usage import RunUsage
 
+from strategist.ai.capabilities.decisions_spend import decisions_spend_to
 from strategist.ai.capabilities.metering import SpendMeter, charge_spend
 from strategist.ai.explore.explore_agent import ExploreAgent, build_explore_agent
 from strategist.ai.explore.explore_model import resolve_explore_model_context
@@ -52,12 +53,13 @@ from strategist.ai.graph._lead_durable import (
 )
 from strategist.ai.graph._lead_facts import show_the_links
 from strategist.ai.graph._lead_model import LeadModelContext
-from strategist.ai.graph._lead_reading import classify_the_words
+from strategist.ai.graph._lead_reading import MessageNotReadError, classify_the_words
 from strategist.ai.graph._lead_stops import (
     fallback_prose,
     guard_stop_of,
     loop_stop_prose,
     noting_a_provider_failure,
+    reader_stop_reply,
     run_stop_reply,
     strategy_change,
 )
@@ -177,7 +179,9 @@ async def _stream(stream: _Stream, run: _ExploreRun, writer: Any) -> CardHold:
                         run.stop = loop_stop_prose(guard_stop)
                         return
         except (UsageLimitExceeded, UnexpectedModelBehavior) as exc:
-            run.stop = run_stop_reply(exc, deps, usage, limits).prose
+            run.stop = run_stop_reply(
+                exc, deps, usage, limits, run.capture.refusals
+            ).prose
 
     with stream.model.override:
         async for chunk in emitter.chunks(
@@ -188,6 +192,25 @@ async def _stream(stream: _Stream, run: _ExploreRun, writer: Any) -> CardHold:
             for admitted in hold.admit(chunk):
                 emit_chunk(writer, admitted)
     return hold
+
+
+async def _read_and_run(
+    state: PipelineState, run: _ExploreRun, stream: _Stream, *, fresh: bool
+) -> CardHold:
+    writer = get_stream_writer()
+    with decisions_spend_to(stream.meter.absorb):
+        try:
+            if fresh:
+                await classify_the_words(
+                    state,
+                    stream.deps,
+                    model_id=stream.model.model_id,
+                    meter=stream.meter,
+                )
+        except MessageNotReadError as exc:
+            run.stop = reader_stop_reply(exc.refusal).prose
+            return CardHold(resumed=set())
+        return await _stream(stream, run, writer)
 
 
 def _reply_of(state: PipelineState, run: _ExploreRun) -> str | None:
@@ -290,32 +313,33 @@ async def _run_explore_turn(
         ),
     )
     meter = SpendMeter()
-    if fresh:
-        await classify_the_words(state, deps, model_id=model.model_id, meter=meter)
     run = _ExploreRun()
     run.capture.lead_model = model.model_id
     run.capture.lead_reasoning_effort = model.reasoning_effort
-    hold = await _stream(
-        _Stream(agent=agent, deps=deps, turn=turn, model=model, meter=meter),
-        run,
-        writer,
-    )
-    reply = _show_the_reply(writer, deps, hold, _reply_of(state, run))
-    _offer_the_build(writer, run.parked, proposals(deps))
-    if run.parked is not None and hands_over(run.parked):
-        hand_over_reading(state.domain, run.parked)
-    state.domain.record_exchange(
-        explore_exchange(
+    try:
+        hold = await _read_and_run(
             state,
-            reply=reply,
-            parked=run.parked,
-            answered=turn.answered,
-            counts=proposal_counts(deps),
+            run,
+            _Stream(agent=agent, deps=deps, turn=turn, model=model, meter=meter),
+            fresh=fresh,
         )
-    )
-    await charge_spend(
-        context.db_session_factory, user_id=state.user_id, spent=meter.spent
-    )
+        reply = _show_the_reply(writer, deps, hold, _reply_of(state, run))
+        _offer_the_build(writer, run.parked, proposals(deps))
+        if run.parked is not None and hands_over(run.parked):
+            hand_over_reading(state.domain, run.parked)
+        state.domain.record_exchange(
+            explore_exchange(
+                state,
+                reply=reply,
+                parked=run.parked,
+                answered=turn.answered,
+                counts=proposal_counts(deps),
+            )
+        )
+    finally:
+        await charge_spend(
+            context.db_session_factory, user_id=state.user_id, spent=meter.spent
+        )
     delta = explore_state_delta(
         state,
         deps,
