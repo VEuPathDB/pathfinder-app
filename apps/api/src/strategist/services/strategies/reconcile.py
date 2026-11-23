@@ -28,6 +28,7 @@ from veupathdb_mcp.wdk import (
     settings_on_the_wire,
 )
 
+from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -200,7 +201,7 @@ def _as_planned(
             "filters": [
                 f for f in holds.filters if f.name in stated or f not in wdk_added
             ],
-            "expanded_strategy_id": plan.expanded_strategy_id,
+            **{name: value for name, value in plan if name not in SITE_HELD_SETTINGS},
         }
     )
 

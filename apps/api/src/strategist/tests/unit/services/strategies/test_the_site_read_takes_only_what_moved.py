@@ -211,11 +211,12 @@ def _colocated_graph() -> StrategyGraph:
     return graph
 
 
-def _colocated_site(params: ColocationParams) -> WDKStrategyDetails:
+def _colocated_site(params: ColocationParams, **span: Any) -> WDKStrategyDetails:
     leaf = {
         "searchName": "GenesByExportPred",
         "searchConfig": {"parameters": {_SCORE: "10"}},
         "recordClassName": "transcript",
+        "strategyId": 330679883,
     }
     return WDKStrategyDetails.model_validate(
         {
@@ -236,21 +237,20 @@ def _colocated_site(params: ColocationParams) -> WDKStrategyDetails:
                     "searchName": "GenesBySpanLogic",
                     "searchConfig": {"parameters": params.to_wdk_params()},
                     "recordClassName": "transcript",
+                    "strategyId": 330679883,
+                    **span,
                 },
             },
         }
     )
 
 
-async def test_a_colocation_moved_on_the_site_is_taken(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    graph = _colocated_graph()
-    moved = ColocationParams(begin_offset_a=200)
+async def _read_colocated(
+    monkeypatch: pytest.MonkeyPatch, graph: StrategyGraph, live: WDKStrategyDetails
+) -> SiteEdits:
     monkeypatch.setattr(site_changes, "canonicalize_synced_parameters", _decode)
     monkeypatch.setattr(site_changes, "get_strategy_api", lambda _site: None)
-
-    edits = await take_what_the_site_holds(
+    return await take_what_the_site_holds(
         graph=graph,
         sync_state=WDKSyncState(
             wdk_step_ids={
@@ -261,10 +261,60 @@ async def test_a_colocation_moved_on_the_site_is_taken(
             wdk_strategy_id=330679883,
         ),
         site_id="plasmodb",
-        live=_colocated_site(moved),
+        live=live,
     )
+
+
+async def test_a_colocation_moved_on_the_site_is_taken(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _colocated_graph()
+    moved = ColocationParams(begin_offset_a=200)
+
+    edits = await _read_colocated(monkeypatch, graph, _colocated_site(moved))
 
     assert (edits.valued, graph.steps["step_span"].colocation_params) == (
         ["step_span"],
         moved,
+    )
+
+
+def _grouped(saved: int | None) -> StrategyGraph:
+    graph = _colocated_graph()
+    span = graph.steps["step_span"]
+    span.expanded_name = "Near exported"
+    span.expanded_strategy_id = saved
+    return graph
+
+
+@pytest.mark.parametrize("saved", [None, 777])
+async def test_a_group_the_site_left_alone_keeps_what_it_expands(
+    monkeypatch: pytest.MonkeyPatch, saved: int | None
+) -> None:
+    graph = _grouped(saved)
+    live = _colocated_site(
+        ColocationParams(), expanded=True, expandedName="Near exported"
+    )
+
+    edits = await _read_colocated(monkeypatch, graph, live)
+
+    assert (edits.valued, graph.steps["step_span"].expanded_strategy_id) == (
+        [],
+        saved,
+    )
+
+
+async def test_a_group_renamed_on_the_site_is_taken(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _grouped(777)
+    live = _colocated_site(ColocationParams(), expanded=True, expandedName="Renamed")
+
+    edits = await _read_colocated(monkeypatch, graph, live)
+
+    span = graph.steps["step_span"]
+    assert (edits.valued, span.expanded_name, span.expanded_strategy_id) == (
+        ["step_span"],
+        "Renamed",
+        777,
     )

@@ -22,6 +22,7 @@ from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.record_class_check import step_class_of
+from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_status import step_status
 from strategist.services.strategies._tree_write import (
     StrategyRole,
@@ -66,7 +67,6 @@ from strategist.services.strategies.wdk_counts import invalidate_counts_for
 logger = get_logger(__name__)
 
 _NOT_READY = "not ready to build yet"
-_WDK_NAMES_NO_SAVED_STRATEGY = "expanded_strategy_id"
 
 
 class CommitTarget(CamelModel):
@@ -330,7 +330,7 @@ class _Commit:
             stated,
             wdk_added=self.steps[node.id].filters_wdk_added or [],
         ):
-            if name == _WDK_NAMES_NO_SAVED_STRATEGY:
+            if name not in SITE_HELD_SETTINGS:
                 continue
             self._fail(
                 StepPushFailure(
