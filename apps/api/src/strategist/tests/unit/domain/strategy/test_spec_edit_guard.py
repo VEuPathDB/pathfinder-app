@@ -424,3 +424,30 @@ def test_a_mirrored_join_on_the_same_sides_departs_from_the_spec() -> None:
             declared=CombineOp.MINUS, written=CombineOp.RMINUS
         )
     }
+
+
+@pytest.mark.parametrize("operator", [CombineOp.MINUS, CombineOp.LONLY])
+def test_a_one_sided_join_over_swapped_sides_departs_from_the_spec(
+    operator: CombineOp,
+) -> None:
+    graph = graph_of(combine("step_root", leaf("c_k"), leaf("c_e"), operator))
+    structure = SpecStructure(
+        root=spec_joined(operator, spec_leaf("c_e"), spec_leaf("c_k"))
+    )
+
+    assert contradicted_joins(structure, graph, ["c_e", "c_k"]) == {
+        frozenset({"c_e", "c_k"}): JoinContradiction(
+            declared=operator, written=operator
+        )
+    }
+
+
+def test_a_symmetric_join_over_swapped_sides_states_the_spec() -> None:
+    graph = graph_of(
+        combine("step_root", leaf("c_k"), leaf("c_e"), CombineOp.INTERSECT)
+    )
+    structure = SpecStructure(
+        root=spec_joined(CombineOp.INTERSECT, spec_leaf("c_e"), spec_leaf("c_k"))
+    )
+
+    assert contradicted_joins(structure, graph, ["c_e", "c_k"]) == {}

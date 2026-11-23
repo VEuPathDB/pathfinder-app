@@ -14,7 +14,7 @@ from veupathdb.domain.parameters import (
     ParamValue,
     to_wire,
 )
-from veupathdb.domain.strategy import CombineOp, StepKind
+from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
 from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.combination_check import meeting_combine
@@ -26,6 +26,7 @@ from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
+    StructureNode,
     criteria_under,
 )
 from strategist.domain.strategy.session import StrategyGraph
@@ -106,18 +107,29 @@ def contradicted_joins(
         if brought.unnamed:
             continue
         node = meeting_combine(structure, brought.named)
-        if node is None or node.combine_operator is operator:
-            continue
-        secondary = step.secondary_input_id or ""
-        if MIRRORED_OPERATORS[node.combine_operator] is operator and (
-            criteria_under(node.inputs[0]) & brought.named
-            == _brought(graph, secondary, stated).named
-        ):
+        if node is None or _states(node, step, brought.named, graph, stated):
             continue
         found[brought.named] = JoinContradiction(
             declared=node.combine_operator, written=operator
         )
     return found
+
+
+def _states(
+    node: StructureNode,
+    step: StrategyStep,
+    named: frozenset[str],
+    graph: StrategyGraph,
+    stated: frozenset[str],
+) -> bool:
+    declared, written = node.combine_operator, step.operator
+    first = criteria_under(node.inputs[0]) & named
+    primary = _brought(graph, step.primary_input_id or "", stated).named
+    secondary = _brought(graph, step.secondary_input_id or "", stated).named
+    mirrored = MIRRORED_OPERATORS.get(declared)
+    if declared is written and (mirrored is declared or first == primary):
+        return True
+    return mirrored is written and mirrored is not declared and first == secondary
 
 
 def new_join_contradictions(
