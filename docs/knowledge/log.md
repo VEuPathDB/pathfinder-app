@@ -44,6 +44,30 @@
   test reads every production `Agent(` and refuses one whose capabilities are not built from its
   own toolsets. The event stream wrapper makes a run stream its nodes; every keyed agent already
   runs through `run_stream_events`.
+* **A message names only its agent's tools, and a test holds it.** Layer 1 reads each agent's
+  static texts, layer 2 scans every literal an agent can reach across Strategist and the three
+  libraries, and layer 3 fails a test whose model request names a tool it does not offer
+  (`decisions/a-message-names-only-its-agents-tools.md`). The rows it found are neutral now: the
+  build and edit refusals say to frame the request again, a column read says to read a sample of
+  the records, a combine variant is tested by a control test, the verification card rule names no
+  tool, the escape hatch and the step-id descriptions name no sub-agent tool, and FRAME's
+  phyletic readings name no builder, which a site without the OrthoMCL taxonomy does not offer.
+  An approval card is kept in the conversation so far in words ("approve adopt separating
+  strategy"), since the sub-agents read the same exchanges and hold none of the Lead's cards. Strategist takes
+  veupathdb-py 0.9.0b15 (a phyletic refusal names no host tool) and veupathdb-mcp 0.9.0b20 (no
+  catalog text or EDA guidance names a tool). `test_tool_surface_agreement.py` drops its token
+  list.
+
+* **Every agent is told only its own tools.** Explore gains `read_experiment` (another site's
+  experiment its own search showed this turn) and `get_record_types`, its catalog reads carry
+  descriptions of their own, and it is pinned the open EDA filter sheet; it holds no
+  `ask_eda_cut` and states the cut it chose. A text two agents share states the fact or the
+  action and names no tool: the EDA descriptions and the compute result say the export into a
+  strategy step is Build's, the sweep refusal and descriptions name no control set tool, a STALE
+  ledger line says to read the live strategy (the Lead's instructions name
+  `get_live_strategy_state`), and the edit and contradiction refusals name the framing pass.
+  The WDK 404 and 422 directives name no tool by default (`NEUTRAL_NEXT_ACTIONS`); FRAME passes
+  its own (`FRAME_NEXT_ACTIONS`) and carries the catalog retry lines that left `safety.md`.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new

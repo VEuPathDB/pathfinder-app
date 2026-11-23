@@ -161,7 +161,7 @@ class TestTheSearchOverviewRead:
         assert second.message == (
             "You already inspected 'GenesByGoTerm'; this is that read. A criterion "
             "that already runs it re-binds with no other read; a new criterion "
-            "binds it from a search_for_searches answer that names it."
+            "binds it from a catalog search answer that names it."
         )
         assert client.reads == ["GenesByGoTerm"]
 

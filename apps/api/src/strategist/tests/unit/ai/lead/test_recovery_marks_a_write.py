@@ -137,6 +137,9 @@ async def _recover(deps: LeadDeps) -> RecoveryDelta | object:
     )
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("collector", "idle_sub_agent", "quiet_sync")
 async def test_a_recovery_that_wrote_nothing_leaves_the_turn_unchanged() -> None:
     session = session_with_one_step()
@@ -149,6 +152,9 @@ async def test_a_recovery_that_wrote_nothing_leaves_the_turn_unchanged() -> None
     assert deps.state.turn_markers.changed_strategy is False
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("collector", "idle_sub_agent", "quiet_sync")
 async def test_a_recovery_that_wrote_nothing_still_takes_the_fresh_counts() -> None:
     """The re-sync read the strategy, so the ledger reports what it read."""
@@ -163,6 +169,9 @@ async def test_a_recovery_that_wrote_nothing_still_takes_the_fresh_counts() -> N
     assert outcome.wdk_strategy_id == 901
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("collector", "renaming_sub_agent", "quiet_sync")
 async def test_a_recovery_writes_what_it_changed_onto_the_spec() -> None:
     """Recovery edits the steps, so the spec takes its writes rather than
@@ -190,6 +199,9 @@ async def test_a_recovery_writes_what_it_changed_onto_the_spec() -> None:
     assert domain.operational_spec.criteria[0].search_name == "GenesByTaxon"
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("collector", "renaming_sub_agent", "quiet_sync")
 async def test_a_recovery_that_changed_a_step_marks_the_turn() -> None:
     session = session_with_one_step()
@@ -205,6 +217,9 @@ async def test_a_recovery_that_changed_a_step_marks_the_turn() -> None:
     assert deps.state.turn_markers.changed_strategy is True
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("collector", "idle_sub_agent")
 async def test_a_recovery_whose_resync_pushed_a_step_marks_the_turn(
     monkeypatch: pytest.MonkeyPatch,

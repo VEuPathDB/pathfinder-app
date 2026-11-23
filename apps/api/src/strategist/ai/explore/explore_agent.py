@@ -36,6 +36,7 @@ from strategist.ai.lead.lead_consult import consult_user
 from strategist.ai.lead.lead_memory_tools import remember, search_memory
 from strategist.ai.lead.lead_pins import (
     pinned_conversation,
+    pinned_eda_sheet,
     pinned_memory_index,
     pinned_user_prompt,
 )
@@ -175,6 +176,7 @@ def build_explore_agent() -> ExploreAgent:
         pinned_user_prompt,
         pinned_linked_pages,
         pinned_run_budget,
+        pinned_eda_sheet,
         pinned_research_reads,
         pinned_off_topic_redirect,
     ):

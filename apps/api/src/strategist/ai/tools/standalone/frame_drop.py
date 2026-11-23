@@ -36,8 +36,8 @@ def drop_criterion(
     ):
         msg = (
             f"{criterion_id} is the analysis the Lead exported, and framing never "
-            f"removes it: the Lead removes it with delete_step, which the "
-            f"researcher approves. Keep it and place it in the structure."
+            f"removes it: the Lead removes it, on the researcher's approval. "
+            f"Keep it and place it in the structure."
         )
         raise ProblemsRefusal(
             Problems.one(_DROP.model_copy(update={"criterion": criterion_id}), msg)

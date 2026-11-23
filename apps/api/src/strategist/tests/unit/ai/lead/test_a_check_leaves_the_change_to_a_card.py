@@ -130,8 +130,8 @@ def test_a_new_message_starts_without_the_check() -> None:
 
 _CARD_RULE = (
     "The strategy changes only through a card this turn: offer any change "
-    "with propose_changes showing the count before and after it, or report "
-    "the finding and ask."
+    "on a card that shows the count before and after it, or report the "
+    "finding and ask."
 )
 
 

@@ -284,13 +284,13 @@ class TestACombineStepIsNotAVariant:
 
         assert combine_name in str(err.value)
 
-    async def test_the_message_names_the_tool_that_takes_a_step(self) -> None:
+    async def test_the_message_says_a_step_takes_a_control_test(self) -> None:
         with pytest.raises(ModelRetry) as err:
             await compare_variants_scored(
                 detached_lead_context(), _variants("Combine"), uuid4()
             )
 
-        assert "run_control_tests_on_step" in str(err.value)
+        assert "a control test on that step" in str(err.value)
 
     async def test_the_offending_label_is_named(self) -> None:
         with pytest.raises(ModelRetry) as err:
@@ -304,7 +304,7 @@ class TestACombineStepIsNotAVariant:
         with pytest.raises(ModelRetry) as err:
             await compare_search_variants(detached_lead_context(), _variants("Combine"))
 
-        assert "run_control_tests_on_step" in str(err.value)
+        assert "a control test on that step" in str(err.value)
 
     @pytest.mark.parametrize(
         "search_name",

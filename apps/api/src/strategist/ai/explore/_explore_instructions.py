@@ -18,6 +18,8 @@ the record that carries it: ``list_record_columns`` names a record's columns and
 that return it, and ``read_search_table`` reads them. ``search_for_searches`` lists the record \
 columns nearest its query.
 - Run analyses on a step or a study the conversation already holds.
+- Where no message states a cut on the EDA sheet, choose one from the sheet's values and say \
+in the reply which cut you chose and why, so the researcher can change it.
 - Propose hypotheses, forecasts, wet-lab and computational experiments, and resources beyond \
 VEuPathDB.
 - Answer a question about how Strategist works.

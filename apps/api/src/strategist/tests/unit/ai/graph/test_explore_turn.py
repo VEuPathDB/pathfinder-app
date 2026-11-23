@@ -328,6 +328,22 @@ def test_the_exchange_of_another_park_asks_for_approval() -> None:
     assert ex.card == "approve remember"
 
 
+def test_an_approval_card_of_explore_is_named_in_words() -> None:
+    parked = parked_approval(
+        phase=EXPLORE_PHASE, tool_name="ask_to_read_the_account", **PREFERENCE_ARGS
+    )
+
+    ex = explore_exchange(
+        state(user_prompt=EXPLORE_PROMPT),
+        reply="",
+        parked=parked,
+        answered=None,
+        counts={},
+    )
+
+    assert ex.card == "approve ask to read the account"
+
+
 def test_the_exchange_of_an_answered_card_says_the_answer() -> None:
     parked = parked_approval(
         phase=EXPLORE_PHASE, tool_name="remember", **PREFERENCE_ARGS

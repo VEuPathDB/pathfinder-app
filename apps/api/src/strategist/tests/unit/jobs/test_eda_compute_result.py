@@ -48,7 +48,8 @@ def test_the_result_is_the_summary_the_agent_resumes_with() -> None:
         "guidance": (
             "67 of 201 genes pass an effect size of 1.0 and a p-value of 0.05: "
             "33 higher in 18h pbm, 36h pbm and 34 higher in 24h pbm. upOnly keeps "
-            "the 33, downOnly the 34. Call create_eda_step with those thresholds "
-            "to export them, or with different ones to change the cut."
+            "the 33, downOnly the 34. A strategy step exports them under those "
+            "thresholds, or under different ones to change the cut; only Build "
+            "writes that step."
         ),
     }

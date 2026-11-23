@@ -42,7 +42,8 @@ def structure_does_not_convert_message(detail: str) -> str:
     return (
         f"The plan is bound and its structure does not convert into a WDK "
         f"tree: {detail}. Nothing was built and the strategy is unchanged. "
-        f"Call set_structure with a tree that answers that reason."
+        f"Run frame_problem with that reason, so the framing pass states a tree "
+        f"VEuPathDB can hold."
     )
 
 

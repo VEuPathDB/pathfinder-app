@@ -302,7 +302,8 @@ def edit_bound_nothing_message() -> str:
         "The edit pass left no spec behind, so there is nothing to compare "
         "against the strategy. Nothing was applied: the strategy is exactly as "
         "this turn found it. Dispatch edit_strategy again and tell it to "
-        "record its work with set_criterion and drop_criterion."
+        "record its work in the spec: state each criterion it changes and drop "
+        "each one it removes."
     )
 
 
@@ -350,10 +351,9 @@ def edit_operation_refused_message(detail: str) -> str:
     return (
         f'One operation this edit writes was refused: "{detail}". Nothing was '
         f"applied: the strategy still holds every step and every value it held "
-        f"before this edit. Dispatch edit_strategy again and state that "
-        f"criterion with set_criterion under a step id the strategy holds, "
-        f"drop it with drop_criterion, or tell the user what could not be "
-        f"changed and stop. Do not offer to rebuild the strategy from scratch."
+        f"before this edit. Dispatch edit_strategy again and tell it to state "
+        f"that criterion under a step id the strategy holds or to drop it, or "
+        f"tell the user what could not be changed and stop. Do not offer to rebuild the strategy from scratch."
     )
 
 
@@ -372,8 +372,8 @@ def wdk_refused_the_written_step_message(
         f'said: "{detail}". Nothing was applied: the strategy still holds every '
         f"step and every value it held before this edit, and the steps it "
         f"already held are not what VEuPathDB turned down. Dispatch "
-        f"edit_strategy again and tell it to bind that criterion with "
-        f"set_criterion, using values VEuPathDB accepts for those parameters, "
+        f"edit_strategy again and tell it to bind that criterion with values "
+        f"VEuPathDB accepts for those parameters, "
         f"or tell the user exactly what VEuPathDB refused and stop. Do not "
         f"offer to rebuild the strategy from scratch, and do not drop the "
         f"steps it holds."
@@ -391,9 +391,9 @@ def delta_disagrees_with_the_strategy_message(criterion_ids: Sequence[str]) -> s
         f"This edit and its account disagree about {named}: each of them is "
         f"either a criterion the strategy already holds a step for, or one "
         f"this edit would build and the account does not state. Nothing was "
-        f"applied. Dispatch edit_strategy again and, for each id named here, "
-        f"state a criterion under the step id the strategy holds, or drop it "
-        f"with drop_criterion."
+        f"applied. Dispatch edit_strategy again and tell it, for each id named "
+        f"here, to state a criterion under the step id the strategy holds or to "
+        f"drop that criterion."
     )
 
 

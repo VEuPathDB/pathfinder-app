@@ -119,8 +119,8 @@ async def search_eda_studies(
                 guidance=(
                     f"No EDA study on this site matches {query!r}. EDA covers "
                     f"sample-level expression, phenotype and antibody-array "
-                    f"datasets only. If the question is about gene attributes, "
-                    f"use search_for_searches instead."
+                    f"datasets only. A question about gene attributes is answered "
+                    f"by the site's searches, not by EDA."
                 ),
             ),
             f"No study matched {query}",

@@ -33,8 +33,8 @@ from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.session import StrategySession
 from strategist.tests._support.database import no_database
-from strategist.tests._support.offered_tools import (
-    offered_tool_names,
+from strategist.tests._support.tool_names import (
+    all_tool_names,
     served_tool_names,
 )
 
@@ -117,7 +117,7 @@ def test_the_product_guard_carries_the_strategist_vocabulary() -> None:
 
 def test_every_watched_name_is_a_tool_some_agent_offers() -> None:
     """A watched name nothing carries is an entry that can never fire."""
-    assert READ_ONLY_TOOLS - offered_tool_names() == set()
+    assert READ_ONLY_TOOLS - all_tool_names() == set()
 
 
 def test_the_study_catalog_reads_are_watched() -> None:
@@ -139,7 +139,7 @@ def test_the_watched_research_names_carry_the_source_prefix() -> None:
 
 
 def test_every_search_lookup_name_is_a_tool_some_agent_offers() -> None:
-    assert SEARCH_LOOKUP_TOOLS - offered_tool_names() == set()
+    assert SEARCH_LOOKUP_TOOLS - all_tool_names() == set()
 
 
 def test_the_generic_deps_default_to_a_guard_that_watches_nothing() -> None:

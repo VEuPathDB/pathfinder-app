@@ -42,8 +42,8 @@ _FILTER_VALUE = (
 _PROMPT = "Which genes do you mean?"
 _BINDS_NOTHING = (
     f"{_LABEL!r} binds nothing: {_LABEL!r} is not a value of {_FILTER}: it takes a "
-    "filter value. Run frame_problem again so it offers values this parameter "
-    "takes, or asks in free text"
+    "filter value. Frame the request again so the card offers values this "
+    "parameter takes, or asks in free text"
 )
 
 

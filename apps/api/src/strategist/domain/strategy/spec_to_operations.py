@@ -230,7 +230,7 @@ def _refuse_a_removal_the_edit_did_not_state(
             f"the edit would take {removed} off the strategy, and the edited "
             f"spec states no drop for them. State a criterion under each of "
             f"those step ids and name it in the structure to keep it, or drop "
-            f"it with drop_criterion to remove it"
+            f"that criterion to remove it"
         )
         raise UnsupportedEditError(msg)
 

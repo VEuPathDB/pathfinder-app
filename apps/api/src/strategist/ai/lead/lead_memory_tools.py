@@ -55,9 +55,8 @@ async def remember(
     preference is the whole answer to that request: do not build a strategy to
     "validate" it.
 
-    It stores a note. A gene set the user asks you to save is created with
-    ``save_gene_set``, and ``gene_set_note`` is a note about a set
-    that already exists.
+    It stores a note and creates no gene set. ``gene_set_note`` is a note
+    about a set that already exists.
     """
     if kind == "preference" and not ctx.tool_call_approved:
         raise ApprovalRequired

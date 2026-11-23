@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import inspect
-import re
-from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Annotated
 
@@ -16,7 +13,12 @@ from veupathdb_mcp.catalog import GetParameterOptionsResult, SearchOverviewResul
 
 from strategist.ai.lead.dispatch_context import inner_context
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import catalog, catalog_discovery
+from strategist.ai.tools.standalone import (
+    _catalog_elsewhere,
+    catalog,
+    catalog_discovery,
+)
+from strategist.ai.tools.standalone._catalog_elsewhere import ExperimentRead
 from strategist.ai.tools.standalone.record_reads import record_columns_block
 from strategist.ai.tools.standalone.search_reads import resolved_search
 from strategist.domain.comparison_facts import ComparedVariant, ComparisonFact
@@ -37,8 +39,6 @@ from strategist.services.experiment.reading_count import (
 from strategist.services.experiment.variant_comparison import VariantSpec
 
 _GENES = "transcript"
-_ARGUMENT = re.compile(r"^ {4}(\w+):")
-_CONTINUED = " " * 8
 
 
 class ProposedCount(CamelModel):
@@ -197,9 +197,36 @@ async def search_for_searches(
     category: str | None = None,
     limit: int = 20,
 ) -> ToolReturn[list[JSONObject]]:
+    """Find the site's searches nearest a question, ranked. Read-only.
+
+    Each result gives name, displayName, description, category and the record
+    type it returns. ``relevance`` is relative to the best hit, so the top hit
+    reads 1.0 however weak it is. ``semanticSimilarity`` is the cosine of the
+    query against the search: read it to tell a match from the best of
+    nothing. ``decisionProbability``, when present, is the probability a
+    Decisions choice gave that search, and a high one names the search that
+    states the question. When no search states the question closely, when
+    nothing matched, or when the ranking is by keyword only, the first entry is
+    a note that says which. A ``recordColumns`` entry lists the record columns
+    nearest the question. An ``otherSites`` entry, when present, is last: the
+    experiments other VEuPathDB sites hold, each labelled with its site.
+    read_experiment reads one of them.
+
+    Args:
+        query: The question in descriptive words, such as 'gametocyte RNA-Seq
+            differential expression'.
+        record_type: The record type whose searches are ranked, one that
+            get_record_types names for this site.
+        keywords: Exact identifiers to match against search names, such as a
+            dataset name fragment or an organism code.
+        category: One search subcategory of the site ontology.
+        limit: The most results to return.
+    """
+    inner = inner_context(ctx)
     found = await catalog.search_for_searches(
-        inner_context(ctx), query, record_type, keywords, category, limit
+        inner, query, record_type, keywords, category, limit
     )
+    ctx.deps.shown_experiments.update(inner.deps.agent_state.elsewhere)
     block = await record_columns_block(ctx.deps.site_id, query)
     if block is None:
         return found
@@ -212,6 +239,13 @@ async def get_search_overview(
     search_name: str,
     record_type: str | None = None,
 ) -> ToolReturn[SearchOverviewResult | catalog_discovery.AlreadyReadNotice]:
+    """Read one search: its description, its required and optional parameters,
+    and which parameters depend on others. Read-only.
+
+    Args:
+        search_name: The search name (urlSegment), such as 'GenesByText'.
+        record_type: The search's record type. Omit it: the site names it.
+    """
     return await catalog_discovery.get_search_overview(
         inner_context(ctx), search_name, record_type
     )
@@ -225,6 +259,27 @@ async def get_parameter_options(
     context_values: dict[str, JsonValue] | None = None,
     query: str | list[str] | None = None,
 ) -> ToolReturn[GetParameterOptionsResult | catalog_discovery.AlreadyReadNotice]:
+    """Read the values one parameter of a search allows. Read-only.
+
+    The answer is ``parameter_info`` with the vocabulary, or
+    ``parameter_not_on_search`` with the parameter names the search holds, or
+    ``parent_context_required`` with the parents whose values the vocabulary
+    needs. A dependent parameter's vocabulary follows its parents' values.
+
+    Args:
+        search_name: The search name (urlSegment).
+        parameter_id: One parameter name get_search_overview gives for this
+            search, copied exactly.
+        record_type: The search's record type. Omit it: the site names it.
+        context_values: The values of the parents this parameter depends on,
+            each in the shape its ``statedSchema`` gives, such as
+            ``{"profileset_generic": "<term>"}``.
+        query: One phrase, or a list of the names of one concept, that narrows
+            the vocabulary, such as ["RNA binding", "RNA recognition", "KH"].
+            Hyphen and space match alike, and a phrase also matches its words
+            in any order. On a filter parameter, it also reads the range of up
+            to three range facets it names.
+    """
     return await catalog_discovery.get_parameter_options(
         inner_context(ctx),
         search_name,
@@ -235,41 +290,38 @@ async def get_parameter_options(
     )
 
 
-def _described_for(
-    original: Callable[..., object], wrapper: Callable[..., object]
-) -> str:
-    taken = set(inspect.signature(wrapper).parameters) - {"ctx"}
-    kept: list[str] = []
-    keep = True
-    for line in (inspect.getdoc(original) or "").splitlines():
-        argument = _ARGUMENT.match(line)
-        if argument is not None:
-            keep = argument.group(1) in taken
-        elif not line.startswith(_CONTINUED):
-            keep = True
-        if keep:
-            kept.append(line)
-    return "\n".join(kept)
+async def get_record_types(
+    ctx: RunContext[LeadDeps],
+) -> ToolReturn[list[dict[str, str]]]:
+    """List the record types this site holds. search_for_searches ranks the
+    searches of one of them. Read-only."""
+    return await catalog.get_record_types(inner_context(ctx))
+
+
+async def read_experiment(
+    ctx: RunContext[LeadDeps], dataset_id: str
+) -> ToolReturn[ExperimentRead]:
+    """Read one experiment another VEuPathDB site holds. Read-only.
+
+    The answer names the condition, the stage, the organism and the
+    publications, and how its genes reach this site by orthology. Its searches
+    run on its own site only. Its record URL and PMIDs are sources a reply may
+    cite.
+
+    Args:
+        dataset_id: The dataset id of one experiment in the otherSites entry
+            of a search_for_searches answer of this turn.
+    """
+    inner = inner_context(ctx)
+    inner.deps.agent_state.elsewhere.update(ctx.deps.shown_experiments)
+    return await _catalog_elsewhere.read_experiment(inner, dataset_id)
 
 
 def catalog_reads() -> list[Tool[LeadDeps]]:
     return [
-        Tool(
-            search_for_searches,
-            description=_described_for(
-                catalog.search_for_searches, search_for_searches
-            ),
-        ),
-        Tool(
-            get_search_overview,
-            description=_described_for(
-                catalog_discovery.get_search_overview, get_search_overview
-            ),
-        ),
-        Tool(
-            get_parameter_options,
-            description=_described_for(
-                catalog_discovery.get_parameter_options, get_parameter_options
-            ),
-        ),
+        Tool(search_for_searches),
+        Tool(get_search_overview),
+        Tool(get_parameter_options),
+        Tool(get_record_types),
+        Tool(read_experiment),
     ]

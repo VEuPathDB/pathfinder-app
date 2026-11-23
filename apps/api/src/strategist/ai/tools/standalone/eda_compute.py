@@ -136,8 +136,8 @@ async def run_eda_compute(
     many pass the default thresholds of effect size 1 and p-value 0.05, split
     into the genes higher in each group. ``comparison`` holds both groups'
     labels and ``signRule`` states the sign in them. Tell the researcher those
-    numbers by group label, never as "up" or "down", then use create_eda_step
-    to export the ones that pass.
+    numbers by group label, never as "up" or "down". The genes that pass are
+    exported as a strategy step, which Build writes.
 
     Always write ``caption``. It is the one sentence printed under the plot,
     so it says what the comparison SHOWS in the researcher's terms - "Genes

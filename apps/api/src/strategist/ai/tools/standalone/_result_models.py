@@ -31,7 +31,7 @@ class StepColumns(CamelModel):
 def no_column(wdk_step_id: int, why: str) -> StepColumns:
     return StepColumns(
         wdk_step_id=wdk_step_id,
-        note=f"{why} Sample the root with get_sample_records for this criterion.",
+        note=f"{why} Read this criterion on a sample of the root's records.",
     )
 
 
@@ -49,8 +49,8 @@ def unread_note(wdk_step_id: int, unread: list[ColumnFit]) -> str:
     reasons = " ".join(_unread_reason(wdk_step_id, fit) for fit in unread)
     names = ", ".join(fit.column for fit in unread)
     return (
-        f"{reasons} Sample step {wdk_step_id} with get_sample_records and read "
-        f"{names} on its records for this criterion."
+        f"{reasons} Read {names} on a sample of the records of step "
+        f"{wdk_step_id} for this criterion."
     )
 
 

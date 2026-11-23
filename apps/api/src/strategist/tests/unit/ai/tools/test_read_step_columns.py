@@ -121,8 +121,8 @@ async def test_rival_search_columns_that_disagree_name_the_sample_instead(
         [],
         (
             f"2 columns of {PERCENTILE_SEARCH} may show the bound values and "
-            "they do not all hold every gene inside them. Sample the root with "
-            "get_sample_records for this criterion."
+            "they do not all hold every gene inside them. Read this criterion on "
+            "a sample of the root's records."
         ),
         [],
     )
@@ -161,7 +161,7 @@ async def test_a_search_with_no_column_names_the_sample_instead(
         [],
         (
             "No column of GenesByText shows a numeric value its criterion "
-            "binds. Sample the root with get_sample_records for this criterion."
+            "binds. Read this criterion on a sample of the root's records."
         ),
         [],
     )

@@ -77,6 +77,9 @@ async def test_the_turn_ends_deferred_on_the_sub_agents_approval(
     assert any(c.tool_name == "verify_strategy" for c in tool_calls(lead_history))
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_the_answer_finishes_the_sub_agent_and_the_lead_replies(
     writer: Collector,
@@ -134,6 +137,9 @@ async def test_the_answer_finishes_the_sub_agent_and_the_lead_replies(
     assert "call_recover_failed_steps" not in named
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_an_answer_naming_the_dispatch_call_still_answers_the_tool(
     writer: Collector,
@@ -177,6 +183,9 @@ async def test_an_answer_naming_the_dispatch_call_still_answers_the_tool(
     assert second.pending_approval is None
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_a_second_approval_defers_the_turn_again(
     writer: Collector,
@@ -214,6 +223,9 @@ async def test_a_second_approval_defers_the_turn_again(
     assert second_pending.sub_agent.approvals[0].tool_call_id == "call_delete_2"
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_a_turn_with_no_answer_never_re_runs_the_dispatch(
     writer: Collector,
@@ -253,6 +265,9 @@ async def test_a_turn_with_no_answer_never_re_runs_the_dispatch(
     assert len(writer.chunks_of("data-sub-agent-step")) == started_before
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_a_consult_beside_a_dispatch_loses_neither(
     writer: Collector,

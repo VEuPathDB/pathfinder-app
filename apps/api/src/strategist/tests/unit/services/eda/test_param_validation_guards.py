@@ -293,9 +293,9 @@ class TestAProposedSpecIsRefused:
             await _validate_spec(_DESEQ_SEARCH, _INVENTED_SPEC)
 
         detail = excinfo.value.detail or ""
-        assert "open_eda_analysis" in detail
-        assert "run_eda_compute" in detail
-        assert "create_eda_step" in detail
+        assert "an analysis is opened on it" in detail
+        assert "compute must complete" in detail
+        assert "The step is built from the open analysis." in detail
 
     async def test_the_refusal_names_the_spec_parameter(self) -> None:
         with pytest.raises(ValidationError) as excinfo:
@@ -362,7 +362,7 @@ class TestAnEmptySpecFollowsTheQuery:
         with pytest.raises(ValidationError) as excinfo:
             await _validate_spec(COMPUTE_QUERY, "")
 
-        assert "run_eda_compute" in (excinfo.value.detail or "")
+        assert "compute must complete" in (excinfo.value.detail or "")
         assert _row(excinfo.value).param == EDA_ANALYSIS_SPEC_PARAM
 
 

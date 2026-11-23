@@ -99,8 +99,8 @@ def unbacked_digest_message(found: Sequence[str]) -> str:
             *found,
             (
                 "A sampled gene is one whose record read_gene_record returned this "
-                "turn, and a source is one research_literature_search, "
-                "research_web_search or read_gene_record returned this turn. "
+                "turn, and a source is one a research read or read_gene_record "
+                "returned this turn. "
                 "Return the same digest with every sampled gene and source "
                 "taken from what this turn read, or leave out what it did not."
             ),

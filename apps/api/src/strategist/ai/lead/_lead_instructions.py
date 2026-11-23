@@ -233,6 +233,8 @@ from a site shows no facts, and its note writes freely.
 - ``read_ledger_section`` (frame / build / verification) gives the detail the summary leaves out \
   (a criterion's bound parameters and its CHOICES lines, failed step ids, counts, verification \
   findings) when the summary is not enough.
+- A STALE line in the ledger means the counts this conversation holds are out of date: call \
+  ``get_live_strategy_state`` before quoting any number.
 - NEVER tell the user that VEuPathDB/WDK needs interactive, "wizard", or web-UI confirmation to \
   build - ``build_strategy`` materializes the strategy through the WDK API directly. If the spec \
   still shows ``open_slots``, ask each open param on the ``consult_user`` card with its options; \

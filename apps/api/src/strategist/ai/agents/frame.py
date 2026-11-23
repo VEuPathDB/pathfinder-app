@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Final
+
 from assistant_core.capabilities.allowed_tools import AllowedTools
 from assistant_core.capabilities.stable_instructions import StableInstructions
 from assistant_core.conversation.history import HISTORY_PROCESSORS
@@ -31,7 +33,7 @@ from strategist.ai.agents.strategy_instructions import (
 )
 from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.agents.vocabulary import with_vocabulary
-from strategist.ai.capabilities.resilience import ToolResilience
+from strategist.ai.capabilities.resilience import ToolResilience, WdkNextActions
 from strategist.ai.graph.runtime import AgentDeps, turn_tool_sources
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.tools.toolsets.frame import build_toolset
@@ -173,6 +175,10 @@ Procedure:
    search or `drop_criterion`.
    A wrong name or value comes back as a retry with the real names or nearest values; that
    retry already lists them, so answer it rather than asking for the sheet again.
+   A failed catalog call may be retried once when the fix is deterministic:
+   - missing required parameters -> fill the required fields from the sheet, retry
+   - invalid search name -> use `search_for_searches` to find the correct search, retry
+   - wrong record type -> call `get_record_types` and retry with the correct record type
    `redecide` names the dependent parameters whose vocabulary changed once their parents
    were bound: nothing was recorded, and the pin below now carries the fresh
    vocabulary, so re-call with the same `params` plus a value from each of them.
@@ -238,8 +244,8 @@ Procedure:
    readings approximate; with no list, it lists none. Every question about a held
    requirement lists that requirement's key in `requirements` too, so its drop and keep
    options join that question and the card asks one question per requirement. On a
-   phyletic expression, each reading's `value` is a handle `build_phyletic_expression`
-   returned for that reading.
+   phyletic expression, each reading's `value` is the expression handle built for that
+   reading.
    Never ask for a raw threshold or a raw expression. Readings are for a request only an
    approximation states, and each names its approximation in its caveat. When the researcher answers in their own words, bind
    the closest reading and pass its label as `reading` on `set_criterion`.
@@ -296,6 +302,22 @@ have assembled so far.
 """.replace("<CONSTRAINT_KINDS>", CONSTRAINT_KINDS)
 )
 
+_ONE_OF_THE_SITES = 'record_type="<one of the record types get_record_types names>"'
+FRAME_NEXT_ACTIONS: Final = WdkNextActions(
+    search_not_found=(
+        "Call get_record_types to see the record types this site publishes",
+        (
+            'Call search_for_searches(query="<describe what you need>", '
+            f"{_ONE_OF_THE_SITES}) to find the correct search name"
+        ),
+        f"Call list_searches({_ONE_OF_THE_SITES}) to see all of that type's searches",
+    ),
+    invalid_value=(
+        "Call get_parameter_options for the rejected parameter to see valid values",
+        "Use the exact value from the vocabulary, not free text",
+    ),
+)
+
 FRAME_MODEL = DEFAULT_MODEL_ID
 
 FrameAgent = Agent[AgentDeps, FrameResult | DeferredToolRequests]
@@ -324,7 +346,10 @@ def build_frame_agent() -> FrameAgent:
         toolsets=toolsets,
         capabilities=agent_capabilities(
             [
-                ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
+                ToolResilience(
+                    search_lookup_tools=SEARCH_LOOKUP_TOOLS,
+                    next_actions=FRAME_NEXT_ACTIONS,
+                ),
                 AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),
                 stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),

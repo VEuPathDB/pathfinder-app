@@ -20,9 +20,8 @@ class StaleBuild:
         lines = [
             (
                 "STALE: the strategy was edited outside this conversation, so the "
-                "counts this conversation holds are out of date. Call "
-                "get_live_strategy_state "
-                "before quoting any number to the user."
+                "counts this conversation holds are out of date. Read the live "
+                "strategy before quoting any number to the user."
             ),
         ]
         lines.extend(

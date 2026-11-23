@@ -87,3 +87,4 @@ def test_render_names_the_discrepancy() -> None:
     assert "2862" in text
     assert "587" in text
     assert "edited" in text.lower()
+    assert "Read the live strategy before quoting any number" in text

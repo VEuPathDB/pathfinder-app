@@ -29,8 +29,8 @@ _UNLISTED = (
 _CLOSED = " Nothing was recorded."
 _REROUTE = (
     "This conversation holds no strategy, and framing finds the searches: with "
-    "the message classified new_strategy, dispatch frame_problem with the "
-    "request, and count the built step with count_step_by_column."
+    "the message classified new_strategy, frame the request, then count the "
+    "built step by its column."
 )
 
 

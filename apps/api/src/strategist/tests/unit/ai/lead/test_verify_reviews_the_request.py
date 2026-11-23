@@ -118,7 +118,7 @@ def test_the_work_order_names_the_checks_then_the_root_to_sample() -> None:
 def test_the_work_order_names_each_step_no_column_shows() -> None:
     note = (
         "No column of GenesByText shows a numeric value its criterion binds. "
-        "Sample the root with get_sample_records for this criterion."
+        "Read this criterion on a sample of the root's records."
     )
 
     order = work_order("check it", None, None, [], [], [note])

@@ -6,6 +6,7 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
+from strategist.ai.agents.frame import build_frame_agent
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.agents.strategy_instructions import pinned_frame_workspace
 from strategist.ai.tools.standalone.frame_drop import drop_criterion
@@ -16,6 +17,7 @@ from strategist.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from strategist.tests._support.tool_names import foreign_names
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
     genes_by_text,
@@ -69,7 +71,7 @@ async def test_a_bound_analysis_is_never_re_bound_and_nothing_is_dropped() -> No
         )
 
     assert "bound to the analysis workflow" in str(excinfo.value)
-    assert "delete_step" in str(excinfo.value)
+    assert "on the researcher's approval" in str(excinfo.value)
     assert state.operational_spec_draft == before
 
 
@@ -90,7 +92,7 @@ async def test_a_waiting_comparison_is_never_bound_to_another_search(
             search_name="GenesByText",
         )
 
-    assert f'create_eda_step(criterion_id="{_WAITING}")' in str(excinfo.value)
+    assert "the Lead's analysis export binds it" in str(excinfo.value)
     assert "bind no other search" in str(excinfo.value)
     assert (state.operational_spec_draft, state.open_sheets) == (before, {})
 
@@ -107,7 +109,7 @@ async def test_a_waiting_comparison_never_starts_from_a_saved_strategy() -> None
             saved_strategy="DESeq 24 h vs 36 h",
         )
 
-    assert f'create_eda_step(criterion_id="{_WAITING}")' in str(excinfo.value)
+    assert "the Lead's analysis export binds it" in str(excinfo.value)
     assert state.operational_spec_draft == before
 
 
@@ -118,7 +120,7 @@ def test_a_bound_analysis_is_never_dropped_by_framing() -> None:
     with pytest.raises(ModelRetry) as excinfo:
         drop_criterion(frame_ctx(state), criterion_id=EXPORTED, reason="restated")
 
-    assert "the Lead removes it with delete_step" in str(excinfo.value)
+    assert "the Lead removes it, on the researcher's approval" in str(excinfo.value)
     assert state.operational_spec_draft == before
 
 
@@ -156,3 +158,26 @@ def test_the_workspace_states_the_analysis_by_its_words_and_no_document() -> Non
         f"analysis workflow on dataset {DATASET}, WAITING: keep it in the structure"
     ) in workspace
     assert "eda_analysis_spec" not in workspace
+
+
+async def test_a_drop_frame_cannot_make_names_no_lead_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_genes_by_text_definition(monkeypatch)
+    serve_params(monkeypatch, genes_by_text)
+    frame = build_frame_agent()
+    refused: list[str] = []
+    with pytest.raises(ModelRetry) as dropped:
+        drop_criterion(frame_ctx(_state()), criterion_id=EXPORTED, reason="restated")
+    refused.append(str(dropped.value))
+    for criterion_id in (EXPORTED, _WAITING):
+        with pytest.raises(ModelRetry) as rebound:
+            await set_criterion(
+                frame_ctx(_state()),
+                criterion_id=criterion_id,
+                text="fold change 24 h over 36 h",
+                search_name="GenesByText",
+            )
+        refused.append(str(rebound.value))
+
+    assert [foreign_names(text, frame) for text in refused] == [[], [], []]

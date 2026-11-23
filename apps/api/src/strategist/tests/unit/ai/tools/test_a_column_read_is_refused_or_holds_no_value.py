@@ -44,8 +44,7 @@ def _tm_report(
 
 
 _SAMPLE_TM = (
-    f"Sample step {TM_STEP} with get_sample_records and read tm_count on its "
-    "records for this criterion."
+    f"Read tm_count on a sample of the records of step {TM_STEP} for this criterion."
 )
 _NO_TM_VALUE = f"No record of step {TM_STEP} holds a value of # TM Domains (tm_count). {_SAMPLE_TM}"
 _REFUSED_TM = (
@@ -197,9 +196,9 @@ async def test_a_refused_rival_column_leaves_the_others_read(
     ]
     assert answer.note == (
         "The site refused the report of Max %ile (Within Chosen Samples) "
-        f"(max_percentile_chosen) on step {PERCENTILE_STEP} (HTTP 400). Sample step "
-        f"{PERCENTILE_STEP} with get_sample_records and read max_percentile_chosen "
-        "on its records for this criterion."
+        f"(max_percentile_chosen) on step {PERCENTILE_STEP} (HTTP 400). Read "
+        f"max_percentile_chosen on a sample of the records of step "
+        f"{PERCENTILE_STEP} for this criterion."
     )
     assert sorted(site.asked) == [
         f"{PERCENTILE_STEP}/reports/max_percentile_chosen-histogram",

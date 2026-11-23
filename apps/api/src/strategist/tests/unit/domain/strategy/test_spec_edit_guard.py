@@ -12,6 +12,8 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import CombineOp
 
+from strategist.ai.agents.execution import build_execution_agent
+from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -36,6 +38,7 @@ from strategist.domain.strategy.spec_edit_guard import (
     stated_values,
 )
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.tool_names import foreign_names
 
 from ._builders import combine, graph_of, leaf, spec_joined, spec_leaf
 
@@ -155,7 +158,6 @@ def test_a_combine_operator_the_spec_does_not_declare_is_refused() -> None:
     assert refusal is not None
     assert "INTERSECT" in refusal
     assert "UNION" in refusal
-    assert "set_structure" in refusal
     assert "framing pass" in refusal
 
 
@@ -380,3 +382,20 @@ def test_a_string_parameter_holds_two_spellings_of_a_number_apart() -> None:
     assert not _departure(stated, StringValue(value="80")).repeats(
         _departure(stated, StringValue(value="80.0"))
     )
+
+
+def test_a_contradicting_write_names_the_framing_pass() -> None:
+    joined = _graph()
+    joined.steps[_PROFILE_JOIN].operator = CombineOp.UNION
+    spec = _spec()
+    _with_percentile_criterion(spec, min_expression_percentile=NumberValue(value=90))
+    valued = _with_value(
+        _graph_with_expr(), _EXPR, "min_expression_percentile", NumberValue(value=80)
+    )
+    refusals = [_refusal_for(joined, _spec()), _values_refusal(valued, spec)]
+
+    for refusal in refusals:
+        assert refusal is not None
+        assert "framing pass" in refusal
+        assert foreign_names(refusal, build_lead_agent()) == []
+        assert foreign_names(refusal, build_execution_agent()) == []

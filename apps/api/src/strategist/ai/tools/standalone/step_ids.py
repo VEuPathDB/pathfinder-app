@@ -90,7 +90,7 @@ async def read_step_ids(
             it out for the root, which holds the result the researcher sees;
             name another step only when the researcher names that step.
         limit: How many ids to read, at most 100. With a limit the ids are
-            the genes ``get_sample_records`` reads at the same limit, spread
+            the genes a record sample reads at the same limit, spread
             over the step; leave it out for the first 5000 in the site's order.
             ``complete`` says whether the ids are every gene the step holds.
     """

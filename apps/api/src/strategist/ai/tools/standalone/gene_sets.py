@@ -181,8 +181,8 @@ async def save_gene_set(
 
     This is the save the user asks for when they say "save these genes as a
     gene set": the set appears in the conversation, and it returns the id the export
-    tools take. ``remember`` stores a note and creates nothing. Controls are
-    saved with ``build_control_set``, never as a gene set. A save is never a
+    tools take. A stored note creates no gene set. Controls are saved as a
+    control set, never as a gene set. A save is never a
     read: ``read_step_ids`` answers which genes a step holds.
 
     Args:

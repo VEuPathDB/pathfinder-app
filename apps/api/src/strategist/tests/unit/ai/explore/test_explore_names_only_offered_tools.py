@@ -21,11 +21,11 @@ from strategist.ai.lead.contract_messages import off_topic_essay_message
 from strategist.ai.lead.intent import IntentClassification
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import OFF_TOPIC_REPLY_MAX_CHARS
-from strategist.tests._support.offered_tools import (
-    offered_tool_names,
+from strategist.tests._support.streamed_model import streamed
+from strategist.tests._support.tool_names import (
+    all_tool_names,
     served_tool_names,
 )
-from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
     REDIRECT,
@@ -36,7 +36,7 @@ _NAMED = re.compile(r"``([a-z_][a-z0-9_]*)``")
 
 
 def _named_tools(instructions: str | None) -> set[str]:
-    return set(_NAMED.findall(instructions or "")) & offered_tool_names()
+    return set(_NAMED.findall(instructions or "")) & all_tool_names()
 
 
 def _paper(query: str) -> str:

@@ -74,8 +74,8 @@ def reject_combine_variants(variants: list[VariantInput]) -> None:
     offending = "; ".join(f"{v.label} ({v.search_name})" for v in named)
     msg = (
         f"These variants name a combine step rather than a WDK search - "
-        f"{offending}. A combine step has no search to run. To test a combine "
-        "step, call run_control_tests_on_step with its wdk_step_id. To compare "
+        f"{offending}. A combine step has no search to run. A combine step is "
+        "tested by a control test on that step, by its wdk_step_id. To compare "
         "variants, name the leaf search each one varies."
     )
     raise ModelRetry(msg)

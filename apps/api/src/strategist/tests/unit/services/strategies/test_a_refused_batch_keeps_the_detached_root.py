@@ -78,7 +78,7 @@ async def test_a_refused_value_edit_keeps_both_roots(
             ),
         )
 
-    assert "set_criterion" in str(excinfo.value)
+    assert "framing pass" in str(excinfo.value)
     assert sorted(graph.roots) == [_MIC2, _DETACHED]
     assert sorted(graph.steps) == [_MIC2, _DETACHED]
     assert graph.steps[_MIC2].parameters == {
