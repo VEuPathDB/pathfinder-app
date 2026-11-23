@@ -15,10 +15,7 @@ from pydantic_ai.exceptions import ModelRetry
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone import conversation
 from strategist.ai.tools.standalone._validation_helpers import get_graph
-from strategist.ai.tools.standalone.conversation_models import (
-    ClearStrategyResult,
-    RenameStrategyResult,
-)
+from strategist.ai.tools.standalone.conversation_models import ClearStrategyResult
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.tool_returns import returned
@@ -74,24 +71,8 @@ def test_a_strategy_id_finds_nothing_before_the_push() -> None:
     assert unpushed.id == "graph-1"
 
 
-class TestTheConversationToolsAddressTheSameWay:
-    """rename_strategy and clear_strategy answer the VEuPathDB strategy id."""
-
-    @pytest.mark.asyncio
-    async def test_rename_takes_the_veupathdb_strategy_id(
-        self, session: StrategySession
-    ) -> None:
-        answer = await conversation.rename_strategy(
-            _ctx(session),
-            new_name="Heat shock, refined",
-            description="a refined strategy",
-            graph_id=str(_WDK_STRATEGY_ID),
-        )
-
-        result = returned(answer, RenameStrategyResult)
-        assert result.graph_id == "graph-1"
-        assert result.old_name == "Heat shock"
-        assert result.new_name == "Heat shock, refined"
+class TestTheClearAnswersTheStrategyId:
+    """clear_strategy answers the VEuPathDB strategy id."""
 
     @pytest.mark.asyncio
     async def test_clear_takes_the_veupathdb_strategy_id(
@@ -114,18 +95,6 @@ class TestTheConversationToolsAddressTheSameWay:
         cleared = session.get_graph("graph-1")
         assert cleared is not None
         assert cleared.steps == {}
-
-    @pytest.mark.asyncio
-    async def test_rename_still_refuses_another_strategys_id(
-        self, session: StrategySession
-    ) -> None:
-        with pytest.raises(ModelRetry, match="NOT_FOUND"):
-            await conversation.rename_strategy(
-                _ctx(session),
-                new_name="n",
-                description="d",
-                graph_id="330558094",
-            )
 
     @pytest.mark.asyncio
     async def test_clear_still_refuses_another_strategys_id(

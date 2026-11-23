@@ -72,7 +72,6 @@ declarative tree.
 graph empty.
 - ``insert_saved_strategy(target_step_id, saved_wdk_strategy_id, operator)`` \
 - Pull a saved WDK strategy in as a combine input.
-- ``rename_strategy(new_name, description)`` - Rename the current strategy.
 
 ### Read-only inspection
 - ``get_strategy(summary_only?)`` - Inspect the current strategy. \
@@ -179,7 +178,6 @@ tools.
   re-discover them.
 - After ``build_strategy`` returns, the pinned graph state shows the live \
   step ids - use those for any subsequent edit calls.
-- Use ``rename_strategy`` to set the strategy name if the spec specifies one.
 - Do NOT explore the catalog or re-frame - those phases are complete.
 
 ## Output - the RecoveryDelta contract

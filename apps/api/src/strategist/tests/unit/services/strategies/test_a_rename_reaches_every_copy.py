@@ -18,12 +18,9 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.errors import WDKError
 from veupathdb.wdk import build_wdk_step_tree
 
-from strategist.ai.agents.state import AgentToolState
-from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.graph.turn_records import TurnMarkers
-from strategist.ai.tools.standalone.conversation import rename_strategy
+from strategist.ai.tools.standalone.strategy_rename import rename_strategy
 from strategist.domain.strategy.operations import UpdateStrategyMetaOp
-from strategist.services.strategies import naming
+from strategist.services.strategies import live_counts, naming
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.naming import (
@@ -33,7 +30,7 @@ from strategist.services.strategies.naming import (
     rename_strategy_everywhere,
 )
 from strategist.services.strategies.sync_state import ensure_sync_state
-from strategist.tests._support.run_context import run_context_for
+from strategist.tests._support.run_context import lead_run_context
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -325,17 +322,15 @@ async def test_the_agents_rename_renames_the_thread_everywhere(
 ) -> None:
     threads = thread_row(name="Kinase hunt", ast_name="Kinase hunt")
     lock = _install(monkeypatch, api, threads)
+    monkeypatch.setattr(live_counts, "get_strategy_api", lambda _site: api)
     session = session_with(leaf("step_a"), {"step_a": 440537303})
-    deps = AgentDeps(
-        site_id="plasmodb",
-        strategy_session=session,
+    ctx = lead_run_context(
         conversation_id=threads.conversation.id,
+        strategy_session=session,
         db_session_factory=async_session_factory,
-        agent_state=AgentToolState(),
-        turn_markers=TurnMarkers(),
     )
 
-    await rename_strategy(run_context_for(deps), new_name=_TITLE, description="d")
+    await rename_strategy(ctx, name=_TITLE)
 
     assert session.graph is not None
     assert (session.graph.name, threads.conversation.name, threads.ast_name) == (
@@ -353,17 +348,14 @@ async def test_the_agents_rename_of_a_thread_the_store_lacks_is_refused(
     threads = thread_row(name="Kinase hunt", ast_name="Kinase hunt")
     _install(monkeypatch, api, threads)
     session = session_with(leaf("step_a"), {"step_a": 440537303})
-    deps = AgentDeps(
-        site_id="plasmodb",
-        strategy_session=session,
+    ctx = lead_run_context(
         conversation_id=uuid4(),
+        strategy_session=session,
         db_session_factory=async_session_factory,
-        agent_state=AgentToolState(),
-        turn_markers=TurnMarkers(),
     )
 
     with pytest.raises(ModelRetry, match="found no stored conversation"):
-        await rename_strategy(run_context_for(deps), new_name=_TITLE, description="d")
+        await rename_strategy(ctx, name=_TITLE)
 
     assert session.graph is not None
     assert session.graph.name == "Test"

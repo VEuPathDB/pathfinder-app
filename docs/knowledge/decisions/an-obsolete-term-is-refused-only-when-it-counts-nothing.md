@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An obsolete term is refused only when it counts nothing
-description: A vocabulary pick the site labels obsolete binds when the site counts records for it and carries its label; a bind that counts 0 is refused with the ontology's mark and the nearest current entries, and a term the researcher named is replaced only through a card.
+description: A vocabulary pick whose term name starts with "obsolete" binds when the site counts records for it and carries its label; a bind that counts 0 is refused with the ontology's mark and the nearest current entries, and a term the researcher named is replaced only through a card.
 tags: [frame, parameters, vocabulary]
 generated: { by: claude-code/opus-5, at: 2026-09-30T00:00:00Z }
 status: stable
@@ -9,7 +9,14 @@ status: stable
 
 # What was decided
 
-A pick whose site label holds the word "obsolete" is read like any other pick:
+A pick is obsolete when the first word of the term name in its site label is
+"obsolete", the mark the ontology writes on a term it retires; the label's id
+segment and trailing depth are not part of the name. Every recorded GO entry
+the sites serve that is obsolete has this form, and a name that holds the word
+later is a current term. `obsolete_terms.says_obsolete` is the one definition,
+read by the count path and by the lookup check of `_frame_lookups`.
+
+Such a pick is read like any other pick:
 it binds, it is counted, and its label ("GO:0031225 : obsolete anchored component
 of membrane : 0") is recorded, so the facts part and the reply show the mark
 beside the count. The bind is refused only when the site counts 0 records for
@@ -41,4 +48,6 @@ would be a claim the facts cannot show.
 `services/strategies/obsolete_terms.py`; `record_and_count_criterion` in
 `ai/tools/standalone/_frame_count.py`. Guarded by
 `tests/unit/ai/tools/test_an_obsolete_term_binds_by_its_count.py` and
-`tests/unit/services/strategies/test_an_obsolete_term_is_named_at_bind.py`.
+`tests/unit/services/strategies/test_an_obsolete_term_is_named_at_bind.py`;
+`tests/unit/services/strategies/test_obsolete_has_one_definition.py` holds the
+word to one module.

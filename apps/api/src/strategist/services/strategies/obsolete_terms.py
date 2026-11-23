@@ -3,7 +3,6 @@ bind already holds."""
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
@@ -11,9 +10,11 @@ from veupathdb.domain.parameters import SHOWN_CANDIDATES, rank_entries
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.operational_spec import Measurement
+from strategist.domain.strategy.value_label import label_term
+from strategist.domain.strategy.words import words_of
 
-# The word an ontology writes in the label of a term it retired.
-_OBSOLETE = "obsolete"
+# The first word an ontology writes in the name of a term it retired.
+OBSOLETE = "obsolete"
 
 
 class ObsoletePick(BaseModel):
@@ -52,12 +53,12 @@ class ObsoletePick(BaseModel):
         )
 
 
-def _says_obsolete(label: str) -> bool:
-    return _OBSOLETE in re.findall(r"[a-z]+", label.casefold())
+def says_obsolete(value: str, display: str) -> bool:
+    return words_of(label_term(value, display))[:1] == [OBSOLETE]
 
 
 def _without_the_word(label: str) -> str:
-    return " ".join(w for w in label.split() if w.casefold() != _OBSOLETE)
+    return " ".join(w for w in label.split() if w.casefold() != OBSOLETE)
 
 
 def obsolete_picks(
@@ -69,9 +70,15 @@ def obsolete_picks(
     found: list[ObsoletePick] = []
     for m in labels:
         info = by_name.get(m.param)
-        if m.kind != "vocabulary_label" or info is None or not _says_obsolete(m.label):
+        if (
+            m.kind != "vocabulary_label"
+            or info is None
+            or not says_obsolete(m.reading, m.label)
+        ):
             continue
-        current = [o for o in info.vocabulary() if not _says_obsolete(o.display)]
+        current = [
+            o for o in info.vocabulary() if not says_obsolete(o.value, o.display)
+        ]
         found.append(
             ObsoletePick(
                 param=m.param,
@@ -88,4 +95,4 @@ def obsolete_picks(
     return found
 
 
-__all__ = ["ObsoletePick", "obsolete_picks"]
+__all__ = ["OBSOLETE", "ObsoletePick", "obsolete_picks", "says_obsolete"]
