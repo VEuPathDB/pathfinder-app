@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from strategist.domain.owner_reads import without_owner_reads
 from strategist.persistence.models import ConversationShare
+from strategist.persistence.repositories import ConversationRepository
 from strategist.persistence.repositories.checkpoint_rows import ChannelRewrite
 from strategist.platform.errors import (
     AppError,
@@ -33,8 +34,20 @@ from strategist.services.conversations.fork import (
     copy_conversation,
 )
 from strategist.services.conversations.new_thread import settle_new_thread
-from strategist.services.conversations.responses import ConversationResponse
+from strategist.services.conversations.responses import (
+    ConversationResponse,
+    build_conversation_response,
+    conversation_strategy_revision,
+)
+from strategist.services.conversations.shared_context import (
+    SharedContext,
+    newest_study,
+    viewer_strategy,
+    viewer_study,
+)
+from strategist.services.conversations.thread_mode import thread_mode_of
 from strategist.services.conversations.turn_liveness import turn_is_in_flight
+from strategist.services.eda.binding import bound_conversation_analysis
 
 
 class ShareSettings(CamelModel):
@@ -67,6 +80,7 @@ class SharedConversation(CamelModel):
     assistant_id: str
     allow_copy: bool
     include_context: bool
+    strategy_revision: str
     cursor: int
     turn_in_flight: bool
 
@@ -215,6 +229,13 @@ async def read_shared(
         assistant_id=conversation.assistant_id,
         allow_copy=share.allow_copy,
         include_context=share.include_context,
+        strategy_revision=(
+            conversation_strategy_revision(
+                await ConversationRepository(session).get_strategy(conversation.id)
+            )
+            if share.include_context
+            else ""
+        ),
         cursor=await latest_snapshot_boundary(conversation.id),
         turn_in_flight=await turn_is_in_flight(
             session, conversation_id=conversation.id, user_id=conversation.user_id
@@ -230,6 +251,40 @@ async def shared_snapshot(
     if share.include_account_reads:
         return snapshot
     return snapshot.model_copy(update={"chunks": without_owner_reads(snapshot.chunks)})
+
+
+async def shared_context(
+    session: AsyncSession, *, token: str, password: str
+) -> SharedContext:
+    share, conversation = await _opened(session, token, password)
+    if not share.include_context:
+        raise ForbiddenError(
+            code=ErrorCode.SHARE_CONTEXT_NOT_SHARED,
+            title="This link does not share the strategy",
+        )
+    detail = build_conversation_response(
+        conversation,
+        await ConversationRepository(session).get_strategy(conversation.id),
+        mode=await thread_mode_of(session, conversation.id),
+    )
+    strategy, private_inputs = viewer_strategy(
+        detail, token=token, include_account_reads=share.include_account_reads
+    )
+    bound = await bound_conversation_analysis(conversation_id=conversation.id)
+    shown = (
+        None
+        if bound is None
+        else newest_study(
+            (await fetch_snapshot_chunks(conversation.id)).chunks, bound.analysis_id
+        )
+    )
+    return SharedContext(
+        strategy=strategy,
+        study=None
+        if shown is None
+        else viewer_study(shown, include_account_reads=share.include_account_reads),
+        private_inputs=private_inputs,
+    )
 
 
 async def copy_shared(
@@ -272,6 +327,7 @@ __all__ = [
     "renew_password",
     "set_share",
     "share_of",
+    "shared_context",
     "shared_snapshot",
     "stop_sharing",
 ]

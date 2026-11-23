@@ -7,10 +7,12 @@ from fastapi import APIRouter, Depends, Header
 
 from strategist.assistants.copies import copy_rewrite
 from strategist.services.conversations.responses import ConversationResponse
+from strategist.services.conversations.shared_context import SharedContext
 from strategist.services.conversations.sharing import (
     SharedConversation,
     copy_shared,
     read_shared,
+    shared_context,
     shared_snapshot,
 )
 from strategist.transport.http.deps import (
@@ -44,6 +46,17 @@ async def get_shared_snapshot(
     token: str, session: DBSession, password: SharePassword = ""
 ) -> EventsSnapshot:
     return await shared_snapshot(session, token=token, password=password)
+
+
+@router.get(
+    "/{token}/context",
+    response_model=SharedContext,
+    summary="The strategy and study of a shared conversation, without the owner's private inputs.",
+)
+async def get_shared_context(
+    token: str, session: DBSession, password: SharePassword = ""
+) -> SharedContext:
+    return await shared_context(session, token=token, password=password)
 
 
 @router.post(

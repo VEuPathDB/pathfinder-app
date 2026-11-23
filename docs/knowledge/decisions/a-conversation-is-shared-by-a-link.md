@@ -20,8 +20,20 @@ opens `/shared/<token>`, inside the website that frames Strategist.
   viewer's page sends it in the `X-Share-Password` header.
 - **What a viewer sees.** The thread as its owner sees it, read-only: the messages, the trace,
   the figures and the cards, with every control that acts (branch, edit, rate, regenerate,
-  approve, Build it, save, publish, delete, open the study, open a memory) left out. The owner's
-  side panels, strategy, notes and tasks are not shared. A viewer needs no sign-in. A tool that
+  approve, Build it, save, publish, delete, open the study, open a memory) left out. With
+  "Include the strategy and its context" ticked (`conversation_shares.include_context`, on for a
+  new link), `GET /api/v1/shared/{token}/context` serves the thread's strategy and its bound study
+  for a read-only rail; it refuses with 403 `SHARE_CONTEXT_NOT_SHARED` when the box is cleared.
+  It is redacted once, in `services/conversations/shared_context.py`: the owner's WDK handles
+  (strategy and step ids, the WDK and study links, the gene set id), the spend and the thread
+  ids are withheld, and the conversation id is one derived from the token. Which step inputs are
+  account data is one rule in `domain/private_inputs.py`, keyed on the WDK parameter kind: a
+  dataset input (an uploaded list, a gene set, a basket, a file) and a value whose kind was never
+  read are withheld and named in `privateInputs`, and a step input (an owner step id) is
+  withheld always. A study on the owner's own upload (an `EDAUD_` dataset) is account data by
+  the same rule. The study is the newest state the thread showed of the bound analysis; a study
+  no turn showed is not shared. The owner's notes and tasks are not shared. A viewer needs no
+  sign-in. A tool that
   read outside the thread (`domain/owner_reads.py`: the owner's WDK strategies, saved strategies,
   other threads, gene sets, control sets, audits, memories and download links) keeps its call and
   loses its output, and a turn's recalled memories are emptied, both in what the link serves and
@@ -49,6 +61,10 @@ opens `/shared/<token>`, inside the website that frames Strategist.
   sets, attached controls, separation offers, gene sets and memory counts, and the recalled
   memories are emptied. Only Strategist's own threads can be copied. A copy waits for a settled
   thread, and its refusals speak to the viewer.
+- **Links made before the context box.** A link made before the box existed keeps the context
+  out, since its owner never saw the box; the head (`GET /api/v1/shared/{token}`) says whether a
+  link carries it and names the strategy revision, so a viewer reads the context again when the
+  owner edits the strategy with no new turn.
 - **Ending it.** Stop sharing deletes the row; the old link then answers 404. Deleting the
   conversation deletes its link.
 
@@ -69,5 +85,6 @@ the owner to invent a secret.
   attempt limit.
 - **A copy that stays a branch of the source.** A branch hangs under its source and is deleted
   with it; a copy belongs to another account and must outlive the owner's thread.
-- **Sharing the side panels.** They read the owner's strategy, notes and tasks through
-  owner-only routes; the copy gives the viewer all of them in their own account.
+- **Extending the snapshot route.** `EventsSnapshot` is the runtime's wire model in
+  `assistant_core`, so Strategist-only state on it would need a library change, and it would be
+  read again with every cursor move.

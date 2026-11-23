@@ -17,9 +17,15 @@ from starlette.types import ASGIApp
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.assistants.strategist_spec import STRATEGIST_CHECKPOINT_TYPES
 from strategist.domain.evidence import NamedControlSet
-from strategist.persistence.models import User
+from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.config import get_settings
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
+from strategist.services.eda.binding import bind_conversation_analysis
+from strategist.tests._support.shared_strategy import (
+    SHARED_AST,
+    WDK_STRATEGY_ID,
+    state_chunk,
+)
 
 CHUNKS = (
     {"type": "start", "messageId": "m-1"},
@@ -130,6 +136,49 @@ async def seed_thread(
         )
         await session.commit()
     return conversation_id
+
+
+async def seed_strategy(
+    session_maker: async_sessionmaker[AsyncSession], thread: UUID
+) -> None:
+    async with session_maker() as session:
+        session.add(
+            ConversationStrategy(
+                conversation_id=thread,
+                record_type=SHARED_AST.record_type,
+                wdk_strategy_id=WDK_STRATEGY_ID,
+                step_count=3,
+                strategy_ast=SHARED_AST.model_dump(
+                    by_alias=True, exclude_none=True, mode="json"
+                ),
+            )
+        )
+        await session.commit()
+
+
+async def seed_study(
+    session_maker: async_sessionmaker[AsyncSession],
+    thread: UUID,
+    *,
+    dataset_id: str,
+) -> None:
+    await bind_conversation_analysis(
+        conversation_id=thread,
+        site_id="plasmodb",
+        dataset_id=dataset_id,
+        analysis_id="a-1",
+    )
+    async with session_maker() as session:
+        session.add_all(
+            ConversationEvent(conversation_id=thread, chunk=chunk)
+            for chunk in (
+                {"type": "start", "messageId": "m-3"},
+                state_chunk("a-1", revision=1, dataset_id=dataset_id),
+                {"type": "finish"},
+                {"type": "done"},
+            )
+        )
+        await session.commit()
 
 
 @pytest.fixture

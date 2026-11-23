@@ -31,6 +31,7 @@ const HEAD: SharedConversation = {
   assistantId: "strategist",
   allowCopy: false,
   includeContext: false,
+  strategyRevision: "",
   cursor: 7,
   turnInFlight: false,
 };
