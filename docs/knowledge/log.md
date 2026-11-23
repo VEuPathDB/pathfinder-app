@@ -136,6 +136,16 @@
   the build, a step above it is skipped, and no strategy is put. The WDK ids a recreate
   replaced are kept on the strategy row (`replaced_wdk_step_ids`) until a put deletes them.
 
+* **A named alternative makes a choice.** e10 asked whether "an InterPro or Pfam search" finds
+  more genes than a gene name search; the binding took Pfam alone and the facts showed it as
+  the site's default, so nothing said a choice was made. `value_source` now returns
+  `chosen` when a request message joins the value to another entry of the parameter's
+  vocabulary the binding leaves out (by "or", "and", "versus", a comma or a slash), and the
+  label, taxon and dataset restatements go through `stated_source` in the same module. A
+  stated source is a `StatedSource` (`domain/strategy/stated_source.py`) only
+  `value_source.py` constructs, and `BoundValue.sourced` refuses the bare "stated". The
+  parameter's display name and vocabulary reach `value_source` as one `ParamSheet`.
+
 * **Entries that share a name are one name.** A lookup listed IPR050205 and IPR050236, both
   "SERINE/THREONINE-PROTEIN KINASE", and one run bound IPR050205 alone (9 genes) while
   another run of the same request bound all nine phrase entries (23 genes), with no word of

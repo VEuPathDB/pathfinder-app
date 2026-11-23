@@ -21,7 +21,12 @@ names), whole or with one word after its first left out when no other entry of
 the vocabulary is named by the same words ("Homo sapiens" names "Homo sapiens
 REF"), a run matching with its punctuation left out ("C57BL/6J" names
 "C57BL6J"), `card` when an answered card set it, `default` when it is unset and
-no message states it, and `chosen` otherwise. A value is unset when it is a
+no message states it, and `chosen` otherwise. A message that joins the value to
+another entry of the parameter's vocabulary the binding leaves out ("an InterPro
+or Pfam search" for a database bound to Pfam alone) makes the value `chosen`,
+whatever its words or its default. `value_source.py` alone mints a stated
+source: `value_source` and `stated_source` return a `StatedSource`, and
+`BoundValue.sourced` refuses the bare "stated". A value is unset when it is a
 site placeholder (the radio-off value `N/A`, an example text such as
 "(Example: chr22)") or equals the parameter's `initialDisplayValue` (or WDK
 supplied it). A placeholder is never stated.

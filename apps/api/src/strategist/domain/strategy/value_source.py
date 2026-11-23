@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from typing import assert_never
+from typing import Literal, assert_never
 
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 from veupathdb.domain.parameters import (
     NumberValue,
     ParamValue,
     StringValue,
+    VocabOption,
     to_wire,
 )
 
@@ -18,7 +19,9 @@ from strategist.domain.log2_scale import (
     stated_on_the_other_scale,
     without_the_other_scale,
 )
+from strategist.domain.strategy.named_taxa import NamedTaxon
 from strategist.domain.strategy.operational_spec import ValueSource
+from strategist.domain.strategy.stated_source import StatedSource, UnstatedSource
 from strategist.domain.strategy.words import (
     FILLER_WORDS,
     WORD,
@@ -28,6 +31,8 @@ from strategist.domain.strategy.words import (
 )
 
 _TERMS = TypeAdapter(list[str])
+_LETTER = re.compile(r"[^\W\d_]")
+_JOIN = r"(?:\s*,)?\s+(?:or|and|nor|versus|vs\.?)\s+(?:an?\s+|the\s+)?|\s*/\s*|\s*,\s*"
 _PICKS = frozenset({"single-pick-vocabulary", "multi-pick-vocabulary"})
 _SHORTEST_CUT_LABEL = 3
 _SHORTEST_RELAXED_WORD = 6
@@ -320,6 +325,58 @@ def cut_from(
     return bool(quotes) and all(words_of(quote) != wanted for quote in quotes)
 
 
+def _joined(one: str, other: str) -> re.Pattern[str]:
+    return re.compile(
+        rf"(?<!\w){re.escape(one)}(?:{_JOIN}){re.escape(other)}(?!\w)",
+        re.IGNORECASE,
+    )
+
+
+def _named_alongside(
+    value: ParamValue,
+    words: str,
+    request_texts: Sequence[str],
+    vocabulary: Sequence[VocabOption],
+) -> bool:
+    held = set(stated_texts(value))
+    said = {o.display for o in vocabulary if o.value in held} | held | {words}
+    anchors = [phrase for phrase in said if phrase]
+    others = [
+        o.display
+        for o in vocabulary
+        if o.value not in held and o.display not in said and _LETTER.search(o.display)
+    ]
+    return any(
+        pattern.search(text)
+        for text in request_texts
+        for anchor in anchors
+        for other in others
+        for pattern in (_joined(anchor, other), _joined(other, anchor))
+    )
+
+
+def stated_source(
+    value: ParamValue,
+    words: str,
+    request_texts: Sequence[str],
+    vocabulary: Sequence[VocabOption],
+    taxon: NamedTaxon | None = None,
+) -> StatedSource | Literal["chosen"]:
+    if _named_alongside(value, words, request_texts, vocabulary):
+        return "chosen"
+    return StatedSource(words=words, taxon=taxon)
+
+
+class ParamSheet(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    display_name: str = ""
+    vocabulary: tuple[VocabOption, ...] = ()
+
+
+_NO_SHEET = ParamSheet()
+
+
 def value_source(
     value: ParamValue,
     *,
@@ -327,15 +384,28 @@ def value_source(
     unset: bool,
     request_texts: Sequence[str],
     card_value: ParamValue | None = None,
-    display_name: str = "",
-) -> ValueSource:
+    sheet: ParamSheet = _NO_SHEET,
+) -> StatedSource | Literal["chosen", "default", "card"]:
     """Who set one bound value, from what its sheet says of it: the default for
-    a placeholder, else stated, else the card's, else the default for a value
+    a placeholder, else stated, else the card's, else chosen when a request
+    message names another entry of its vocabulary, else the default for a value
     that states nothing the site does not already send, else chosen."""
     if placeholder:
         return "default"
-    if stated_words(value, request_texts, display_name=display_name, at_default=unset):
-        return "stated"
+    words = stated_words(
+        value, request_texts, display_name=sheet.display_name, at_default=unset
+    )
+    alongside = _named_alongside(value, words, request_texts, sheet.vocabulary)
+    if words and not alongside:
+        return StatedSource(words=words)
     if card_value is not None and card_value == value:
         return "card"
-    return "default" if unset else "chosen"
+    return "default" if unset and not alongside else "chosen"
+
+
+def source_kind(source: StatedSource | UnstatedSource) -> ValueSource:
+    match source:
+        case StatedSource():
+            return "stated"
+        case _:
+            return source

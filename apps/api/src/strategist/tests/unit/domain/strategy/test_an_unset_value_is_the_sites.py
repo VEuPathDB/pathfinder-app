@@ -16,7 +16,11 @@ from strategist.domain.strategy.operational_spec import (
     BoundValue,
 )
 from strategist.domain.strategy.value_binding import bind_values
-from strategist.domain.strategy.value_source import value_source
+from strategist.domain.strategy.value_source import (
+    ParamSheet,
+    source_kind,
+    value_source,
+)
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 
@@ -61,12 +65,14 @@ def _source(
     texts: list[str],
 ) -> str:
     held = _read(value, info)
-    return value_source(
-        value,
-        placeholder=held.placeholder,
-        unset=held.unset,
-        request_texts=texts,
-        display_name=held.display_name,
+    return source_kind(
+        value_source(
+            value,
+            placeholder=held.placeholder,
+            unset=held.unset,
+            request_texts=texts,
+            sheet=ParamSheet(display_name=held.display_name),
+        )
     )
 
 

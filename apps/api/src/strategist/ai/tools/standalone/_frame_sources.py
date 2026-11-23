@@ -11,6 +11,7 @@ from veupathdb.domain.parameters import (
     ParamValue,
     StringValue,
     UnboundParameter,
+    VocabOption,
     decimal_text,
 )
 from veupathdb.wdk import WDKSearch, WDKStringParam
@@ -29,10 +30,13 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
     RequirementLink,
 )
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.step_rationale import SearchRationale
 from strategist.domain.strategy.value_binding import bind_values, pick_terms
 from strategist.domain.strategy.value_source import (
+    ParamSheet,
     cut_from,
+    stated_source,
     stated_words,
     value_source,
 )
@@ -41,6 +45,10 @@ from strategist.services.strategies.parameter_rules import rules_of
 _NO_CARD: Mapping[str, BoundValue] = MappingProxyType({})
 _NO_QUOTES: Mapping[str, Sequence[str]] = MappingProxyType({})
 _TEXT: ParamKind = "string"
+
+
+def _vocabulary_of(info: ParameterInfo | None) -> list[VocabOption]:
+    return [] if info is None else info.vocabulary()
 
 
 def _set_by_site(info: ParameterInfo | None) -> bool:
@@ -76,33 +84,33 @@ def bound_values(
     bound: dict[str, BoundValue] = {}
     for name, held in bind_values(values, "default", infos).items():
         unset = held.unset or name in site_supplied
+        info = by_name.get(name)
         source = (
             "default"
-            if _set_by_site(by_name.get(name))
+            if _set_by_site(info)
             else value_source(
                 held.value,
                 placeholder=held.placeholder,
                 unset=unset,
                 request_texts=request_texts,
                 card_value=card_held.get(name),
-                display_name=held.display_name,
+                sheet=ParamSheet(
+                    display_name=held.display_name,
+                    vocabulary=tuple(_vocabulary_of(info)),
+                ),
             )
         )
-        if source == "stated" and cut_from(
-            held.value, linked_quotes.get(name, ()), request_texts
-        ):
-            source = "chosen"
-        basis = {
-            "stated": stated_words(
-                held.value,
-                request_texts,
-                display_name=held.display_name,
-                at_default=unset,
-            ),
-            "chosen": reason,
-            "card": card_values[name].basis if name in card_values else "",
-        }.get(source, "")
-        bound[name] = held.sourced(source, basis)
+        match source:
+            case StatedSource() if not cut_from(
+                held.value, linked_quotes.get(name, ()), request_texts
+            ):
+                bound[name] = held.sourced(source)
+            case StatedSource() | "chosen":
+                bound[name] = held.sourced("chosen", reason)
+            case "card":
+                bound[name] = held.sourced("card", card_values[name].basis)
+            case "default":
+                bound[name] = held.sourced("default")
     return bound
 
 
@@ -189,7 +197,10 @@ def stated_by_their_labels(
             vocabulary=_vocabulary_holding(named, infos),
         )
         if run:
-            restated[name] = held.sourced("stated", run)
+            restated[name] = held.sourced(
+                stated_source(held.value, run, request_texts, _vocabulary_of(info)),
+                held.basis,
+            )
     return restated
 
 
@@ -197,10 +208,12 @@ def stated_by_their_taxa(
     bound: dict[str, BoundValue],
     trees: Mapping[str, OrganismTree],
     request_texts: list[str],
+    infos: list[ParameterInfo],
 ) -> dict[str, BoundValue]:
     """The values with each organism pick whose taxon a message names recorded
     as stated, with that taxon and the words that name it. ``trees`` holds the
     organism tree of each organism parameter."""
+    by_name = {info.name: info for info in infos}
     restated = dict(bound)
     for name, held in bound.items():
         tree = trees.get(name)
@@ -209,7 +222,11 @@ def stated_by_their_taxa(
         named = tree.named(pick_terms(held.value), request_texts)
         if named is not None:
             taxon, words = named
-            restated[name] = held.sourced("stated", words, taxon=taxon)
+            vocabulary = _vocabulary_of(by_name.get(name))
+            restated[name] = held.sourced(
+                stated_source(held.value, words, request_texts, vocabulary, taxon),
+                held.basis,
+            )
     return restated
 
 

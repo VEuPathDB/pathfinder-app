@@ -22,6 +22,11 @@ from strategist.domain.strategy.operator_reads import OperatorReading
 from strategist.domain.strategy.ranking import Weight
 from strategist.domain.strategy.readings import AcceptedReading, why_no_readings
 from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
+from strategist.domain.strategy.stated_source import (
+    StatedSource,
+    UnstatedSource,
+    sourced_fields,
+)
 from strategist.domain.strategy.step_rationale import (
     AnalysisRationale,
     ChosenRationale,
@@ -102,15 +107,10 @@ class BoundValue(CamelModel):
         return self.model_copy(update={"carried_from": criterion_id})
 
     def sourced(
-        self,
-        source: ValueSource,
-        basis: str = "",
-        taxon: NamedTaxon | None = None,
+        self, source: UnstatedSource | StatedSource, basis: str = ""
     ) -> BoundValue:
         """The value with who set it decided, and the words that decided it."""
-        return self.model_copy(
-            update={"source": source, "basis": basis, "taxon": taxon}
-        )
+        return self.model_copy(update=sourced_fields(source, basis))
 
 
 CountedKind = Literal[

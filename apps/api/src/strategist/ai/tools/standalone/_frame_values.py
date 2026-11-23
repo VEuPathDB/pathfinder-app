@@ -99,7 +99,10 @@ async def sourced_values(
     labels, unlabelled = await labelled_picks(fetch_at, infos, call, bound)
     restated = stated_by_their_labels(bound, labels, infos, state.request_messages)
     named = stated_by_their_taxa(
-        restated, await _taxa_trees(site_id, definition), state.request_messages
+        restated,
+        await _taxa_trees(site_id, definition),
+        state.request_messages,
+        infos,
     )
     return named, labels, unlabelled
 

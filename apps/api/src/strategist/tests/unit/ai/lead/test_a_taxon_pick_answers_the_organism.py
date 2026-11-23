@@ -45,6 +45,7 @@ def test_the_taxonomy_names_the_pick_by_its_genus() -> None:
         {"taxon_type_ahead": taxon_pick(None)},
         {"taxon_type_ahead": phyletic_organism_tree(taxonomy())},
         [QUESTION],
+        [],
     )
 
     assert bound["taxon_type_ahead"].taxon == PLASMODIUM
