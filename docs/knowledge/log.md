@@ -16,6 +16,17 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **The sweep's open rows are settled by a test each.** A card pick on a criterion whose
+  sheet the site did not answer bound the InterPro term as a bare string under no label; it
+  is now refused with the site's words (`parameters_of_searches` holds an `Unread` per
+  search). A card pick of an expression handle the thread no longer holds is refused by name
+  instead of leaving the spec as it was. An unanswered record-type list keeps
+  `build_phyletic_expression` offered, so its call fails with the site's words instead of
+  the tool vanishing. A pick taken from a read states its count on the type. Rows whose
+  abstention is the honest answer are pinned: an unanswered read never drops a verdict, an
+  unread organism mark or list refuses no INTERSECT, an unread analysis kind stays a pending
+  check, and an unanswered Decisions call keeps the local ranking.
+
 * **Unread is said, never defaulted (the sweep's rows outside A+B).** A sweep with no
   negative controls scored false positives as 0 and precision as 1.0; it now measures neither,
   ranks by recall, and its summary says "no negative controls: false positives not measured"
