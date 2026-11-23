@@ -23,7 +23,7 @@ Expected numbers, measured on 2026-09-24: the comparison `wildtype` (group A) ag
 | 4 | `Search studies...` | Type `heat shock` | A row `Heat shock response in sensitive mutants (LRR5, DHC)` with `DS_e973eadd57` and its sites |
 | 5 | Row | Click | Header title the study name; `Open in PlasmoDB`, `Change study`, `Export as step` (disabled: no filter, no figure); cell `Subset` (CSS) `No filters: the subset is the whole study.`, `12 of 12 Sample`, `68,640 of 68,640 pfal3D7 htseq counts`; cell `Comparison` `No comparison has run on this analysis. Ask for one in the conversation.` |
 | 6 | Tab | Look for any input | None: no text field, no select, no editable control |
-| 7 | Header | `Change study` | Back to the picker; the Studies panel reads `No study is open` |
+| 7 | Header, then `Back to conversation` | `Change study` | Back to the picker; back in the thread the rail shows `Strategy` and `Review`, no `Study` |
 
 ## E2 - The assistant runs a comparison - core on plasmodb
 
