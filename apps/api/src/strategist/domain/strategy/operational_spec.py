@@ -135,6 +135,8 @@ MeasurementKind = Literal[
     "label_without_the_concept",
 ]
 
+TAKEN_FROM_A_READ = frozenset({"picked_from_a_cut_list", "picked_from_a_lookup"})
+
 
 class Measurement(CamelModel):
     """A count the site returned for another reading of one bound value, a
@@ -156,6 +158,13 @@ class Measurement(CamelModel):
     reading: str = ""
     unchosen: list[str] = Field(default_factory=list)
     unchosen_count: int = 0
+
+    @model_validator(mode="after")
+    def _a_pick_from_a_read_states_its_count(self) -> Measurement:
+        if self.kind in TAKEN_FROM_A_READ and self.count is None:
+            msg = f"a {self.kind} measurement states how many entries the pick took"
+            raise ValueError(msg)
+        return self
 
 
 class ParameterAlternatives(CamelModel):

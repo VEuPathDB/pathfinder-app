@@ -6,6 +6,7 @@ from veupathdb.domain.parameters import MultiPickValue, ParamValue
 
 from strategist.domain.count_words import counted
 from strategist.domain.strategy.operational_spec import (
+    TAKEN_FROM_A_READ,
     Criterion,
     Measurement,
     ValueSource,
@@ -79,22 +80,24 @@ def _worded(criterion: Criterion, m: Measurement, noun: str) -> str | None:
             return None
 
 
+def _took(name: str, taken: int, unchosen: int) -> str:
+    return f"{name} took {taken:,} of the {taken + unchosen:,} entries"
+
+
 def _cut(criterion: Criterion, m: Measurement) -> str | None:
     """The clause of a pick taken from a read: a list that showed part of what
     matched, a lookup, or a picked label that holds no word of the lookup."""
     name = criterion.display_name_of(m.param)
     matching = f"that match {m.reading}" if m.reading else "of its vocabulary"
-    taken = m.count or 0
-    of_the = f"{name} took {taken:,} of the {taken + m.unchosen_count:,} entries"
-    match m.kind:
-        case "picked_from_a_cut_list":
+    match m.kind, m.count:
+        case "picked_from_a_cut_list", int(taken):
             return (
-                f"{of_the} {matching}; the list it was picked from showed only "
-                f"part of them"
+                f"{_took(name, taken, m.unchosen_count)} {matching}; the list it "
+                "was picked from showed only part of them"
             )
-        case "picked_from_a_lookup":
-            return f"{of_the} {matching}"
-        case "label_without_the_concept":
+        case "picked_from_a_lookup", int(taken):
+            return f"{_took(name, taken, m.unchosen_count)} {matching}"
+        case "label_without_the_concept", _:
             return f"{name} took {m.label!r}, whose label holds no word of {m.reading}"
         case _:
             return None
@@ -173,7 +176,6 @@ def measurement_clauses(criterion: Criterion, *, noun: str) -> list[str]:
 
 
 # The kinds of a pick taken from a vocabulary read, shown whoever set the value.
-_TAKEN_FROM_A_READ = frozenset({"picked_from_a_cut_list", "picked_from_a_lookup"})
 # The label is the row's label, and a label gap is a caveat of its own.
 _SHOWN_ELSEWHERE = frozenset({"vocabulary_label", "label_without_the_concept"})
 
@@ -185,7 +187,7 @@ def read_pick_clauses(criterion: Criterion, param: str, *, noun: str) -> list[st
     return [
         _clause(criterion, m, noun)
         for m in criterion.measurements
-        if m.param == param and m.kind in _TAKEN_FROM_A_READ
+        if m.param == param and m.kind in TAKEN_FROM_A_READ
     ]
 
 
