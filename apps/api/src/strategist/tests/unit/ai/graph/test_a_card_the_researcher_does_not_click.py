@@ -23,6 +23,7 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.intent_gate import DECLINED_OFFER_REFUSAL
 from strategist.ai.lead.proposal import AddCriterionChange, DeclinedProposal
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import (
     CARD_REPLY,
     LEAD_FINAL,
@@ -79,7 +80,9 @@ async def _answered(
     """Park the turn on ``card``, then run the turn ``answer`` shapes."""
     calls: list[list[ModelMessage]] = []
     monkeypatch.setattr(
-        _lead_model, "get_mock_model", lambda: _carding_lead(*card, calls)
+        _lead_model,
+        "scripted",
+        scripted_with(model=lambda: _carding_lead(*card, calls)),
     )
     first = lead_state()
     parked = await drive_lead(
@@ -170,8 +173,10 @@ async def test_a_bare_yes_after_a_declined_offer_ends_on_the_refusal(
     calls: list[list[ModelMessage]] = []
     monkeypatch.setattr(
         _lead_model,
-        "get_mock_model",
-        lambda: _carding_lead("frame_problem", {"reason": "build it"}, calls),
+        "scripted",
+        scripted_with(
+            model=lambda: _carding_lead("frame_problem", {"reason": "build it"}, calls)
+        ),
     )
     state = lead_state()
     state.user_prompt = "yes, do it"

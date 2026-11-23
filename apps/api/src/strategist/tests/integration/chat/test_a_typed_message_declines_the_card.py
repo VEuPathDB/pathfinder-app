@@ -24,6 +24,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import FunctionModel
 
 from strategist.ai.graph import _lead_model
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.scripted_reading import read_as
 from strategist.tests.integration.chat._helpers import (
     chat_post_body,
@@ -152,7 +153,9 @@ async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
 ) -> None:
     seen: list[list[tuple[str, Any]]] = []
     read_as(monkeypatch, "edit_strategy")
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _card_lead(*card, seen))
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: _card_lead(*card, seen))
+    )
     conversation_id = uuid4()
     asked = await _turn(
         app, authed_user_id, in_memory_jobs, chat_post_body(conversation_id, ASK)
@@ -178,7 +181,9 @@ async def test_a_typed_yes_runs_the_card(
 ) -> None:
     seen: list[list[tuple[str, Any]]] = []
     read_as(monkeypatch, "edit_strategy")
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _card_lead(*CLEAR, seen))
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: _card_lead(*CLEAR, seen))
+    )
     conversation_id = uuid4()
     await _turn(
         app, authed_user_id, in_memory_jobs, chat_post_body(conversation_id, ASK)
@@ -216,7 +221,9 @@ async def test_a_preference_is_stored_only_after_the_researchers_yes(
     seen: list[list[tuple[str, Any]]] = []
     read_as(monkeypatch, "memory_request")
     monkeypatch.setattr(
-        _lead_model, "get_mock_model", lambda: _card_lead(*REMEMBER, seen)
+        _lead_model,
+        "scripted",
+        scripted_with(model=lambda: _card_lead(*REMEMBER, seen)),
     )
     conversation_id = uuid4()
     asked = await _turn(

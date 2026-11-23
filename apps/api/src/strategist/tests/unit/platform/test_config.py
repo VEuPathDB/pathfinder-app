@@ -6,6 +6,7 @@ import pytest
 from pydantic_settings import SettingsConfigDict
 from veupathdb.settings import DEFAULT_OAUTH_URL
 
+from strategist.platform import config
 from strategist.platform.config import Settings, TomlConfigSettingsSource
 from strategist.platform.provider_key_cipher import ProviderKeyCipher
 from strategist.tests._support.models import DEFAULT_MODEL
@@ -69,6 +70,23 @@ def test_mock_provider_is_rejected_outside_development() -> None:
         match="STRATEGIST_CHAT_PROVIDER=mock is only allowed",
     ):
         make_settings(api_env="production", strategist_chat_provider="mock")
+
+
+def test_the_mock_provider_needs_the_scripted_package(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "find_spec", lambda name: None)
+
+    with pytest.raises(ValueError, match="needs the strategist_scripted package"):
+        make_settings(strategist_chat_provider="mock")
+
+
+def test_the_default_provider_needs_no_scripted_package(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(config, "find_spec", lambda name: None)
+
+    assert make_settings(strategist_chat_provider="default").mock_provider is False
 
 
 def test_the_mock_provider_is_read_without_case_or_spaces() -> None:

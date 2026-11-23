@@ -19,12 +19,12 @@ from strategist.ai.audit.budget_stop import StopAtTheBudget
 from strategist.ai.audit.check_tools import CHECK_TOOL_NAMES, build_check_toolset
 from strategist.ai.audit.deps import AuditDeps
 from strategist.ai.audit.instructions import AUDITOR_INSTRUCTIONS
-from strategist.ai.audit.mock import build_audit_mock
 from strategist.ai.audit.reply import AuditReply
 from strategist.ai.audit.run_tools import READ_TOOL_NAMES, build_run_toolset
 from strategist.ai.audit.start_card import ask_about_the_audits
 from strategist.ai.audit.verdict_tool import record_gene_model_verdicts
 from strategist.ai.capabilities.site_reads import SiteReadFailures
+from strategist.ai.scripted import scripted
 from strategist.platform.identity import AUDIT_ASSISTANT_ID
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
 from strategist.platform.model_keys import is_mock_deployment, keyed_model
@@ -57,7 +57,7 @@ def charged_model_id() -> str:
 
 def _model() -> tuple[Model | str, ModelSettings | None]:
     if is_mock_deployment():
-        return build_audit_mock(), None
+        return scripted().auditor(), None
     model_id = auditor_model_id()
     config = deployment_role_config(AUDIT_ASSISTANT_ID, AUDITOR_ROLE)
     effort = None if config is None else config.reasoning_effort

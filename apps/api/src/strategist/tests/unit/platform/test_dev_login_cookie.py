@@ -9,7 +9,7 @@ import pytest
 from fastapi import Response
 
 from strategist.platform.config import get_settings
-from strategist.platform.security import set_dev_login_cookie
+from strategist_scripted.dev_login import set_dev_login_cookie
 
 _SCOPE = {"httponly": True, "path": "/strategist", "samesite": "lax"}
 

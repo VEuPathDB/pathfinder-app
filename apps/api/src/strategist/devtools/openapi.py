@@ -9,11 +9,10 @@ from pathlib import Path
 
 import yaml
 from assistant_core.platform.types import JSONObject
-from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from strategist.main import create_app
-from strategist.transport.http.routers import dev, dev_site_login
+from strategist.transport.http.routers.dev_site_login import DEV_ROUTE_PREFIX
 
 
 class DevRouteInSpecError(RuntimeError):
@@ -37,18 +36,12 @@ class _SpecPaths(BaseModel):
     paths: dict[str, JsonValue] = Field(default_factory=dict)
 
 
-def _dev_only_paths() -> frozenset[str]:
-    """The paths the dev routers mount, read from the routers themselves."""
-    return frozenset(
-        route.path
-        for router in (dev.router, dev_site_login.router)
-        for route in router.routes
-        if isinstance(route, APIRoute)
-    )
-
-
 def _refuse_dev_routes(spec: JSONObject) -> None:
-    named = sorted(set(_SpecPaths.model_validate(spec).paths) & _dev_only_paths())
+    named = sorted(
+        path
+        for path in _SpecPaths.model_validate(spec).paths
+        if path.startswith(f"{DEV_ROUTE_PREFIX}/")
+    )
     if named:
         raise DevRouteInSpecError(named)
 

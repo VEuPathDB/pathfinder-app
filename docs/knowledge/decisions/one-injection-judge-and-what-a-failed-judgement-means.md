@@ -19,7 +19,8 @@ the two boundaries never disagree about what an injection is.
 
 **The suite screens, and it screens with a model that answers in process.**
 Under `STRATEGIST_CHAT_PROVIDER=mock`, which the root `conftest.py` sets for the
-whole suite, the judge's model is a `FunctionModel` that answers
+whole suite, the judge's model is a `FunctionModel` (`strategist_scripted/judge.py`,
+which only tests and the e2e image contain) that answers
 `injection=true` for one text, `INJECTION_TEST_MARKER`, and `injection=false`
 for everything else. Every test message and every tool result crosses the
 boundary the deployment runs, no test downloads or loads anything, and no test

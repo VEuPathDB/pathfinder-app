@@ -1,8 +1,3 @@
-from __future__ import annotations
+from strategist.tests._support.scripted_flow import a_scripted_flow_reads_no_service
 
-from strategist.tests._support.decisions import answer_no_decisions
-from strategist.tests._support.universal_searches import (
-    serve_the_text_search_as_universal,
-)
-
-__all__ = ["answer_no_decisions", "serve_the_text_search_as_universal"]
+__all__ = ["a_scripted_flow_reads_no_service"]

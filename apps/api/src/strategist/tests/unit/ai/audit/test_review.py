@@ -24,7 +24,6 @@ from pydantic_ai.usage import RunUsage
 
 from strategist.ai.audit import review
 from strategist.ai.audit.instructions import LITERATURE_INSTRUCTIONS
-from strategist.ai.audit.mock import build_review_mock
 from strategist.ai.audit.retrievals import AuditRetrievalToolset
 from strategist.ai.audit.review import (
     OUT_OF_LIMITS,
@@ -47,6 +46,7 @@ from strategist.services.audit.finding_views import (
 )
 from strategist.services.audit.reviews import ReviewedRun
 from strategist.tests._support.audit_answers import PKAC_STRAIN_MODELS
+from strategist_scripted.audit.script import build_review_mock
 
 _GENOME = "Examplea alpha A"
 _GENE = "EXA_0001"

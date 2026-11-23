@@ -64,14 +64,14 @@ test helpers and its recorded wires, so it must be at the tag that
 
 # The sample run
 
-`apps/api/src/strategist/data/audit/sample_run.json` is a `SampleRun`
-(`services/audit/sample_run.py`): a finished plasmodb run of ten findings whose
+`apps/api/src/strategist_scripted/audit/sample_run.json` is a `SampleRun`
+(`strategist_scripted/audit/sample_run.py`): a finished plasmodb run of ten findings whose
 library results are the recorded values of `tests/_support/audit.py`,
 `audit_answers.py` and `audit_evidence.py`, with five reviews and a synthesis
 that name findings by their 1-based place. Build it from those values with
 `SampleRun(...).model_dump_json(by_alias=True, indent=2)`, never by hand.
 `store_sample_run` stores it for one person, and the mock-only route
-`POST /api/v1/dev/audits/sample` calls it for the Playwright flow.
+`POST /api/v1/dev/audits/sample` (`strategist_scripted/dev_routes.py`) calls it for the Playwright flow.
 
 `apps/web/src/features/audit/__fixtures__/sampleRun.json` is what the run, page
 and detail routes answer for the stored sample, with ids and times fixed.

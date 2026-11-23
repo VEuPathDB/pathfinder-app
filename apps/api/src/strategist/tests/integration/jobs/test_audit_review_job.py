@@ -24,7 +24,6 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from sqlalchemy import update
 
 from strategist.ai.audit import review
-from strategist.ai.capabilities.security import INJECTION_TEST_MARKER
 from strategist.domain.audit.verdicts import (
     ReviewAgreement,
     ReviewProgress,
@@ -73,6 +72,7 @@ from strategist.tests.integration.jobs._audit_reviews import (
     weighed,
     work_reviews,
 )
+from strategist_scripted.judge import INJECTION_TEST_MARKER
 
 _DOI = "10.1000/example.1"
 _PAGE = "https://example.org/paper"

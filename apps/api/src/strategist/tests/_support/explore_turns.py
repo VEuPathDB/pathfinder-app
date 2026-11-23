@@ -24,7 +24,6 @@ from strategist.ai.conversation._turn_helpers import _extract_chunk
 from strategist.ai.graph import explore_node
 from strategist.ai.graph.explore_node import make_explore_node
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
-from strategist.ai.models.mock.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 from strategist.domain.modes import EXPLORE_PHASE
 from strategist.services.experiment import reading_count, variant_comparison
 from strategist.tests._support.param_infos import sheet_of
@@ -32,6 +31,7 @@ from strategist.tests._support.record_classes import recorded_searches
 from strategist.tests._support.recorded_columns import recorded_body
 from strategist.tests._support.recorded_searches import serve_stated_reads
 from strategist.tests._support.run_context import turn_runtime
+from strategist_scripted.models.strategy_specs import GENE_TYPE, SIGNAL_PEPTIDE
 
 SITE = "plasmodb"
 GENE_TYPE_REPORT = "report_gene_type_protein_coding"

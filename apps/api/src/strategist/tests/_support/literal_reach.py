@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 PACKAGES = ("strategist", "veupathdb", "veupathdb_mcp", "assistant_core")
-SKIP_GLOBS = ("*/tests/*", "*/devtools/*", "*/ai/models/mock/*")
+SKIP_GLOBS = ("*/tests/*", "*/devtools/*")
 STATE_MODELS = "strategist.domain."
 GRAPH_NODES = "strategist.ai.graph."
 DURABLE_REGISTRATION = "assistant_core.tasks.declaration.register_durable_impl"

@@ -26,7 +26,6 @@ from strategist.ai.graph.turn_route import (
     route_request_for,
     strategy_line,
 )
-from strategist.ai.models.mock.route import scripted_route
 from strategist.domain.exchanges import Exchange
 from strategist.domain.strategy.session import StrategySession
 from strategist.tests.unit.ai.lead._budget_stop_turn import (
@@ -34,6 +33,7 @@ from strategist.tests.unit.ai.lead._budget_stop_turn import (
     TITLE,
     built_session,
 )
+from strategist_scripted.models.route import scripted_route
 
 REQ = route_request("Count genes with a signal peptide", conversation="", strategy="")
 

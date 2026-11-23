@@ -34,6 +34,7 @@ from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 
 RETIRE_TOOL = "retire_control_set"
@@ -336,12 +337,14 @@ def script_lead(
 ) -> None:
     monkeypatch.setattr(
         _lead_model,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name=tool_name,
-            tool_args={"reason": "scripted dispatch"},
-            final_args=LEAD_FINAL,
-            seen_prompts=seen_prompts,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name=tool_name,
+                tool_args={"reason": "scripted dispatch"},
+                final_args=LEAD_FINAL,
+                seen_prompts=seen_prompts,
+            )
         ),
     )
 

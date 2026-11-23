@@ -122,6 +122,6 @@ the list: `classify_user_intent` before a classification, `edit_strategy` when
 built left the building tools unlocked at the next turn's entry and "classify
 first, every turn" was unenforced. It was kept while the deterministic provider
 might not re-classify; its arcs classify once per turn now
-(`ai/models/mock/lead_flow.py::run_sequence`), and a turn that resumes a parked call
+(`strategist_scripted/models/lead_flow.py::run_sequence`), and a turn that resumes a parked call
 is the same turn by message id, so the turn-scoped marker costs no run a
 duplicate classification.

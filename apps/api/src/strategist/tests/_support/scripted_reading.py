@@ -7,6 +7,7 @@ import pytest
 from strategist.ai.graph import _lead_reading
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.intent import UserIntent
+from strategist.tests._support.scripted import scripted_with
 
 
 def read_as(
@@ -24,5 +25,5 @@ def read_as(
         del state, words
         return intent
 
-    monkeypatch.setattr(_lead_reading, "scripted_intent", _scripted)
+    monkeypatch.setattr(_lead_reading, "scripted", scripted_with(intent=_scripted))
     return intent

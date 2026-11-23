@@ -31,15 +31,12 @@ src/strategist/
                              #     nodes, stream events, lead-turn helpers
     lead/                    #   Lead agent, InvestigationLedger, sub-agent dispatch and tools,
                              #     case memory, intent gate, ledger rendering
-    models/                  #   Model catalog, tiers, per-provider settings, mock/
     prompts/                 #   Prompt templates and loader
     scratchpad/              #   Scratchpad tools, toolset, rendering, compactor
     tools/                   #   standalone/ (one module per tool family), toolsets/ (what each
                              #     role mounts), durable.py (@durable_tool)
     strategy_stream_parts.py eda_stream_parts.py stream_part_payloads.py   # The data-* parts Strategist emits and their payloads
     pricing.py               #   Per-1M-token price lookups for the Engine UI
-  data/seeds/                # Curated strategies and their control sets, read by the mock model
-                             #   and the live tests
   domain/                    # Pure domain logic this app owns (no I/O); the WDK-shaped half is veupathdb.domain
     conversation.py          #   Thread-level defaults the persistence layer and the services share
     eda.py eda_compute_config.py eda_parts.py eda_thread.py   # EDA predicates, compute-config checks, parts, thread state
@@ -78,8 +75,7 @@ src/strategist/
     eda/                     #   EDA study catalog, subsetting, compute, export
     eval.py                  #   Thesis evaluation: gold strategies and their gene ids
     eval_data/               #   Eval staging and promotion
-    experiment/              #   Experiment engine (evaluate), scored and variant comparisons,
-                             #     the seed catalog
+    experiment/              #   Experiment engine (evaluate), scored and variant comparisons
     export/                  #   Data export and its sweeper, incl. control downloads
     gene_sets/               #   Gene set store, import, delete, VDI publication
     parameter_optimization/  #   Parameter sweeps, scoring, builders
@@ -113,12 +109,19 @@ src/strategist/
         tiers.py             #     Model tier catalog
         user_data.py         #     User data deletion
         veupathdb_auth.py    #     VEuPathDB auth proxy
-        dev.py               #     Dev login (never written into the OpenAPI spec)
       schemas/               #   Pydantic request/response DTOs
       deps.py                #   FastAPI dependencies (auth, DB, site context)
       openapi.py             #   Spec post-passes
   devtools/                  # Developer CLIs (chat debugger, evals desk, openapi, WDK fixtures)
   tests/                     # Unit + integration tests
+
+src/strategist_scripted/     # The deterministic test model; only tests and the e2e image stage hold it
+  models/                    #   Strategist's script, one arc per turn shape
+  audit/                     #   The audit assistant's scripted auditor, reviewer and synthesis
+  judge.py decisions.py      #   The scripted injection judge and the no-decision transport
+  dev_routes.py              #   Dev login and the sample audit run, mounted only in a mock deployment
+  seeds/                     #   Curated strategies and their control sets (data/), read by the mock
+                             #     and the live tests, and their recorder (python -m strategist_scripted.seeds)
 ```
 
 ### Architecture overview

@@ -20,6 +20,7 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.ai.tools.toolsets import verification
 from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.streamed_model import streamed
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead.conftest import (
@@ -135,7 +136,9 @@ async def test_a_build_at_zero_verifies_and_answers_once(
     del collector
     deps = _zero_build_deps()
     journey = _LeadJourney()
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", _VerifyingSubAgent().model)
+    monkeypatch.setattr(
+        sub_agent_tools, "scripted", scripted_with(model=_VerifyingSubAgent().model)
+    )
 
     with pinned_sub_agent(
         monkeypatch,

@@ -94,6 +94,47 @@
   (its id, or its study or analysis name, even split across deltas) reads as not shared, and any
   other chunk that names it has the mark replaced. One predicate, `domain/account_datasets.py`,
   says which dataset is an upload.
+* **The chat debugger's mock run is a host run.** `--mock` needs `strategist_scripted`, which the dev api
+  image lacks, so `devtools/README.md` documents it on the host through the editable install. The
+  gene-list parser, which only the scripted model reads, moved to `strategist_scripted/gene_list.py`
+  beside the writer's shared prefix. The image test now refuses any production-stage COPY whose source
+  holds `src/strategist_scripted`. One autouse fixture (`tests/_support/scripted_flow.py`) answers no
+  decisions and serves the text search as universal wherever a conftest opts in.
+
+* **Production cannot mint a dev login.** `create_dev_login_token` and `set_dev_login_cookie` are
+  `strategist_scripted/dev_login.py`; the minter signs the same `SessionToken` through
+  `platform/security.py::encode_session_token`, which `create_user_token` also signs with. A test
+  refuses any production module that names a minter, the cookie setter or a `dev_login=True` claim.
+
+* **The dev routes ship only to tests.** `routers/dev.py`, `services/audit/sample_run.py` and its
+  JSON are `strategist_scripted/dev_routes.py` and `strategist_scripted/audit/sample_run.*`;
+  `create_app` mounts `scripted().dev_router` only in a mock deployment. The OpenAPI generator refuses
+  any path under `DEV_ROUTE_PREFIX` (`routers/dev_site_login.py`) instead of reading the routers.
+
+* **The seeds move with the scripted model.** `data/seeds/`, the seed catalog and types
+  (`services/experiment/seed/`), the organism marks and the recorder (`devtools/seeds.py`, now
+  `python -m strategist_scripted.seeds`) are `strategist_scripted/seeds/`; no runtime path read them.
+  `materialize_step_tree`, which only the recorder called, went with it.
+
+* **The mock leaves the strategist package.** `ai/models/mock/` is `strategist_scripted/models/` and
+  `ai/audit/mock*.py` is `strategist_scripted/audit/`; the tests of the script moved to
+  `tests/unit/scripted/models/`. import-linter forbids production code from importing the package,
+  and a test holds `platform/config.py` as the one file that names it. The seeds' organism marks
+  moved to `data/organism_params.json`. The literal-reach scan of the tool-name guard skips no
+  mock directory, since `strategist_scripted` is outside the packages it scans. See
+  [the mock model ships only to tests](decisions/the-mock-model-ships-only-to-tests.md).
+
+* **Production reaches the scripted model through one seam.** `strategist/ai/scripted.py::scripted()`
+  imports `strategist_scripted` by name and returns its `SCRIPTED`, one `ScriptedDeployment` record of
+  the stand-ins a mock deployment runs instead of a provider: the model, the intent, route and operator
+  readers, the no-decision transport, the injection judge and the three audit models. `Settings` refuses
+  `STRATEGIST_CHAT_PROVIDER=mock` when the package is not importable, so a mock deployment of the
+  production image fails at boot. The judge and the no-decision transport live in the package now.
+
+* **The e2e image stage adds the scripted model.** `apps/api/Dockerfile` names its stages: `runtime`
+  (the production image), `e2e` (`runtime` plus `src/strategist_scripted`), and a last `FROM runtime`,
+  so a build with no target ships no scripted model. `docker-compose.e2e.yml` and CI's e2e build name
+  `target: e2e`; a unit test reads the three files.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new

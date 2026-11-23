@@ -18,6 +18,7 @@ from veupathdb_mcp.catalog import (
     use_decisions_transport,
 )
 
+from strategist.ai.scripted import scripted
 from strategist.domain.provider_keys import provider_of
 from strategist.platform.config import get_settings
 from strategist.platform.model_keys import (
@@ -121,13 +122,10 @@ async def send_decision(request: DecisionRequest) -> DecisionResponse:
     return response
 
 
-async def _no_decision(request: DecisionRequest) -> DecisionResponse | None:
-    del request
-    return None
-
-
 def install_decisions_transport() -> None:
-    use_decisions_transport(_no_decision if is_mock_deployment() else send_decision)
+    use_decisions_transport(
+        scripted().decisions if is_mock_deployment() else send_decision
+    )
 
 
 __all__ = [

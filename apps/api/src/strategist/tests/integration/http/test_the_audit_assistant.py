@@ -16,7 +16,6 @@ from veupathdb_mcp.audit import GeneId, PseudogeneCallAudit
 
 from strategist.ai.audit.budget_stop import budget_stop_prose
 from strategist.ai.audit.check_tools import CHECK_TOOL_NAMES
-from strategist.ai.audit.mock import AUDITOR_GREETING
 from strategist.ai.audit.run_tools import START_TOOL
 from strategist.domain.audit.planning import START_LABEL
 from strategist.domain.audit.scope import AuditScope, SingleGeneTarget
@@ -53,6 +52,7 @@ from strategist.tests.integration.jobs._audit_jobs import (
     audit_jobs,
     registered,
 )
+from strategist_scripted.audit.script import AUDITOR_GREETING
 
 pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine",

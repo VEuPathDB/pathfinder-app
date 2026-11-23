@@ -27,6 +27,7 @@ from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.step_words import AddedSearch
 from strategist.tests._support.held_counts import session_holding
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import (
     LEAD_FINAL,
     Collector,
@@ -144,7 +145,7 @@ async def _built_turn_ending_on_a_card(
 ) -> tuple[list[list[ModelMessage]], Any]:
     seen: list[list[ModelMessage]] = []
     monkeypatch.setattr(
-        _lead_model, "get_mock_model", lambda: _card_turn(replies, seen)
+        _lead_model, "scripted", scripted_with(model=lambda: _card_turn(replies, seen))
     )
     state = _built_state()
     if waiting:
@@ -236,8 +237,8 @@ async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
     seen: list[list[ModelMessage]] = []
     monkeypatch.setattr(
         _lead_model,
-        "get_mock_model",
-        lambda: _card_beside_a_delete(POINTS_AT_THE_FACTS, seen),
+        "scripted",
+        scripted_with(model=lambda: _card_beside_a_delete(POINTS_AT_THE_FACTS, seen)),
     )
     state = _waiting_on_an_analysis(_built_state())
 
@@ -297,8 +298,8 @@ async def test_a_delete_beside_a_card_is_a_card_written_after_its_reply(
     seen: list[list[ModelMessage]] = []
     monkeypatch.setattr(
         _lead_model,
-        "get_mock_model",
-        lambda: _card_beside_a_delete(POINTS_AT_THE_FACTS, seen),
+        "scripted",
+        scripted_with(model=lambda: _card_beside_a_delete(POINTS_AT_THE_FACTS, seen)),
     )
     state = _built_state()
 
@@ -325,8 +326,8 @@ async def test_the_facts_are_written_once_before_the_reply_the_card_carries(
     seen: list[list[ModelMessage]] = []
     monkeypatch.setattr(
         _lead_model,
-        "get_mock_model",
-        lambda: _card_turn([POINTS_AT_THE_FACTS], seen),
+        "scripted",
+        scripted_with(model=lambda: _card_turn([POINTS_AT_THE_FACTS], seen)),
     )
     state = _built_state()
     state.turn_markers.record_gene_set(

@@ -22,6 +22,7 @@ from strategist.ai.graph._lead_capture import LeadRunCapture
 from strategist.ai.graph.lead_node import _drive_lead_stream
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.lead_agent import build_lead_agent
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import Collector, scripted_model
 from strategist.tests.unit.ai.lead.conftest import lead_deps
 
@@ -59,7 +60,7 @@ def _first_request_content(monkeypatch: pytest.MonkeyPatch) -> Any:
         )
 
     model = scripted_model(_answer)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: model))
     state = _state()
     emitted: Any = Collector()
     asyncio.run(

@@ -17,7 +17,6 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from sqlalchemy import update
 
 from strategist.ai.audit import review
-from strategist.ai.audit.mock import MOCK_SYNTHESIS_MODEL_ID, build_synthesis_mock
 from strategist.ai.audit.synthesis import NO_FINDING_KEPT
 from strategist.domain.audit.verdicts import (
     FindingReview,
@@ -49,6 +48,10 @@ from strategist.tests.integration.jobs._audit_reviews import (
     spent_tokens,
     weighed,
     work_reviews,
+)
+from strategist_scripted.audit.script import (
+    MOCK_SYNTHESIS_MODEL_ID,
+    build_synthesis_mock,
 )
 
 pytestmark = pytest.mark.usefixtures("site_login_names_the_user")

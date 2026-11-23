@@ -23,6 +23,7 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.verify_dispatch import run_verification
 from strategist.ai.tools.toolsets import verification
 from strategist.tests._support.instructions import pinned_instructions
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead.conftest import (
     final_result_part,
@@ -98,7 +99,7 @@ async def _classified(prompt: str) -> LeadDeps:
 
 async def _verify_instructions(monkeypatch: pytest.MonkeyPatch, deps: LeadDeps) -> str:
     script = _Instructions()
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", script.model)
+    monkeypatch.setattr(sub_agent_tools, "scripted", scripted_with(model=script.model))
     with pinned_sub_agent(
         monkeypatch,
         "verification",

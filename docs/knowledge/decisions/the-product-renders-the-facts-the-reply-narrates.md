@@ -218,6 +218,6 @@ and the facts part come from one `TurnFacts`; `tests/unit/ai/lead/test_a_failed_
 `tests/unit/ai/lead/test_the_facts_hold_the_thread.py` the counts before an edit, the sources by
 step and the resolved genes; `tests/unit/ai/lead/test_the_turn_shows_its_facts.py` the builder;
 `tests/unit/ai/graph/test_the_facts_are_written_before_the_reply.py` the order on the wire; and
-`tests/unit/ai/models/test_mock_replies_meet_the_contract.py` every mock arc's note. A live note
+`tests/unit/scripted/models/test_mock_replies_meet_the_contract.py` every mock arc's note. A live note
 that spells a name out or restates a count the facts part shows proves the instruction is not
 followed.

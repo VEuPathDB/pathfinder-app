@@ -20,6 +20,11 @@ The dev stack is unchanged. `docker compose --env-file .env.dev up` still
 builds the `dev` target and still runs plain `next dev`, which
 [the Turbopack decision](the-dev-server-runs-turbopack.md) settled.
 
+The api and the worker build the `e2e` stage of `apps/api/Dockerfile`: the
+production stage plus `strategist_scripted`, the scripted model a mock
+deployment runs. CI builds the same target. The production stage is the last
+stage, so a build that names no target (Jenkins) carries no scripted model.
+
 # What was measured
 
 The same container, on the same tree, under the two targets:

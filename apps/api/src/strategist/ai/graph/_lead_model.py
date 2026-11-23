@@ -14,7 +14,7 @@ from assistant_core.models.settings import baked_model_id, build_model_settings
 from assistant_core.platform.types import ReasoningEffort
 
 from strategist.ai.lead.lead_agent import LeadAgent
-from strategist.ai.models.mock import get_mock_model
+from strategist.ai.scripted import scripted
 from strategist.platform.config import get_settings
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.platform.model_keys import is_mock_deployment, keyed_model
@@ -43,7 +43,7 @@ def resolve_lead_model_context(
     effort it runs at."""
     if is_mock_deployment():
         return LeadModelContext(
-            override=agent.override(model=get_mock_model()),
+            override=agent.override(model=scripted().model()),
             model_id="mock:lead",
             reasoning_effort=None,
         )

@@ -26,7 +26,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKLoginRequiredError
 
-from strategist.platform.config import BASE_PATH, get_settings
+from strategist.platform.config import get_settings
 from strategist.platform.error_handlers import problem_response
 from strategist.platform.errors import (
     ErrorCode,
@@ -41,24 +41,12 @@ _JWT_DECODE_OPTIONS: Options = {"require": ["exp", "sub"]}
 
 # The synthetic user of a mock stack, which has no VEuPathDB account to sign in.
 DEV_LOGIN_COOKIE = "strategist-dev-login"
-_DEV_LOGIN_COOKIE_PATH = BASE_PATH
 
 # A request proves who it is with the website's login, a Strategist bearer token,
 # or a VEuPathDB bearer token; the service-token header names the caller instead.
 dev_login_cookie = APIKeyCookie(name=DEV_LOGIN_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
 service_token_header = APIKeyHeader(name=SERVICE_AUTH_HEADER, auto_error=False)
-
-
-def set_dev_login_cookie(response: Response, token: str) -> None:
-    response.set_cookie(
-        key=DEV_LOGIN_COOKIE,
-        value=token,
-        path=_DEV_LOGIN_COOKIE_PATH,
-        httponly=True,
-        samesite="lax",
-        secure=not get_settings().is_development,
-    )
 
 
 class SessionToken(BaseModel):
@@ -220,7 +208,7 @@ async def get_current_user(
     return principal.user_id
 
 
-def _encode(claims: SessionToken, expires_in: int) -> str:
+def encode_session_token(claims: SessionToken, expires_in: int) -> str:
     payload = claims.model_dump(by_alias=True, mode="json")
     payload["exp"] = int(time.time()) + expires_in
     return jwt.encode(
@@ -235,15 +223,7 @@ def create_user_token(user_id: UUID, expires_in: int = 86400) -> str:
 
     :param expires_in: Token lifetime in seconds.
     """
-    return _encode(SessionToken(sub=user_id), expires_in)
-
-
-def create_dev_login_token(user_id: UUID, expires_in: int = 86400) -> str:
-    """Create a signed JWT for a synthetic user with no VEuPathDB account.
-
-    The dev-login route is the only caller; it mounts under the mock overlay.
-    """
-    return _encode(SessionToken(sub=user_id, dev_login=True), expires_in)
+    return encode_session_token(SessionToken(sub=user_id), expires_in)
 
 
 _CSRF_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})

@@ -145,7 +145,7 @@ interface SeedEntry {
   step_tree?: unknown;
 }
 
-const SEEDS_DIR = path.resolve("../api/src/strategist/data/seeds");
+const SEEDS_DIR = path.resolve("../api/src/strategist_scripted/seeds/data");
 
 function seedsOf(siteId: string): SeedEntry[] {
   const file = path.join(SEEDS_DIR, `${siteId}.json`);

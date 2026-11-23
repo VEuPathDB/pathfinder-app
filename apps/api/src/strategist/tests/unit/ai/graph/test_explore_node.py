@@ -7,11 +7,6 @@ from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 
 from strategist.ai.lead.lead_memory_tools import ask_about_the_preferences
-from strategist.ai.models.mock.explore_arc import (
-    NO_READING,
-    ONE_READING,
-    READINGS_REPLY,
-)
 from strategist.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from strategist.tests._support.explore_turns import (
     EXPLORE_PROMPT,
@@ -32,6 +27,11 @@ from strategist.tests._support.explore_turns import (
     update_of,
 )
 from strategist.tests._support.recorded_counts import recorded_count
+from strategist_scripted.models.explore_arc import (
+    NO_READING,
+    ONE_READING,
+    READINGS_REPLY,
+)
 
 
 @pytest.fixture

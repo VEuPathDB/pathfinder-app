@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 from assistant_core.graph.turn_state import DurableTaskResult
 
-from strategist.ai.models.mock.explore_arc import NO_READING
 from strategist.ai.tools.standalone.eda_statistics import EDA_PCA
 from strategist.ai.tools.standalone.optimization import PARAMETER_SWEEP
 from strategist.tests._support.durable_answers import PCA_RESULT, SWEEP_RESULT
@@ -19,6 +18,7 @@ from strategist.tests._support.explore_turns import (
     run_explore,
     update_of,
 )
+from strategist_scripted.models.explore_arc import NO_READING
 
 
 @pytest.fixture

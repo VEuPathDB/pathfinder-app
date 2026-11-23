@@ -40,7 +40,6 @@ from strategist.tests._support.tool_names import (
 )
 
 _PYPROJECT = Path(__file__).resolve().parents[5] / "pyproject.toml"
-_MOCK = "strategist.ai.models.mock"
 _DISPATCH_KEYWORDS = frozenset({"work_order", "ledger_summary"})
 
 
@@ -184,8 +183,7 @@ def test_every_skip_glob_matches_a_file_and_hides_no_reached_module() -> None:
     reached_hidden = sorted(
         name
         for name in hidden
-        if not (name == _MOCK or name.startswith(f"{_MOCK}."))
-        and any(ref == name or ref.startswith(f"{name}.") for ref in referenced)
+        if any(ref == name or ref.startswith(f"{name}.") for ref in referenced)
     )
 
     assert [g for g in SKIP_GLOBS if not fnmatch.filter(files, g)] == []

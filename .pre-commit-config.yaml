@@ -23,7 +23,7 @@ repos:
         stages: [manual]
       - id: pyright-api
         name: pyright (api)
-        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run pyright src/strategist"
+        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run pyright src/strategist src/strategist_scripted"
         language: system
         pass_filenames: false
         types: [python]

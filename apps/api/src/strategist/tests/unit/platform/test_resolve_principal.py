@@ -14,11 +14,11 @@ from veupathdb.errors import WDKLoginRequiredError
 from strategist.platform.config import get_settings
 from strategist.platform.errors import UnauthorizedError
 from strategist.platform.security import (
-    create_dev_login_token,
     create_user_token,
     decode_user_id,
     resolve_principal,
 )
+from strategist_scripted.dev_login import create_dev_login_token
 
 SERVICE_SECRET = "analytics-service-secret-0123456789"
 

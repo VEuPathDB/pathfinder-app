@@ -10,12 +10,12 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
 from strategist.ai.capabilities import security
-from strategist.ai.capabilities.security import INJECTION_TEST_MARKER
 from strategist.platform.security import create_user_token
 from strategist.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
 )
+from strategist_scripted.judge import INJECTION_TEST_MARKER
 
 _OUTAGE = "the model provider timed out at 127.0.0.1"
 

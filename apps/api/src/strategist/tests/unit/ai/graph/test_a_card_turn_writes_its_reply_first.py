@@ -14,6 +14,7 @@ from pydantic_ai.messages import (
 
 from strategist.ai.graph import _lead_model
 from strategist.ai.lead.proposal import PROPOSAL_TOOL
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import (
     Collector,
     drive_lead,
@@ -63,7 +64,7 @@ async def _parked(
 ) -> list[list[ModelMessage]]:
     seen: list[list[ModelMessage]] = []
     monkeypatch.setattr(
-        _lead_model, "get_mock_model", lambda: _proposing(replies, seen)
+        _lead_model, "scripted", scripted_with(model=lambda: _proposing(replies, seen))
     )
     state = lead_state()
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)

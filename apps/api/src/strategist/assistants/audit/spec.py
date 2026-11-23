@@ -13,9 +13,9 @@ from assistant_core.graph.turn_state import TurnState
 from assistant_core.spec import AssistantSpec, TurnStart
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
+from pydantic_ai.models import Model
 
 from strategist.ai.audit.auditor import AUDITOR_LIMITS, build_auditor_agent
-from strategist.ai.audit.mock import build_audit_mock
 from strategist.ai.audit.reply import AuditReply, reply_text
 from strategist.ai.audit.stream_parts import register_audit_stream_parts
 from strategist.ai.audit.turn import (
@@ -24,6 +24,7 @@ from strategist.ai.audit.turn import (
     build_turn_context,
     charge_usage,
 )
+from strategist.ai.scripted import scripted
 from strategist.platform.identity import AUDIT_ASSISTANT_ID
 from strategist.platform.tool_sources import RESEARCH_TOOL_SOURCE
 from strategist.services.wdk_identity import require_registered_wdk_login
@@ -50,13 +51,17 @@ def build_audit_graph(
     )
 
 
+def _scripted_auditor() -> Model:
+    return scripted().auditor()
+
+
 def build_audit_spec() -> AssistantSpec:
     return AssistantSpec(
         assistant_id=AUDIT_ASSISTANT_ID,
         build_graph=build_audit_graph,
         build_initial_state=build_initial_state,
         build_turn_context=build_turn_context,
-        build_mock_model=build_audit_mock,
+        build_mock_model=_scripted_auditor,
         register_stream_parts=register_audit_stream_parts,
         identity_gate=require_registered_wdk_login,
         tool_sources=(RESEARCH_TOOL_SOURCE,),

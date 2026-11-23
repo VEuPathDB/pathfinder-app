@@ -23,6 +23,7 @@ from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.session import StrategySession
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import Collector
 
 _PROMPT = "Which genes are upregulated after a blood meal? [[arc:echo]]"
@@ -89,7 +90,9 @@ def test_the_lead_run_reads_the_turn_site_and_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seen: list[tuple[str, str]] = []
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _recording(seen))
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: _recording(seen))
+    )
 
     asyncio.run(_turn("vectorbase", seen))
 

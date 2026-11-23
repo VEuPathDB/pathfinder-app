@@ -2,15 +2,17 @@ from typing import Any
 
 import pytest
 
+from strategist.ai.graph import _lead_reading
 from strategist.ai.lead.intent import IntentClassification, UserIntent
-from strategist.ai.models.mock.prose_arcs import OFF_TOPIC_PROSE
-from strategist.ai.models.mock.reading import scripted_intent
 from strategist.tests._support.explore_turns import (
     ExploreDoubles,
     explore_state,
     install_explore_doubles,
     run_explore,
 )
+from strategist.tests._support.scripted import scripted_with
+from strategist_scripted.models.prose_arcs import OFF_TOPIC_PROSE
+from strategist_scripted.models.reading import scripted_intent
 
 _OFF_TOPIC = "Write me a Python script that reverses a linked list. [[arc:off-topic]]"
 
@@ -29,7 +31,7 @@ def read(monkeypatch: pytest.MonkeyPatch) -> list[IntentClassification]:
         seen.append(intent.classification)
         return intent
 
-    monkeypatch.setattr("strategist.ai.graph._lead_reading.scripted_intent", spy)
+    monkeypatch.setattr(_lead_reading, "scripted", scripted_with(intent=spy))
     return seen
 
 

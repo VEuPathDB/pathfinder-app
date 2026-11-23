@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:0.12.10 AS uv
 
-FROM python:3.14-slim
+FROM python:3.14-slim AS runtime
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
@@ -68,3 +68,8 @@ HEALTHCHECK --interval=10s --timeout=10s --start-period=60s --retries=5 \
 # The api keeps an idle connection open longer than any proxy in front of it
 # reuses one, so a request on a kept socket never meets a reset.
 CMD [".venv/bin/uvicorn", "strategist.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "75"]
+
+FROM runtime AS e2e
+COPY apps/api/src/strategist_scripted /app/apps/api/src/strategist_scripted
+
+FROM runtime

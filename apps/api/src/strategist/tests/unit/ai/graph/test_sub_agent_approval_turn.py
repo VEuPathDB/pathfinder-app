@@ -10,6 +10,7 @@ from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 
 from strategist.ai.graph import _lead_model
 from strategist.ai.lead import sub_agent_tools
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import (
     RECOVERY_FINAL,
     RETIRE_ARGS,
@@ -41,11 +42,13 @@ async def test_the_turn_ends_deferred_on_the_sub_agents_approval(
     script_lead(monkeypatch, "verify_strategy")
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name=RETIRE_TOOL,
-            tool_args=RETIRE_ARGS,
-            final_args=VERIFICATION_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name=RETIRE_TOOL,
+                tool_args=RETIRE_ARGS,
+                final_args=VERIFICATION_FINAL,
+            )
         ),
     )
     state = lead_state()
@@ -89,11 +92,13 @@ async def test_the_answer_finishes_the_sub_agent_and_the_lead_replies(
     script_lead(monkeypatch, "recover_failed_steps")
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name="delete_step",
-            tool_args={"step_id": "s2"},
-            final_args=RECOVERY_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name="delete_step",
+                tool_args={"step_id": "s2"},
+                final_args=RECOVERY_FINAL,
+            )
         ),
     )
     state = lead_state()
@@ -151,11 +156,13 @@ async def test_an_answer_naming_the_dispatch_call_still_answers_the_tool(
     script_lead(monkeypatch, "recover_failed_steps")
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name="delete_step",
-            tool_args={"step_id": "s2"},
-            final_args=RECOVERY_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name="delete_step",
+                tool_args={"step_id": "s2"},
+                final_args=RECOVERY_FINAL,
+            )
         ),
     )
     state = lead_state()
@@ -193,7 +200,9 @@ async def test_a_second_approval_defers_the_turn_again(
     deleted_step_ids: list[str],
 ) -> None:
     script_lead(monkeypatch, "recover_failed_steps")
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", two_delete_model)
+    monkeypatch.setattr(
+        sub_agent_tools, "scripted", scripted_with(model=two_delete_model)
+    )
     state = lead_state()
     deps = lead_deps(state)
     first = await drive_lead(state=state, deps=deps, writer=writer)
@@ -237,11 +246,13 @@ async def test_a_turn_with_no_answer_never_re_runs_the_dispatch(
     script_lead(monkeypatch, "recover_failed_steps")
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name="delete_step",
-            tool_args={"step_id": "s2"},
-            final_args=RECOVERY_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name="delete_step",
+                tool_args={"step_id": "s2"},
+                final_args=RECOVERY_FINAL,
+            )
         ),
     )
     state = lead_state()
@@ -276,14 +287,18 @@ async def test_a_consult_beside_a_dispatch_loses_neither(
 ) -> None:
     """A response that defers both a consult and a dispatch: the sub-agent's
     approval is the pending one, and the consult answer still lands."""
-    monkeypatch.setattr(_lead_model, "get_mock_model", consult_and_dispatch_model)
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=consult_and_dispatch_model)
+    )
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name="delete_step",
-            tool_args={"step_id": "s2"},
-            final_args=RECOVERY_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name="delete_step",
+                tool_args={"step_id": "s2"},
+                final_args=RECOVERY_FINAL,
+            )
         ),
     )
     state = lead_state()

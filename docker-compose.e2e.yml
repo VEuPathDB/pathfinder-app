@@ -32,6 +32,8 @@ services:
   api:
     image: strategist-e2e-api:ci
     pull_policy: never
+    build:
+      target: e2e
     environment:
       API_ENV: test
       STRATEGIST_CHAT_PROVIDER: mock
@@ -56,6 +58,8 @@ services:
   worker:
     image: strategist-e2e-api:ci
     pull_policy: never
+    build:
+      target: e2e
     environment:
       API_ENV: test
       STRATEGIST_CHAT_PROVIDER: mock

@@ -25,7 +25,6 @@ from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import LeadResponse
-from strategist.ai.models.mock import get_mock_model
 from strategist.ai.tools.standalone import step_ids
 from strategist.ai.tools.standalone._sample_page import SampledRecords
 from strategist.domain.strategy.operational_spec import OperationalSpec
@@ -35,6 +34,7 @@ from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.classed_strategy import classed_strategy
 from strategist.tests._support.qa_recording import needs_suite_recordings
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from strategist_scripted.models import get_mock_model
 
 # The 5,850-gene union of a trichdb strategy, read five genes at a time.
 _UNION_STEP = 441173103

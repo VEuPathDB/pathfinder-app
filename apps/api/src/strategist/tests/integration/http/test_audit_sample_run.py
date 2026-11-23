@@ -13,12 +13,12 @@ from veupathdb_mcp.audit import INTRON_STORE_READS
 
 from strategist.platform.config import get_settings
 from strategist.platform.errors import ForbiddenError
-from strategist.services.audit import sample_run
-from strategist.services.audit.sample_run import SampleRunIds, store_sample_run
 from strategist.services.audit.views import list_runs
 from strategist.tests._support.audit import seed_thread
 from strategist.tests.integration.http.conftest import client_for
-from strategist.transport.http.routers import dev
+from strategist_scripted import dev_routes
+from strategist_scripted.audit import sample_run
+from strategist_scripted.audit.sample_run import SampleRunIds, store_sample_run
 
 pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine", "db_cleaner", "site_login_names_the_user"
@@ -174,7 +174,7 @@ async def test_the_sample_route_refuses_outside_mock_mode(
     monkeypatch.setattr(get_settings(), "strategist_chat_provider", "openai")
 
     with pytest.raises(ForbiddenError, match="Only available in mock mode"):
-        await dev.store_sample_audit_run(user)
+        await dev_routes.store_sample_audit_run(user)
 
 
 async def test_a_sample_that_fails_partway_stores_nothing(

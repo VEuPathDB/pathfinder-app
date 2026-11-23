@@ -27,6 +27,7 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.session import StrategySession
 from strategist.tests._support.database import no_database
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import Collector
 
 
@@ -76,7 +77,9 @@ async def _turn_that_built_then_raised(
         state=working, intent=None, runtime=_context(state), retrieved_memories=[]
     )
     deps.state.record_build(BuildOutcome(pushed_step_ids=["step_a"]))
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _raising_model(error))
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: _raising_model(error))
+    )
     capture = LeadRunCapture()
     writer: Any = Collector()
     await _drive_lead_stream(

@@ -49,7 +49,7 @@ asks to be told, each stated and withdrawn requirement with its quote, the asks 
 named ids.
 
 A mock deployment reads no message: each arc of the scripted model declares the intent its
-messages carry (`ai/models/mock/reading.py::scripted_intent`).
+messages carry (`strategist_scripted/models/reading.py::scripted_intent`).
 
 # Why
 

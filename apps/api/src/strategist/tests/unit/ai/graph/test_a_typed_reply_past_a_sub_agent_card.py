@@ -6,6 +6,7 @@ import pytest
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 
 from strategist.ai.lead import sub_agent_tools
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import (
     RECOVERY_FINAL,
     Collector,
@@ -37,11 +38,13 @@ async def test_a_typed_denial_denies_the_tool_and_reaches_the_lead(
     script_lead(monkeypatch, "recover_failed_steps", seen_prompts)
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name="delete_step",
-            tool_args={"step_id": "s2"},
-            final_args=RECOVERY_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name="delete_step",
+                tool_args={"step_id": "s2"},
+                final_args=RECOVERY_FINAL,
+            )
         ),
     )
     state = lead_state()
@@ -81,11 +84,13 @@ async def test_a_typed_approval_runs_the_tool_and_delivers_no_prompt(
     script_lead(monkeypatch, "recover_failed_steps", seen_prompts)
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: one_call_model(
-            tool_name="delete_step",
-            tool_args={"step_id": "s2"},
-            final_args=RECOVERY_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: one_call_model(
+                tool_name="delete_step",
+                tool_args={"step_id": "s2"},
+                final_args=RECOVERY_FINAL,
+            )
         ),
     )
     state = lead_state()
@@ -123,7 +128,9 @@ async def test_a_click_after_a_typed_reply_delivers_no_stale_text(
     so answering that one carries no leftover message."""
     seen_prompts: list[str] = []
     script_lead(monkeypatch, "recover_failed_steps", seen_prompts)
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", two_delete_model)
+    monkeypatch.setattr(
+        sub_agent_tools, "scripted", scripted_with(model=two_delete_model)
+    )
     state = lead_state()
     first = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
     pending = first.pending_approval

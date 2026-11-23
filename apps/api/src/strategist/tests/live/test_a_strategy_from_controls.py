@@ -34,7 +34,7 @@ from strategist.domain.separation import (
 from strategist.domain.strategy.spec_tree import build_step_tree
 from strategist.platform.identity import SEPARATION_STRATEGY_NAME
 from strategist.services.evidence.separation import separate_controls
-from strategist.services.experiment.seed.catalog import get_seeds_for_site
+from strategist_scripted.seeds.catalog import get_seeds_for_site
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

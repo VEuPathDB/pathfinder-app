@@ -35,6 +35,7 @@ from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.session import StrategySession
 from strategist.domain.turn_facts import UNVERIFIED_BUILD, TurnFacts
 from strategist.services.strategies.context import StrategyMutationContext
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.scripted_reading import read_as
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.graph._approval_turn import Collector, scripted_model
@@ -121,8 +122,12 @@ def test_a_check_whose_answer_is_out_of_shape_ends_in_the_leads_reply(
 ) -> None:
     lead_model = scripted_model(_build_verify_then_reply)
     read_as(monkeypatch, "extend_strategy")
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", _misshapen_verifier)
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: lead_model)
+    )
+    monkeypatch.setattr(
+        sub_agent_tools, "scripted", scripted_with(model=_misshapen_verifier)
+    )
     monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _push)
     monkeypatch.setattr(
         sub_agent_dispatch, "import_gene_set_for_conversation", _no_gene_set
@@ -175,7 +180,9 @@ def test_a_reply_out_of_shape_every_time_ends_on_the_turns_facts(
 ) -> None:
     lead_model = scripted_model(_build_then_reply_out_of_shape)
     read_as(monkeypatch, "extend_strategy")
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: lead_model)
+    )
     monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _push)
     monkeypatch.setattr(
         sub_agent_dispatch, "import_gene_set_for_conversation", _no_gene_set
@@ -237,7 +244,9 @@ def test_another_model_fault_of_the_lead_ends_on_the_error(
         _empty, stream_function=_empty_streamed, model_name="scripted"
     )
     read_as(monkeypatch, "extend_strategy")
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: lead_model)
+    )
     writer = Collector()
     state = _framed_state()
     deps = _deps(state, StrategySession(site_id=SITE_ID))

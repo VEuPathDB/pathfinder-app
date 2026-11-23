@@ -162,7 +162,7 @@ refused. None reads a value against the published sheet.
 
 # A seed keeps WDK's wire value
 
-The curated strategies under `data/seeds/` store the wire value WDK would send,
+The curated strategies under `strategist_scripted/seeds/data/` store the wire value WDK would send,
 read by `from_wire` for the parameter's kind. A seed is not a model statement,
 so it is not read by `stated_reading`. A test reads every seed value of a
 recorded declaration through it and finds no refusal.
@@ -217,6 +217,6 @@ Guarded by `tests/unit/ai/tools/test_a_tool_reads_native_values.py`,
 `tests/unit/ai/tools/test_an_edit_reads_under_the_steps_own_values.py`,
 `tests/unit/ai/tools/test_a_dataset_parameter_takes_typed_ids.py`,
 `tests/unit/ai/capabilities/test_a_value_error_asks_for_no_wrapper.py`,
-`tests/unit/services/experiment/test_a_seed_value_reads_by_its_parameter.py`,
+`tests/unit/scripted/seeds/test_a_seed_value_reads_by_its_parameter.py`,
 `tests/unit/transport/test_a_list_of_ids_is_saved_as_a_dataset.py` and
 `tests/integration/http/test_a_dataset_is_saved_through_the_site_route.py`.

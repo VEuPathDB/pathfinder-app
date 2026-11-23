@@ -52,6 +52,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.session import StrategySession
 from strategist.services.strategies.context import StrategyMutationContext
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.scripted_reading import read_as
 from strategist.tests._support.site_checks import checked_site
 from strategist.tests._support.sub_agents import pinned_sub_agent
@@ -166,7 +167,7 @@ def _drive(
 ) -> tuple[LeadRunCapture, Collector]:
     read_as(monkeypatch, classification)
     model = _read_then_answer()
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: model))
     state = _state()
     capture = LeadRunCapture()
     writer = Collector()
@@ -304,8 +305,12 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
     )
     read_as(monkeypatch, "extend_strategy")
     lead_model = scripted_model(_build_then_verify)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", _objecting_verifier)
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: lead_model)
+    )
+    monkeypatch.setattr(
+        sub_agent_tools, "scripted", scripted_with(model=_objecting_verifier)
+    )
     checked_site(monkeypatch, [_OBJECTED])
     monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _push)
     monkeypatch.setattr(

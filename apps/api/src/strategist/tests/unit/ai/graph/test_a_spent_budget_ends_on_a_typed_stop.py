@@ -33,6 +33,7 @@ from strategist.tests._support.explore_turns import (
     install_explore_doubles,
     run_explore,
 )
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.scripted_reading import read_as
 from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.graph._approval_turn import (
@@ -89,8 +90,8 @@ def _explored(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
 def _lead_reply(monkeypatch: pytest.MonkeyPatch) -> str:
     monkeypatch.setattr(
         _lead_model,
-        "get_mock_model",
-        lambda: scripted_model(_mistyped_then_answered),
+        "scripted",
+        scripted_with(model=lambda: scripted_model(_mistyped_then_answered)),
     )
     writer: Any = Collector()
     state = _framed_state()
@@ -127,7 +128,9 @@ async def test_an_explore_tool_mistyped_on_every_call_never_stops_the_turn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     doubles = install_explore_doubles(monkeypatch)
-    monkeypatch.setattr(explore_model, "get_mock_model", lambda: streamed(_explored))
+    monkeypatch.setattr(
+        explore_model, "scripted", scripted_with(model=lambda: streamed(_explored))
+    )
 
     await run_explore(explore_state(EXPLORE_PROMPT))
 

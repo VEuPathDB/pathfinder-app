@@ -27,6 +27,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.site_counts import SiteCounts
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.fixtures.builders import add_step_to_graph
 from strategist.tests.unit.ai.lead.conftest import (
@@ -130,7 +131,9 @@ async def _verify(monkeypatch: pytest.MonkeyPatch, deps: LeadDeps) -> Verificati
     monkeypatch.setattr(verify_checks, "read_site_strategy", _strategy)
     monkeypatch.setattr(evidence_card, "read_step_counts", _counts)
     monkeypatch.setattr(
-        sub_agent_tools, "get_mock_model", lambda: final_result_model(_CHECKED)
+        sub_agent_tools,
+        "scripted",
+        scripted_with(model=lambda: final_result_model(_CHECKED)),
     )
     with pinned_sub_agent(
         monkeypatch,

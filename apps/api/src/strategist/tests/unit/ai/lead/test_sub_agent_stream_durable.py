@@ -42,6 +42,7 @@ from strategist.tests._support.saved_controls import (
     saved_set,
     serve_saved_controls,
 )
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -244,8 +245,12 @@ async def _drive(
 
 @pytest.fixture
 def scripted(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(_lead_model, "get_mock_model", _lead_calls_verify)
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", _two_controls_and_a_peek)
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=_lead_calls_verify)
+    )
+    monkeypatch.setattr(
+        sub_agent_tools, "scripted", scripted_with(model=_two_controls_and_a_peek)
+    )
     serve_saved_controls(
         monkeypatch, experiment, saved_set(["PF3D7_0100100", "PF3D7_0200100"])
     )

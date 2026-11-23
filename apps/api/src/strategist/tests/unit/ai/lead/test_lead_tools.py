@@ -19,8 +19,6 @@ from strategist.ai.lead.lead_tools import clear_strategy
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import LeadResponse
-from strategist.ai.models.mock import get_mock_model
-from strategist.ai.models.mock.kept_arcs import SAVED_GENE_SET_NAME
 from strategist.ai.tools.standalone import export, gene_record, gene_sets
 from strategist.ai.tools.standalone.conversation_models import ClearStrategyResult
 from strategist.ai.tools.toolsets import execution
@@ -41,6 +39,8 @@ from strategist.tests.unit.ai.lead.conftest import (
     session_with_one_step,
 )
 from strategist.tests.unit.ai.tools.conftest import unwrap_function_toolset
+from strategist_scripted.models import get_mock_model
+from strategist_scripted.models.kept_arcs import SAVED_GENE_SET_NAME
 
 
 def _flat(text: str) -> str:

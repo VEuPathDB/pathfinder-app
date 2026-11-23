@@ -41,6 +41,7 @@ from veupathdb_mcp.strategy_line import install_strategy_line
 from strategist import __version__
 from strategist.ai.capabilities.decisions_spend import install_decisions_transport
 from strategist.ai.capabilities.security import warm_up_screening
+from strategist.ai.scripted import scripted
 from strategist.assistants.registry import get_assistant_registry
 from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.jobs.job_context import WdkJobContext
@@ -93,7 +94,6 @@ from strategist.transport.http.routers import (
     audits,
     chat,
     conversations,
-    dev,
     dev_site_login,
     eda,
     eda_datasets,
@@ -422,7 +422,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     if include_dev_routes is None:
         include_dev_routes = is_mock_deployment()
     if include_dev_routes:
-        app.include_router(dev.router)
+        app.include_router(scripted().dev_router)
 
     if settings.offers_dev_site_login:
         app.include_router(dev_site_login.router)

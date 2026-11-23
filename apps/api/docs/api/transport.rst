@@ -92,11 +92,6 @@ specific domain area.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: strategist.transport.http.routers.dev
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: strategist.transport.http.routers.exports
    :members:
    :undoc-members:

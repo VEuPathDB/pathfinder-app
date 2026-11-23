@@ -5,11 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from strategist.ai.conversation.gene_list_marker import (
-    ParsedGeneList,
-    gene_list_marker,
-    parse_gene_list_marker,
-)
+from strategist.ai.conversation.gene_list_marker import gene_list_marker
+from strategist_scripted.gene_list import ParsedGeneList, parse_gene_list_marker
 
 _ADAPTER_TEST = (
     Path(__file__).resolve().parents[8]

@@ -171,7 +171,7 @@ jobs:
 
       - name: Run pyright
         working-directory: apps/api
-        run: uv run pyright src/strategist
+        run: uv run pyright src/strategist src/strategist_scripted
 
   lint-api:
     name: Lint API
@@ -583,6 +583,7 @@ jobs:
         with:
           context: .
           file: apps/api/Dockerfile
+          target: e2e
           tags: strategist-e2e-api:ci
           push: false
           outputs: type=docker,dest=/tmp/strategist-api.tar

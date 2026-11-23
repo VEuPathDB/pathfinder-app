@@ -14,8 +14,6 @@ from strategist.ai.lead.intent_gate import BUILDING_TOOLS, tools_the_turn_offers
 from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.turn_contract import LeadResponse
-from strategist.ai.models.mock import get_mock_model
-from strategist.ai.models.mock.site_values import SiteValues
 from strategist.services.gene_records import read
 from strategist.services.gene_records.read import GeneRecordSummary
 from strategist.tests.unit.ai.lead.conftest import (
@@ -24,6 +22,8 @@ from strategist.tests.unit.ai.lead.conftest import (
     session_with_one_step,
     user_intent,
 )
+from strategist_scripted.models import get_mock_model
+from strategist_scripted.models.site_values import SiteValues
 
 # The fifth turn of the microsporidiadb polar tube conversation.
 _POLAR_TUBE_T5 = (

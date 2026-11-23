@@ -30,6 +30,7 @@ from strategist.ai.lead.proposal import (
     ProposedChange,
 )
 from strategist.domain.strategy.spec_diff import CriterionChange, SpecDiff
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import (
     CARD_REPLY,
     LEAD_FINAL,
@@ -105,7 +106,9 @@ async def _parked_turn(
     writer: Collector,
     calls: list[list[ModelMessage]],
 ) -> tuple[PipelineState, PendingApproval]:
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _proposing_lead(calls))
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: _proposing_lead(calls))
+    )
     state = lead_state()
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
     assert capture.pending_approval is not None

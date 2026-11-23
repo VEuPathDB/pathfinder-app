@@ -14,7 +14,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.models.mock.reading import scripted_operators
+from strategist.ai.scripted import scripted
 from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.operator_reading import (
     OPERATOR_QUESTION,
@@ -139,7 +139,7 @@ async def read_the_operators(
     if not asked:
         return with_readings(spec, [])
     ask: DecisionsTransport = (
-        scripted_operators(state) if is_mock_deployment() else _ask_the_service
+        scripted().operators(state) if is_mock_deployment() else _ask_the_service
     )
     floor = get_settings().decisions_operator_min_confidence
     messages = state.researcher_messages()

@@ -42,7 +42,6 @@ from strategist.persistence.models import ControlSet
 from strategist.platform.config import get_settings
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.evidence import separation
-from strategist.services.experiment.seed.catalog import get_seeds_for_site
 from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.tests._support.recorded_searches import serve_recorded_definitions
 from strategist.tests._support.separation import SIGNAL_PEPTIDE, recorded_separation
@@ -54,6 +53,7 @@ from strategist.tests.integration.chat._helpers import (
     wait_until_chat_turn_deferred,
 )
 from strategist.tests.integration.http.conftest import client_for
+from strategist_scripted.seeds.catalog import get_seeds_for_site
 
 _SEED = next(
     seed

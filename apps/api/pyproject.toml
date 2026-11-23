@@ -94,7 +94,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src/strategist"]
+source = ["src/strategist", "src/strategist_scripted"]
 omit = ["*/tests/*"]
 
 [tool.ruff]
@@ -194,7 +194,7 @@ max-branches = 10
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["strategist"]
+known-first-party = ["strategist", "strategist_scripted"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -209,7 +209,7 @@ exclude = ["scripts/", "docs/"]
 init_typed = false
 
 [tool.vulture]
-paths = ["src/strategist"]
+paths = ["src/strategist", "src/strategist_scripted"]
 exclude = ["tests/", "*/conftest.py"]
 min_confidence = 80
 # Ruff TC006 requires the type expression in cast() to be a string. Vulture does
@@ -257,7 +257,13 @@ docs = [
 # The three installed distributions are root packages, not external ones: a
 # forbidden contract cannot name a submodule of an external package, so a
 # private module of a library is only reachable by the checker this way.
-root_packages = ["strategist", "veupathdb", "veupathdb_mcp", "assistant_core"]
+root_packages = [
+    "strategist",
+    "strategist_scripted",
+    "veupathdb",
+    "veupathdb_mcp",
+    "assistant_core",
+]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -334,6 +340,26 @@ forbidden_modules = [
 ]
 
 
+# The scripted model is the test double of every provider call. Only the tests
+# and the e2e image stage contain it, so production code reaches it only by
+# name, through `strategist.ai.scripted`, and the image deletes the tests.
+[[tool.importlinter.contracts]]
+name = "Production code never imports the scripted test model"
+type = "forbidden"
+source_modules = ["strategist"]
+forbidden_modules = ["strategist_scripted"]
+ignore_imports = [
+    "strategist.tests.** -> strategist_scripted",
+    "strategist.tests.** -> strategist_scripted.**",
+]
+
+[[tool.importlinter.contracts]]
+name = "The scripted test model never imports the tests"
+type = "forbidden"
+source_modules = ["strategist_scripted"]
+forbidden_modules = ["strategist.tests"]
+
+
 # A distribution's public surface is what its package exports. A private module
 # and a module behind a package surface are both that distribution's own
 # business: either may be renamed or deleted in any release, and this
@@ -348,7 +374,7 @@ name = "The application imports no module a distribution does not publish"
 type = "forbidden"
 as_packages = true
 allow_indirect_imports = true
-source_modules = ["strategist"]
+source_modules = ["strategist", "strategist_scripted"]
 forbidden_modules = [
     "veupathdb.wdk._analyses",
     "veupathdb.wdk._failures",

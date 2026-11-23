@@ -22,6 +22,7 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.intent import IntentClassification, UserIntent
 from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.scripted_reading import read_as
 from strategist.tests.unit.ai.graph._approval_turn import Collector
 from strategist.tests.unit.ai.graph.test_lead_turn_budget import _deps, _state
@@ -75,7 +76,7 @@ def test_the_lead_s_first_request_holds_the_reading_and_no_classify_tool(
     deps = _deps(state)
     first = _FirstRequest()
     model = first.model(deps)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: model))
     writer: Any = Collector()
 
     asyncio.run(
@@ -102,12 +103,12 @@ def test_a_reading_the_provider_declines_withdraws_the_turn(
         del state, words
         raise _DECLINED
 
-    monkeypatch.setattr(_lead_reading, "scripted_intent", _declined)
+    monkeypatch.setattr(_lead_reading, "scripted", scripted_with(intent=_declined))
     state = _state()
     deps = _deps(state)
     first = _FirstRequest()
     model = first.model(deps)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: model))
     capture = LeadRunCapture()
     writer = Collector()
     emitted: Any = writer

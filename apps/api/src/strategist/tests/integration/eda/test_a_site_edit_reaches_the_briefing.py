@@ -29,7 +29,6 @@ from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.pre_turn import strategist_pre_turn
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.models.mock import get_mock_model
 from strategist.ai.tools.standalone.eda_stream_parts import eda_analysis_state_chunk
 from strategist.domain.eda_parts import EdaAnalysisState
 from strategist.domain.strategy.session import StrategySession
@@ -38,6 +37,7 @@ from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.eda import binding
 from strategist.services.eda.authoring import resolve_eda_user_id
 from strategist.tests._support.published_studies import published_on
+from strategist_scripted.models import get_mock_model
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.live_wdk]
 

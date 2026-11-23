@@ -10,9 +10,7 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from strategist.ai.audit import mock_run
 from strategist.ai.audit.budget_stop import budget_stop_prose
-from strategist.ai.audit.mock import AUDITOR_GREETING
 from strategist.domain.audit.scope import AuditScope, SingleGeneTarget
 from strategist.persistence.repositories.audit_finding_filter import FindingFilter
 from strategist.persistence.repositories.audit_findings import (
@@ -35,6 +33,8 @@ from strategist.tests.integration.chat._helpers import (
 )
 from strategist.tests.integration.http.conftest import client_for, make_user
 from strategist.tests.integration.jobs._audit_jobs import TOKEN
+from strategist_scripted.audit import run
+from strategist_scripted.audit.script import AUDITOR_GREETING
 
 pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine",
@@ -138,7 +138,7 @@ async def test_the_auditor_judges_every_finding_of_a_large_run(
     shown = _text(chunks)
     assert (
         shown.startswith("**Findings of audit run"),
-        shown.endswith(mock_run.JUDGED_EVERY_FINDING),
+        shown.endswith(run.JUDGED_EVERY_FINDING),
     ) == (
         True,
         True,
@@ -151,7 +151,7 @@ async def test_an_auditor_turn_at_its_limit_keeps_its_verdicts(
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(mock_run, "FINDINGS_PER_MOCK_CALL", 1)
+    monkeypatch.setattr(run, "FINDINGS_PER_MOCK_CALL", 1)
     auditor_stops_after(monkeypatch, _AUDITOR_CALLS)
 
     chunks, thread, owner = await _judged(app, db_session, in_memory_jobs)

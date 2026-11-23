@@ -23,6 +23,7 @@ from strategist.domain.strategy.constraints import ConstraintKind
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.site_checks import PASSED, checked_site
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.fixtures.builders import add_step_to_graph
@@ -93,8 +94,8 @@ async def _verify(
     checked_site(monkeypatch, checks)
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: final_result_model(digest),
+        "scripted",
+        scripted_with(model=lambda: final_result_model(digest)),
     )
     with pinned_sub_agent(
         monkeypatch,

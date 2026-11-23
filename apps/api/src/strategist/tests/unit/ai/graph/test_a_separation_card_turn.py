@@ -27,6 +27,7 @@ from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.expression_handles import stated_values
 from strategist.services.control_sets import ControlSetResponse, NewControlSet
 from strategist.tests._support.database import detached_session
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.separation import TASK_ID, recorded_offer
 from strategist.tests.unit.ai.graph._approval_turn import (
     CARD_REPLY,
@@ -74,7 +75,9 @@ async def _parked_turn(
     writer: Collector,
     calls: list[list[ModelMessage]],
 ) -> tuple[PipelineState, PendingApproval]:
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _adopting_lead(calls))
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: _adopting_lead(calls))
+    )
     state = _offered_state()
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
     assert capture.pending_approval is not None
