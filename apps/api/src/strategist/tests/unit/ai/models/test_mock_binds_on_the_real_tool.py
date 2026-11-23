@@ -27,7 +27,7 @@ from strategist.tests._support.recorded_searches import (
     suite_search,
 )
 from strategist.tests.unit.ai.models._mock_pins import edit_order
-from strategist.tests.unit.ai.models._mock_turns import refused_reply
+from strategist.tests.unit.ai.models._mock_refusals import refused_reply
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
     no_validation,

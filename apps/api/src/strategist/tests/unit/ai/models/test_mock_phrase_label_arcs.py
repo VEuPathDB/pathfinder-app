@@ -36,7 +36,7 @@ from strategist.tests._support.recorded_counts import (
     wire,
 )
 from strategist.tests._support.recorded_searches import serve_recorded, suite_search
-from strategist.tests.unit.ai.models._mock_turns import refused_reply
+from strategist.tests.unit.ai.models._mock_refusals import refused_reply
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
     no_validation,

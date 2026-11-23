@@ -43,6 +43,7 @@ from strategist.domain.strategy.step_words import AddedSearch
 from strategist.tests._support.organism_reads import MARKS
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests.unit.ai.models._mock_pins import framed_pins
+from strategist.tests.unit.ai.models._mock_refusals import refused_reply
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 # Each site's organism sheet: the site organism, one of its genus, one beyond.
@@ -342,15 +343,6 @@ class Scene:
         if made_by_a_fault(call) and call.tool_name in self.faulted:
             return self.faulted[call.tool_name]
         return None
-
-
-def refused_reply(call: ToolCallPart, refusal: str) -> ToolReturnPart:
-    return ToolReturnPart(
-        content=refusal,
-        tool_name=call.tool_name,
-        tool_call_id=call.tool_call_id,
-        outcome="retried" if call.tool_name == "final_result" else "failed",
-    )
 
 
 def seen_by_the_model(messages: list[ModelMessage]) -> list[ModelMessage]:
