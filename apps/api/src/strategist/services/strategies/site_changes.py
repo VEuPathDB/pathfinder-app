@@ -234,11 +234,6 @@ def _wire_of(step: WDKStep) -> WireStep:
 
 
 def _take_the_settings(step: StrategyStep, site: StepSettings) -> bool:
-    """Take every setting the site holds otherwise, its search and values aside.
-
-    A filter WDK added on its own is not one the step states, and a step with
-    no record of what WDK added leaves its filters to the commit.
-    """
     added = step.filters_wdk_added
     stated = site.model_copy(
         update={
