@@ -37,6 +37,7 @@ from strategist.tests._support.audit_planning import (
     STRAINS,
     serve_gene_genomes,
 )
+from strategist.tests._support.auditor_limits import auditor_stops_after
 from strategist.tests._support.provider_keys import sealed_provider_keys
 from strategist.tests._support.read_text import as_read
 from strategist.tests.integration.chat._helpers import (
@@ -63,6 +64,7 @@ pytestmark = pytest.mark.usefixtures(
 
 _OK = 200
 _CONFLICT = 409
+_AUDITOR_CALLS = 6
 _STRAIN = "EXA_0001"
 _REFERENCE = "EXR_0001"
 _GENOME = STRAINS[0]
@@ -373,8 +375,12 @@ async def test_the_auditor_answers_progress_from_the_run_fact(
 
 
 async def test_an_auditor_turn_stops_at_its_usage_limit(
-    app: FastAPI, db_session: AsyncSession, in_memory_jobs: InMemoryConnector
+    app: FastAPI,
+    db_session: AsyncSession,
+    in_memory_jobs: InMemoryConnector,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    auditor_stops_after(monkeypatch, _AUDITOR_CALLS)
     owner = await make_user(db_session)
 
     chunks = await _post(
@@ -383,7 +389,7 @@ async def test_an_auditor_turn_stops_at_its_usage_limit(
 
     called = _called(chunks)
     assert set(called) <= CHECK_TOOL_NAMES
-    assert len(called) == 40
+    assert len(called) == _AUDITOR_CALLS
     assert [c["type"] for c in chunks][-2:] == ["finish", "done"]
     assert _of_type(chunks, "error") == []
     assert _shown(chunks)[1] == budget_stop_prose(0)
