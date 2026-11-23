@@ -114,6 +114,14 @@ jobs:
       - name: Check the checker
         run: node --test scripts/check-release.test.mjs scripts/release.test.mjs
 
+  check-pre-push:
+    name: Check the pre-push runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the runner reads the hook stages
+        run: node --test scripts/pre-push.test.mjs
+
   check-wdk-rules:
     name: Check WDK rules
     runs-on: ubuntu-latest
@@ -480,6 +488,28 @@ jobs:
         working-directory: apps/web
         run: yarn check:strict-mode
 
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-web
+
+      - name: Restore the Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-${{ hashFiles('apps/web/src/**', 'packages/shared-ts/src/**', 'packages/spec/**') }}
+          restore-keys: nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-
+
+      - name: Build
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+        run: yarn build
+
   check-shared-ts:
     name: Check shared TS types
     runs-on: ubuntu-latest
@@ -821,6 +851,7 @@ jobs:
       - check-vocabulary
       - check-test-sites
       - check-release
+      - check-pre-push
       - check-wdk-rules
       - lint-api
       - lint-api-mypy
@@ -831,6 +862,7 @@ jobs:
       - test-api-groups
       - test-api-coverage
       - lint-web
+      - build-web
       - check-shared-ts
       - test-web
       - test-web-coverage
