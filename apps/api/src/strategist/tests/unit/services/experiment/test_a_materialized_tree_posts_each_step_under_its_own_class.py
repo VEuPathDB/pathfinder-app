@@ -17,13 +17,13 @@ from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.services.eval import build_gold_strategy
 from strategist.services.experiment import materialization
-from strategist.services.experiment.materialization import materialize_step_tree
 from strategist.services.strategies import record_classes
 from strategist.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
 )
 from strategist.tests._support.record_classes import list_each_search_under
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import StubAPI
+from strategist_scripted.seeds.record import materialize_step_tree
 
 _LISTED = {
     "GroupsByPhyleticPattern": "group",

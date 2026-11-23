@@ -89,25 +89,3 @@ in Postgres for client retrieval.
    :undoc-members:
    :show-inheritance:
 
-Seed Catalog
-------------
-
-**Purpose:** Curated strategies with multi-step trees and control sets across
-the VEuPathDB databases, read by the deterministic mock model, the measurement
-refresher and the live tests.
-
-Each database has curated seed definitions with organism-specific searches,
-known positive/negative gene controls, and step trees that demonstrate
-real research workflows (e.g. drug resistance genes in PlasmoDB, virulence
-factors in TriTrypDB).
-
-.. automodule:: strategist.services.experiment.seed
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: strategist.services.experiment.seed.types
-   :members:
-   :undoc-members:
-   :show-inheritance:
-

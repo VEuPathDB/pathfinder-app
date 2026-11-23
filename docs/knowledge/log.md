@@ -88,6 +88,11 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **The seeds move with the scripted model.** `data/seeds/`, the seed catalog and types
+  (`services/experiment/seed/`), the organism marks and the recorder (`devtools/seeds.py`, now
+  `python -m strategist_scripted.seeds`) are `strategist_scripted/seeds/`; no runtime path read them.
+  `materialize_step_tree`, which only the recorder called, went with it.
+
 * **The mock leaves the strategist package.** `ai/models/mock/` is `strategist_scripted/models/` and
   `ai/audit/mock*.py` is `strategist_scripted/audit/`; the tests of the script moved to
   `tests/unit/scripted/models/`. import-linter forbids production code from importing the package,

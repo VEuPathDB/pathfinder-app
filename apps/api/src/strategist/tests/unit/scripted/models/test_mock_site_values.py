@@ -5,11 +5,11 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.strategy.tree import leaves
 
-from strategist.services.experiment.seed.catalog import (
+from strategist_scripted.models.site_values import SiteValues, recorded_marks
+from strategist_scripted.seeds.catalog import (
     get_seeds_for_site,
     seed_databases,
 )
-from strategist_scripted.models.site_values import SiteValues, recorded_marks
 
 
 @pytest.mark.parametrize(

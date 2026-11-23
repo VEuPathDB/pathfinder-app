@@ -12,7 +12,7 @@ from veupathdb.domain.strategy.tree import leaves
 from veupathdb.wdk import load_sites_config
 
 from strategist.platform.config import get_settings
-from strategist.services.experiment.seed.catalog import MARKS_FILE, get_seeds_for_site
+from strategist_scripted.seeds.catalog import MARKS_FILE, get_seeds_for_site
 
 ParamValues = dict[str, str | list[str] | None]
 

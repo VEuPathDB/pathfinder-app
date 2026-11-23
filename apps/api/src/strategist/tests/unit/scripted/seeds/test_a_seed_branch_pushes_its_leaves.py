@@ -17,8 +17,8 @@ from veupathdb.wdk import NewStepSpec, WDKIdentifier, WDKSearchResponse
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.services.experiment import materialization
-from strategist.services.experiment.materialization import materialize_step_tree
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist_scripted.seeds.record import materialize_step_tree
 
 
 def _organism() -> ParamSpecNormalized:

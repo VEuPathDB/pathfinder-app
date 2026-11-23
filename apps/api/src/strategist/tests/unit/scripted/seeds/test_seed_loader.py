@@ -8,12 +8,12 @@ from pydantic import ValidationError
 from veupathdb.domain.strategy import StrategyStepNode
 
 from strategist.platform.errors import ErrorCode, NotFoundError
-from strategist.services.experiment.seed.catalog import (
+from strategist_scripted.seeds.catalog import (
     SEEDS_DIR,
     get_seeds_for_site,
     seed_databases,
 )
-from strategist.services.experiment.seed.types import (
+from strategist_scripted.seeds.types import (
     ControlSetDef,
     SeedDef,
     SeedMeasurement,

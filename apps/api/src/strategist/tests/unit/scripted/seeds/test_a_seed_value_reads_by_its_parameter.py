@@ -10,11 +10,11 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import walk
 
-from strategist.services.experiment.seed.catalog import (
+from strategist.tests._support.record_classes import recorded_searches
+from strategist_scripted.seeds.catalog import (
     get_seeds_for_site,
     seed_databases,
 )
-from strategist.tests._support.record_classes import recorded_searches
 
 _RECORDED_SITE = "plasmodb"
 

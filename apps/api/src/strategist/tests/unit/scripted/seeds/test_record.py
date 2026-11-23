@@ -15,22 +15,22 @@ from veupathdb_mcp.controls import (
     ControlTestResult,
 )
 
-from strategist.devtools import seeds
-from strategist.devtools.seeds import marks_json, seeds_json
 from strategist.platform.config import get_settings
 from strategist.services.experiment import materialization
-from strategist.services.experiment.seed.catalog import (
-    MARKS_FILE,
-    SEEDS_DIR,
-    get_seeds_for_site,
-    seed_databases,
-)
 from strategist.tests._support.organism_reads import MARKS
 from strategist.tests._support.record_classes import (
     list_each_search_under,
     list_searches_under,
 )
 from strategist_scripted.models import site_values
+from strategist_scripted.seeds import record
+from strategist_scripted.seeds.catalog import (
+    MARKS_FILE,
+    SEEDS_DIR,
+    get_seeds_for_site,
+    seed_databases,
+)
+from strategist_scripted.seeds.record import marks_json, seeds_json
 
 
 @pytest.mark.parametrize("site_id", seed_databases())
@@ -49,10 +49,10 @@ async def test_the_marks_are_recorded_for_every_search_the_seeds_run(
     async def _marked(_site: str, _record_type: str, search_name: str) -> str | None:
         return MARKS.get(search_name)
 
-    monkeypatch.setattr(seeds, "resolve_search_record_type", _record_type)
-    monkeypatch.setattr(seeds, "organism_parameter", _marked)
+    monkeypatch.setattr(record, "resolve_search_record_type", _record_type)
+    monkeypatch.setattr(record, "organism_parameter", _marked)
 
-    recorded = await seeds.seed_organism_marks()
+    recorded = await record.seed_organism_marks()
 
     assert sorted(recorded) == sorted(seed_databases())
     assert recorded["trichdb"] == {
@@ -80,9 +80,9 @@ async def test_the_dev_login_signs_in_as_the_settings_dev_account(
         calls.append((site_id, email, password))
         return "tok"
 
-    monkeypatch.setattr(seeds, "password_login", _login)
+    monkeypatch.setattr(record, "password_login", _login)
 
-    assert await seeds.dev_login("plasmodb") == "tok"
+    assert await record.dev_login("plasmodb") == "tok"
     assert calls == [("plasmodb", "dev@example.org", "dev-password")]
 
 
@@ -149,14 +149,14 @@ async def test_a_group_seed_reads_its_controls_by_group_id(
         )
 
     api = _SeedApi()
-    monkeypatch.setattr(seeds, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(record, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(seeds, "run_step_control_tests", run)
+    monkeypatch.setattr(record, "run_step_control_tests", run)
     monkeypatch.setattr(materialization, "validate_parameters", _as_stated)
     list_searches_under(monkeypatch, "group", [_PFAM, _PATTERN])
     (seed, *_) = get_seeds_for_site("orthomcl")
 
-    await seeds.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
+    await record.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
 
     assert (seed.record_type, api.posted) == ("group", ["group"] * 3)
     assert tested == [
@@ -172,12 +172,12 @@ async def test_a_seed_whose_leaves_the_site_lists_under_two_classes_posts_nothin
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = _SeedApi()
-    monkeypatch.setattr(seeds, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(record, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
     list_each_search_under(monkeypatch, {_PFAM: "sequence", _PATTERN: "group"})
     (seed, *_) = get_seeds_for_site("orthomcl")
 
-    measured = await seeds.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
+    measured = await record.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
 
     assert api.posted == []
     assert measured.refusal is not None

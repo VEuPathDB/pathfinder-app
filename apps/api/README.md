@@ -37,8 +37,6 @@ src/strategist/
                              #     role mounts), durable.py (@durable_tool)
     strategy_stream_parts.py eda_stream_parts.py stream_part_payloads.py   # The data-* parts Strategist emits and their payloads
     pricing.py               #   Per-1M-token price lookups for the Engine UI
-  data/seeds/                # Curated strategies and their control sets, read by the mock model
-                             #   and the live tests
   domain/                    # Pure domain logic this app owns (no I/O); the WDK-shaped half is veupathdb.domain
     conversation.py          #   Thread-level defaults the persistence layer and the services share
     eda.py eda_compute_config.py eda_parts.py eda_thread.py   # EDA predicates, compute-config checks, parts, thread state
@@ -123,6 +121,8 @@ src/strategist_scripted/     # The deterministic test model; only tests and the 
   models/                    #   Strategist's script, one arc per turn shape
   audit/                     #   The audit assistant's scripted auditor, reviewer and synthesis
   judge.py decisions.py      #   The scripted injection judge and the no-decision transport
+  seeds/                     #   Curated strategies and their control sets (data/), read by the mock
+                             #     and the live tests, and their recorder (python -m strategist_scripted.seeds)
 ```
 
 ### Architecture overview

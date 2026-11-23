@@ -2,8 +2,8 @@
 
 Usage::
 
-    python -m strategist.devtools.seeds measure --site plasmodb
-    python -m strategist.devtools.seeds marks
+    python -m strategist_scripted.seeds measure --site plasmodb
+    python -m strategist_scripted.seeds marks
 
 ``measure`` signs in as the dev account of the settings. ``marks`` records the
 organism parameter of each search the seeds run.
@@ -19,10 +19,12 @@ import sys
 from pathlib import Path
 
 from veupathdb.domain.strategy import (
+    StrategyStepNode,
     leaves,
 )
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
+    WDKStepTree,
     get_strategy_api,
     password_login,
 )
@@ -32,17 +34,28 @@ from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 from strategist.jobs.auth_context import attach_wdk_auth
 from strategist.platform.config import get_settings
 from strategist.services.experiment.controls_search import controls_search
-from strategist.services.experiment.materialization import materialize_step_tree
-from strategist.services.experiment.seed.catalog import (
+from strategist.services.experiment.materialization import (
+    materialize_classed_tree,
+    tree_classes,
+)
+from strategist.services.wdk_build import site_build
+from strategist_scripted.seeds.catalog import (
     MARKS_FILE,
     SEEDS_DIR,
     get_seeds_for_site,
     seed_databases,
 )
-from strategist.services.experiment.seed.types import SeedDef, SeedMeasurement
-from strategist.services.wdk_build import site_build
+from strategist_scripted.seeds.types import SeedDef, SeedMeasurement
 
 STRATEGY_NAME = "strategist seed measure"
+
+
+async def materialize_step_tree(
+    site_id: str, root: StrategyStepNode, made: list[int]
+) -> WDKStepTree:
+    return await materialize_classed_tree(
+        site_id, root, await tree_classes(site_id, root), made
+    )
 
 
 async def measure_seed(
@@ -183,7 +196,7 @@ async def record_marks() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="python -m strategist.devtools.seeds")
+    parser = argparse.ArgumentParser(prog="python -m strategist_scripted.seeds")
     parser.add_argument("command", choices=["measure", "marks"])
     parser.add_argument("--site")
     args = parser.parse_args()
@@ -193,7 +206,3 @@ def main() -> None:
     if args.site is None:
         parser.error("measure needs --site")
     asyncio.run(measure(args.site))
-
-
-if __name__ == "__main__":
-    main()

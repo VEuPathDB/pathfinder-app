@@ -9,7 +9,7 @@ from veupathdb.wdk import load_sites_config
 from strategist.platform.config import get_settings
 from strategist.platform.paths import REPO_ROOT
 from strategist.platform.stage_sites import use_sites_file
-from strategist.services.experiment.seed.catalog import (
+from strategist_scripted.seeds.catalog import (
     get_seeds_for_site,
     seed_databases,
 )

@@ -13,7 +13,9 @@ status: stable
 `apps/api/src/strategist_scripted/` holds every stand-in a mock deployment runs
 instead of a provider: Strategist's script (`models/`), the audit assistant's
 auditor, reviewer and synthesis (`audit/`), the injection judge (`judge.py`)
-and the no-decision transport (`decisions.py`). It sits in the same source root
+and the no-decision transport (`decisions.py`), and the curated seed strategies
+those scripts bind their values from (`seeds/`: the catalog, the JSON per site, the
+organism marks and their recorder, `python -m strategist_scripted.seeds`). It sits in the same source root
 as `strategist`, so the editable install puts it on the test environment's path,
 but the wheel names only `src/strategist`.
 

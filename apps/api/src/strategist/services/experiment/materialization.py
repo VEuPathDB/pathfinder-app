@@ -51,14 +51,6 @@ async def tree_classes(site_id: str, root: StrategyStepNode) -> dict[str, str]:
     return known
 
 
-async def materialize_step_tree(
-    site_id: str, root: StrategyStepNode, made: list[int]
-) -> WDKStepTree:
-    return await materialize_classed_tree(
-        site_id, root, await tree_classes(site_id, root), made
-    )
-
-
 async def materialize_classed_tree(
     site_id: str, root: StrategyStepNode, known: dict[str, str], made: list[int]
 ) -> WDKStepTree:

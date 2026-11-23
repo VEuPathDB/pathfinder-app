@@ -9,10 +9,10 @@ from veupathdb.wdk import load_sites_config
 
 from strategist.platform.config import get_settings
 from strategist.platform.errors import ErrorCode, NotFoundError
-from strategist.services.experiment.seed.types import SeedDef
+from strategist_scripted.seeds.types import SeedDef
 
-SEEDS_DIR: Traversable = files("strategist") / "data" / "seeds"
-MARKS_FILE = Path(__file__).parents[3] / "data" / "organism_params.json"
+SEEDS_DIR: Traversable = files("strategist_scripted") / "seeds" / "data"
+MARKS_FILE = Path(__file__).with_name("organism_params.json")
 
 
 def seed_databases() -> list[str]:
