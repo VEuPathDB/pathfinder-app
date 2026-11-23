@@ -12,13 +12,13 @@ from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone._frame_roles import (
     saved_input_problems,
 )
-from strategist.domain.refusal import Problems
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
 )
 from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
-from strategist.platform.refusals import refuse_problems
+from strategist.platform.refusals import refusal_of, refuse_problems
 from strategist.services.strategies.insert_saved import clone_saved_strategy
 from strategist.services.strategies.saved_library import (
     SavedStrategyListing,
@@ -39,7 +39,7 @@ async def saved_strategy_listing(
             "This conversation has no signed-in user, so it cannot read the saved "
             "strategy library. Bind the criterion to a search instead."
         )
-        raise ModelRetry(msg)
+        raise refusal_of(Problems.one(RefusalKey(check="saved_strategy"), msg))
     return await list_saved_strategies(
         deps.db_session_factory, user_id=deps.user_id, site_id=deps.site_id
     )

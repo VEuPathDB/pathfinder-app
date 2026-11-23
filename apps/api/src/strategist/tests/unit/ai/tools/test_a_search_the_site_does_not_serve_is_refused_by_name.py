@@ -40,7 +40,8 @@ _NOT_SERVED = (
 _REFUSAL = (
     f"{_NOT_SERVED} c_protein is not bound, and this pass binds ByAccession no "
     "more. Bind another search for this requirement; a requirement only "
-    "ByAccession answers is site_refused_the_search, with ByAccession named."
+    "ByAccession answers is site_refused_the_search, with ByAccession named. "
+    "Nothing was recorded."
 )
 
 

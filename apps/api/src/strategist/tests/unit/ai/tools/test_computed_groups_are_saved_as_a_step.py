@@ -204,6 +204,6 @@ async def test_a_comparison_of_no_group_saves_nothing() -> None:
 
     assert str(refused.value) == (
         f"The computed comparison {empty.handle} selects no group, so there is no "
-        "list to save; nothing was recorded."
+        "list to save. Nothing was recorded."
     )
     assert state.operational_spec_draft.criteria == []

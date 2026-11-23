@@ -19,7 +19,10 @@
   refusal, and the redecide marks clear only when none is; the binding stage names a kept reason
   the values outran, every pick its vocabulary gives no label and a reading whose values the call
   leaves out; and a count of nothing names every obsolete pick. A transform that carries the genes
-  to an organism the bind leaves out is named for that organism alone. A later stage runs only
+  to an organism the bind leaves out is named for that organism alone. The refusals that stand
+  alone (a bound analysis, an unserved or missing search, an unresolved gene set, a computed
+  comparison, a strategy library with no user, and drop_criterion's) are one keyed problem
+  through the same builder. A later stage runs only
   once the stages before it pass, and nothing is refused after the criterion is recorded. WDK's verdict on the
   binding names each of its rows. The edit path keeps its validation payload until the strategy
   tools move to problems.

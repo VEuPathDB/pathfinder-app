@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
-from pydantic_ai import ModelRetry, RunContext, ToolFailed
+from pydantic_ai import RunContext, ToolFailed
 from pydantic_ai.messages import ToolReturn
 from veupathdb.wdk import get_site
 from veupathdb_mcp.wdk import IdListDataset, IdListStepCountError, counted_id_list
@@ -16,12 +16,15 @@ from strategist.ai.tools.standalone._frame_result import (
 from strategist.ai.tools.standalone._frame_roles import (
     saved_input_problems,
 )
-from strategist.domain.refusal import Problems
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
-from strategist.platform.refusals import refuse_problems
+from strategist.platform.refusals import refusal_of, refuse_problems
 
 GROUPS_DISPLAY_NAME = "Groups"
+
+
+_COMPUTED = RefusalKey(check="computed_groups")
 
 
 def _held(ctx: RunContext[AgentDeps], handle: str) -> HeldComparison:
@@ -30,15 +33,15 @@ def _held(ctx: RunContext[AgentDeps], handle: str) -> HeldComparison:
         msg = (
             f"computed_groups names {handle}, and no computed comparison of this "
             "turn is held under that handle. Call build_phyletic_expression and "
-            "pass the handle of its computed answer; nothing was recorded."
+            "pass the handle of its computed answer."
         )
-        raise ModelRetry(msg)
+        raise refusal_of(Problems.one(_COMPUTED, msg))
     if held.answer.groups == 0:
         msg = (
             f"The computed comparison {held.handle} selects no group, so there is "
-            "no list to save; nothing was recorded."
+            "no list to save."
         )
-        raise ModelRetry(msg)
+        raise refusal_of(Problems.one(_COMPUTED, msg))
     return held
 
 
@@ -49,9 +52,9 @@ def _refuse_an_unasked_save(ctx: RunContext[AgentDeps], handle: str) -> None:
     msg = (
         f"Saving {handle} uploads its groups to the researcher's account, and this "
         "turn neither asks for a strategy nor answers a card that offered the save. "
-        "Answer from the counts; the card offers the save. Nothing was recorded."
+        "Answer from the counts; the card offers the save."
     )
-    raise ModelRetry(msg)
+    raise refusal_of(Problems.one(_COMPUTED, msg))
 
 
 async def _saved_list(site_id: str, held: HeldComparison, name: str) -> IdListDataset:

@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_saved import holds_open_saved_slot
+from strategist.domain.refusal import Problems, RefusalKey
+from strategist.platform.refusals import refusal_of
+
+_DROP = RefusalKey(check="drop")
 
 
 class DropCriterionResult(CamelModel):
@@ -35,7 +39,9 @@ def drop_criterion(
             f"removes it: the Lead removes it with delete_step, which the "
             f"researcher approves. Keep it and place it in the structure."
         )
-        raise ModelRetry(msg)
+        raise refusal_of(
+            Problems.one(_DROP.model_copy(update={"criterion": criterion_id}), msg)
+        )
     open_saved = next(
         (
             c
@@ -50,7 +56,9 @@ def drop_criterion(
             f"still unresolved. Ask the user which one they mean and re-call "
             f"set_criterion with it; do not drop it."
         )
-        raise ModelRetry(msg)
+        raise refusal_of(
+            Problems.one(_DROP.model_copy(update={"criterion": criterion_id}), msg)
+        )
     dropped = state.frame_drop_criterion(criterion_id, reason)
     if not dropped:
         ids = [c.id for c in state.operational_spec_draft.criteria]
@@ -58,7 +66,9 @@ def drop_criterion(
             f"No criterion with id {criterion_id!r} to drop. Use the exact "
             f"criterion_id from set_criterion. Current criteria: {ids}."
         )
-        raise ModelRetry(msg)
+        raise refusal_of(
+            Problems.one(_DROP.model_copy(update={"criterion": criterion_id}), msg)
+        )
     return with_summary(
         DropCriterionResult(criterion_id=criterion_id, reason=reason),
         f"Dropped {criterion_id}",

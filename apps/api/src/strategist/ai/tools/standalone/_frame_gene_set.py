@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from assistant_core.graph.tool_summary import with_summary
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.wdk import get_site
 
@@ -17,9 +17,9 @@ from strategist.ai.tools.standalone._frame_roles import (
     saved_input_problems,
 )
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
-from strategist.domain.refusal import Problems
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
-from strategist.platform.refusals import refuse_problems
+from strategist.platform.refusals import refusal_of, refuse_problems
 from strategist.services.evidence.gene_sets import list_stored_gene_sets
 from strategist.services.gene_sets.homes import ID_LIST_SEARCHES, site_kind
 from strategist.services.gene_sets.types import GeneSet
@@ -57,7 +57,12 @@ async def _bind(
         (gs for gs in listed if named in (gs.id.casefold(), gs.name.casefold())), None
     )
     if match is None:
-        raise ModelRetry(_unresolved_message(reference, listed))
+        raise refusal_of(
+            Problems.one(
+                RefusalKey(check="gene_set", criterion=stated.id),
+                _unresolved_message(reference, listed),
+            )
+        )
     kind = site_kind(deps.site_id)
     genes = match.genes_on(deps.site_id, kind)
     search = ID_LIST_SEARCHES[kind]

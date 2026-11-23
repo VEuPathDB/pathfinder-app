@@ -60,7 +60,8 @@ async def test_a_search_no_record_type_lists_is_refused_by_name(
         "The search ByProteinId is not served by orthomcl under any record type "
         "(the site's catalog lists it under none). c_protein is not bound. Bind a "
         "search that list_searches or search_for_searches answered with; a "
-        "requirement no search on this site answers is site_has_no_search."
+        "requirement no search on this site answers is site_has_no_search. "
+        "Nothing was recorded."
     )
     assert state.operational_spec_draft.criteria == []
     assert list(state.unserved_searches) == ["ByProteinId"]

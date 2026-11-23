@@ -5,11 +5,13 @@ from contextlib import contextmanager
 from http import HTTPStatus
 
 from assistant_core.capabilities.repetition_guard import DEFAULT_REPETITION_THRESHOLD
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from veupathdb.errors import VEuPathDBError, WDKError
 
 from strategist.ai.agents.unserved import SearchNotServedError, UnservedSearch
 from strategist.ai.graph.runtime import AgentDeps
+from strategist.domain.refusal import Problems, RefusalKey
+from strategist.platform.refusals import ProblemsRefusal, refusal_of
 from strategist.services.strategies.record_classes import search_record_types
 
 _ANY_RECORD_TYPE = "any record type"
@@ -25,7 +27,9 @@ async def listed_record_type(
     ctx: RunContext[AgentDeps], criterion_id: str, search_name: str
 ) -> str:
     if not search_name:
-        raise ModelRetry(_NO_SEARCH)
+        raise refusal_of(
+            Problems.one(RefusalKey(check="search", criterion=criterion_id), _NO_SEARCH)
+        )
     unserved = ctx.deps.agent_state.unserved_searches
     if search_name in unserved:
         raise _refusal(ctx, criterion_id, search_name)
@@ -72,7 +76,7 @@ def _not_found_in(error: BaseException | None) -> WDKError | None:
 
 def _refusal(
     ctx: RunContext[AgentDeps], criterion_id: str, search_name: str
-) -> ModelRetry:
+) -> ProblemsRefusal:
     unserved = ctx.deps.agent_state.unserved_searches
     held = unserved[search_name]
     held.refusals += 1
@@ -84,15 +88,22 @@ def _refusal(
             f"{named} times and stops here."
         )
         raise SearchNotServedError(msg)
+    key = RefusalKey(check="unserved", criterion=criterion_id, search=search_name)
     if held.where == _ANY_RECORD_TYPE:
-        return ModelRetry(
-            f"{sentence} {criterion_id} is not bound. Bind a search that "
-            "list_searches or search_for_searches answered with; a requirement "
-            "no search on this site answers is site_has_no_search."
+        return refusal_of(
+            Problems.one(
+                key,
+                f"{sentence} {criterion_id} is not bound. Bind a search that "
+                "list_searches or search_for_searches answered with; a requirement "
+                "no search on this site answers is site_has_no_search.",
+            )
         )
-    return ModelRetry(
-        f"{sentence} {criterion_id} is not bound, and this pass binds "
-        f"{search_name} no more. Bind another search for this requirement; a "
-        f"requirement only {search_name} answers is site_refused_the_search, "
-        f"with {search_name} named."
+    return refusal_of(
+        Problems.one(
+            key,
+            f"{sentence} {criterion_id} is not bound, and this pass binds "
+            f"{search_name} no more. Bind another search for this requirement; a "
+            f"requirement only {search_name} answers is site_refused_the_search, "
+            f"with {search_name} named.",
+        )
     )

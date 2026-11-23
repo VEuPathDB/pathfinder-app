@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from pydantic import JsonValue
-from pydantic_ai import ModelRetry, RunContext, ToolReturn
+from pydantic_ai import RunContext, ToolReturn
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     EDA_DATASET_ID_PARAM,
@@ -45,7 +45,9 @@ def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
         f"restate its comparison with another search. Only the Lead removes it, "
         f"with delete_step."
     )
-    raise ModelRetry(msg)
+    raise refusal_of(
+        Problems.one(RefusalKey(check="bound_analysis", criterion=criterion_id), msg)
+    )
 
 
 def waiting_problems(state: AgentToolState, criterion_id: str) -> Problems:
