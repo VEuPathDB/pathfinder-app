@@ -62,6 +62,7 @@ def _live(record_class_name: str | None, search_name: str) -> WDKStrategyDetails
         strategy_id=330534153,
         name="mammal groups",
         root_step_id=_GROUPS_STEP,
+        record_class_name="transcript",
         step_tree=WDKStepTree(step_id=_GROUPS_STEP),
         steps={
             str(_GROUPS_STEP): WDKStep(
@@ -91,11 +92,15 @@ async def test_a_site_edit_is_decoded_under_the_class_wdk_states_for_the_step(
 
     monkeypatch.setattr(site_changes, "_decoded", _decoded)
 
+    live = _live(record_class_name, "GroupsByPhyleticPattern")
+    tree = site_changes._the_sites_tree(live)
+    assert tree is not None
+
     await site_changes._take_the_sites_values(
         _groups_in_a_gene_strategy("GroupsByPhyleticPattern"),
         {_GROUPS_STEP: "step_groups"},
-        _live(record_class_name, "GroupsByPhyleticPattern"),
-        None,
+        live,
+        tree,
         "orthomcl",
     )
 

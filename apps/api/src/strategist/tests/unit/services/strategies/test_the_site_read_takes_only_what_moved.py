@@ -318,3 +318,19 @@ async def test_a_group_renamed_on_the_site_is_taken(
         "Renamed",
         777,
     )
+
+
+async def test_an_unreadable_site_tree_gives_nothing_not_even_a_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph = _colocated_graph()
+    live = _colocated_site(ColocationParams())
+    live.steps[str(_WDK_ID)].search_config.parameters[_SCORE] = "12"
+    live.steps[str(_SPAN)].search_config.parameters.clear()
+
+    edits = await _read_colocated(monkeypatch, graph, live)
+
+    assert (edits, graph.steps[_LEAF].parameters[_SCORE]) == (
+        SiteEdits(valued=[], reshaped=False),
+        NumberValue(value=10),
+    )

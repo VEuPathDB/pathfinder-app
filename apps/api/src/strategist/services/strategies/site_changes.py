@@ -172,8 +172,10 @@ async def take_what_the_site_holds(
     """Write onto the graph the values and the shape ``live`` moved."""
     local_of = {wdk_id: local for local, wdk_id in sync_state.wdk_step_ids.items()}
     tree = _the_sites_tree(live)
+    if tree is None:
+        return SiteEdits()
     valued = await _take_the_sites_values(graph, local_of, live, tree, site_id)
-    reshaped = tree is not None and await _take_the_sites_shape(
+    reshaped = await _take_the_sites_shape(
         graph, sync_state, local_of, live, tree, site_id
     )
     if valued or reshaped:
@@ -207,10 +209,10 @@ async def _take_the_sites_values(
     graph: StrategyGraph,
     local_of: Mapping[int, str],
     live: WDKStrategyDetails,
-    tree: _SiteTree | None,
+    tree: _SiteTree,
     site_id: str,
 ) -> list[str]:
-    nodes = {} if tree is None else {node.id: node for node in walk(tree.ast.root)}
+    nodes = {node.id: node for node in walk(tree.ast.root)}
     moved: list[str] = []
     for wdk_key, wdk_step in live.steps.items():
         step = _held_step(graph, local_of, wdk_key)
