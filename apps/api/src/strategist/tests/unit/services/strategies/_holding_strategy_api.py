@@ -79,6 +79,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
     drops_the_weight_on_create: bool = False
     refuses_patches: bool = False
     refuses_once: set[str] = field(default_factory=set)
+    answer_size: int = 100
     next_id: int = 5000
 
     def written(self, method: str, suffix: str = "") -> list[Write]:
@@ -229,7 +230,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
         step.update(
             {
                 "recordClassName": "transcript",
-                "estimatedSize": 100,
+                "estimatedSize": self.answer_size,
                 "validation": {"level": "RUNNABLE", "isValid": True},
                 "displayName": step["customName"] or step["searchName"],
                 "strategyId": self.strategy_of(step_id),

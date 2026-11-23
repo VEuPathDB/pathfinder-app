@@ -2,6 +2,13 @@
 
 ## 2026-11-23
 
+* **A build goes through the one commit path.** `build_strategy_from_spec` replaces the
+  graph and commits it with the tree it held before as `old`, so a rebuild writes only the
+  steps that moved: a moved value is a search-config PUT on the step WDK holds, a moved
+  search a new step and new combines above it, and the WDK steps a recreate replaced or the
+  rebuild dropped are deleted after the put. A draft or a refused step is a failed step of
+  the build, a step above it is skipped, and no strategy is put. The WDK ids a recreate
+  replaced are kept on the strategy row (`replaced_wdk_step_ids`) until a put deletes them.
 * **One rename tool and one definition of obsolete.** The building pass held a second
   `rename_strategy` (`ai/tools/standalone/conversation.py`) that took a required description,
   wrote it as the strategy's stated description (sent to WDK at the next push in place of the

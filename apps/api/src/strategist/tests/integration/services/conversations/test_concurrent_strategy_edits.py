@@ -149,8 +149,7 @@ async def _no_reconcile(*_args: Any, **_kwargs: Any) -> None:
 @pytest.fixture
 def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     api = _SlowAPI()
-    for module in (commit_tree, spec_build):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(
         commit_tree, "validate_parameters", wdk_write_stubs.keeps_every_value
     )
@@ -360,7 +359,7 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
         del context, held_validation, callbacks, about
         return ValidatedParams(params=dict(stated), record_class="transcript")
 
-    monkeypatch.setattr(spec_build, "validate_parameters", _passthrough_validation)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _passthrough_validation)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _no_reconcile)
     monkeypatch.setattr(
         commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put

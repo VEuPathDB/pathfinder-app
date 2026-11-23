@@ -369,7 +369,6 @@ protected_modules = [
 allowed_importers = [
     "strategist.services.strategies.commit_tree",
     "strategist.services.strategies.save_substrategy",
-    "strategist.services.strategies.spec_build",
     "strategist.tests",
 ]
 

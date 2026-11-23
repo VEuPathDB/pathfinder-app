@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import NamedTuple
 
-from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     StrategyStep,
     StrategyStepNode,
@@ -15,8 +12,7 @@ from veupathdb.domain.strategy import (
     wdk_search_name,
 )
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import get_strategy_api
-from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
+from veupathdb_mcp.catalog import make_validation_callbacks
 
 from strategist.domain.strategy.build_outcome import (
     BuildOutcome,
@@ -27,8 +23,7 @@ from strategist.domain.strategy.build_outcome import (
 )
 from strategist.domain.strategy.combine_naming import name_the_combines
 from strategist.domain.strategy.operations.apply import ApplyError
-from strategist.domain.strategy.orthology import organism_change
-from strategist.domain.strategy.record_class_check import step_class_of
+from strategist.domain.strategy.orthology import OrganismChange, organism_change
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import (
     contradicted_joins,
@@ -39,8 +34,11 @@ from strategist.domain.strategy.spec_edit_guard import (
 from strategist.domain.strategy.step_words import StepWords
 from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
-from strategist.services.strategies._wdk_step_calls import pushed_step
-from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
+from strategist.services.strategies.commit_tree import (
+    CommitTarget,
+    CommittedTree,
+    commit_tree,
+)
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from strategist.services.strategies.naming import name_for_the_push
@@ -50,17 +48,13 @@ from strategist.services.strategies.persist import (
 )
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
 from strategist.services.strategies.record_classes import (
-    fill_record_classes,
     tree_record_class_refusal,
-    unclassed_step_failure,
 )
 from strategist.services.strategies.stated_sides import (
     CanonicalSides,
     canonical_sides,
     canonicalize_stated_leaves,
-    unmoved,
 )
-from strategist.services.strategies.step_search import names_a_wdk_question
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 
 
@@ -202,7 +196,8 @@ async def build_strategy_from_spec(
         raise ApplyError(refusal)
 
     sync_state = ensure_sync_state(session)
-    held = {step_id: dict(step.parameters) for step_id, step in graph.steps.items()}
+    before = graph.to_strategy_ast(sync_state=sync_state)
+    old = None if before is None else before.model_copy(deep=True)
     _replace_graph_contents(
         graph,
         root,
@@ -230,30 +225,11 @@ async def build_strategy_from_spec(
     )
 
     marks = await tree_organism_parameters(deps.site_id, root)
-    outcome = BuildOutcome(organism_change=organism_change(root, marks))
-    await _push_tree_to_wdk(
-        nodes=nodes,
-        held=held,
-        site_id=deps.site_id,
-        sync_state=sync_state,
-        outcome=outcome,
-    )
-
-    if outcome.failed_steps or outcome.skipped_step_ids:
-        # A sync raises when a step has no WDK ID, so only the tree persists.
-        await persist_strategy_ast_to_conversation(
-            deps=deps,
-            graph=graph,
-            sync_result=None,
-        )
-        outcome.node_results = node_results(nodes, sync_state, outcome)
-        return outcome
-
     committed = await commit_tree(
         site_id=deps.site_id,
         steps=graph.steps,
         root_id=root.id,
-        old=graph.to_strategy_ast(sync_state=sync_state),
+        old=old,
         sync_state=sync_state,
         target=CommitTarget(
             name=name_for_the_push(graph, deps.user_prompt),
@@ -262,118 +238,35 @@ async def build_strategy_from_spec(
     )
     if committed.record_type is not None:
         graph.record_type = committed.record_type
-    sync_result = committed.sync
-    if committed.failures or sync_result is None:
-        await persist_strategy_ast_to_conversation(
-            deps=deps,
-            graph=graph,
-            sync_result=None,
-        )
-        outcome.failed_steps.extend(committed.failures)
-        outcome.node_results = node_results(nodes, sync_state, outcome)
-        return outcome
-
-    outcome.wdk_strategy_id = sync_result.wdk_strategy_id
-    outcome.zero_step_ids = list(sync_result.zero_step_ids)
-
+    outcome = _outcome_of(committed, graph, organism_change(root, marks))
     outcome.node_results = node_results(nodes, sync_state, outcome)
     await persist_strategy_ast_to_conversation(
         deps=deps,
         graph=graph,
-        sync_result=sync_result,
+        sync_result=committed.sync,
     )
-    await defer_the_gene_set_refresh(deps)
+    if committed.sync is not None and not committed.failures:
+        await defer_the_gene_set_refresh(deps)
     return outcome
 
 
-async def _push_tree_to_wdk(
-    *,
-    nodes: list[StrategyStep],
-    held: Mapping[str, Mapping[str, ParamValue]],
-    site_id: str,
-    sync_state: WDKSyncState,
-    outcome: BuildOutcome,
-) -> None:
-    """Push every node in dependency order, and record each failure and skip.
-
-    A value the build states passes validation before the push, so an invalid
-    one costs no round trip; a value the step already held goes as it is.
-    """
-    failed_node_ids: set[str] = set()
-    steps_by_id = {node.id: node for node in nodes}
-    await fill_record_classes(site_id, steps_by_id)
-    callbacks = make_validation_callbacks(site_id)
-    for node in nodes:
-        if _has_failed_descendant(node, failed_node_ids, steps_by_id):
-            outcome.skipped_step_ids.append(node.id)
-            continue
-        search_name = wdk_search_name(node)
-        record_type = step_class_of(steps_by_id, node.id)
-        if record_type is None:
-            unclassed = unclassed_step_failure(node.id, search_name)
-            sync_state.wdk_push_errors[node.id] = unclassed.error
-            failed_node_ids.add(node.id)
-            outcome.failed_steps.append(unclassed)
-            continue
-        push_parameters: dict[str, ParamValue] = dict(node.parameters)
-        context = unmoved(node.parameters, held.get(node.id, {}))
-        if names_a_wdk_question(node):
-            try:
-                validated = await validate_parameters(
-                    SearchContext(
-                        site_id=site_id,
-                        record_type=record_type,
-                        search_name=search_name,
-                    ),
-                    stated={
-                        name: value
-                        for name, value in node.parameters.items()
-                        if name not in context
-                    },
-                    context=context,
-                    held_validation=sync_state.step_validations.get(node.id),
-                    callbacks=callbacks,
-                    about=None,
-                )
-            except ValidationError as exc:
-                detail = exc.detail or exc.title
-                sync_state.wdk_push_errors[node.id] = detail
-                failed_node_ids.add(node.id)
-                outcome.failed_steps.append(
-                    StepPushFailure(
-                        step_id=node.id,
-                        search_name=search_name,
-                        error=detail,
-                        wdk_status=exc.status,
-                    ),
-                )
-                continue
-            push_parameters = {**node.parameters, **context, **validated.params}
-            if validated.record_class:
-                node.record_class = validated.record_class
-                record_type = validated.record_class
-        failure = await pushed_step(
-            get_strategy_api(site_id), sync_state, node, record_type, push_parameters
+def _outcome_of(
+    committed: CommittedTree, graph: StrategyGraph, change: OrganismChange | None
+) -> BuildOutcome:
+    drafts = [
+        StepPushFailure(
+            step_id=step_id,
+            search_name=wdk_search_name(graph.steps[step_id]),
+            error=text,
         )
-        if failure is not None:
-            sync_state.wdk_push_errors[node.id] = failure.error
-            failed_node_ids.add(node.id)
-            outcome.failed_steps.append(failure)
-            continue
-        sync_state.wdk_push_errors.pop(node.id, None)
-        outcome.pushed_step_ids.append(node.id)
-
-
-def _has_failed_descendant(
-    node: StrategyStep,
-    failed_ids: set[str],
-    steps: dict[str, StrategyStep],
-) -> bool:
-    """Report whether any descendant of the node already failed its push."""
-    for input_id in node.input_ids():
-        if input_id in failed_ids:
-            return True
-        child = steps.get(input_id)
-        if child is not None and _has_failed_descendant(child, failed_ids, steps):
-            return True
-    return False
+        for step_id, text in committed.drafts.items()
+    ]
+    sync = committed.sync
+    return BuildOutcome(
+        pushed_step_ids=list(committed.pushed),
+        failed_steps=[*committed.failures, *drafts],
+        skipped_step_ids=list(committed.skipped),
+        wdk_strategy_id=None if sync is None else sync.wdk_strategy_id,
+        zero_step_ids=[] if sync is None else list(sync.zero_step_ids),
+        organism_change=change,
+    )

@@ -259,14 +259,13 @@ async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
 
 def pin_validator(monkeypatch: pytest.MonkeyPatch, validator: Any) -> None:
     """Serve one parameter validator to every seam a write passes."""
-    for module in (stated_sides, spec_build):
-        monkeypatch.setattr(module, "validate_parameters", validator)
+    monkeypatch.setattr(stated_sides, "validate_parameters", validator)
 
 
 def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     """Serve one StubAPI to every strategy write path and stub the side effects."""
     api = StubAPI()
-    for module in (commit_tree, spec_build, live_counts):
+    for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     for module in (commit, spec_build):
         monkeypatch.setattr(module, "reconcile_sync_state_with_wdk", _noop)

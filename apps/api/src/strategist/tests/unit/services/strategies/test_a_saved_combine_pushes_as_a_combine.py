@@ -33,8 +33,8 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.wdk import build_snapshot_from_wdk
 
-from strategist.domain.strategy.build_outcome import BuildOutcome
-from strategist.services.strategies import spec_build
+from strategist.services.strategies import commit_tree
+from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.step_push_planner import PatchAction
 from strategist.services.strategies.step_search import (
     names_a_wdk_question,
@@ -42,7 +42,7 @@ from strategist.services.strategies.step_search import (
 )
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests._support.wdk_write_stubs import commit_against
+from strategist.tests._support.wdk_write_stubs import commit_against, skip_the_tree_put
 
 _VALUES = PatchAction(search_config=True, name=False)
 
@@ -198,8 +198,9 @@ class _Validations:
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     recorder = RecordingAPI()
-    monkeypatch.setattr(spec_build, "get_strategy_api", lambda _site: recorder)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: recorder)
     list_every_search_under(monkeypatch, "transcript")
+    skip_the_tree_put(monkeypatch)
     return recorder
 
 
@@ -223,21 +224,20 @@ def validated(monkeypatch: pytest.MonkeyPatch) -> _Validations:
             raise ValidationError(title="invalid parameters", detail=_BQ_REFUSAL)
         return ValidatedParams(params=dict(stated))
 
-    monkeypatch.setattr(spec_build, "validate_parameters", _validate)
-    monkeypatch.setattr(spec_build, "make_validation_callbacks", lambda _site: None)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
+    monkeypatch.setattr(commit_tree, "make_validation_callbacks", lambda _site: None)
     return seen
 
 
-async def _push(nodes: list[StrategyStep]) -> BuildOutcome:
-    outcome = BuildOutcome()
-    await spec_build._push_tree_to_wdk(
-        nodes=nodes,
-        held={},
+async def _push(nodes: list[StrategyStep]) -> CommittedTree:
+    return await commit_tree.commit_tree(
         site_id="plasmodb",
+        steps={node.id: node for node in nodes},
+        root_id=nodes[-1].id,
+        old=None,
         sync_state=WDKSyncState(),
-        outcome=outcome,
+        target=CommitTarget(name="saved", description=""),
     )
-    return outcome
 
 
 class TestTheCombineReachesWDKAsACombine:
@@ -254,10 +254,10 @@ class TestTheCombineReachesWDKAsACombine:
     ) -> None:
         del validated
 
-        outcome = await _push(_cloned_nodes(_saved_strategy()))
+        committed = await _push(_cloned_nodes(_saved_strategy()))
 
-        assert outcome.failed_steps == []
-        assert len(outcome.pushed_step_ids) == 3
+        assert (committed.failures, committed.drafts) == ([], {})
+        assert len(committed.pushed) == 3
 
     async def test_the_operator_reaches_the_combined_step_call(
         self, api: RecordingAPI, validated: _Validations
@@ -284,10 +284,10 @@ class TestASingleStepSavedStrategy:
     async def test_it_pushes_one_leaf_and_no_combine(
         self, api: RecordingAPI, validated: _Validations
     ) -> None:
-        outcome = await _push(_cloned_nodes(_single_step_strategy()))
+        committed = await _push(_cloned_nodes(_single_step_strategy()))
 
-        assert outcome.failed_steps == []
-        assert len(outcome.pushed_step_ids) == 1
+        assert (committed.failures, committed.drafts) == ([], {})
+        assert len(committed.pushed) == 1
         assert [spec.search_name for spec in api.created] == [_SIGNAL]
         assert api.combined == []
         assert validated.names == [_SIGNAL]

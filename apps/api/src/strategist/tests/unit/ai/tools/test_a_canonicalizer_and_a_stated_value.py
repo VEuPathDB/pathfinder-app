@@ -230,7 +230,7 @@ class TestABuildOverADepartedValue:
         rebuilt = deps.strategy_session.graph
         assert rebuilt is not None
         assert rebuilt.steps[MIC2].parameters == _DEPARTED_AS_READ
-        assert stub_api.created_searches() == ["GenesByTaxon"] * 5
+        assert stub_api.named("create_step") == []
 
     async def test_a_build_that_moves_a_stated_value_is_refused(
         self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch

@@ -155,9 +155,8 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         del timeout_seconds
         return _COUNTS[wire(params, "profile_pattern")]
 
-    for module in (spec_build, commit_tree):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(spec_build, "validate_parameters", _accept_every_value)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _accept_every_value)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _noop_reconcile)
     monkeypatch.setattr(commit_tree, "put_the_tree", api.pushes.put)
     monkeypatch.setattr(measurements, "count_search_answer", _recorded)
