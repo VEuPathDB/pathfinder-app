@@ -12,6 +12,7 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone._variant_targets import (
+    ComparedVariants,
     checked_variants,
     reject_combine_variants,
 )
@@ -22,11 +23,8 @@ from strategist.services.evidence.comparisons import (
 )
 from strategist.services.experiment.variant_comparison import (
     VariantComparison,
-    VariantInput,
     VariantSpec,
 )
-
-_MIN_VARIANTS = 2
 
 
 def _steps_running(
@@ -47,7 +45,7 @@ def _steps_running(
 
 async def compare_search_variants(
     ctx: RunContext[LeadDeps],
-    variants: list[VariantInput],
+    variants: ComparedVariants,
 ) -> ToolReturn[VariantComparison]:
     """Run 2+ search-config variants and compare how their results differ.
 
@@ -75,12 +73,6 @@ async def compare_search_variants(
     when no control set is attached or the user only wants to see how the
     results differ.
     """
-    if len(variants) < _MIN_VARIANTS:
-        msg = (
-            "compare_search_variants needs at least 2 variants to compare. "
-            "Give each variant a label and its search + parameter values."
-        )
-        raise ModelRetry(msg)
     reject_combine_variants(variants)
     site_id = ctx.deps.runtime.site_id
     specs = await checked_variants(

@@ -13,7 +13,10 @@ from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.graph.turn_records import CreatedControlSet
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone._id_arguments import parse_id_argument
+from strategist.ai.tools.standalone._id_arguments import (
+    ControlSetId,
+    ConversationId,
+)
 from strategist.ai.tools.standalone.saved_control_sets import (
     ControlSetSummary,
     control_set_summary,
@@ -167,7 +170,7 @@ class ControlSetIds(CamelModel):
 
 async def read_control_set(
     ctx: RunContext[LeadDeps],
-    control_set_id: str,
+    control_set_id: ControlSetId,
 ) -> ToolReturn[ControlSetIds]:
     """Return the positive and negative ids of any saved control set, to name them.
 
@@ -176,11 +179,8 @@ async def read_control_set(
     ``control_set_id``. This saves nothing.
     """
     runtime = ctx.deps.runtime
-    parsed = parse_id_argument(
-        control_set_id, argument="control_set_id", names="control set"
-    )
     async with runtime.db_session_factory() as session:
-        held = await get_control_set(session, parsed, runtime.user_id)
+        held = await get_control_set(session, control_set_id, runtime.user_id)
     return with_summary(
         ControlSetIds(
             control_set_id=held.id,
@@ -213,7 +213,7 @@ async def read_gene_ids_from_gene_set(
 
 async def read_gene_ids_from_strategy(
     ctx: RunContext[LeadDeps],
-    strategy_id: str,
+    strategy_id: ConversationId,
 ) -> ToolReturn[list[str]]:
     """Return the result gene IDs of another strategy (a conversation id), to
     use as positive or negative controls.
@@ -221,13 +221,10 @@ async def read_gene_ids_from_strategy(
     This saves nothing. Call build_control_set to save a control set.
     """
     runtime = ctx.deps.runtime
-    parsed = parse_id_argument(
-        strategy_id, argument="strategy_id", names="conversation"
-    )
     async with runtime.db_session_factory() as session:
         result = await control_ids_from_strategy(
             session,
-            parsed,
+            strategy_id,
             runtime.site_id,
             runtime.user_id,
         )

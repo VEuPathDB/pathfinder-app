@@ -156,7 +156,7 @@ async def test_a_scored_comparison_backs_the_counts_it_scored(
             VariantInput(label="A", search_name="GenesByTaxon", parameters={}),
             VariantInput(label="B", search_name="GenesByText", parameters={}),
         ],
-        control_set_id=control_set.id,
+        control_set_id=UUID(control_set.id),
     )
 
     assert [run.origin for run in ctx.deps.state.turn_markers.control_tests] == [

@@ -34,8 +34,10 @@ class ColumnTallyRefusedError(ValueError):
 
 
 class TallyOnly(CamelModel):
-    column: str
-    values: list[str]
+    column: str = Field(description="The column that keeps the rows counted.")
+    values: list[str] = Field(
+        min_length=1, description="The values of that column the rows counted hold."
+    )
 
 
 class ColumnTally(CamelModel):

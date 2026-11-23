@@ -61,7 +61,9 @@ class CallerSuppliedIds(BaseModel):
 
 def _unknown_id_guidance(args: dict[str, Any], stated: str) -> str:
     """The listing tool for each id the refusal names, and for no other id."""
-    named = CallerSuppliedIds.model_validate(args).model_dump(exclude_none=True)
+    named = CallerSuppliedIds.model_validate(to_jsonable_python(args)).model_dump(
+        exclude_none=True
+    )
     return " ".join(
         f"{argument}={value!r} names nothing this account holds; "
         f"call {LISTS_THE_IDS[argument]} for the ids that exist."

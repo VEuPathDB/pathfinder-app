@@ -30900,13 +30900,16 @@
       "TallyOnly": {
         "properties": {
           "column": {
+            "description": "The column that keeps the rows counted.",
             "title": "Column",
             "type": "string"
           },
           "values": {
+            "description": "The values of that column the rows counted hold.",
             "items": {
               "type": "string"
             },
+            "minItems": 1,
             "title": "Values",
             "type": "array"
           }

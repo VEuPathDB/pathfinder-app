@@ -322,7 +322,7 @@ async def test_a_scored_comparison_on_a_set_that_is_not_attached_is_refused(
                 VariantInput(label="a", search_name="SA", parameters={}),
                 VariantInput(label="b", search_name="SB", parameters={}),
             ],
-            control_set_id=_ELSEWHERE.control_set_id,
+            control_set_id=UUID(_ELSEWHERE.control_set_id),
         )
 
     assert str(refused.value) == (

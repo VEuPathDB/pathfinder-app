@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from difflib import get_close_matches
+from typing import Annotated
 
-from pydantic import JsonValue
+from pydantic import Field, JsonValue
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import (
     PHYLETIC_LIST_PARAMS,
@@ -63,6 +64,9 @@ _NEAREST_CUTOFF = 0.3
 _EVERY_ENTRY_WORDS = frozenset(
     {"all", "every", "*", "all fields", "every field", "everything"}
 )
+
+
+ComparedVariants = Annotated[list[VariantInput], Field(min_length=2)]
 
 
 def reject_combine_variants(variants: list[VariantInput]) -> None:

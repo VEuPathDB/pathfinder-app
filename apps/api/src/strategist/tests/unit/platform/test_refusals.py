@@ -302,6 +302,23 @@ async def test_the_control_set_service_refusal_names_its_listing_tool(
 
 
 @pytest.mark.asyncio
+async def test_a_control_set_id_read_as_a_uuid_names_its_listing_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The validated arguments hold the id as a UUID, and the refusal still names it."""
+    missing = uuid4()
+    service = ControlSetService(MagicMock())
+    monkeypatch.setattr(service, "_repo", _NoControlSetRow())
+
+    with pytest.raises(NotFoundError) as refused:
+        await service.get(missing, uuid4())
+
+    message = await _seam_message(refused.value, {"control_set_id": missing})
+    assert f"control_set_id={str(missing)!r} names nothing" in message
+    assert "list_control_sets" in message
+
+
+@pytest.mark.asyncio
 async def test_the_gene_set_service_refusal_names_its_listing_tool() -> None:
     """The refusal the service raises, not a copy of it, carries the id."""
 

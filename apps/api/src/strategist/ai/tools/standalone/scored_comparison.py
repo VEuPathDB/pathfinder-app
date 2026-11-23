@@ -12,8 +12,9 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from strategist.ai.graph.turn_records import ControlTestRun
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone._id_arguments import parse_id_argument
+from strategist.ai.tools.standalone._id_arguments import ControlSetId
 from strategist.ai.tools.standalone._variant_targets import (
+    ComparedVariants,
     checked_variants,
     reject_combine_variants,
 )
@@ -29,9 +30,6 @@ from strategist.domain.evidence import (
 from strategist.services.evidence.comparisons import run_scored_comparison
 from strategist.services.evidence.control_sets import get_control_set
 from strategist.services.experiment.scored_comparison import ScoredComparison
-from strategist.services.experiment.variant_comparison import VariantInput
-
-_MIN_VARIANTS = 2
 
 
 def _filed(controls: list[str], hits: set[str]) -> ControlSetEvidence | None:
@@ -77,8 +75,8 @@ def _scored_runs(
 
 async def compare_variants_scored(
     ctx: RunContext[LeadDeps],
-    variants: list[VariantInput],
-    control_set_id: str,
+    variants: ComparedVariants,
+    control_set_id: ControlSetId,
     objective: str = "mcc",
 ) -> ToolReturn[ScoredComparison]:
     """Run each variant as a full scored run against a saved control
@@ -92,11 +90,8 @@ async def compare_variants_scored(
     pick a variant leaves out runs at the site's default.
     """
     runtime = ctx.deps.runtime
-    if len(variants) < _MIN_VARIANTS:
-        msg = "compare_variants_scored needs at least 2 variants."
-        raise ModelRetry(msg)
     reject_combine_variants(variants)
-    refused = unattached_set(control_set_id, ctx.deps.state.domain.control_sets)
+    refused = unattached_set(str(control_set_id), ctx.deps.state.domain.control_sets)
     if refused is not None:
         msg = f"{refused} {ATTACH_A_SET}"
         raise ModelRetry(msg)
@@ -104,11 +99,8 @@ async def compare_variants_scored(
         runtime.strategy_session, variants, ctx.deps.resolving()
     )
 
-    parsed = parse_id_argument(
-        control_set_id, argument="control_set_id", names="control set"
-    )
     async with runtime.db_session_factory() as session:
-        control_set = await get_control_set(session, parsed, runtime.user_id)
+        control_set = await get_control_set(session, control_set_id, runtime.user_id)
 
     result = await run_scored_comparison(
         runtime.site_id,

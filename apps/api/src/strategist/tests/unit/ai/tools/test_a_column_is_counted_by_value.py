@@ -88,8 +88,7 @@ async def test_the_counts_are_kept_as_a_fact_and_drawn_as_a_table(ran: _Ran) -> 
         _SEARCH,
         record_type="dataset",
         column="organism_prefix",
-        only_column="newcategory",
-        only_values=["RNASeq"],
+        only=TallyOnly(column="newcategory", values=["RNASeq"]),
     )
 
     assert ran.asked == [
@@ -117,19 +116,6 @@ async def test_a_column_the_site_cannot_count_is_returned_to_the_model(
         )
 
     assert ran.asked == [("overview", None, "dataset")]
-
-
-async def test_a_filter_names_its_column_and_its_values_together(ran: _Ran) -> None:
-    with pytest.raises(ModelRetry, match="only_column and only_values"):
-        await count_by_column(
-            lead_run_context(),
-            _SEARCH,
-            record_type="dataset",
-            column="organism_prefix",
-            only_column="newcategory",
-        )
-
-    assert ran.asked == []
 
 
 async def test_an_unlisted_search_is_looked_up_under_the_record_type_counted(

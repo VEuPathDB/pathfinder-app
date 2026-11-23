@@ -2,6 +2,19 @@
 
 ## 2026-11-23
 
+* **A tool argument's shape is in its schema.** The checks a tool body made on the shape of its own
+  arguments moved onto the argument types, so the model reads the rule in the tool schema and
+  pydantic-ai refuses another shape before the body runs: a download's `output_format` is
+  `csv`/`tab`/`json` and a gene set export's `csv`/`txt` (`Literal`), a WDK step id is above 0
+  (`WdkStepId`), a control set id and a conversation id are UUIDs whose description says a WDK id
+  is another id (`ControlSetId`, `ConversationId`), a comparison takes at least two variants
+  (`ComparedVariants`), a gene set name is not blank and a pasted list holds a gene and names no
+  step (`GeneSetName`, `PastedGeneIds`), a count filter is one `only` object with a column and its
+  values (`TallyOnly`), and the two groups of `run_eda_compute` share no label (`GroupBLabels`,
+  which replaces the `refuse_shared_labels` argument validator). A refused shape is a schema
+  validation error: it spends the tool's own retries, not a refusal key. The refusal guidance reads
+  an id argument held as a UUID.
+
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new
   budget; a test refuses a production key that names its check in free text. A key a call builds
