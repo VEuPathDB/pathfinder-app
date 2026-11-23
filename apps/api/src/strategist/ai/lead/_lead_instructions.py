@@ -89,8 +89,9 @@ Then read \
      which one. A \
      criterion with no CHOICES line holds no other value to offer; say so instead of naming one. \
      Then set ``next_state=await_user``.
-5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. Read \
-``ledger.verification``:
+5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. A turn that \
+changed the strategy and answers without the check gets it from the runtime, which then \
+asks for the reply once more. Read ``ledger.verification``:
    - ``successful = True`` -> synthesize the answer for the user; ``next_state=complete``.
    - ``pending_checks`` listed -> the site did not describe those study steps, so their \
      check could not run. Report the result, name each pending step, and change nothing; \

@@ -236,8 +236,9 @@ async def test_the_recorded_singleton_ranking_passes_over_an_objecting_checker(
         (ConstraintKind.UNTYPED, "unchecked"),
         (ConstraintKind.ORGANISM, "unchecked"),
         ("tally", "pass"),
+        ("records_read", "unchecked"),
     ]
-    assert digest.review.checks[-1].evidence == (
+    assert digest.review.checks[-2].evidence == (
         "the site counted 523,795 proteins of step 227289050 over 840 values"
     )
     assert deps.state.turn_markers.verified is True
@@ -295,5 +296,6 @@ async def test_a_site_that_does_not_answer_the_strategy_read_gives_no_pass(
         ("bound_values", "unchecked", "site_unanswered"),
         ("result_count", "unchecked", "site_unanswered"),
         ("tally", "pass", None),
+        ("records_read", "unchecked", "no_check"),
     ]
     assert deps.state.turn_markers.verified is False

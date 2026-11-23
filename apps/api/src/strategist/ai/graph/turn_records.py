@@ -234,6 +234,8 @@ class TurnMarkers(CamelModel):
     records_read: dict[str, list[str]] = Field(default_factory=dict)
     # The genes a sample of this turn returned, whose records a check may read.
     sampled_gene_ids: list[str] = Field(default_factory=list)
+    sample_reads_tried: int = 0
+    sample_reads_answered: int = 0
     # The gene ids each listing or sample of this turn returned, by WDK step,
     # once each and in the order they came.
     listings: dict[int, list[str]] = Field(default_factory=dict)

@@ -17,10 +17,6 @@ from functools import partial
 from typing import Any, Literal, Protocol
 from uuid import UUID, uuid4
 
-from assistant_core.capabilities.repetition_guard import (
-    RepetitionGuard,
-    ToolRepetitionGuard,
-)
 from assistant_core.conversation.vercel_adapter import (
     DeferredToolHint,
     PhaseStreamEmitter,
@@ -45,7 +41,6 @@ from strategist.ai.capabilities.decisions_spend import spend_charged_on_exit
 from strategist.ai.graph._lead_answers import typed_reply
 from strategist.ai.graph._lead_capture import (
     LeadRunCapture,
-    _charge_token_delta,
     _emit_residual_prose,
     _persist_residual_quota,
     absorb_outside_spend,
@@ -62,17 +57,11 @@ from strategist.ai.graph._lead_emit import (
     release_the_cards,
     without_calls_of,
 )
-from strategist.ai.graph._lead_events import (
-    handle_sub_agent_event,
-)
 from strategist.ai.graph._lead_exchange import turn_exchange
 from strategist.ai.graph._lead_facts import show_the_facts
 from strategist.ai.graph._lead_model import resolve_lead_model_context
 from strategist.ai.graph._lead_reading import MessageNotReadError, read_the_words
-from strategist.ai.graph._lead_result import (
-    absorb_run_result,
-    ask_about_what_it_parks,
-)
+from strategist.ai.graph._lead_runs import LeadRuns
 from strategist.ai.graph._lead_site import (
     a_dead_site_changes_nothing,
     naming_a_dead_site,
@@ -80,7 +69,6 @@ from strategist.ai.graph._lead_site import (
 from strategist.ai.graph._lead_stops import (
     absorb_loop_stop,
     final_reply,
-    guard_stop_of,
     noting_a_decline,
     noting_a_provider_failure,
     run_stop_reply,
@@ -111,7 +99,7 @@ from strategist.ai.lead.linked_pages import read_linked_pages
 from strategist.ai.lead.recorded_cards import completed_hint
 from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.lead.turn_budget import lead_token_budget, lead_usage_limits
+from strategist.ai.lead.turn_budget import lead_usage_limits
 from strategist.domain.strategy.questions import OpenQuestion
 
 logger = get_logger(__name__)
@@ -141,19 +129,6 @@ def _run_prompt(
     if resumption.parked is not None and resumption.user_prompt is None:
         return None
     return state.user_content
-
-
-def _stream_ends_after(
-    event: AgentStreamEvent | AgentRunResultEvent[Any],
-    guard: ToolRepetitionGuard,
-    capture: LeadRunCapture,
-) -> bool:
-    """Whether this event is the last one the turn takes from the run."""
-    stop = guard_stop_of(event, guard)
-    if stop is None:
-        return False
-    capture.guard_stop = stop
-    return True
 
 
 def _resume_hints(
@@ -228,6 +203,18 @@ async def _drive_lead_stream(
 
     guard = deps.tool_repetition_guard
 
+    runs = LeadRuns(
+        agent=agent,
+        deps=deps,
+        state=state,
+        capture=capture,
+        writer=writer,
+        limits=limits,
+        usage=usage_acc,
+        model_id=agent_model,
+        tool_calls=sub_agent_tool_calls,
+    )
+
     async def _agent_events() -> AsyncGenerator[
         AgentStreamEvent | AgentRunResultEvent[Any]
     ]:
@@ -242,39 +229,15 @@ async def _drive_lead_stream(
                 model_id=agent_model,
                 capture=capture,
             )
-            async with agent.run_stream_events(
-                resume_prompt,
-                deps=deps,
-                message_history=resume_messages,
-                deferred_tool_results=deferred_results,
-                capabilities=[RepetitionGuard(guard=guard), lead_token_budget()],
-                usage_limits=limits,
-                usage=usage_acc,
-            ) as events:
-                async for event in events:
-                    capture.note_model_output(event)
-                    if isinstance(event, AgentRunResultEvent):
-                        absorb_run_result(event, capture, deps)
-                        await ask_about_what_it_parks(event, deps, writer)
-                    else:
-                        handle_sub_agent_event(
-                            deps,
-                            writer,
-                            event,
-                            sub_agent_tool_calls,
-                            capture.sub_agent_usage_by_call,
-                        )
-                    await _charge_token_delta(
-                        deps.runtime,
-                        state,
-                        capture,
-                        usage_acc,
-                        writer,
-                        agent_model,
-                    )
+            async for event in runs.events(
+                resume_prompt, resume_messages, deferred_results
+            ):
+                yield event
+            checked = runs.check_owed()
+            if checked is not None:
+                capture.response = None
+                async for event in runs.events(None, checked, None):
                     yield event
-                    if _stream_ends_after(event, guard, capture):
-                        return
         except (
             UsageLimitExceeded,
             UnexpectedModelBehavior,

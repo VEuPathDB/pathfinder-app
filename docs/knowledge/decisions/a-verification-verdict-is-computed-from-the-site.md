@@ -26,13 +26,14 @@ review on the digest and on the evidence card carries them as `checks`.
 | `record_type` | the root's `recordClassName` for an `answer`, or every step's for a `through`, equal to the requirement's typed record class (`gene` is also answered by `transcript` and `sequence`); with no value, `unchecked` ([a record type's role is read with its class](a-record-types-role-is-read-with-its-class.md)) |
 | `expression_fit` | the first groups of a phyletic step judged against the expression as the site reads it |
 | `tally` | a column tally this turn recorded on a step of the strategy, held as the recorded result |
+| `records_read` | the record reads the checker tried in this dispatch (`get_sample_records`): `pass` when one answered; `unchecked` (`site_unanswered`), failing `success`, when every read it tried got no answer; `unchecked` (`no_check`) when it read none |
 | `statistical_threshold`, `fold_change`, `percentile` | the requirement's typed value against the parameter or the analysis cut a linking criterion names (`value_grounding`, `fold_grounding`), whose values `bound_values` holds to the site; a significance whose statistic differs from the one the site's parameter names fails; with no such link `unchecked` (`no_value_to_compare`), with no value `unchecked` (`untyped`) ([a requirement carries a typed value of its kind](a-requirement-carries-a-typed-value-of-its-kind.md)) |
 | `count` | the bound against the number the linked parameter holds, or against the step's own count when the link names the result size (`link_grounding`); else `unchecked` (`no_value_to_compare`) |
 | `ortholog` | the organisms against those the linking transform targets, by entry equality, then a stated synteny against the transform's `isSyntenic` (`yes` for syntenic, `no` for any ortholog); no linking criterion `unchecked` (`no_step_states_it`), no linking transform with organisms, or a stated synteny no linking transform sets, `unchecked` (`no_value_to_compare`) |
 | `text` | the phrase against the linked parameter's value: equal for an exact phrase, every word held otherwise; no linking criterion `unchecked` (`no_step_states_it`), no linked parameter `unchecked` (`no_value_to_compare`) |
 | `property` | passed by the linking step, shown "answered by step" and its title; no linking criterion `unchecked` (`no_step_states_it`) |
 | `untyped` | no typed value: `unchecked` (`untyped`) |
-| `data_type` | the requirement's typed data against what the site marks each linking criterion runs on (`DataMarks.run_on`, `constraint_grounding`); with no linking criterion or no value, `unchecked` |
+| `data_type` | the requirement's typed data against what the site marks each linking criterion runs on (`DataMarks.run_on`, `constraint_grounding`); with no linking criterion, no value, or marks not read for its search, `unchecked` |
 | `combination` | how the spec grounds the requirement (`constraint_grounding`), whose values `bound_values` holds to the site |
 | `comparator` | no deterministic check: `unchecked` |
 

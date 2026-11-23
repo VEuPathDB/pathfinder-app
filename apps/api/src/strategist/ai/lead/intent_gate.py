@@ -12,7 +12,6 @@ from strategist.ai.graph._lead_answers import is_pure_approval
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.intent import BUILDING_INTENTS, IntentClassification
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.domain.refusal import Check, RefusalKey
 
 # The tools that write: they frame, materialize, patch or check a strategy, or
 # they edit the EDA analysis a step is exported from.
@@ -86,20 +85,6 @@ def turn_builds(deps: LeadDeps) -> bool:
     )
 
 
-def verification_pending(deps: LeadDeps) -> bool:
-    """Whether this turn's answer was refused before a check passed.
-
-    A dispatch that reported failure is a check the build did not pass, so the
-    turn keeps the one way out until a verification succeeds.
-    """
-    markers = deps.state.turn_markers
-    return (
-        markers.answer_ledger.used(RefusalKey(check=Check.UNVERIFIED_BUILD)) > 0
-        and markers.built
-        and not markers.verified
-    )
-
-
 def change_waits_for_a_card(deps: LeadDeps) -> bool:
     """Whether a check of this turn leaves every change to the researcher.
 
@@ -121,9 +106,8 @@ def _subset_was_previewed(deps: LeadDeps) -> bool:
 def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
     """The tools whose precondition this turn does not meet.
 
-    A turn whose answer was refused for want of a check reaches the check and
-    no other tool that writes, so the refusal has one way out. After a check,
-    a change the tree does not need reaches the strategy only through a card.
+    After a check, a change the tree does not need reaches the strategy only
+    through a card.
     """
     markers = deps.state.turn_markers
     ledger = derive_ledger(deps.state, deps.intent)
@@ -140,7 +124,7 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
         unmet.add("verify_strategy")
     if not _subset_was_previewed(deps):
         unmet.add("create_eda_step")
-    if verification_pending(deps) or change_waits_for_a_card(deps):
+    if change_waits_for_a_card(deps):
         unmet |= BUILDING_TOOLS - {"verify_strategy"}
     return frozenset(unmet)
 

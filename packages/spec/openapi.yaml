@@ -20352,6 +20352,7 @@ components:
       - expression_fit
       - tally
       - step_columns
+      - records_read
       type: string
     StepFact:
       description: 'One step of the strategy, or of the draft while nothing is built.

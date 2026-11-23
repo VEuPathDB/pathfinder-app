@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from strategist.ai.lead.intent import IntentClassification
-from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from strategist.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
     reconcile,
 )
-from strategist.ai.lead.turn_record import turn_record
+from strategist.ai.lead.turn_record import owes_a_check, turn_record
 from strategist.domain.eda_thread import OpenEdaAnalysis
 from strategist.domain.strategy.constraints import ConstraintKind
 from strategist.domain.strategy.questions import AskedQuestion
@@ -21,7 +20,6 @@ from strategist.tests.unit.ai.lead._turn_contract_cases import (
     DATASET,
     EDA_PROSE,
     REDIRECT,
-    REPORTS_THE_STRATEGY,
     WITH_CODE,
     blame_deps,
     building_deps,
@@ -40,8 +38,6 @@ class TestTheRecordTheTurnLeft:
         record = turn_record(run_context_for(building_deps()))
 
         assert record.changed_strategy is True
-        assert record.build_unverified is False
-        assert record.build_outcome is not None
         assert record.facts.root_count == 132
 
     def test_the_record_names_the_criterion_waiting_for_its_analysis(self) -> None:
@@ -52,57 +48,37 @@ class TestTheRecordTheTurnLeft:
         assert record.eda_criterion_pending.id == "c_essential"
         assert record.eda_criterion_pending.needs_analysis_on == DATASET
 
-    def test_the_record_carries_the_stop_and_the_off_topic_verdict(self) -> None:
-        deps = off_topic_deps()
-        deps.last_phase_stop = PhaseStop(
-            role="frame", reason=PhaseStopReason.BUDGET, tool_calls=60
-        )
-
-        record = turn_record(run_context_for(deps))
+    def test_the_record_carries_the_off_topic_verdict(self) -> None:
+        record = turn_record(run_context_for(off_topic_deps()))
 
         assert record.off_topic is True
-        assert record.last_phase_stop is not None
-        assert record.last_phase_stop.tool_calls == 60
 
 
-class TestTheUnverifiedBuildRule:
-    def test_a_build_no_pass_checked_is_a_mismatch(self) -> None:
-        deps = building_deps(verified=False)
+class TestTheRuntimeOwesACheck:
+    def test_a_build_no_pass_checked_owes_a_check(self) -> None:
+        assert owes_a_check(building_deps(verified=False)) is True
 
-        mismatches = reconcile(
-            reply("I added the step."),
-            turn_record(run_context_for(deps)),
-        )
+    def test_a_verified_build_owes_none(self) -> None:
+        assert owes_a_check(building_deps(verified=True)) is False
 
-        assert [m.kind for m in mismatches] == ["unverified_build"]
-        assert "1 step(s) on VEuPathDB" in mismatches[0].sentence
-        assert "root count 132" in mismatches[0].sentence
-        assert "verify_strategy" in mismatches[0].sentence
-
-    def test_a_verified_build_is_no_mismatch(self) -> None:
-        deps = building_deps(verified=True)
-
-        assert kinds(deps, reply("I added the step.")) == []
-
-    def test_a_dispatched_verification_that_failed_is_no_mismatch(self) -> None:
+    def test_a_dispatched_check_that_did_not_finish_owes_none(self) -> None:
         deps = building_deps(verified=False)
         deps.state.turn_markers.verification_dispatched = True
+        deps.state.turn_markers.verification_stopped = True
 
-        assert kinds(deps, reply("I added the step.")) == []
+        assert owes_a_check(deps) is False
 
-    def test_a_turn_that_built_nothing_is_no_mismatch(self) -> None:
-        assert kinds(reading_deps(), reply(REPORTS_THE_STRATEGY)) == []
+    def test_a_turn_that_built_nothing_owes_none(self) -> None:
+        assert owes_a_check(reading_deps()) is False
 
-    def test_a_build_that_still_owes_an_eda_criterion_is_asked_the_build_first(
-        self,
-    ) -> None:
-        record = turn_record(run_context_for(eda_deps()))
+    def test_a_build_that_still_owes_an_eda_criterion_owes_none(self) -> None:
+        deps = eda_deps()
+        deps.state.turn_markers.built = True
 
-        unverified = record.model_copy(update={"build_unverified": True})
+        assert (deps.build_unverified, owes_a_check(deps)) == (True, False)
 
-        assert [m.kind for m in reconcile(reply(EDA_PROSE), unverified)] == [
-            "unbuilt_eda_criterion"
-        ]
+    def test_no_rule_of_the_contract_asks_for_a_check(self) -> None:
+        assert kinds(building_deps(verified=False), reply("I added the step.")) == []
 
 
 class TestTheUnbuiltEdaCriterionRule:

@@ -45,6 +45,7 @@ _ARTIFACT_SUBDIRS = ("tools", "state", "errors", "wdk", "llm")
 _ARTIFACT_FILES = (
     "events.jsonl",
     "summary.json",
+    "timing.json",
     "diagnosis.json",
     "tree.json",
     "tree.txt",
@@ -227,6 +228,7 @@ class RunCapture:
         self._unshown_assumed: int | None = None
         self._terminal_error: str | None = None
         self._pending: tuple[str, str] | None = None
+        self._started = time.time()
 
     async def write(self, chunk: dict[str, Any]) -> int:
         event_id = next(self._ids)
@@ -607,6 +609,16 @@ class RunCapture:
         summary = self.summary()
         summary.anomaly_count = len(anomalies)
         (out / "summary.json").write_text(summary.model_dump_json(indent=2))
+        ended = time.time()
+        (out / "timing.json").write_text(
+            json.dumps(
+                {
+                    "started": self._started,
+                    "ended": ended,
+                    "wall_seconds": round(ended - self._started, 3),
+                }
+            )
+        )
         (out / "transcript.md").write_text(self._transcript())
         return out
 

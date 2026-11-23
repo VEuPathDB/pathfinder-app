@@ -96,7 +96,6 @@ class Check(StrEnum):
     UNMET_REQUIREMENT = "unmet_requirement"
     UNSAVED_CONTROLS = "unsaved_controls"
     UNSERVED = "unserved"
-    UNVERIFIED_BUILD = "unverified_build"
     UPLOAD = "upload"
     VALIDATION = "validation"
     VARIANT_PARAMETERS = "variant_parameters"

@@ -6,8 +6,8 @@ from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from pydantic_ai.messages import FunctionToolResultEvent, ToolReturnPart
 
 from strategist.ai.graph._lead_capture import LeadRunCapture
+from strategist.ai.graph._lead_runs import stream_ends_after
 from strategist.ai.graph._lead_stops import loop_stop_prose
-from strategist.ai.graph.lead_node import _stream_ends_after
 
 LITERATURE = "research_literature_search"
 
@@ -33,7 +33,7 @@ def _reply_after(guard: ToolRepetitionGuard, refusal: str) -> str:
         ),
     )
 
-    assert _stream_ends_after(event, guard, capture) is True
+    assert stream_ends_after(event, guard, capture) is True
     return loop_stop_prose(capture.guard_stop)
 
 
@@ -78,5 +78,5 @@ def test_a_result_the_guard_did_not_stop_on_leaves_the_run_going() -> None:
         part=ToolReturnPart(tool_name=LITERATURE, content="ok", tool_call_id="c0"),
     )
 
-    assert _stream_ends_after(event, guard, capture) is False
+    assert stream_ends_after(event, guard, capture) is False
     assert capture.guard_stop is None

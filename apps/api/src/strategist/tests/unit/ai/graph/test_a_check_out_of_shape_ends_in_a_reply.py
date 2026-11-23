@@ -79,7 +79,6 @@ def _build_verify_then_reply(messages: list[ModelMessage]) -> ToolCallPart:
         {
             "prose": _REPLY,
             "nextState": "await_user",
-            "unverifiedReason": "the verification pass stopped before it finished",
         }
     )
 

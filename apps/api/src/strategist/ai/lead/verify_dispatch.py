@@ -46,6 +46,7 @@ from strategist.ai.lead.verify_checks import read_the_columns, site_checks
 from strategist.domain.caveats import BuildCaveat, Gap, check_gaps, measured_caveats
 from strategist.domain.column_fit import ColumnFit
 from strategist.domain.evidence import SAMPLED_GENE_LIMIT
+from strategist.domain.records_read import records_read
 from strategist.domain.separation import AttachedControls
 from strategist.domain.site_checks import SiteCheck, failed, unanswered_verdict
 from strategist.domain.strategy.revision import strategy_revision
@@ -163,6 +164,7 @@ async def run_verification(
     checks = [*await site_checks(deps), *columns.unanswered]
     await record_score_counts(deps)
     steps = steps_decide(deps)
+    reads = (markers.sample_reads_tried, markers.sample_reads_answered)
     run = PhaseRun(
         "verification",
         "\n".join(
@@ -204,7 +206,13 @@ async def run_verification(
         return verification_stopped(deps.last_phase_stop)
     graph = deps.runtime.strategy_session.get_graph(None)
     review = await sampled_by_their_steps(deps, steps, delta.digest.review)
-    digest = _decided(deps, delta.digest.model_copy(update={"review": review}), checks)
+    read = records_read(
+        markers.sample_reads_tried - reads[0],
+        markers.sample_reads_answered - reads[1],
+    )
+    digest = _decided(
+        deps, delta.digest.model_copy(update={"review": review}), [*checks, read]
+    )
     revision = strategy_revision(live_tree(graph))
     deps.state.domain.record_verdict(digest, revision=revision)
     markers.verification_stopped = False
@@ -236,8 +244,7 @@ def verification_stopped(stop: PhaseStop | None) -> VerificationStopped:
         summary=(
             f"VERIFY {why}, so it recorded no verdict and the strategy is not "
             "verified. Tell the user the check did not finish and why, and ask "
-            "whether to run it again. Set `unverifiedReason` to why the check "
-            "did not finish."
+            "whether to run it again."
         ),
     )
 

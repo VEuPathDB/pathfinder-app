@@ -30,7 +30,6 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.held_answers import refused_once
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -366,6 +365,6 @@ def test_no_route_is_pinned_while_the_turn_withholds_its_tools() -> None:
     )
     markers = deps.state.turn_markers
     markers.built = True
-    markers.answer_ledger = refused_once("unverified_build")
+    markers.verification_dispatched = True
 
     assert eda_route_blocks(run_context_for(deps)) == []

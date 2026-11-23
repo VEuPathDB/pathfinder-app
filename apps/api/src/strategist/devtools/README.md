@@ -208,6 +208,7 @@ that raw shell can't do trivially. Run it anywhere the files are reachable
                       # assumed = narrowing values the request did not state
                       #   that the turn's facts part does not carry, over the
                       #   checkpointed spec (the corpus runner's assumed column)
+  timing.json         # started, ended and wall_seconds of the turn
   diagnosis.json      # detected anomalies (see below)
   events.jsonl        # every chunk, raw, untruncated - the SSOT
   tools/NN-<tool>.json# per tool call: phase, FULL args, status, result (the

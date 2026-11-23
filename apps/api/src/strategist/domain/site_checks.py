@@ -31,6 +31,7 @@ type StepCheckKind = Literal[
     "expression_fit",
     "tally",
     "step_columns",
+    "records_read",
 ]
 
 _STRUCTURE_KINDS: frozenset[str] = frozenset(

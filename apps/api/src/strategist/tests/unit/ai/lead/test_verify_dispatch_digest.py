@@ -17,6 +17,7 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.verify_dispatch import run_verification
 from strategist.ai.tools.toolsets import verification
 from strategist.domain.caveats import BuildCaveat
+from strategist.domain.records_read import records_read
 from strategist.domain.site_checks import SiteCheck, SiteCheckGap
 from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.constraints import ConstraintKind
@@ -159,7 +160,7 @@ async def test_a_real_build_whose_checks_pass_passes(
     assert delta.digest.success is True
     assert delta.digest.disposition is PhaseDisposition.DONE
     assert delta.digest.reason == "No check of the strategy on the site failed"
-    assert delta.digest.review.checks == [PASSED]
+    assert delta.digest.review.checks == [PASSED, records_read(0, 0)]
     assert delta.digest.caveats == []
 
 
@@ -254,4 +255,4 @@ async def test_an_unchecked_requirement_never_fails_the_verdict(
     )
 
     assert (delta.digest.success, delta.digest.gaps) == (True, [])
-    assert delta.digest.review.checks == [PASSED, unchecked]
+    assert delta.digest.review.checks == [PASSED, unchecked, records_read(0, 0)]

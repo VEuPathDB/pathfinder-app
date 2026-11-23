@@ -326,5 +326,6 @@ async def test_a_strategy_read_the_site_does_not_answer_gives_no_pass(
         ("step_valid", "site_unanswered"),
         ("bound_values", "site_unanswered"),
         ("result_count", "site_unanswered"),
+        ("records_read", "no_check"),
     ]
     assert (digest.success, digest.passed, digest.not_checked) == (False, False, True)

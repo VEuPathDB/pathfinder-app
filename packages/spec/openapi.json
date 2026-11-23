@@ -30338,7 +30338,8 @@
           "result_count",
           "expression_fit",
           "tally",
-          "step_columns"
+          "step_columns",
+          "records_read"
         ],
         "type": "string"
       },

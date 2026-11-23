@@ -16,6 +16,17 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **The runtime checks a changed strategy, then the Lead answers once.** The "nothing
+  verified the result" refusal fired in 25 of 58 recorded turns, and e2's second answer
+  passed with a made-up `unverifiedReason` while `verify_strategy` was offered. When the
+  Lead answers a turn that changed the strategy and dispatched no check, the Lead node now
+  appends a `verify_strategy` call to the run and resumes the Lead once from it, so the
+  check streams, parks and resumes as the Lead's own call. `unverified_reason`, the
+  `unverified_build` rule, its message, its `Check` key and `verification_pending` are
+  deleted. VERIFY adds a `records_read` check: unchecked with `site_unanswered` when every
+  record read it tried got no answer (diag-vaccine run5 t1), `no_check` when it read none.
+  The chat debugger writes `timing.json` for every run.
+
 * **A WDK reply that does not parse fails the call.** A tool body that validated a site
   reply missing a required field raised a pydantic `ValidationError`, which pydantic-ai
   turned into a corrective retry labelled "Sent with arguments the tool does not accept".
