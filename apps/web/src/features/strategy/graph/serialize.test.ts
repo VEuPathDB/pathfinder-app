@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { serializeStrategyAst } from "./serialize";
 import type { Step, Strategy } from "@strategist/shared";
+import undoPlan from "./__fixtures__/undo-plan.json";
+import weightedPlan from "./__fixtures__/weighted-plan.json";
 
 /** Minimal Step with required boolean fields defaulted. */
 function step(partial: Partial<Step> & { id: string; displayName: string }): Step {
@@ -223,5 +225,21 @@ describe("core/strategyGraph/serialize", () => {
       updatedAt: "t",
     });
     expect(res).toEqual(null);
+  });
+
+  it("keeps every setting of every step, so an undo replays the whole plan", () => {
+    const steps: Step[] = weightedPlan as Step[];
+    const res = serializeStrategyAst(Object.fromEntries(steps.map((s) => [s.id, s])), {
+      id: "s",
+      name: "Kinases near membrane genes",
+      siteId: "plasmodb",
+      recordType: "transcript",
+      steps,
+      rootStepId: "step_root",
+      isSaved: false,
+      createdAt: "t",
+      updatedAt: "t",
+    });
+    expect(res?.plan).toEqual(undoPlan);
   });
 });

@@ -2,6 +2,12 @@
 
 ## 2026-11-23
 
+* **The canvas keeps every setting through undo and redo.** `serializeStrategyAst` carries
+  each step's weight, filters, analyses and saved-strategy expansion into the plan an undo
+  or a redo replays, and the optimistic replace shows them on the canvas until the server
+  answers. The matrix row P1 undo replay replays the serializer's output
+  (`graph/__fixtures__/undo-plan.json`) and holds all twelve fields.
+
 * **The test fakes hold what they were written.** The double that answered every commit's
   read with the tree before the edit is gone. One fake WDK (`tests/_support/holding_wdk.py`,
   `RecordingWDK` beside it) holds every step and strategy a test writes and serves them back

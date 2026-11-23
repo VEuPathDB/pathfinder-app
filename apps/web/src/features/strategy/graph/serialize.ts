@@ -85,6 +85,17 @@ export function serializeStrategyAst(
       displayName: step.displayName ?? "",
       parameters: sanitizeParametersForPlan(step.parameters ?? {}),
     };
+    if (step.wdkWeight != null) node.wdkWeight = step.wdkWeight;
+    if (step.filters !== undefined && step.filters.length > 0) {
+      node.filters = step.filters;
+    }
+    if (step.analyses != null && step.analyses.length > 0) {
+      node.analyses = step.analyses;
+    }
+    if (step.expandedStrategyId != null) {
+      node.expandedStrategyId = step.expandedStrategyId;
+    }
+    if (step.expandedName != null) node.expandedName = step.expandedName;
 
     if (step.primaryInputStepId != null) {
       const primary = buildNode(step.primaryInputStepId);

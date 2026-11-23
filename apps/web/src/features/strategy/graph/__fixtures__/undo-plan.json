@@ -1,0 +1,111 @@
+{
+  "recordType": "transcript",
+  "root": {
+    "id": "step_root",
+    "searchName": "__combine__",
+    "displayName": "In saved kinases",
+    "parameters": {},
+    "expandedStrategyId": 9001,
+    "expandedName": "Saved kinases",
+    "primaryInput": {
+      "id": "step_coloc",
+      "searchName": "__combine__",
+      "displayName": "Contains membrane genes",
+      "parameters": {},
+      "wdkWeight": 4,
+      "primaryInput": {
+        "id": "step_union",
+        "searchName": "__combine__",
+        "displayName": "Kinase or rhoptry",
+        "parameters": {},
+        "wdkWeight": 7,
+        "primaryInput": {
+          "id": "step_a",
+          "searchName": "GenesByTextSearch",
+          "displayName": "Kinase text",
+          "parameters": {
+            "text_expression": {
+              "type": "string",
+              "value": "kinase"
+            }
+          },
+          "wdkWeight": 10,
+          "filters": [
+            {
+              "name": "matched_transcript_filter_array",
+              "value": {
+                "values": ["N"]
+              },
+              "disabled": false
+            }
+          ]
+        },
+        "secondaryInput": {
+          "id": "step_b",
+          "searchName": "GenesByTextSearch",
+          "displayName": "Rhoptry text",
+          "parameters": {
+            "text_expression": {
+              "type": "string",
+              "value": "rhoptry"
+            }
+          },
+          "wdkWeight": 5,
+          "analyses": [
+            {
+              "analysisType": "go-enrichment",
+              "parameters": {
+                "goSubset": "No"
+              }
+            }
+          ]
+        },
+        "operator": "UNION"
+      },
+      "secondaryInput": {
+        "id": "step_c",
+        "searchName": "GenesByTextSearch",
+        "displayName": "Membrane text",
+        "parameters": {
+          "text_expression": {
+            "type": "string",
+            "value": "membrane"
+          }
+        }
+      },
+      "operator": "COLOCATE",
+      "colocationParams": {
+        "operation": "contains",
+        "strand": "same strand",
+        "output": "a",
+        "regionA": "exact",
+        "beginA": "start",
+        "beginDirectionA": "+",
+        "beginOffsetA": 500,
+        "endA": "stop",
+        "endDirectionA": "+",
+        "endOffsetA": 0,
+        "regionB": "exact",
+        "beginB": "start",
+        "beginDirectionB": "+",
+        "beginOffsetB": 0,
+        "endB": "stop",
+        "endDirectionB": "+",
+        "endOffsetB": 0
+      }
+    },
+    "secondaryInput": {
+      "id": "step_d",
+      "searchName": "GenesByTextSearch",
+      "displayName": "Saved kinases root",
+      "parameters": {
+        "text_expression": {
+          "type": "string",
+          "value": "protein kinase"
+        }
+      }
+    },
+    "operator": "INTERSECT"
+  },
+  "name": "Kinases near membrane genes"
+}

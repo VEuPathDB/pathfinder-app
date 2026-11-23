@@ -120,6 +120,11 @@ function treeToFlatSteps(root: StrategyStepNode, strategy: Strategy): Step[] {
       parameters: node.parameters ?? {},
       operator: node.operator ?? null,
       colocationParams: node.colocationParams ?? null,
+      filters: node.filters ?? [],
+      wdkWeight: node.wdkWeight ?? null,
+      analyses: node.analyses ?? null,
+      expandedStrategyId: node.expandedStrategyId ?? null,
+      expandedName: node.expandedName ?? null,
       primaryInputStepId: primary?.id ?? null,
       secondaryInputStepId: secondary?.id ?? null,
     };

@@ -137,6 +137,41 @@ describe("applyOperation - value updates", () => {
     expect(stepById(result.next, "a").secondaryInputStepId).toBe(null);
   });
 
+  it("shows every setting a replaced plan carries on the step it replaces", () => {
+    const result = applyOperation(strat(), {
+      kind: "replaceStrategy",
+      root: {
+        id: "a",
+        searchName: "GenesByText",
+        displayName: "Kinases via InterPro",
+        wdkWeight: 10,
+        filters: [
+          { name: "matched_transcript_filter_array", value: { values: ["N"] } },
+        ],
+        analyses: [{ analysisType: "go-enrichment", parameters: {} }],
+        expandedStrategyId: 9001,
+        expandedName: "Saved kinases",
+      },
+      name: "Drug targets",
+    });
+    expect(result.kind).toBe("applied");
+    if (result.kind !== "applied") return;
+    const a = stepById(result.next, "a");
+    expect([
+      a.wdkWeight,
+      a.filters,
+      a.analyses,
+      a.expandedStrategyId,
+      a.expandedName,
+    ]).toEqual([
+      10,
+      [{ name: "matched_transcript_filter_array", value: { values: ["N"] } }],
+      [{ analysisType: "go-enrichment", parameters: {} }],
+      9001,
+      "Saved kinases",
+    ]);
+  });
+
   it("rejects an operator update on a non-existent step", () => {
     const result = applyOperation(strat(), {
       kind: "updateCombineOperator",
