@@ -650,14 +650,10 @@ async def test_f9_a_branch_turn_retrieves_the_memories_its_parent_would(
     runtime: Runtime[Context] = Runtime(
         context=_context(user_id, app_memory_store.store),
     )
-    on_parent = await _lead_turn.retrieve_memories(
-        _pipeline_state(conversation_id, user_id),
-        runtime,
-    )
-    on_branch = await _lead_turn.retrieve_memories(
-        _pipeline_state(fork_id, user_id),
-        runtime,
-    )
+    on_parent, on_branch = [
+        await _lead_turn.retrieve_memories(_pipeline_state(cid, user_id), runtime)
+        for cid in (conversation_id, fork_id)
+    ]
 
     assert isinstance(on_parent, list)
     assert isinstance(on_branch, list)

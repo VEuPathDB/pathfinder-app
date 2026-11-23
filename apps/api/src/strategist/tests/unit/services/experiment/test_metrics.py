@@ -135,4 +135,4 @@ def test_an_unread_result_count_is_no_count() -> None:
         )
     )
 
-    assert measured.total_results is None
+    assert (measured.total_results, measured.sensitivity) == (None, 0.5)

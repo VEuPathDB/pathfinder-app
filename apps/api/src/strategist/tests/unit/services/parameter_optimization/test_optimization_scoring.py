@@ -66,7 +66,11 @@ class TestComputeScoreByObjective:
 
     def test_no_control_measured_gives_no_score(self) -> None:
         unmeasured = _measured(None, None, positive_hits=None, negative_hits=None)
-        assert _compute_score(unmeasured, OptimizationConfig(objective="f1")) is None
+        scores = [
+            _compute_score(unmeasured, OptimizationConfig(objective=objective))
+            for objective in ("f1", "recall")
+        ]
+        assert scores == [None, None]
 
 
 class TestEstimatedSizePenalty:
