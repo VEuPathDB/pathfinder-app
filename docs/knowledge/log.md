@@ -88,6 +88,11 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **Production cannot mint a dev login.** `create_dev_login_token` and `set_dev_login_cookie` are
+  `strategist_scripted/dev_login.py`; the minter signs the same `SessionToken` through
+  `platform/security.py::encode_session_token`, which `create_user_token` also signs with. A test
+  refuses any production module that names a minter, the cookie setter or a `dev_login=True` claim.
+
 * **The dev routes ship only to tests.** `routers/dev.py`, `services/audit/sample_run.py` and its
   JSON are `strategist_scripted/dev_routes.py` and `strategist_scripted/audit/sample_run.*`;
   `create_app` mounts `scripted().dev_router` only in a mock deployment. The OpenAPI generator refuses

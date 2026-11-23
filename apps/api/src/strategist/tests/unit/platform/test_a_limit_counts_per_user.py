@@ -6,10 +6,10 @@ from uuid import uuid4
 from starlette.requests import Request
 
 from strategist.platform.security import (
-    create_dev_login_token,
     create_user_token,
     rate_limit_key,
 )
+from strategist_scripted.dev_login import create_dev_login_token
 
 
 def _request(*, cookie: str | None = None, authorization: str | None = None) -> Request:

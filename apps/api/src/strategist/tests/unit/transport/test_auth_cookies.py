@@ -17,11 +17,11 @@ import strategist
 from strategist.main import create_app
 from strategist.platform.config import get_settings
 from strategist.platform.readiness import reset_readiness
-from strategist.platform.security import create_dev_login_token
 from strategist.services import wdk_identity
 from strategist.tests._support.routes import api_routes
 from strategist.transport.http.routers.veupathdb_auth import router
 from strategist_scripted import dev_routes
+from strategist_scripted.dev_login import create_dev_login_token
 
 _AUTH = "/api/v1/veupathdb/auth"
 _SITE_LOGIN_WRITER = Path("transport/http/routers/dev_site_login.py")

@@ -6,6 +6,7 @@ The site sign-in route mounts only in development with the dev account set.
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from pydantic import SecretStr
@@ -13,13 +14,14 @@ from pydantic import SecretStr
 import strategist
 from strategist.main import create_app
 from strategist.platform.config import get_settings
+from strategist.platform.security import SessionToken, decode_session_token
 from strategist.tests._support.routes import api_routes
 from strategist.transport.http.routers import dev_site_login
 from strategist_scripted import dev_routes
+from strategist_scripted.dev_login import create_dev_login_token
 
-_MINTER = "create_dev_login_token"
+_MINTING = ("create_dev_login_token", "set_dev_login_cookie", "dev_login=True")
 _SITE_LOGIN = "/api/v1/dev/site-login"
-_ALLOWED_MINTERS = {Path("platform/security.py")}
 
 
 def _endpoints(*, include_dev_routes: bool) -> set[object]:
@@ -42,15 +44,24 @@ def test_the_overlay_app_does_have_it() -> None:
     assert dev_routes.dev_login in _endpoints(include_dev_routes=True)
 
 
-def test_only_the_dev_router_mints_a_dev_login_token() -> None:
+def test_no_production_module_mints_a_dev_login_token() -> None:
     root = Path(strategist.__file__).parent
-    minters = {
-        source.relative_to(root)
+    minters = sorted(
+        source.relative_to(root).as_posix()
         for source in root.rglob("*.py")
-        if not source.is_relative_to(root / "tests") and _MINTER in source.read_text()
-    }
+        if not source.is_relative_to(root / "tests")
+        and any(name in source.read_text() for name in _MINTING)
+    )
 
-    assert minters == _ALLOWED_MINTERS
+    assert minters == []
+
+
+def test_the_scripted_minter_signs_the_claims_production_reads() -> None:
+    user = uuid4()
+
+    claims = decode_session_token(create_dev_login_token(user))
+
+    assert claims == SessionToken(sub=user, dev_login=True)
 
 
 def _site_login_endpoints(

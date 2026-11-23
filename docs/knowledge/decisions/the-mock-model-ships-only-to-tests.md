@@ -17,7 +17,11 @@ and the no-decision transport (`decisions.py`), and the curated seed strategies
 those scripts bind their values from (`seeds/`: the catalog, the JSON per site, the
 organism marks and their recorder, `python -m strategist_scripted.seeds`), and the
 routes only a mock deployment mounts (`dev_routes.py`: the dev login and the
-sample audit run, with `audit/sample_run.py` and its JSON). It sits in the same source root
+sample audit run, with `audit/sample_run.py` and its JSON, and `dev_login.py`, the
+only minter of a dev-login token and its cookie). The claim model `SessionToken`,
+its signing (`encode_session_token`) and its reading stay in
+`platform/security.py`, so a production deployment reads a dev login but cannot
+mint one. It sits in the same source root
 as `strategist`, so the editable install puts it on the test environment's path,
 but the wheel names only `src/strategist`.
 
@@ -42,6 +46,8 @@ only, an `e2e` stage that adds `src/strategist_scripted`, and ends on
 - `tests/unit/test_only_the_seam_names_the_scripted_package.py`: only
   `platform/config.py` names the package, because import-linter cannot see an
   import by name.
+- `tests/unit/transport/test_dev_login_is_test_only.py`: no production module
+  names a dev-login minter, its cookie setter or a `dev_login=True` claim.
 - `tests/unit/test_the_production_image_ships_no_scripted_model.py`: the stages
   of the Dockerfile and the targets compose and CI build.
 

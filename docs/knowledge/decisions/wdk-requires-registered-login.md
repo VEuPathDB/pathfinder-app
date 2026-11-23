@@ -93,8 +93,8 @@ and `require_session_matches_wdk_identity` returns early for that credential. Th
 login refusal is unchanged: a dev-login session still needs a registered,
 non-guest token to reach a WDK account. Production cannot mint the credential,
 and `tests/unit/transport/test_dev_login_is_test_only.py` pins both halves: the
-app built without the overlay carries no dev-login route, and the dev router is
-the only caller of `create_dev_login_token`. Without this, every Playwright
+app built without the overlay carries no dev-login route, and no production
+module names `create_dev_login_token`, which lives in `strategist_scripted`. Without this, every Playwright
 worker signs in as `worker-N` and shares one registered VEuPathDB test account,
 so the gate answers 401 `WDK_IDENTITY_MISMATCH` on every WDK-backed route.
 

@@ -3,11 +3,11 @@ from fastapi.responses import JSONResponse
 
 from strategist.platform.errors import ForbiddenError
 from strategist.platform.model_keys import is_mock_deployment
-from strategist.platform.security import create_dev_login_token, set_dev_login_cookie
 from strategist.services.users import get_or_create_user_id
 from strategist.transport.http.deps import CurrentUser, DBSession
 from strategist.transport.http.routers.dev_site_login import DEV_ROUTE_PREFIX
 from strategist_scripted.audit.sample_run import SampleRunIds, store_sample_run
+from strategist_scripted.dev_login import create_dev_login_token, set_dev_login_cookie
 
 router = APIRouter(prefix=DEV_ROUTE_PREFIX, tags=["dev"])
 

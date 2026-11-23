@@ -15,11 +15,11 @@ from strategist.platform.error_handlers import veupathdb_error_handler
 from strategist.platform.principal import Principal
 from strategist.platform.security import (
     DEV_LOGIN_COOKIE,
-    create_dev_login_token,
     create_user_token,
     resolve_principal,
     site_login_user,
 )
+from strategist_scripted.dev_login import create_dev_login_token
 
 
 def _app(site_user: UUID | None) -> FastAPI:
