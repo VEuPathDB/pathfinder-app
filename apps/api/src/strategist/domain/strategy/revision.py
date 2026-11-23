@@ -43,8 +43,9 @@ _REVISION_LENGTH = 16
 
 def _canonical(value: ParamValue) -> JSONValue:
     match value:
-        case MultiPickValue(values=values):
-            value = value.model_copy(update={"values": sorted(values)})
+        case MultiPickValue():
+            held = json.loads(json.dumps(value.identity(), default=sorted))
+            value = value.model_copy(update={"values": held})
         case _:
             pass
     dumped: JSONValue = _VALUE.dump_python(

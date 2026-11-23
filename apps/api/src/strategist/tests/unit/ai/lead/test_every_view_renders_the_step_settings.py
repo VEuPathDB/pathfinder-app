@@ -351,6 +351,27 @@ class TestTheRevision:
             picked(["Plasmodium falciparum 3D7", "Plasmodium vivax P01"])
         )
 
+    def test_a_pick_the_settings_call_equal_is_the_same_revision(self) -> None:
+        def picked(values: list[str]) -> StrategyAst:
+            return StrategyAst(
+                record_type="transcript",
+                root=StrategyStepNode(
+                    id="a",
+                    search_name="GenesByTaxon",
+                    parameters={"organism": MultiPickValue(values=values)},
+                ),
+            )
+
+        once, twice = (
+            picked(["Plasmodium vivax P01"]),
+            picked(["Plasmodium vivax P01"] * 2),
+        )
+
+        assert (
+            settings_of(once.root).changed(settings_of(twice.root)),
+            strategy_revision(once) == strategy_revision(twice),
+        ) == ([], True)
+
 
 def test_the_extracted_strategy_keeps_every_step_setting() -> None:
     stored = _tree(
