@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -34,8 +33,6 @@ from strategist.tests.integration.jobs._audit_jobs import (
 )
 from strategist.tests.integration.jobs._audit_reviews import work_reviews
 
-_TOLERANCE = timedelta(seconds=5)
-
 
 @pytest.fixture
 def wired(monkeypatch: pytest.MonkeyPatch) -> Checks:
@@ -63,14 +60,14 @@ async def test_a_job_yields_its_slot_once_its_work_slice_is_spent(
     run_id = await create_run(owner=owner, scope=SCOPE)
     await start_run(run_id, owner)
     monkeypatch.setattr(units, "SLICE_SECONDS", 0.0)
-    yielded_at = datetime.now(UTC)
+    yielded_at = wired.clock.now()
 
     await work(jobs, queued(jobs)[0])
 
     (later,) = queued(jobs)
     assert wired.site.genome_reads == []
     assert later["args"]["payload"]["pause"] == 30.0
-    assert abs(later["scheduled_at"] - yielded_at) < _TOLERANCE
+    assert later["scheduled_at"] == yielded_at
     monkeypatch.setattr(units, "SLICE_SECONDS", 1800.0)
     assert await work_through(jobs) == 1
     assert (await owned_run(run_id, owner)).status == "finished"
@@ -86,7 +83,7 @@ async def test_units_a_late_continuation_never_read_are_stored_unread_and_retrie
     await work(jobs, queued(jobs)[0])
     monkeypatch.setattr(units, "SLICE_SECONDS", 1800.0)
     (later,) = queued(jobs)
-    later["args"]["payload"]["deadline"] = datetime.now(UTC).isoformat()
+    later["args"]["payload"]["deadline"] = wired.clock.now().isoformat()
 
     await work_through(jobs)
 
@@ -132,7 +129,7 @@ async def test_a_target_the_site_left_unanswered_stays_unreached_past_the_deadli
     await work(jobs, queued(jobs)[0])
     (later,) = queued(jobs)
     assert (await owned_run(run_id, owner)).stages.next_stage == "screen"
-    later["args"]["payload"]["deadline"] = datetime.now(UTC).isoformat()
+    later["args"]["payload"]["deadline"] = wired.clock.now().isoformat()
 
     await work_through(jobs)
 

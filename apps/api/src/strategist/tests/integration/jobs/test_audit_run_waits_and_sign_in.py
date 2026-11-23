@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import httpx
 import pytest
@@ -46,7 +46,6 @@ from strategist.tests.integration.jobs._audit_jobs import (
 from strategist.tests.integration.jobs._audit_reviews import work_reviews
 
 SIGN_IN_NEEDED = "sign-in needed"
-_TOLERANCE = timedelta(seconds=5)
 _LATE = "Plasmodium relative5 X"
 
 
@@ -86,14 +85,14 @@ async def test_a_wait_for_a_site_ends_the_job_and_schedules_its_continuation(
     with holding(TOKEN):
         await start_run(run_id, owner)
     (first,) = queued(jobs)
-    paused_at = datetime.now(UTC)
+    paused_at = wired.clock.now()
 
     await work(jobs, first)
 
     (later,) = queued(jobs)
     assert (later["lock"], later["queueing_lock"]) == (audit_lock(run_id),) * 2
     assert later["args"]["payload"] == {**first["args"]["payload"], "pause": 60.0}
-    assert abs(later["scheduled_at"] - (paused_at + timedelta(seconds=30))) < _TOLERANCE
+    assert later["scheduled_at"] == paused_at + timedelta(seconds=30)
     paused = await owned_run(run_id, owner)
     assert (paused.status, paused.stages.unfinished) == (
         "running",
@@ -128,16 +127,13 @@ async def test_a_finished_stage_starts_the_next_one_at_the_first_pause(
     await work(jobs, queued(jobs)[0])
     (after_collect,) = queued(jobs)
     assert after_collect["args"]["payload"]["pause"] == 60.0
-    paused_at = datetime.now(UTC)
+    paused_at = wired.clock.now()
 
     await work(jobs, after_collect)
 
     (in_confirm,) = queued(jobs)
     assert in_confirm["args"]["payload"]["pause"] == 60.0
-    assert (
-        abs(in_confirm["scheduled_at"] - (paused_at + timedelta(seconds=30)))
-        < _TOLERANCE
-    )
+    assert in_confirm["scheduled_at"] == paused_at + timedelta(seconds=30)
     assert (await owned_run(run_id, owner)).stages.next_stage == "confirm"
 
 
@@ -151,7 +147,7 @@ async def test_a_continuation_picked_up_after_the_deadline_reads_nothing(
         await start_run(run_id, owner)
     await work(jobs, queued(jobs)[0])
     (later,) = queued(jobs)
-    passed = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
+    passed = (wired.clock.now() - timedelta(seconds=1)).isoformat()
     later["args"]["payload"]["deadline"] = passed
 
     await work(jobs, later)

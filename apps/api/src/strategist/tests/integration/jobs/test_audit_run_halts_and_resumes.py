@@ -4,7 +4,7 @@ does not answer is waited for, and a start that dies between its writes is picke
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import UUID
 
 import pytest
@@ -363,7 +363,7 @@ async def test_an_unanswered_check_near_the_deadline_waits_to_the_deadline_unrea
     with holding(TOKEN):
         await start_run(run_id, owner)
     asked = _oauth_down(monkeypatch, times=10)
-    started = datetime.now(UTC)
+    started = wired.clock.now()
 
     await work(jobs, queued(jobs)[0])
 
@@ -371,8 +371,7 @@ async def test_an_unanswered_check_near_the_deadline_waits_to_the_deadline_unrea
     assert run.deadline_at is not None
     assert (run.stages.halted, await sealed(run_id) is not None) == (None, True)
     (later,) = queued(jobs)
-    assert later["scheduled_at"] <= run.deadline_at + timedelta(seconds=1)
-    assert later["scheduled_at"] < started + timedelta(seconds=30)
+    assert later["scheduled_at"] == run.deadline_at
     assert wired.site.genome_reads == []
 
     jobs.jobs[later["id"]]["args"]["payload"]["deadline"] = (

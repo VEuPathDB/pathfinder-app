@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import UTC, datetime
 from uuid import UUID
 
 import httpx
@@ -271,7 +270,7 @@ async def test_a_read_the_site_refused_shows_a_fixed_sentence_everywhere(
 async def test_a_read_the_site_never_answered_shows_a_fixed_sentence_everywhere(
     jobs: InMemoryConnector, monkeypatch: pytest.MonkeyPatch, app: FastAPI
 ) -> None:
-    wire_checks(monkeypatch)
+    clock = wire_checks(monkeypatch).clock
     monkeypatch.setattr(checks, "audit_pseudogene_call", audit_pseudogene_call)
     lines = _spied_stage_lines(monkeypatch)
     owner = await seed_thread()
@@ -280,7 +279,7 @@ async def test_a_read_the_site_never_answered_shows_a_fixed_sentence_everywhere(
     with gene_records_answering(httpx.ConnectError(f"no route to {_URL}")):
         await work(jobs, queued(jobs)[0])
         (later,) = queued(jobs)
-        later["args"]["payload"]["deadline"] = datetime.now(UTC).isoformat()
+        later["args"]["payload"]["deadline"] = clock.now().isoformat()
         await work_through(jobs)
     stated = "plasmodb did not answer the audit reads"
     found = await _target(run_id)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
@@ -78,7 +78,7 @@ async def _defer(job: AuditJob, *, after: float) -> None:
         queue=AUDIT_QUEUE,
         lock=lock,
         queueing_lock=lock,
-        schedule_in={"seconds": after},
+        schedule_at=units.audit_clock().now() + timedelta(seconds=after),
     )
     try:
         await deferrer.defer_async(payload=job.model_dump(mode="json"))
@@ -141,7 +141,9 @@ async def start_run(
     if await working(run_id) or (finished and not retry_unreached):
         return await _outcome(run)
     kept = seal_sign_in(run_id, owner.user_id, await _signed_in(run))
-    deadline = datetime.now(UTC) + timedelta(hours=get_settings().audit_run_hours)
+    deadline = units.audit_clock().now() + timedelta(
+        hours=get_settings().audit_run_hours
+    )
     async with async_session_factory() as session:
         repo = AuditRepository(session)
         if finished:
@@ -274,7 +276,7 @@ async def _carry(run: AuditRunRecord, lanes: RunLanes, waits: Waits) -> None:
 async def _waited_for_sign_in(
     run: AuditRunRecord, lanes: RunLanes, stage: StageName, job: AuditJob
 ) -> bool:
-    left = (job.deadline - datetime.now(UTC)).total_seconds()
+    left = (job.deadline - units.audit_clock().now()).total_seconds()
     if left <= 0:
         return False
     pause = min(job.pause, left)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -37,6 +38,7 @@ from strategist.services.audit import (
     screen,
     sign_in,
     tie_break,
+    units,
     weighing,
 )
 from strategist.services.audit.queue import AUDIT_JOB
@@ -46,6 +48,7 @@ from strategist.tests._support.audit import (
     P3D7,
     PIGA,
     PIGA_INTACT,
+    FakeClock,
     FakeSite,
     gene_row,
     relative_organisms,
@@ -93,6 +96,7 @@ SCOPE = AuditScope(
 class Checks:
     def __init__(self, site: FakeSite) -> None:
         self.site = site
+        self.clock = FakeClock(datetime.now(UTC))
         self.asked: list[str] = []
         self.pseudogene_crashes = 0
         self.split_failures: list[BaseException] = []
@@ -172,6 +176,7 @@ class Checks:
 def wire_checks(monkeypatch: pytest.MonkeyPatch) -> Checks:
     site = FakeSite(ROWS)
     fakes = Checks(site)
+    monkeypatch.setattr(units, "audit_clock", lambda: fakes.clock)
     monkeypatch.setattr(collect, "genes_of_genome", site.genes_of_genome)
     monkeypatch.setattr(collect, "genome_priorities", no_busco_scores)
     monkeypatch.setattr(collect, "organism_report", served_organisms)
