@@ -27,7 +27,9 @@ A commit runs in this order:
 4. It plans each step against what WDK holds (R1-R4 below), validates every step it
    writes once, writes the steps, puts the tree and reads it back (R5).
 
-- R1. A value that moved against what WDK holds is stated; the rest is context. Each
+- R1. A value that moved against what WDK holds is stated; the rest is context. A value
+  the earlier plan stated and this plan no longer states has moved too: the step is written
+  without it and WDK takes its default. Each
   written step is validated once, and every refusal is returned together.
 - R2. A refusal on a step WDK does not hold makes a draft; on a step WDK holds, a failure.
   Either keeps the tree from being put.

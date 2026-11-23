@@ -144,11 +144,13 @@ def held_before_the_commit(
         step = steps.get(node.id)
         if step is not None and step.filters_wdk_added is None:
             step.filters_wdk_added = node.filters_wdk_added
+    was_stated = {node.id: set(node.parameters) for node in nodes}
     return {
         node.id: _as_planned(
             held[node.id],
             settings_of(node),
             steps[node.id].filters_wdk_added or [],
+            stated_before=was_stated.get(node.id, set()),
         )
         for node in walk(root)
         if node.id in held
@@ -156,14 +158,17 @@ def held_before_the_commit(
 
 
 def _as_planned(
-    holds: StepSettings, plan: StepSettings, wdk_added: list[StepFilter]
+    holds: StepSettings,
+    plan: StepSettings,
+    wdk_added: list[StepFilter],
+    *,
+    stated_before: set[str],
 ) -> StepSettings:
     stated = {f.name for f in plan.filters}
+    named = plan.parameters.keys() | stated_before
     return holds.model_copy(
         update={
-            "parameters": {
-                k: v for k, v in holds.parameters.items() if k in plan.parameters
-            },
+            "parameters": {k: v for k, v in holds.parameters.items() if k in named},
             "filters": [
                 f for f in holds.filters if f.name in stated or f not in wdk_added
             ],
