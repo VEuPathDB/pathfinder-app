@@ -10,14 +10,12 @@ import asyncio
 from collections.abc import AsyncIterator
 from uuid import uuid4
 
-import pytest
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
+from strategist.tests._support.virtual_time import run_in_virtual_time
 from strategist.tests.integration.http._authz_matrix_support import Case, status_for
 from strategist.tests.integration.http.conftest import client_for, ends_at_first_frame
-
-pytestmark = pytest.mark.asyncio
 
 _SLOW_HANDLER_SECONDS = 16.0
 _OK = 200
@@ -58,12 +56,17 @@ async def test_a_stream_with_no_end_reports_the_status_it_opened_with() -> None:
     assert status == _OK
 
 
-async def test_a_route_that_takes_its_time_answers_and_is_not_cut_short() -> None:
+def test_a_route_that_takes_its_time_answers_and_is_not_cut_short() -> None:
     """A slow handler runs to its end, so its status is the route's own."""
     finished: list[str] = []
-    client = client_for(ends_at_first_frame(_probe_app(finished)), uuid4())
-    async with client:
-        status = await status_for(client, _case("/slow"))
+
+    async def asked() -> int:
+        client = client_for(ends_at_first_frame(_probe_app(finished)), uuid4())
+        async with client:
+            return await status_for(client, _case("/slow"))
+
+    status, waited = run_in_virtual_time(asked)
 
     assert status == _OK
     assert finished == ["slow"], "the handler was cancelled before it answered"
+    assert waited >= _SLOW_HANDLER_SECONDS
