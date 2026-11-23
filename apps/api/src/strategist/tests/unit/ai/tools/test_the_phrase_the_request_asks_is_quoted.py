@@ -52,7 +52,7 @@ def test_an_unquoted_term_the_request_asks_as_a_phrase_is_refused() -> None:
     assert refused.value.message == (
         "text_expression on GenesByText: the request asks for the phrase, so "
         'the term is quoted: "polar tube protein"; an unquoted term matches any of '
-        "its words."
+        "its words. Nothing was recorded."
     )
 
 

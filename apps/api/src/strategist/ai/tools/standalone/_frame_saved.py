@@ -12,6 +12,7 @@ from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone._frame_roles import (
     saved_input_problems,
 )
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -91,10 +92,10 @@ async def bind_saved_criterion(
 
 
 async def set_saved_criterion(
-    ctx: RunContext[AgentDeps], stated: Criterion, *, reference: str
+    ctx: RunContext[AgentDeps], stated: Criterion, reference: str, early: Problems
 ) -> ToolReturn[SetCriterionResult]:
     refuse_problems(
-        waiting_problems(ctx.deps.agent_state, stated.id)
+        early.plus(waiting_problems(ctx.deps.agent_state, stated.id))
         .plus(saved_input_problems(stated.id, stated.role, "saved strategy"))
         .under(criterion=stated.id, search="")
     )

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
@@ -19,6 +19,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_count import record_and_count_criterion
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone.graph_helpers import counted_noun
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.genome_set_names import required_genomes_name
 from strategist.domain.strategy.measurement_clauses import measurement_clauses
 from strategist.domain.strategy.operational_spec import (
@@ -44,10 +45,10 @@ async def labelled_picks(
     infos: list[ParameterInfo],
     call: CriterionCall,
     bound: dict[str, BoundValue],
-) -> list[Measurement]:
-    """The label the vocabulary, read under the bound parents, gives each pick.
-    A proposed pick or filter clause with no label is refused with the nearest
-    labels; a value the site supplied is recorded as it is."""
+) -> tuple[list[Measurement], Problems]:
+    """The label the vocabulary, read under the bound parents, gives each pick,
+    and a problem for every proposed pick or filter clause with no label, with
+    the nearest labels; a value the site supplied is recorded as it is."""
     infos = await vocabularies_under(
         fetch_at, infos, {name: held.value for name, held in bound.items()}
     )
@@ -58,16 +59,20 @@ async def labelled_picks(
         for pick in read.unlabelled
         if pick.param in filters or pick.term in call.terms(pick.param)
     ]
-    if proposed:
-        pick = proposed[0]
-        shown = next((i.display_name for i in infos if i.name == pick.param), "")
-        msg = (
-            f"{pick.param} ({shown}) on {call.search_name} holds {pick.term!r}, "
-            f"which its vocabulary gives no label. Pass the entry of one of these "
-            f"labels: {pick.labels}."
+    shown = {i.name: i.display_name for i in infos}
+    return read.labels, Problems(
+        found=tuple(
+            Problem(
+                key=RefusalKey(check="labels", parameter=pick.param),
+                sentence=(
+                    f"{pick.param} ({shown.get(pick.param, '')}) on {call.search_name} "
+                    f"holds {pick.term!r}, which its vocabulary gives no label. Pass "
+                    f"the entry of one of these labels: {pick.labels}."
+                ),
+            )
+            for pick in proposed
         )
-        raise ModelRetry(msg)
-    return read.labels
+    )
 
 
 def display_names(

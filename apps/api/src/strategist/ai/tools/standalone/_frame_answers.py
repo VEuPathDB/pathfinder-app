@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from pydantic import Field, model_validator
-from pydantic_ai import ModelRetry
 from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -47,9 +46,11 @@ def linked_requirements(
     state: AgentToolState,
     criterion_id: str,
     answers: Sequence[AnsweredRequirement] | None,
-) -> list[RequirementLink]:
+) -> tuple[list[RequirementLink], Problems]:
+    """The requirements the criterion answers, and the problem a number the
+    requirement list does not hold makes."""
     if answers is None:
-        return next(
+        held = next(
             (
                 list(c.answers)
                 for c in state.operational_spec_draft.criteria
@@ -57,23 +58,26 @@ def linked_requirements(
             ),
             [],
         )
+        return held, Problems()
     numbered = numbered_requirements(state.stated_requirements)
     unknown = [a.requirement for a in answers if a.requirement not in numbered]
-    if unknown:
-        msg = (
-            f"answers names {unknown}, which the requirement list does not hold. "
-            f"The list holds {', '.join(numbered) or 'none'}; name only those, or "
-            f"pass an empty list when the criterion answers none of them."
-        )
-        raise ModelRetry(msg)
-    return [
+    links = [
         RequirementLink(
             requirement=numbered[a.requirement].id,
             param=a.param,
             result_size=a.result_size,
         )
         for a in answers
+        if a.requirement in numbered
     ]
+    if not unknown:
+        return links, Problems()
+    return links, Problems.one(
+        RefusalKey(check="requirements"),
+        f"answers names {unknown}, which the requirement list does not hold. "
+        f"The list holds {', '.join(numbered) or 'none'}; name only those, or "
+        f"pass an empty list when the criterion answers none of them.",
+    )
 
 
 def answers_the_sheet_lacks(

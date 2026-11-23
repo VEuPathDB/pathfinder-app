@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import count_noun
 from pydantic import JsonValue, RootModel, model_validator
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters import ParamKind, ParamValue
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKSearch
@@ -19,10 +19,12 @@ from strategist.ai.capabilities.error_classification import (
 )
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone.graph_helpers import counted_records
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     ParameterAlternatives,
 )
+from strategist.platform.refusals import refusal_of, refuse_problems
 from strategist.services.strategies.obsolete_terms import obsolete_picks
 from strategist.services.strategies.wdk_counts import count_bound_criterion
 
@@ -70,13 +72,15 @@ async def bound_count(
         ctx.deps.agent_state.refused_searches[search_name] = answer
         if classify_error(refused) is ErrorCategory.TRANSIENT:
             raise
-        msg = (
-            f"The site refused to run {search_name} at these values ({answer}). "
-            f"The criterion is not bound. Bind another search for this "
-            f"requirement, or other values. A requirement only this search "
-            f"answers is site_refused_the_search, never site_has_no_search."
-        )
-        raise ModelRetry(msg) from refused
+        raise refusal_of(
+            Problems.one(
+                RefusalKey(check="count", search=search_name),
+                f"The site refused to run {search_name} at these values ({answer}). "
+                f"The criterion is not bound. Bind another search for this "
+                f"requirement, or other values. A requirement only this search "
+                f"answers is site_refused_the_search, never site_has_no_search.",
+            )
+        ) from refused
 
 
 def _offered_by(info: ParameterInfo, value: ParamValue) -> ParameterAlternatives | None:
@@ -126,24 +130,28 @@ def empty_binding_alternatives(
     return [entry for entry in offered if entry is not None]
 
 
-def _refuse_an_empty_obsolete_pick(
+def _empty_obsolete_picks(
     criterion: Criterion, infos: Sequence[ParameterInfo], record_type: str
-) -> None:
-    """Refuse a binding that counts nothing and holds a pick the site labels
-    obsolete, unless the site set that pick."""
+) -> Problems:
+    """Every pick the site labels obsolete in a binding that counts nothing,
+    unless the site set that pick."""
     shown = {info.name: info.display_name for info in infos}
-    for pick in obsolete_picks(criterion.measurements, infos):
-        held = criterion.resolved_params[pick.param]
-        if held.source == "default":
-            continue
-        raise ModelRetry(
-            pick.refusal(
-                criterion.search_name,
-                shown[pick.param],
-                counted=counted_records(0, record_type),
-                researchers=held.source in {"stated", "card"},
+    held = criterion.resolved_params
+    return Problems(
+        found=tuple(
+            Problem(
+                key=RefusalKey(check="obsolete_pick", parameter=pick.param),
+                sentence=pick.refusal(
+                    criterion.search_name,
+                    shown[pick.param],
+                    counted=counted_records(0, record_type),
+                    researchers=held[pick.param].source in {"stated", "card"},
+                ),
             )
+            for pick in obsolete_picks(criterion.measurements, infos)
+            if held[pick.param].source != "default"
         )
+    ).under(criterion=criterion.id, search=criterion.search_name)
 
 
 async def record_and_count_criterion(
@@ -165,7 +173,7 @@ async def record_and_count_criterion(
         ctx, resolved, record_type, criterion.search_name, definition
     )
     if count == 0:
-        _refuse_an_empty_obsolete_pick(criterion, infos, record_type)
+        refuse_problems(_empty_obsolete_picks(criterion, infos, record_type))
     state = ctx.deps.agent_state
     state.frame_set_criterion(criterion)
     alternatives = empty_binding_alternatives(count, infos, criterion)

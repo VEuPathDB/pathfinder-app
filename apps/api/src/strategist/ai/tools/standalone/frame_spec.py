@@ -4,18 +4,13 @@ from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
-from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import (
     ParamFetcher,
-    ResolveContext,
-    ResolvedParams,
     eda_backed_search,
     format_param_info_typed,
-    make_validation_callbacks,
     organism_parameter_of,
     shortlist_slot,
-    validate_parameters,
     wdk_fetch_at,
 )
 
@@ -32,6 +27,7 @@ from strategist.ai.tools.standalone._frame_answers import (
     answers_the_sheet_lacks,
     linked_requirements,
 )
+from strategist.ai.tools.standalone._frame_canonical import canonical_binding
 from strategist.ai.tools.standalone._frame_computed import set_computed_criterion
 from strategist.ai.tools.standalone._frame_datasets import (
     saved_id_lists,
@@ -58,6 +54,7 @@ from strategist.ai.tools.standalone._frame_proposals import (
 from strategist.ai.tools.standalone._frame_rationale import (
     SearchChoice,
     rationale_for,
+    why_problems,
 )
 from strategist.ai.tools.standalone._frame_reading import offered_reading
 from strategist.ai.tools.standalone._frame_result import (
@@ -74,23 +71,22 @@ from strategist.ai.tools.standalone._frame_sources import (
     open_slots,
     pasted_params,
 )
-from strategist.ai.tools.standalone._frame_stages import sheet_stage, value_stage
+from strategist.ai.tools.standalone._frame_stages import (
+    binding_stage,
+    sheet_stage,
+    value_stage,
+)
 from strategist.ai.tools.standalone._frame_unserved import (
     an_unserved_search_refused,
     listed_record_type,
 )
 from strategist.ai.tools.standalone._frame_values import proposed_call, sourced_values
 from strategist.ai.tools.standalone._frame_weight import held_weight
-from strategist.domain.refusal import RefusalKey
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.expression_handles import stated_value
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
-)
-from strategist.platform.refusals import (
-    ProblemsRefusal,
-    library_problems,
-    refuse_problems,
 )
 from strategist.services.strategies.sheet_params import catalog_search_definition
 
@@ -111,26 +107,6 @@ def _memoized_fetch(site_id: str, record_type: str, search_name: str) -> ParamFe
         return read[key]
 
     return memoized
-
-
-async def _canonical_binding(
-    search: SearchContext, resolved: ResolvedParams, about: ResolveContext
-) -> tuple[ResolvedParams, list[str]]:
-    """The binding WDK renders, and the values WDK supplied rather than accepted.
-    A tree parameter scores its leaves alone, so these are the values a count
-    and a build both send."""
-    try:
-        validated = await validate_parameters(
-            search,
-            stated=dict(resolved.params),
-            callbacks=make_validation_callbacks(search.site_id),
-            about=about,
-        )
-    except ValidationError as exc:
-        key = RefusalKey(check="validation", search=search.search_name)
-        raise ProblemsRefusal(library_problems(exc, key)) from exc
-    canonical = resolved.model_copy(update={"params": validated.params})
-    return canonical, validated.substituted
 
 
 async def set_criterion(
@@ -250,30 +226,34 @@ async def set_criterion(
     and it closes. Re-call the same way once the user answers an open slot."""
     state = ctx.deps.agent_state
     refuse_a_bound_analysis(state, criterion_id)
+    links, early = linked_requirements(state, criterion_id, answers)
     stated = Criterion(
         id=criterion_id,
         text=text,
         role=role,
-        answers=linked_requirements(state, criterion_id, answers),
+        answers=links,
         weight=held_weight(state, criterion_id, weight),
     )
     if gene_set or computed_groups or saved_strategy:
-        refuse_problems(
-            answers_the_sheet_lacks(stated.answers, []).under(
-                criterion=criterion_id, search=""
-            )
-        )
+        early = early.plus(answers_the_sheet_lacks(stated.answers, []))
     if gene_set:
-        return await set_gene_set_criterion(ctx, stated, reference=gene_set)
+        return await set_gene_set_criterion(ctx, stated, gene_set, early)
     if computed_groups:
-        return await set_computed_criterion(ctx, stated, handle=computed_groups)
+        return await set_computed_criterion(ctx, stated, computed_groups, early)
     if saved_strategy:
-        return await set_saved_criterion(ctx, stated, reference=saved_strategy)
+        return await set_saved_criterion(ctx, stated, saved_strategy, early)
     record_type = await listed_record_type(ctx, criterion_id, search_name)
     if params is None:
-        return await open_the_sheet(ctx, stated, search_name, record_type)
+        return await open_the_sheet(ctx, stated, search_name, record_type, early)
     return await _bind_the_search(
-        ctx, stated, search_name, record_type, params=params, why=why, reading=reading
+        ctx,
+        stated,
+        search_name,
+        record_type,
+        params=params,
+        why=why,
+        reading=reading,
+        early=early,
     )
 
 
@@ -286,6 +266,7 @@ async def _bind_the_search(
     params: dict[str, JsonValue],
     why: SearchChoice | None,
     reading: str,
+    early: Problems,
 ) -> ToolReturn[SetCriterionResult]:
     state = ctx.deps.agent_state
     criterion_id, text, role = stated.id, stated.text, stated.role
@@ -303,7 +284,7 @@ async def _bind_the_search(
     state.record_read(search_name, infos)
     if (described := eda_backed_search(definition)) is not None:
         return wait_for_the_analysis(
-            ctx, stated, described, definition, record_type, params
+            ctx, stated, described, definition, record_type, params, early=early
         )
     call, fixed = left_to_the_site(
         with_stored_expressions(
@@ -319,7 +300,16 @@ async def _bind_the_search(
     )
     held = held_binding(state, call, infos)
     call = with_held(call, held)
-    await sheet_stage(ctx, stated, call, infos, definition, record_type)
+    await sheet_stage(
+        ctx,
+        stated,
+        call,
+        infos,
+        definition,
+        record_type,
+        early=early.plus(why_problems(ctx, call, why)),
+        reading=reading,
+    )
     call, typed = await saved_id_lists(ctx.deps.site_id, state, call, infos)
     about = ctx.deps.resolving()
     read, kept = await read_call(
@@ -353,12 +343,12 @@ async def _bind_the_search(
     # Only a binding with no open slot is validated: an unresolved required
     # param reads as missing, while a bad value returns a did-you-mean retry.
     if not resolved.open_slots:
-        canonical, substituted = await _canonical_binding(search, resolved, about)
+        canonical, substituted = await canonical_binding(search, resolved, about)
         # WDK renders the spec it would run, so it reports which values are its
         # own. That report is about the search being built and outranks the
         # local reading of the request.
         site_supplied |= set(substituted)
-    bound, labels = await sourced_values(
+    bound, labels, unlabelled = await sourced_values(
         state,
         call,
         resolved.params,
@@ -371,7 +361,8 @@ async def _bind_the_search(
         answers=stated.answers,
     )
     bound = with_typed_ids({**bound, **kept}, typed, state.request_messages)
-    accepted = offered_reading(state, criterion_id, reading, bound)
+    accepted, unread_reading = offered_reading(state, criterion_id, reading, bound)
+    binding_stage(call, chosen.problems.plus(unlabelled).plus(unread_reading))
     open_params = open_slots(
         criterion_id, resolved.open_slots, infos, pasted_params(definition)
     )

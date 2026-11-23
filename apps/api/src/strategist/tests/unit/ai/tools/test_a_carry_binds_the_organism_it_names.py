@@ -77,7 +77,8 @@ def test_the_source_organism_in_place_of_the_carried_one_is_refused() -> None:
     assert refused.value.message == (
         f"Organism on GenesByOrthologs binds ['{_PF3D7}'], and the request "
         f"carries the genes to '{_P01}'. A transform's organism is the organism "
-        "of the genes it returns: bind the entry the request names."
+        "of the genes it returns: bind the entry the request names. Nothing was "
+        "recorded."
     )
 
 
@@ -100,7 +101,8 @@ def test_an_organism_the_vocabulary_lacks_names_the_nearest_entries() -> None:
         "carries the genes to 'Toxoplasma gondii ME49', which this vocabulary "
         "lacks. Nearest entries: ['Plasmodiidae', 'Plasmodium', 'Plasmodium "
         "inui', 'Plasmodium vivax PAM', 'Plasmodium vivax']. Bind the organism "
-        "the request names, or ask the researcher which entry they mean."
+        "the request names, or ask the researcher which entry they mean. Nothing "
+        "was recorded."
     )
 
 

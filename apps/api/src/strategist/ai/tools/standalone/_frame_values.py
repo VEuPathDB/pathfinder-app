@@ -18,6 +18,7 @@ from strategist.ai.tools.standalone._frame_sources import (
     stated_by_their_labels,
     stated_by_their_taxa,
 )
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.named_taxa import (
     OrganismTree,
@@ -81,7 +82,7 @@ async def sourced_values(
     site_supplied: set[str],
     reason: str,
     answers: list[RequirementLink],
-) -> tuple[dict[str, BoundValue], list[Measurement]]:
+) -> tuple[dict[str, BoundValue], list[Measurement], Problems]:
     """Each value with who set it, and the label the site gives each pick; a
     value a message names by its labels or by its taxon is stated. ``infos``
     is the published sheet, and each dependent vocabulary is read under the
@@ -95,12 +96,12 @@ async def sourced_values(
         card_values=card_values_of(state.operational_spec_draft, call.criterion_id),
         linked_quotes=quotes_by_param(answers, state.stated_requirements),
     )
-    labels = await labelled_picks(fetch_at, infos, call, bound)
+    labels, unlabelled = await labelled_picks(fetch_at, infos, call, bound)
     restated = stated_by_their_labels(bound, labels, infos, state.request_messages)
     named = stated_by_their_taxa(
         restated, await _taxa_trees(site_id, definition), state.request_messages
     )
-    return named, labels
+    return named, labels, unlabelled
 
 
 __all__ = ["proposed_call", "sourced_values"]

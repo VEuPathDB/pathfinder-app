@@ -85,6 +85,7 @@ async def test_only_a_strain_beside_the_named_one_is_refused() -> None:
         _IT: (
             f"Organism on {_ALPHAFOLD.url_segment} binds ['{_IT}'], and the request "
             f"names '{_PF3D7}', an entry of this vocabulary. Bind the entry the "
-            "request names, or ask the researcher which one they mean."
+            "request names, or ask the researcher which one they mean. Nothing was "
+            "recorded."
         ),
     }

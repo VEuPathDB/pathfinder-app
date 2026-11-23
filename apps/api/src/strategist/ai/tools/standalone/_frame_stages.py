@@ -20,6 +20,7 @@ from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
     radio_overrides,
 )
+from strategist.ai.tools.standalone._frame_reading import reading_label_problems
 from strategist.ai.tools.standalone._frame_roles import role_problems
 from strategist.ai.tools.standalone._frame_stated import word_problems
 from strategist.domain.refusal import Problems
@@ -36,8 +37,9 @@ async def search_stage(
     stated: Criterion,
     definition: WDKSearch,
     record_type: str,
+    early: Problems,
 ) -> None:
-    found = waiting_problems(ctx.deps.agent_state, stated.id).plus(
+    found = early.plus(waiting_problems(ctx.deps.agent_state, stated.id)).plus(
         await role_problems(ctx, record_type, definition, stated.role)
     )
     _refused(found, stated.id, definition.url_segment)
@@ -50,10 +52,15 @@ async def sheet_stage(
     infos: list[ParameterInfo],
     definition: WDKSearch,
     record_type: str,
+    *,
+    early: Problems,
+    reading: str,
 ) -> None:
+    state = ctx.deps.agent_state
     found = (
-        answers_the_sheet_lacks(stated.answers, infos)
-        .plus(waiting_problems(ctx.deps.agent_state, stated.id))
+        early.plus(answers_the_sheet_lacks(stated.answers, infos))
+        .plus(reading_label_problems(state, stated.id, reading))
+        .plus(waiting_problems(state, stated.id))
         .plus(await role_problems(ctx, record_type, definition, stated.role))
         .plus(unknown_names(call, infos))
         .plus(undecided(call, infos))
@@ -76,3 +83,7 @@ async def value_stage(
     )
     _refused(found, call.criterion_id, call.search_name)
     return radio
+
+
+def binding_stage(call: CriterionCall, found: Problems) -> None:
+    _refused(found, call.criterion_id, call.search_name)

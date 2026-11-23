@@ -17,6 +17,7 @@ from strategist.ai.tools.standalone._frame_roles import (
     saved_input_problems,
 )
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
 from strategist.platform.refusals import refuse_problems
 from strategist.services.evidence.gene_sets import list_stored_gene_sets
@@ -27,11 +28,11 @@ from strategist.services.strategies.record_classes import search_record_types
 
 
 async def set_gene_set_criterion(
-    ctx: RunContext[AgentDeps], stated: Criterion, *, reference: str
+    ctx: RunContext[AgentDeps], stated: Criterion, reference: str, early: Problems
 ) -> ToolReturn[SetCriterionResult]:
     """Record a criterion whose input is the genes a saved set holds on this site."""
     refuse_problems(
-        waiting_problems(ctx.deps.agent_state, stated.id)
+        early.plus(waiting_problems(ctx.deps.agent_state, stated.id))
         .plus(saved_input_problems(stated.id, stated.role, "saved gene set"))
         .under(criterion=stated.id, search="")
     )

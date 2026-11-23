@@ -35,6 +35,7 @@ from veupathdb_mcp.tool_payloads import SearchListing
 
 from strategist.ai.tools.standalone import (
     _catalog_models,
+    _frame_canonical,
     _frame_count,
     _frame_sheet,
     _stated_values,
@@ -154,7 +155,7 @@ def _recorded_validation_callbacks() -> ValidationCallbacks:
 def serve_recorded_record_types(monkeypatch: pytest.MonkeyPatch) -> None:
     """Find each search's record type in plasmodb's recorded listing, wherever
     a binding, a write or a push asks the catalog."""
-    for module in (frame_spec, stated_sides, step_wdk_push, spec_build):
+    for module in (_frame_canonical, stated_sides, step_wdk_push, spec_build):
         monkeypatch.setattr(
             module,
             "make_validation_callbacks",

@@ -5,11 +5,36 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from pydantic_ai import ModelRetry
-
 from strategist.ai.agents.state import AgentToolState
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.readings import AcceptedReading, ReadingChooser
+
+_READING = RefusalKey(check="reading")
+
+
+def reading_label_problems(
+    state: AgentToolState, criterion_id: str, reading: str
+) -> Problems:
+    """A reading names one a question the researcher was asked offered on the
+    criterion."""
+    if not reading:
+        return Problems()
+    offers = [r for r in state.offered_readings if r.criterion_id == criterion_id]
+    if not offers:
+        return Problems.one(
+            _READING,
+            f"{criterion_id} takes no reading: no question the researcher was "
+            f"asked offered readings on it. Bind the values the request states "
+            f"and pass no reading.",
+        )
+    if any(r.reading == reading for r in offers):
+        return Problems()
+    return Problems.one(
+        _READING,
+        f"No question offered the reading {reading!r} on {criterion_id}. "
+        f"Pass the label of one it offered: {[r.reading for r in offers]}.",
+    )
 
 
 def offered_reading(
@@ -17,7 +42,9 @@ def offered_reading(
     criterion_id: str,
     reading: str,
     bound: Mapping[str, BoundValue],
-) -> AcceptedReading | None:
+) -> tuple[AcceptedReading | None, Problems]:
+    """The reading the binding keeps, and the problem a reading whose values
+    it does not bind makes. The label was checked before any value was read."""
     values = {name: held.value for name, held in bound.items()}
     kept = next(
         (
@@ -29,29 +56,22 @@ def offered_reading(
     )
     if kept is not None and kept.unbound(values):
         kept = None
-    if not reading:
-        return kept
-    offers = [r for r in state.offered_readings if r.criterion_id == criterion_id]
-    if not offers:
-        msg = (
-            f"{criterion_id} takes no reading: no question the researcher was "
-            f"asked offered readings on it. Bind the values the request states "
-            f"and pass no reading."
-        )
-        raise ModelRetry(msg)
-    read = next((r for r in offers if r.reading == reading), None)
-    if read is None:
-        msg = (
-            f"No question offered the reading {reading!r} on {criterion_id}. "
-            f"Pass the label of one it offered: {[r.reading for r in offers]}."
-        )
-        raise ModelRetry(msg)
+    read = next(
+        (
+            r
+            for r in state.offered_readings
+            if r.criterion_id == criterion_id and r.reading == reading
+        ),
+        None,
+    )
+    if not reading or read is None:
+        return kept, Problems()
     accepted = read.accepted(ReadingChooser.ASSISTANT)
     moved = [f"{name} = {read.params[name]!r}" for name in accepted.unbound(values)]
     if moved:
-        msg = (
+        return kept, Problems.one(
+            _READING,
             f"The reading {reading!r} on {criterion_id} binds {'; '.join(moved)}. "
-            f"Bind those values with it, or pass the reading whose values you bind."
+            f"Bind those values with it, or pass the reading whose values you bind.",
         )
-        raise ModelRetry(msg)
-    return kept if accepted.same_reading(kept, values) else accepted
+    return (kept if accepted.same_reading(kept, values) else accepted), Problems()

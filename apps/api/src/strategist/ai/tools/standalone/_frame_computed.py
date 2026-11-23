@@ -16,6 +16,7 @@ from strategist.ai.tools.standalone._frame_result import (
 from strategist.ai.tools.standalone._frame_roles import (
     saved_input_problems,
 )
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
 from strategist.platform.refusals import refuse_problems
@@ -72,11 +73,11 @@ async def _saved_list(site_id: str, held: HeldComparison, name: str) -> IdListDa
 
 
 async def set_computed_criterion(
-    ctx: RunContext[AgentDeps], stated: Criterion, *, handle: str
+    ctx: RunContext[AgentDeps], stated: Criterion, handle: str, early: Problems
 ) -> ToolReturn[SetCriterionResult]:
     state = ctx.deps.agent_state
     refuse_problems(
-        waiting_problems(state, stated.id)
+        early.plus(waiting_problems(state, stated.id))
         .plus(saved_input_problems(stated.id, stated.role, "computed comparison"))
         .under(criterion=stated.id, search="")
     )

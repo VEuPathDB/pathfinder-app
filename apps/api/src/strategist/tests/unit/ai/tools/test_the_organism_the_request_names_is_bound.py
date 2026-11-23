@@ -129,7 +129,7 @@ def test_a_sibling_of_the_named_entry_is_refused() -> None:
     assert refused.value.message == (
         f"Organism on {_SIGNAL} binds ['{_TU1867}'], and the request names "
         f"'{_UKMEL1}', an entry of this vocabulary. Bind the entry the request "
-        "names, or ask the researcher which one they mean."
+        "names, or ask the researcher which one they mean. Nothing was recorded."
     )
 
 
@@ -160,7 +160,8 @@ def test_a_genus_above_the_named_strain_is_refused() -> None:
     assert refused.value.message == (
         f"Organism on {_SIGNAL} binds ['Plasmodium'], and the request names "
         "'Plasmodium falciparum 3D7', an entry of this vocabulary. Bind the entry "
-        "the request names, or ask the researcher which one they mean."
+        "the request names, or ask the researcher which one they mean. Nothing was "
+        "recorded."
     )
 
 

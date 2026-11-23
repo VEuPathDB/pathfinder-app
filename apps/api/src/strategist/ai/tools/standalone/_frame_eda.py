@@ -24,7 +24,7 @@ from strategist.ai.tools.standalone._frame_result import (
 )
 from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import Criterion
-from strategist.platform.refusals import ProblemsRefusal
+from strategist.platform.refusals import refusal_of
 
 
 def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
@@ -69,7 +69,7 @@ def waiting_problems(state: AgentToolState, criterion_id: str) -> Problems:
         f"{criterion_id} waits for the analysis workflow on dataset {waiting}, and "
         f'create_eda_step(criterion_id="{criterion_id}") binds it and nothing '
         f"else does. Keep it in the structure where it stands and bind no other "
-        f"search for it; nothing was recorded.",
+        f"search for it.",
     )
 
 
@@ -96,8 +96,8 @@ def _held_problems(
         return [
             (
                 f"{criterion_id} is bound to {held.search_name or 'a saved strategy'}, "
-                f"and {search_name} can only wait for the analysis workflow; nothing "
-                f"was recorded and {criterion_id} stays as it is. Name a new "
+                f"and {search_name} can only wait for the analysis workflow; "
+                f"{criterion_id} stays as it is. Name a new "
                 f"criterion id{on}."
             )
         ]
@@ -108,7 +108,7 @@ def _held_problems(
         (
             f"{criterion_id} waits on dataset {waited_on}, and {search_name} runs on "
             f"dataset {dataset}. The waiting criterion keeps the dataset the "
-            f"analysis workflow opened; nothing was recorded. Name a new criterion "
+            f"analysis workflow opened. Name a new criterion "
             f"id for a comparison on {dataset}."
         )
     ]
@@ -155,12 +155,16 @@ def wait_for_the_analysis(
     definition: WDKSearch,
     record_type: str,
     params: Mapping[str, JsonValue] | None,
+    *,
+    early: Problems,
 ) -> ToolReturn[SetCriterionResult]:
     state = ctx.deps.agent_state
     dataset = _named_dataset(params) or described.default_dataset_id
-    problems = eda_wait_problems(state, definition, stated, dataset)
+    problems = early.under(criterion=stated.id, search=described.search_name).plus(
+        eda_wait_problems(state, definition, stated, dataset)
+    )
     if dataset is None or not problems.empty:
-        raise ProblemsRefusal(problems)
+        raise refusal_of(problems)
     record_the_wait(state, stated, dataset)
     return criterion_return(
         ctx,

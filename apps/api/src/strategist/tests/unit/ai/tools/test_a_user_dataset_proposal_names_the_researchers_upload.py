@@ -48,7 +48,7 @@ _UPLOADS = [
 _ONE_UPLOAD = (
     "geneListUserDataset on GenesByUserDatasetGeneList picks one of the "
     "researcher's own uploads: 'strategist-uat-genelist' (8c888994pI014). Pass "
-    "the value of the upload the request refers to; nothing was recorded."
+    "the value of the upload the request refers to. Nothing was recorded."
 )
 
 
@@ -114,7 +114,7 @@ async def test_an_account_with_no_upload_of_the_type_is_told_to_upload(
         "GenesByUserDatasetGeneList reads the researcher's own genelist uploads, "
         "and this account has none installed on plasmodb, so it cannot run. Bind "
         "nothing for this criterion, and say that the researcher uploads one in "
-        "My Data Sets on the site; nothing was recorded."
+        "My Data Sets on the site. Nothing was recorded."
     )
 
 
@@ -188,7 +188,7 @@ async def test_each_account_binds_only_its_own_upload_in_sequence(
     assert await _refusal("8c888994pI014") == (
         "geneListUserDataset on GenesByUserDatasetGeneList picks one of the "
         "researcher's own uploads: 'second-account-list' (zzZ5secondAcct). Pass "
-        "the value of the upload the request refers to; nothing was recorded."
+        "the value of the upload the request refers to. Nothing was recorded."
     )
     refuse_problems(
         await upload_problems("plasmodb", _GENE_LIST, _call("zzZ5secondAcct"))

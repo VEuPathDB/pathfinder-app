@@ -25,6 +25,7 @@ from strategist.tests.unit.ai.tools._orthomcl_site import (
     group_strategy_ctx,
     serve_orthomcl,
 )
+from strategist.tests.unit.ai.tools.test_frame_spec import default_why
 
 _TEXT = f"the protein {TYPED_GENE_ID}"
 _ANSWER = (
@@ -156,6 +157,7 @@ async def test_a_404_outside_the_search_lookup_does_not_ban_the_search(
             search_name="ByIdList",
             role="seed",
             params={"source_ids": [TYPED_GENE_ID]},
+            why=default_why("ByIdList", {"source_ids": [TYPED_GENE_ID]}),
         )
 
     assert state.unserved_searches == {}

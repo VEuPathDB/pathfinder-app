@@ -78,7 +78,7 @@ async def upload_problems(
             f"{call.search_name} reads the researcher's own {types} uploads, and "
             f"this account has none installed on {site_id}, so it cannot run. Bind "
             f"nothing for this criterion, and say that the researcher uploads one "
-            f"in My Data Sets on the site; nothing was recorded.",
+            f"in My Data Sets on the site.",
         )
     match call.values.get(parameter.name):
         case SinglePickValue(value=value) if value in {o.value for o in offers}:
@@ -93,5 +93,5 @@ async def upload_problems(
                 key,
                 f"{parameter.name} on {call.search_name} picks one of the "
                 f"researcher's own uploads: {uploads}{more}. Pass the value of the "
-                f"upload the request refers to; nothing was recorded.",
+                f"upload the request refers to.",
             )

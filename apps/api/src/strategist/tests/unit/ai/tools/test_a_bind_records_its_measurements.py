@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import pytest
 from pydantic import JsonValue
-from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import FilterValue, SinglePickValue, StringMembers
 from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
@@ -252,15 +251,18 @@ def _call(proposed: str | None) -> CriterionCall:
 
 @pytest.mark.asyncio
 async def test_a_proposed_pick_its_vocabulary_does_not_label_is_refused() -> None:
-    with pytest.raises(ModelRetry, match=r"\['protein coding', 'all'\]"):
-        await labelled_picks(_fetch_sheet, _sheet(), _call("maybe"), _maybe())
+    _, unlabelled = await labelled_picks(
+        _fetch_sheet, _sheet(), _call("maybe"), _maybe()
+    )
+
+    assert "['protein coding', 'all']" in unlabelled.text()
 
 
 @pytest.mark.asyncio
 async def test_a_value_the_site_supplied_without_a_label_is_recorded_unlabelled() -> (
     None
 ):
-    labels = await labelled_picks(_fetch_sheet, _sheet(), _call(None), _maybe())
+    labels, _ = await labelled_picks(_fetch_sheet, _sheet(), _call(None), _maybe())
 
     assert labels == []
 
@@ -300,8 +302,7 @@ async def test_a_filter_clause_on_a_field_the_sheet_lacks_is_refused_by_its_labe
         params={},
     ).with_values({_SAMPLES: held})
 
-    with pytest.raises(ModelRetry) as refused:
-        await labelled_picks(_fetch_snps, _snps_sheet(), call, bound)
+    _, unlabelled = await labelled_picks(_fetch_snps, _snps_sheet(), call, bound)
 
-    assert "'sex'" in str(refused.value)
-    assert "VAR_00000000" in str(refused.value)
+    assert "'sex'" in unlabelled.text()
+    assert "VAR_00000000" in unlabelled.text()

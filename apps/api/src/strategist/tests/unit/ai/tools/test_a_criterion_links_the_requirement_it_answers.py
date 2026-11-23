@@ -7,7 +7,7 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone import frame_spec
+from strategist.ai.tools.standalone import _frame_canonical
 from strategist.ai.tools.standalone._frame_answers import AnsweredRequirement
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.strategy.constraints import (
@@ -58,7 +58,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _validate(_ctx: object, **_kw: object) -> ValidatedParams:
         return ValidatedParams(params=dict(bound))
 
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
+    monkeypatch.setattr(_frame_canonical, "validate_parameters", _validate)
 
 
 async def _bind(

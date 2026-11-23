@@ -52,9 +52,9 @@ from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
 from strategist.platform.refusals import (
     FaultRow,
-    ProblemsRefusal,
     library_problems,
     library_rows,
+    refusal_of,
     refuse_problems,
 )
 
@@ -180,12 +180,6 @@ async def _elsewhere(
     )
 
 
-def nothing_recorded(problems: Problems) -> Problems:
-    *head, last = problems.found
-    closed = Problem(key=last.key, sentence=f"{last.sentence} Nothing was recorded.")
-    return Problems(found=(*head, closed))
-
-
 async def read_call(
     search: SearchContext,
     fetch_at: ParamFetcher,
@@ -221,7 +215,7 @@ async def read_call(
             state,
             search.site_id,
         )
-        raise ProblemsRefusal(nothing_recorded(problems)) from exc
+        raise refusal_of(problems) from exc
     read = call.with_read(values)
     given_back = {name for name in call.params if name not in read.params}
     kept = {
@@ -373,7 +367,9 @@ async def resolve_proposals(
 ) -> ResolvedParams:
     """The binding the catalog resolves from every stated value and the off value
     of each radio half, refused once for every problem the walk names, the
-    quantities it held back among them."""
+    quantities it held back among them. A walk that does not refuse returns
+    ``unread`` as data, which the catalog tool and the separation enumerator
+    read without refusing, so this call refuses it here."""
     stated = {name: v for name, v in call.params.items() if v is not None}
     key = RefusalKey(
         check="resolve", criterion=call.criterion_id, search=search.search_name
@@ -389,7 +385,7 @@ async def resolve_proposals(
         )
     except ValidationError as exc:
         found = _resolver_problems(call, library_problems(exc, key))
-        raise ProblemsRefusal(nothing_recorded(found)) from exc
+        raise refusal_of(found) from exc
     refuse_problems(
         Problems(
             found=tuple(

@@ -4,15 +4,23 @@
 
 * **A criterion call names every independent problem once.** `set_criterion` runs its checks in
   stages (`ai/tools/standalone/_frame_stages.py`), and each stage names every problem it finds in
-  one `ProblemsRefusal` keyed by check, criterion, search and parameter. The sheet stage holds the
-  answers the sheet lacks, a waiting criterion, the role, every unknown name (each with its own
-  nearest names) and the undecided required parameters; the read names every parameter the
+  one `ProblemsRefusal` keyed by check, criterion, search and parameter, closed by one sentence,
+  "Nothing was recorded." (`refuse_problems`). The sheet stage holds the requirement numbers the
+  list lacks, the answers the sheet lacks, a reading no question offered, a new binding's missing
+  catalog read, missing why and unretrieved sources, a waiting criterion, the role, every unknown
+  name (each with its own nearest names) and the undecided required parameters; the gene-set,
+  saved-strategy and computed paths name their requirement, answer, waiting and role problems in
+  one refusal; the read names every parameter the
   library refuses, one row each, with the portal route on the row another site holds; the value
   stage holds the radio pair, the upload, the organism and phrase words of every parameter and
   the lookup and obsolete picks of every parameter; the resolver names every row of the walk's
   one refusal, the quantities it held back among them, read through `FaultRow` and never by
-  error class. A later stage runs only once the stages before it pass, and nothing is refused
-  after the criterion is recorded. WDK's verdict on the
+  error class; every dependent the vocabulary under the bound parents refuses is named in one
+  refusal, and the redecide marks clear only when none is; the binding stage names a kept reason
+  the values outran, every pick its vocabulary gives no label and a reading whose values the call
+  leaves out; and a count of nothing names every obsolete pick. A transform that carries the genes
+  to an organism the bind leaves out is named for that organism alone. A later stage runs only
+  once the stages before it pass, and nothing is refused after the criterion is recorded. WDK's verdict on the
   binding names each of its rows. The edit path keeps its validation payload until the strategy
   tools move to problems.
 

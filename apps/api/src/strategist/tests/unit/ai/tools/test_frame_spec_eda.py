@@ -18,7 +18,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone import frame_spec
+from strategist.ai.tools.standalone import _frame_canonical
 from strategist.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     wait_instruction,
@@ -134,7 +134,7 @@ def _serve_the_eda_search(
         )
 
     monkeypatch.setattr(sheet_params, "fetch_search_details", _details)
-    monkeypatch.setattr(frame_spec, "make_validation_callbacks", _eda_callbacks)
+    monkeypatch.setattr(_frame_canonical, "make_validation_callbacks", _eda_callbacks)
     serve_search_details(monkeypatch, _resolved)
 
 

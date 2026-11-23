@@ -124,9 +124,15 @@ class ProblemsRefusal(ModelRetry):
         super().__init__(problems.text())
 
 
+def refusal_of(problems: Problems) -> ProblemsRefusal:
+    *head, last = problems.found
+    closed = Problem(key=last.key, sentence=f"{last.sentence} Nothing was recorded.")
+    return ProblemsRefusal(Problems(found=(*head, closed)))
+
+
 def refuse_problems(problems: Problems) -> None:
     if not problems.empty:
-        raise ProblemsRefusal(problems)
+        raise refusal_of(problems)
 
 
 class SpentRefusal(CamelModel):
@@ -380,6 +386,7 @@ __all__ = [
     "library_problems",
     "library_rows",
     "problems_of_retry",
+    "refusal_of",
     "refusal_retry_message",
     "refusal_text",
     "refuse_problems",

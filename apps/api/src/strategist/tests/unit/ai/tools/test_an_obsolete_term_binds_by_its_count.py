@@ -22,6 +22,7 @@ from strategist.domain.strategy.operational_spec import (
     Measurement,
     ValueSource,
 )
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests.unit.ai.tools.test_frame_spec import frame_ctx
 from strategist.tests.unit.services.strategies.test_an_obsolete_term_is_named_at_bind import (
@@ -54,7 +55,7 @@ def _picked(term: str) -> tuple[CriterionCall, dict[str, BoundValue]]:
 async def test_a_proposed_obsolete_term_is_labelled_not_refused() -> None:
     call, bound = _picked(_OBSOLETE)
 
-    labels = await labelled_picks(_fetch, _INFOS, call, bound)
+    labels, _ = await labelled_picks(_fetch, _INFOS, call, bound)
 
     assert labels == [
         Measurement(
@@ -147,7 +148,8 @@ async def test_a_stated_obsolete_term_that_counts_nothing_asks_the_researcher(
         "researcher named this term, so ask them with a card which entry to use; "
         "the current entries nearest its words are ['GO:0120316 : sperm flagellum "
         "assembly : 4', 'GO:0044458 : motile cilium assembly : 8', 'GO:0060271 : "
-        "cilium assembly : 7', 'GO:0042255 : ribosome assembly : 8']."
+        "cilium assembly : 7', 'GO:0042255 : ribosome assembly : 8']. Nothing "
+        "was recorded."
     )
     assert state.operational_spec_draft.criteria == []
 
@@ -165,3 +167,61 @@ async def test_a_chosen_obsolete_term_that_counts_nothing_names_the_current_entr
     assert "few or no records" not in str(refused.value)
     assert "Pass a current entry" in str(refused.value)
     assert state.operational_spec_draft.criteria == []
+
+
+@pytest.mark.asyncio
+async def test_every_obsolete_pick_that_counts_nothing_is_named_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve_count(monkeypatch, 0)
+    second = "GO:0000001"
+    value = MultiPickValue(values=[_OBSOLETE, second])
+    criterion = Criterion(
+        id="c_flagellum",
+        text="flagellum assembly genes",
+        search_name="GenesByGoTerm",
+        resolved_params={"go_typeahead": BoundValue(value=value, source="chosen")},
+        measurements=[
+            Measurement(
+                kind="vocabulary_label",
+                param="go_typeahead",
+                reading=term,
+                label=label,
+            )
+            for term, label in ((_OBSOLETE, _LABEL), (second, "obsolete mitochondrion"))
+        ],
+    )
+    state = AgentToolState()
+
+    with pytest.raises(ProblemsRefusal) as refused:
+        await _frame_count.record_and_count_criterion(
+            frame_ctx(state),
+            criterion,
+            record_type="transcript",
+            definition=WDKSearch(url_segment="GenesByGoTerm"),
+            resolved=ResolvedParams(params={"go_typeahead": value}),
+            infos=_INFOS,
+        )
+
+    said = str(refused.value)
+    assert said.startswith("2 problems:")
+    assert _OBSOLETE in said
+    assert second in said
+    assert state.operational_spec_draft.criteria == []
+
+
+@pytest.mark.asyncio
+async def test_every_pick_with_no_label_is_named() -> None:
+    call, bound = _picked("GO:9999998")
+    call = call.with_values(
+        {"go_typeahead": MultiPickValue(values=["GO:9999998", "GO:9999999"])}
+    )
+    bound = {
+        "go_typeahead": BoundValue(
+            value=MultiPickValue(values=["GO:9999998", "GO:9999999"]), source="chosen"
+        )
+    }
+
+    _, unlabelled = await labelled_picks(_fetch, _INFOS, call, bound)
+
+    assert [p.key.parameter for p in unlabelled.found] == ["go_typeahead"] * 2

@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import (
-    VocabularyEntryError,
+    VocabOption,
     entries_or_refusal,
     match_exact_option,
     wire_map,
 )
+from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
@@ -39,7 +40,9 @@ from strategist.ai.tools.standalone._frame_result import (
 )
 from strategist.ai.tools.standalone._frame_stages import search_stage
 from strategist.ai.tools.standalone._frame_unserved import an_unserved_search_refused
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import Criterion
+from strategist.platform.refusals import library_problems, refuse_problems
 
 
 def _decided_here(info: ParameterInfo, call: CriterionCall) -> bool:
@@ -49,6 +52,16 @@ def _decided_here(info: ParameterInfo, call: CriterionCall) -> bool:
     return bool(values) and all(
         match_exact_option(options, value) is not None for value in values
     )
+
+
+def _entry_problems(
+    name: str, options: list[VocabOption], call: CriterionCall
+) -> Problems:
+    try:
+        entries_or_refusal(name, options, call.terms(name))
+    except ValidationError as exc:
+        return library_problems(exc, RefusalKey(check="dependent", parameter=name))
+    return Problems()
 
 
 async def reconcile_dependents(
@@ -66,17 +79,20 @@ async def reconcile_dependents(
     back for this criterion is decided by whatever the re-call says, so it is
     validated against the fresh vocabulary instead of asked again. Every call
     recomputes the list, so a param this one does not name is no longer asked.
+    Every dependent the fresh vocabulary refuses is named in one refusal, and the
+    marks of the last call are cleared only when none is.
     """
-    state.clear_redecide(call.criterion_id)
     on_the_sheet = {
         info.name: {option.value for option in info.vocabulary()}
         for info in infos
         if info.stated_parents
     }
     if not on_the_sheet:
+        state.clear_redecide(call.criterion_id)
         return []
     context = wire_map(resolved.params)
     stale: list[ParameterInfo] = []
+    refused = Problems()
     declarations = await fetch_at(context)
     organism = await organism_parameter_of(site_id, declarations)
     for info in format_param_info_typed(declarations, organism=organism):
@@ -88,11 +104,9 @@ async def reconcile_dependents(
         if changed and not asked and not _decided_here(info, call):
             stale.append(info)
         elif info.param_kind != "filter":
-            try:
-                entries_or_refusal(info.name, options, call.terms(info.name))
-            except VocabularyEntryError as exc:
-                msg = f"{exc.detail} Nothing was recorded."
-                raise ModelRetry(msg) from exc
+            refused = refused.plus(_entry_problems(info.name, options, call))
+    refuse_problems(refused.under(criterion=call.criterion_id, search=call.search_name))
+    state.clear_redecide(call.criterion_id)
     for info in stale:
         state.mark_redecided(call.criterion_id, call.search_name, info.name)
     if not stale:
@@ -126,6 +140,7 @@ async def open_the_sheet(
     stated: Criterion,
     search_name: str,
     record_type: str,
+    early: Problems,
 ) -> ToolReturn[SetCriterionResult]:
     with an_unserved_search_refused(ctx, stated.id, search_name, record_type):
         definition = await read_search_definition(
@@ -134,9 +149,9 @@ async def open_the_sheet(
     described = eda_backed_search(definition)
     if described is not None:
         return wait_for_the_analysis(
-            ctx, stated, described, definition, record_type, None
+            ctx, stated, described, definition, record_type, None, early=early
         )
-    await search_stage(ctx, stated, definition, record_type)
+    await search_stage(ctx, stated, definition, record_type, early)
     register_search(ctx.deps.agent_state, definition, record_type)
     return criterion_return(
         ctx,

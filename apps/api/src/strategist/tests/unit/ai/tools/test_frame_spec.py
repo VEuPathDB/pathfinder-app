@@ -32,7 +32,11 @@ from veupathdb_mcp.catalog import (
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone import _frame_proposals, frame_spec
+from strategist.ai.tools.standalone import (
+    _frame_canonical,
+    _frame_proposals,
+    frame_spec,
+)
 from strategist.ai.tools.standalone._frame_rationale import SearchChoice
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone.frame_drop import drop_criterion
@@ -180,7 +184,7 @@ def no_validation(monkeypatch: pytest.MonkeyPatch) -> None:
         del callbacks
         return ValidatedParams(params=dict(stated))
 
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
+    monkeypatch.setattr(_frame_canonical, "validate_parameters", _validate)
 
 
 def serve_search(
@@ -387,7 +391,7 @@ async def test_set_criterion_retries_on_invalid_resolved_param(
             "accept 'product,Notes'."
         )
 
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
+    monkeypatch.setattr(_frame_canonical, "validate_parameters", _validate)
 
     with pytest.raises(ModelRetry) as exc:
         await bind(
@@ -423,7 +427,7 @@ async def test_set_criterion_skips_validation_when_open_slots(
         validated = True
         return ValidatedParams()
 
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
+    monkeypatch.setattr(_frame_canonical, "validate_parameters", _validate)
 
     result = await bind(st, "GenesByRNASeq", {}, text="x")
 
@@ -444,7 +448,7 @@ async def test_set_criterion_binds_when_resolved_params_valid(
     async def _validate(_ctx: object, **_kw: object) -> ValidatedParams:
         return ValidatedParams(params=dict(bound))
 
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
+    monkeypatch.setattr(_frame_canonical, "validate_parameters", _validate)
 
     result = await bind(st, "GenesWithSignalPeptide", {}, text="x")
 

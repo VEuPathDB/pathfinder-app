@@ -188,25 +188,37 @@ def word_problems(
 
     The live requirements decide the organism, and the request messages decide
     the phrase. A dependent organism parameter is checked once its parents are
-    bound.
+    bound. A transform that carries the genes to an organism the bind leaves
+    out is named for that organism alone.
     """
     carried_to = state.carried_to(call.criterion_id)
     transform = bool(definition.allowed_primary_input_record_class_names)
     found: list[Problem] = []
     for info in infos:
-        said: list[str | None] = []
+        said: list[tuple[str, str | None]] = []
         if info.organism_param and not info.stated_parents:
+            carried = (
+                _a_transform_to_another_organism(definition, call, info, carried_to)
+                if transform and carried_to
+                else None
+            )
             said.append(
-                _an_organism_the_request_does_not_name(
-                    definition, call, info, state.stated_requirements
+                ("organism_carried", carried)
+                if carried is not None
+                else (
+                    "organism_named",
+                    _an_organism_the_request_does_not_name(
+                        definition, call, info, state.stated_requirements
+                    ),
                 )
             )
-            if transform and carried_to:
-                said.append(
-                    _a_transform_to_another_organism(definition, call, info, carried_to)
-                )
         if parameter_class(info) == "string":
-            said.append(_an_unquoted_phrase(call, info, state.request_messages))
-        key = RefusalKey(check="words", parameter=info.name)
-        found += [Problem(key=key, sentence=s) for s in said if s is not None]
+            said.append(
+                ("phrase", _an_unquoted_phrase(call, info, state.request_messages))
+            )
+        found += [
+            Problem(key=RefusalKey(check=check, parameter=info.name), sentence=s)
+            for check, s in said
+            if s is not None
+        ]
     return Problems(found=tuple(found))

@@ -4,19 +4,20 @@ the tool writes from the catalog read this pass holds."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.catalog import ParameterInfo
 
-from strategist.ai.agents.state import CatalogHit, CatalogRead
+from strategist.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
 )
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.step_rationale import (
@@ -68,9 +69,36 @@ class SearchChoice(CamelModel):
 
 @dataclass(frozen=True)
 class ChosenWhy:
-    """The recorded reason."""
+    """The recorded reason, or the problems that leave the binding without one."""
 
     rationale: SearchRationale | None
+    problems: Problems = field(default_factory=Problems)
+
+
+_WHY = RefusalKey(check="why")
+
+
+def _held_rationale(state: AgentToolState, call: CriterionCall) -> bool:
+    return any(
+        c.id == call.criterion_id and c.search_name == call.search_name
+        for c in state.operational_spec_draft.criteria
+    )
+
+
+def why_problems(
+    ctx: RunContext[AgentDeps], call: CriterionCall, why: SearchChoice | None
+) -> Problems:
+    """What a new binding's why lacks before any value is read: a catalog read
+    that answered the search, a why, and sources a read of this turn returned."""
+    state = ctx.deps.agent_state
+    if _held_rationale(state, call):
+        return Problems()
+    read = state.last_read_answering(call.search_name)
+    if read is None or read.hit(call.search_name) is None:
+        return Problems.one(_WHY, _unread(call.criterion_id, call.search_name))
+    if why is None:
+        return Problems.one(_WHY, _no_why(call.criterion_id, call.search_name, read))
+    return sources_retrieved(ctx, call.criterion_id, why.sources)[1]
 
 
 def rationale_for(
@@ -81,7 +109,7 @@ def rationale_for(
     values: Mapping[str, ParamValue],
     why: SearchChoice | None,
 ) -> ChosenWhy:
-    """The recorded reason for this binding, or a retry naming what is wrong.
+    """The recorded reason for this binding, or the problems naming what is wrong.
 
     A binding on the search the criterion already runs keeps its reason while
     it changes no value the reason was derived from, or only an organism. One that changes such a value records the edit's
@@ -112,13 +140,28 @@ def rationale_for(
                 )
                 return ChosenWhy(rewired)
             if why is None:
-                raise ModelRetry(_derived_from_changed(criterion_id, kept, changed))
+                said = _derived_from_changed(criterion_id, kept, changed)
+                return ChosenWhy(None, Problems.one(_WHY, said))
             read = read or _read_behind(kept, held, record_type)
+    return _new_why(ctx, call, read, why, infos, values)
+
+
+def _new_why(
+    ctx: RunContext[AgentDeps],
+    call: CriterionCall,
+    read: CatalogRead | None,
+    why: SearchChoice | None,
+    infos: Sequence[ParameterInfo],
+    values: Mapping[str, ParamValue],
+) -> ChosenWhy:
+    criterion_id, search_name = call.criterion_id, call.search_name
     bound = None if read is None else read.hit(search_name)
     if read is None or bound is None:
-        raise ModelRetry(_unread(criterion_id, search_name))
+        return ChosenWhy(None, Problems.one(_WHY, _unread(criterion_id, search_name)))
     if why is None:
-        raise ModelRetry(_no_why(criterion_id, search_name, read))
+        said = _no_why(criterion_id, search_name, read)
+        return ChosenWhy(None, Problems.one(_WHY, said))
+    sources, absent = sources_retrieved(ctx, criterion_id, why.sources)
     others = [h for h in read.hits if h.name != search_name] if read.ranked else []
     rationale = SearchRationale(
         search_name=search_name,
@@ -134,10 +177,10 @@ def rationale_for(
         ],
         query=read.query,
         tool_call_id=read.tool_call_id,
-        sources=sources_retrieved(ctx, criterion_id, why.sources),
+        sources=sources,
         derived_from=stated_values(values),
     )
-    return ChosenWhy(rationale)
+    return ChosenWhy(rationale, absent)
 
 
 def _shown_term(why: SearchChoice, infos: Sequence[ParameterInfo]) -> str:
@@ -177,26 +220,27 @@ def _derived_from_changed(
     return (
         f"{criterion_id}: its reason was derived from {held}, which this edit "
         f"changes, so the reason no longer holds: '{kept.sentence}'. Pass a why "
-        f"for the values this call binds. Nothing was recorded."
+        f"for the values this call binds."
     )
 
 
 def sources_retrieved(
     ctx: RunContext[AgentDeps], criterion_id: str, cited: Sequence[str]
-) -> list[str]:
-    """Each cited reference in the form a read of this turn returned it."""
+) -> tuple[list[str], Problems]:
+    """Each cited reference in the form a read of this turn returned it, and
+    the problem a reference no read returned makes."""
     markers = ctx.deps.turn_markers
     found = {reference: markers.retrieved_as(reference) for reference in cited}
+    forms = [form for form in found.values() if form is not None]
     absent = [reference for reference, form in found.items() if form is None]
-    if absent:
-        msg = (
-            f"The why of {criterion_id} cites {', '.join(absent)}, and no read of "
-            f"this turn returned it. Cite only what a research read or "
-            f"read_experiment returned this turn, or leave sources empty; nothing "
-            f"was recorded."
-        )
-        raise ModelRetry(msg)
-    return [form for form in found.values() if form is not None]
+    if not absent:
+        return forms, Problems()
+    return forms, Problems.one(
+        RefusalKey(check="sources"),
+        f"The why of {criterion_id} cites {', '.join(absent)}, and no read of "
+        f"this turn returned it. Cite only what a research read or "
+        f"read_experiment returned this turn, or leave sources empty.",
+    )
 
 
 def _top(read: CatalogRead) -> str:
@@ -213,7 +257,7 @@ def _unread(criterion_id: str, search_name: str) -> str:
         f"{criterion_id} binds {search_name}, which no catalog read of this pass "
         f"answered. Call search_for_searches for what {criterion_id} asks, then "
         f"bind from its answer; the choice is recorded against the searches it "
-        f"returned. Nothing was recorded."
+        f"returned."
     )
 
 
@@ -222,6 +266,5 @@ def _no_why(criterion_id: str, search_name: str, read: CatalogRead) -> str:
         f"{criterion_id} binds {search_name} with no why. Pass why with a basis "
         f"(parameter, organism, record_type, only_match or nearest), the term "
         f"that decides it, and one line of reason. The catalog answered "
-        f"{len(read.hits)} searches for it, first {_top(read)}. Nothing was "
-        f"recorded."
+        f"{len(read.hits)} searches for it, first {_top(read)}."
     )

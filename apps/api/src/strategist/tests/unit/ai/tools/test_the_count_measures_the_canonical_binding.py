@@ -13,7 +13,7 @@ from veupathdb.domain.parameters import MultiPickValue, ParamValue, to_wire
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone import _frame_count, frame_spec
+from strategist.ai.tools.standalone import _frame_canonical, _frame_count
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
     bind,
@@ -42,7 +42,7 @@ def _expand_the_branch(monkeypatch: pytest.MonkeyPatch) -> None:
             | {"text_search_organism": MultiPickValue(values=[_LEAF])}
         )
 
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
+    monkeypatch.setattr(_frame_canonical, "validate_parameters", _validate)
 
 
 def _record_the_count(

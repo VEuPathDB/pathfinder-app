@@ -21,6 +21,7 @@ from strategist.ai.tools.standalone.gene_set_models import (
     GeneSetListResponse,
     UploadedGeneList,
 )
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.platform.refusals import refuse_problems
 from strategist.services.gene_sets.types import GeneSet
@@ -244,7 +245,7 @@ async def test_a_name_no_set_holds_is_refused_with_one_page_of_names(
 
     with pytest.raises(ModelRetry) as refused:
         await _frame_gene_set.set_gene_set_criterion(
-            agent_run_context(site_id="plasmodb"), stated, reference="missing"
+            agent_run_context(site_id="plasmodb"), stated, "missing", Problems()
         )
 
     message = str(refused.value)

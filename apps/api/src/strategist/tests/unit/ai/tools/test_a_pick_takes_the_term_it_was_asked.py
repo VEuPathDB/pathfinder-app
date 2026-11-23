@@ -103,7 +103,8 @@ def test_an_obsolete_pick_is_refused_with_the_current_entries() -> None:
         "The lookup of 'protein glycosylation' matched these current entries: "
         "GO:0006487 ('GO:0006487 : protein N-linked glycosylation : 7'), "
         "GO:0006493 ('GO:0006493 : protein O-linked glycosylation : 7'). Bind "
-        "current entries, or ask the researcher which one they mean."
+        "current entries, or ask the researcher which one they mean. Nothing was "
+        "recorded."
     )
 
 

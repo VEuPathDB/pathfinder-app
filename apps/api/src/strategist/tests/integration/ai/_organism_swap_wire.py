@@ -28,7 +28,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.lead import edit_dispatch
-from strategist.ai.tools.standalone import frame_spec
+from strategist.ai.tools.standalone import _frame_canonical, frame_spec
 from strategist.services.strategies import (
     commit,
     live_counts,
@@ -262,5 +262,5 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
         del callbacks
         return ValidatedParams(params=dict(stated))
 
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
+    monkeypatch.setattr(_frame_canonical, "validate_parameters", _validate)
     return api

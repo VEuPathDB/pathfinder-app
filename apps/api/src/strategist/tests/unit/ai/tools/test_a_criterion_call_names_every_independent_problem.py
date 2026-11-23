@@ -6,15 +6,9 @@ import textwrap
 
 import pytest
 from pydantic import JsonValue
-from veupathdb.errors import joined_refusal
-from veupathdb_mcp.catalog import (
-    ResolvedParams,
-    UnknownParameterError,
-    UnreadQuantityError,
-)
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone import _frame_proposals, frame_spec
+from strategist.ai.tools.standalone import frame_spec
 from strategist.ai.tools.standalone._frame_answers import AnsweredRequirement
 from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.domain.refusal import RefusalKey
@@ -217,7 +211,7 @@ async def test_a_value_problem_is_named_once_the_sheet_passes(
 
     assert _keys(refused) == [
         RefusalKey(
-            check="words",
+            check="phrase",
             criterion="c1",
             search="GenesByText",
             parameter="text_expression",
@@ -231,31 +225,3 @@ async def test_a_value_problem_waits_for_the_sheet_stage(
     refused = await _bind_phrase(monkeypatch, {"organsim": None})
 
     assert {key.check for key in _keys(refused)} == {"unknown_names"}
-
-
-async def test_a_held_back_quantity_and_an_unknown_proposal_are_one_refusal(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def _refusing(**_kw: object) -> ResolvedParams:
-        raise joined_refusal(
-            [
-                UnknownParameterError(
-                    ["min_percentile"], ["min_expression_percentile"]
-                ),
-                UnreadQuantityError(["min_expression_percentile"]),
-            ]
-        )
-
-    serve_search(monkeypatch, genes_by_text)
-    monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _refusing)
-    state = AgentToolState()
-
-    with pytest.raises(ProblemsRefusal) as refused:
-        await bind(state, "GenesByText", _phrase_call({"text_expression": "kinase"}))
-
-    assert [key.parameter for key in _keys(refused.value)] == [
-        "min_percentile",
-        "min_expression_percentile",
-    ]
-    assert str(refused.value).startswith("2 problems:")
-    assert state.operational_spec_draft.criteria == []

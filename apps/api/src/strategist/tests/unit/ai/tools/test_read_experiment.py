@@ -20,6 +20,7 @@ from strategist.ai.tools.standalone._catalog_elsewhere import (
     tree_tops,
 )
 from strategist.ai.tools.standalone._frame_rationale import sources_retrieved
+from strategist.domain.refusal import Problems
 from strategist.tests._support.experiment_cards import (
     CRYPTO_CARD,
     CRYPTO_SEARCH,
@@ -98,10 +99,10 @@ async def test_the_record_and_its_publications_are_recorded_as_retrieved(
 
     record = "https://qa.cryptodb.org/cryptodb.qa/app/record/dataset/DS_63b0de882c"
     assert ctx.deps.turn_markers.retrieved_sources == [record, "26549794"]
-    assert sources_retrieved(ctx, "c_infection", [record, "PMID:26549794"]) == [
-        record,
-        "26549794",
-    ]
+    assert sources_retrieved(ctx, "c_infection", [record, "PMID:26549794"]) == (
+        [record, "26549794"],
+        Problems(),
+    )
 
 
 @pytest.mark.asyncio
@@ -178,13 +179,12 @@ async def test_a_card_the_site_no_longer_holds_is_refused(
 
 
 def test_a_citation_no_read_returned_names_the_reads_that_count() -> None:
-    with pytest.raises(ModelRetry) as refused:
-        sources_retrieved(_shown_cryptodb(), "c_infection", ["PMID:26549794"])
+    _, absent = sources_retrieved(_shown_cryptodb(), "c_infection", ["PMID:26549794"])
 
-    assert str(refused.value) == (
+    assert absent.text() == (
         "The why of c_infection cites PMID:26549794, and no read of this turn "
         "returned it. Cite only what a research read or read_experiment returned "
-        "this turn, or leave sources empty; nothing was recorded."
+        "this turn, or leave sources empty."
     )
 
 
