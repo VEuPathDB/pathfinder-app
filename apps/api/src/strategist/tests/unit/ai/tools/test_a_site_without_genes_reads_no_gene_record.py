@@ -3,7 +3,7 @@ Lead or to a check."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -14,7 +14,9 @@ from pydantic_ai.toolsets import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 
-from strategist.ai.agents.verification import _VERIFICATION_INSTRUCTIONS
+from strategist.ai.agents import verification
+from strategist.ai.explore import explore_agent
+from strategist.ai.lead import lead_agent
 from strategist.ai.lead.lead_agent import build_lead_toolset
 from strategist.ai.tools.standalone import gene_record
 from strategist.ai.tools.standalone.gene_record import (
@@ -22,6 +24,7 @@ from strategist.ai.tools.standalone.gene_record import (
     offered_where_genes_are_held,
 )
 from strategist.ai.tools.toolsets.verification import build_toolset
+from strategist.tests._support.tool_names import named_tools
 
 _READ = ToolDefinition(name="read_gene_record")
 
@@ -68,10 +71,25 @@ def test_the_lead_and_the_check_offer_it_only_where_genes_are_held(
     assert _read_tool(built()).prepare is offered_where_genes_are_held
 
 
-def test_a_check_reads_records_only_where_the_read_is_offered() -> None:
-    told = " ".join(_VERIFICATION_INSTRUCTIONS.split())
+@pytest.mark.parametrize(
+    "pinned",
+    [
+        lead_agent.pinned_gene_record_rule,
+        explore_agent.pinned_gene_record_rule,
+        verification.pinned_gene_record_rule,
+    ],
+)
+async def test_the_record_read_is_named_only_where_it_is_offered(
+    pinned: Callable[[Any], Awaitable[str | None]],
+) -> None:
+    told = [await pinned(_on(site_id)) for site_id in ("orthomcl", "plasmodb")]
 
-    assert (
-        "Where ``read_gene_record`` is offered, call it once per sampled gene" in told
-    )
-    assert "such as OrthoMCL, does not offer it" in told
+    assert told[0] is None
+    assert "read_gene_record" in named_tools(told[1] or "")
+
+
+def test_a_check_on_a_site_without_genes_judges_the_sample_records() -> None:
+    told = " ".join(verification._VERIFICATION_INSTRUCTIONS.split())
+
+    assert "read_gene_record" not in named_tools(told)
+    assert "such as OrthoMCL, has no gene record" in told

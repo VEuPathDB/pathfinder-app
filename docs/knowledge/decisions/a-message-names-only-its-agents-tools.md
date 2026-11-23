@@ -25,24 +25,32 @@ a refusal.
 
 - Layer 1 reads every static text from each built agent: its string instructions, its tool
   descriptions and parameter schemas, its output schema and, for FRAME, execution and VERIFY,
-  the shared base prompt.
+  the shared base prompt. A tool whose `prepare` can withhold it (the phyletic builder where the
+  OrthoMCL taxonomy is not served, the gene record read where the site has no gene records)
+  counts as held here only on the sites that offer it, so a static text never names it; a pin
+  that the same site test gates names it instead.
 - Layer 2 scans every string literal of `strategist`, `veupathdb`, `veupathdb_mcp` and
   `assistant_core` and keeps those an agent can reach through references from its tools, its
-  instruction functions, its output validators, its capabilities and the dispatch texts it is
-  sent. The reach stops at another agent's factory and at a dispatch text another agent
-  receives, and type annotations are not followed.
+  instruction functions (a pinned section's own render included), its output validators, its
+  capabilities and the dispatch texts it is sent. The reach also follows the field types of a
+  reached model, the durable body registered for a reached tool declaration, and the graph
+  nodes that construct a reached domain model, which is how a node writes state a pin renders.
+  It stops at another agent's factory and at a dispatch text another agent receives. A `Field`
+  description is a schema text, which layer 1 reads, so layer 2 skips it.
 - Layer 3 is an autouse fixture that fails a test when a `FunctionModel` or `TestModel` request
-  names a tool the request does not offer. It reads the instructions and the parts new since the
-  last response, a retry included. A refused request raises to its caller and the test fails at
-  teardown, so code that catches the error cannot hide it. Only a test that builds its own
-  agent or toolset opts out, with the `foreign_tool_names` marker and its reason.
+  names a tool the request does not offer. It reads the instructions, the description and schema
+  of each offered tool, and the parts new since the last response, a retry included. A refused
+  request raises to its caller and the test fails at teardown, so code that catches the error
+  cannot hide it. Only a test that builds its own agent or toolset opts out, with the
+  `foreign_tool_names` marker and its reason.
 
 **The test checks its own lists against the code.** The agent list equals the `Agent(`
 construction sites, the dispatch list equals the texts passed as a work order or a ledger
 summary, the scanned packages equal the pinned distributions Strategist imports, every skip glob
 matches a file and hides no module an agent reaches, and no retired name is a live tool. An
 allowlist entry names its agent, its tool, a substring of its sentence and its reason, and must
-match a sentence that exists. Code lives in `tests/_support/tool_names.py`,
+match a sentence that exists. In every layer it allows its tool only in a text that holds its
+sentence and only for its agent; layer 3 reads the agent from the run's own agent name. Code lives in `tests/_support/tool_names.py`,
 `literal_reach.py`, `agent_texts.py` and `boundary_guard.py`.
 
 # What was rejected
@@ -68,4 +76,10 @@ match a sentence that exists. Code lives in `tests/_support/tool_names.py`,
 - Advice that is impossible although every name is held, such as a COLOCATE the structure cannot
   carry.
 - A name assembled at run time from variables. Layer 3 sees it only if a test drives that path.
+- In layer 2, a method called on a value whose type the reach does not hold: a local variable,
+  a parameter, or a model no reached model names as a field. State a node outside
+  `strategist.ai.graph` writes, or a node writes into a model outside `strategist.domain`, is not
+  followed either.
+- Layer 2 counts a site-gated tool as held, because a literal may sit on a path only the sites
+  that offer the tool take.
 - Layer 3 sees only the paths the suites drive.

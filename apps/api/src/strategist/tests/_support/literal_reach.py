@@ -10,6 +10,9 @@ from pathlib import Path
 
 PACKAGES = ("strategist", "veupathdb", "veupathdb_mcp", "assistant_core")
 SKIP_GLOBS = ("*/tests/*", "*/devtools/*", "*/ai/models/mock/*")
+STATE_MODELS = "strategist.domain."
+GRAPH_NODES = "strategist.ai.graph."
+DURABLE_REGISTRATION = "assistant_core.tasks.declaration.register_durable_impl"
 _LOG_CALLS = frozenset({"debug", "info", "warning", "error", "exception", "critical"})
 
 
@@ -43,7 +46,7 @@ def skipped(path: Path) -> bool:
     return any(fnmatch.fnmatch(str(path), glob) for glob in SKIP_GLOBS)
 
 
-def _module_name(root: Path, path: Path) -> tuple[str, bool]:
+def module_name(root: Path, path: Path) -> tuple[str, bool]:
     parts = [root.name, *path.relative_to(root).with_suffix("").parts]
     if parts[-1] == "__init__":
         return ".".join(parts[:-1]), True
@@ -80,7 +83,7 @@ def _assigned(node: ast.Assign | ast.AnnAssign) -> list[str]:
 
 
 def _read(root: Path, path: Path) -> _Module:
-    name, is_package = _module_name(root, path)
+    name, is_package = module_name(root, path)
     module = _Module(
         name=name, path=path, is_package=is_package, tree=ast.parse(path.read_text())
     )
@@ -153,9 +156,20 @@ def _annotations(body: ast.AST) -> set[int]:
     return {id(inner) for each in held if each is not None for inner in ast.walk(each)}
 
 
+def _fields(body: ast.AST) -> set[int]:
+    if not isinstance(body, ast.ClassDef):
+        return set()
+    return {
+        id(inner)
+        for statement in body.body
+        if isinstance(statement, ast.AnnAssign)
+        for inner in ast.walk(statement.annotation)
+    }
+
+
 def _references(module: _Module, body: ast.AST) -> set[str]:
     found: set[str] = set()
-    typed = _annotations(body)
+    typed = _annotations(body) - _fields(body)
     for node in ast.walk(body):
         if id(node) in typed:
             continue
@@ -195,6 +209,72 @@ def references_of(qualname: str) -> set[str]:
     return {ref for part in body for ref in _references(module, part)}
 
 
+def _called(module: _Module, call: ast.Call) -> str | None:
+    chain = _dotted(call.func)
+    if chain is None:
+        return None
+    head = chain[0]
+    if head in module.units:
+        return resolve(".".join([module.name, *chain]))
+    if head in module.imports:
+        return resolve(".".join([module.imports[head], *chain[1:]]))
+    return None
+
+
+def _calls() -> Iterator[tuple[str, ast.Call, _Module]]:
+    for module in modules().values():
+        for name, unit in module.units.items():
+            for call in ast.walk(unit):
+                if isinstance(call, ast.Call):
+                    yield f"{module.name}.{name}", call, module
+
+
+@functools.cache
+def _writers() -> dict[str, frozenset[str]]:
+    found: dict[str, set[str]] = {}
+    for caller, call, module in _calls():
+        if not caller.startswith(GRAPH_NODES):
+            continue
+        made = _called(module, call)
+        if made is None or not made.startswith(STATE_MODELS):
+            continue
+        located = _unit_of(made)
+        if located is not None and isinstance(
+            located[0].units.get(located[1]), ast.ClassDef
+        ):
+            found.setdefault(made, set()).add(caller)
+    return {made: frozenset(callers) for made, callers in found.items()}
+
+
+@functools.cache
+def _durable_bodies() -> dict[str, frozenset[str]]:
+    found: dict[str, set[str]] = {}
+    for _, call, module in _calls():
+        if _called(module, call) != DURABLE_REGISTRATION or not call.args:
+            continue
+        declared = _dotted(call.args[0])
+        if declared is None or declared[0] not in module.imports:
+            continue
+        declaration = resolve(module.imports[declared[0]])
+        bodies = {
+            resolved
+            for argument in call.args[1:]
+            for ref in _references(module, argument)
+            if (resolved := resolve(ref)) is not None
+        }
+        if declaration is not None:
+            found.setdefault(declaration, set()).update(bodies)
+    return {declared: frozenset(bodies) for declared, bodies in found.items()}
+
+
+def _onward(current: str) -> set[str]:
+    return (
+        references_of(current)
+        | _writers().get(current, frozenset())
+        | _durable_bodies().get(current, frozenset())
+    )
+
+
 def reach(roots: Iterable[str], fences: Iterable[str] = ()) -> set[str]:
     seen: set[str] = {f for f in (resolve(fence) for fence in fences) if f is not None}
     fenced = set(seen)
@@ -204,7 +284,7 @@ def reach(roots: Iterable[str], fences: Iterable[str] = ()) -> set[str]:
         if current in seen:
             continue
         seen.add(current)
-        for ref in references_of(current):
+        for ref in _onward(current):
             resolved = resolve(ref)
             if resolved is not None and resolved not in seen:
                 queue.append(resolved)
@@ -236,6 +316,19 @@ def _logged(tree: ast.AST) -> set[int]:
     }
 
 
+def _schema_descriptions(tree: ast.AST) -> set[int]:
+    return {
+        id(inner)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "Field"
+        for keyword in node.keywords
+        if keyword.arg == "description"
+        for inner in ast.walk(keyword.value)
+    }
+
+
 def _texts(node: ast.AST, skipped_ids: set[int]) -> Iterator[tuple[int, str]]:
     inside_fstrings = {
         id(part)
@@ -264,7 +357,11 @@ def _texts(node: ast.AST, skipped_ids: set[int]) -> Iterator[tuple[int, str]]:
 
 
 def _module_literals(module: _Module) -> Iterator[Literal]:
-    ignored = _docstrings(module.tree) | _logged(module.tree)
+    ignored = (
+        _docstrings(module.tree)
+        | _logged(module.tree)
+        | _schema_descriptions(module.tree)
+    )
     owners: list[tuple[str, ast.AST]] = [
         (f"{module.name}.{name}", unit) for name, unit in module.units.items()
     ]
@@ -284,8 +381,3 @@ def all_literals() -> tuple[Literal, ...]:
     return tuple(
         literal for module in modules().values() for literal in _module_literals(module)
     )
-
-
-def literals_reached(roots: Iterable[str], fences: Iterable[str] = ()) -> list[Literal]:
-    reached = reach(roots, fences)
-    return [literal for literal in all_literals() if literal.enclosing in reached]

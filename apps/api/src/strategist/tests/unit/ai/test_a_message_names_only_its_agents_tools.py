@@ -15,6 +15,7 @@ from strategist.tests._support.agent_texts import (
     BUILT,
     DISPATCH_TEXTS,
     AgentSite,
+    held_on_every_site,
     reached_by,
     reached_units,
 )
@@ -22,6 +23,7 @@ from strategist.tests._support.literal_reach import (
     PACKAGES,
     SKIP_GLOBS,
     all_literals,
+    module_name,
     modules,
     package_root,
     references_of,
@@ -32,23 +34,14 @@ from strategist.tests._support.tool_names import (
     ALLOWED,
     RETIRED_TOOLS,
     all_tool_names,
+    allowed_in,
     held_tool_names,
     named_tools,
 )
 
 _PYPROJECT = Path(__file__).resolve().parents[5] / "pyproject.toml"
+_MOCK = "strategist.ai.models.mock"
 _DISPATCH_KEYWORDS = frozenset({"work_order", "ledger_summary"})
-
-
-def _allowed(role: str) -> frozenset[str]:
-    return frozenset(tool for agent, tool, _, _ in ALLOWED if agent == role)
-
-
-def _role_of(site: AgentSite) -> str:
-    return next(
-        (role for role, build in BUILT.items() if build is site.build),
-        site.qualname.rsplit(".", 1)[1],
-    )
 
 
 def _strategist_units() -> list[tuple[str, ast.AST]]:
@@ -181,11 +174,7 @@ def test_the_scanned_roots_are_the_pinned_distributions() -> None:
 def test_every_skip_glob_matches_a_file_and_hides_no_reached_module() -> None:
     root = package_root("strategist")
     files = [str(path) for path in root.rglob("*.py")]
-    hidden = {
-        ".".join(["strategist", *Path(path).relative_to(root).with_suffix("").parts])
-        for path in files
-        if skipped(Path(path))
-    } - {"strategist.ai.models.mock"}
+    hidden = {module_name(root, Path(path))[0] for path in files if skipped(Path(path))}
     referenced = {
         ref
         for role in BUILT
@@ -195,7 +184,7 @@ def test_every_skip_glob_matches_a_file_and_hides_no_reached_module() -> None:
     reached_hidden = sorted(
         name
         for name in hidden
-        if not name.startswith("strategist.ai.models.mock.")
+        if not (name == _MOCK or name.startswith(f"{_MOCK}."))
         and any(ref == name or ref.startswith(f"{name}.") for ref in referenced)
     )
 
@@ -203,12 +192,35 @@ def test_every_skip_glob_matches_a_file_and_hides_no_reached_module() -> None:
     assert reached_hidden == []
 
 
+@pytest.mark.parametrize(
+    ("unit", "roles"),
+    [
+        (
+            "strategist.jobs.impls.eda_compute_impl.compute_result",
+            ("explore", "lead"),
+        ),
+        (
+            "strategist.domain.strategy.staleness.StaleBuild",
+            ("execution", "lead", "verification"),
+        ),
+        (
+            "strategist.domain.exchanges.approval_card",
+            ("execution", "frame", "verification"),
+        ),
+    ],
+)
+def test_the_reach_holds_completions_attribute_calls_and_node_state(
+    unit: str, roles: tuple[str, ...]
+) -> None:
+    assert [role for role in roles if unit not in reached_units(role)] == []
+
+
 def test_no_retired_name_is_a_tool() -> None:
     assert RETIRED_TOOLS & all_tool_names() == frozenset()
 
 
 def test_the_allowlist_holds_only_sentences_that_exist() -> None:
-    texts = {_role_of(site): site.texts() for site in AGENT_SITES if site.build is None}
+    texts = {site.role: site.texts() for site in AGENT_SITES if site.build is None}
     missing = [
         (agent, sentence)
         for agent, _, sentence, _ in ALLOWED
@@ -238,22 +250,27 @@ def test_a_one_word_tool_counts_only_as_a_call_or_in_backticks() -> None:
 
 @pytest.mark.parametrize("site", AGENT_SITES, ids=lambda site: site.qualname)
 def test_an_agents_static_texts_name_only_its_tools(site: AgentSite) -> None:
-    held = frozenset() if site.build is None else held_tool_names(site.build())
-    allowed = _allowed(_role_of(site))
-    named = {name for text in site.texts() for name in named_tools(text)}
+    held = frozenset() if site.build is None else held_on_every_site(site.build())
 
-    assert sorted(named - held - allowed) == []
-    assert sorted(named & RETIRED_TOOLS) == []
+    foreign = {
+        name
+        for text in site.texts()
+        for name in named_tools(text) - held - allowed_in(text, site.role)
+    }
+    retired = {name for text in site.texts() for name in named_tools(text)}
+
+    assert sorted(foreign) == []
+    assert sorted(retired & RETIRED_TOOLS) == []
 
 
 @pytest.mark.parametrize("role", sorted(BUILT))
 def test_a_literal_an_agent_can_receive_names_only_its_tools(role: str) -> None:
-    held = held_tool_names(BUILT[role]()) | _allowed(role)
+    held = held_tool_names(BUILT[role]())
 
     foreign = [
-        f"{literal.path.name}:{literal.line} {sorted(named_tools(literal.text) - held)}"
+        f"{literal.path.name}:{literal.line} {sorted(unheld)}"
         for literal in reached_by(role)
-        if named_tools(literal.text) - held
+        if (unheld := named_tools(literal.text) - held - allowed_in(literal.text, role))
     ]
 
     assert foreign == []

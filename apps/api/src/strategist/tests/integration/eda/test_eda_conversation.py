@@ -37,7 +37,6 @@ from langgraph.graph.state import CompiledStateGraph
 from procrastinate.testing import InMemoryConnector
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage
-from pydantic_ai.models.function import FunctionModel
 from sqlalchemy import select
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy import StrategyAst
@@ -151,13 +150,9 @@ _MODEL = ScriptedModel(
 )
 
 
-def _build_mock() -> FunctionModel:
-    return _MODEL.as_function_model()
-
-
 def _build_agent() -> Agent[LeadDeps, str]:
     return Agent(
-        _build_mock(),
+        _MODEL.as_function_model(),
         output_type=str,
         deps_type=LeadDeps,
         instructions="Explore the study the researcher names and export the subset.",
@@ -198,7 +193,7 @@ def _build_spec() -> AssistantSpec:
         build_graph=_build_graph,
         build_initial_state=build_initial_state,
         build_turn_context=build_turn_context,
-        build_mock_model=_build_mock,
+        build_mock_model=_MODEL.as_function_model,
         register_stream_parts=_register_product_stream_parts,
     )
 
@@ -512,6 +507,7 @@ def _assert_step_persisted(strategy: StrategyAst) -> None:
     assert spec["descriptor"]["subset"]["descriptor"] == [_FILTER]
 
 
+@pytest.mark.foreign_tool_names("a test agent holds the EDA tools alone")
 async def test_the_conversation_persists_every_eda_chunk_in_order(
     seam: _Seam,
     hermetic_wdk: list[Any],

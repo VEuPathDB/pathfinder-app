@@ -14,6 +14,7 @@ from strategist.ai.agents.research_reads import research_reads, research_served
 from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.explore._explore_instructions import (
+    EXPLORE_GENE_RECORD_RULE,
     EXPLORE_INSTRUCTIONS,
     EXPLORE_OFF_TOPIC_REDIRECT,
     EXPLORE_RESEARCH_READS,
@@ -51,6 +52,7 @@ from strategist.ai.lead.turn_contract import (
     off_topic_essay,
 )
 from strategist.ai.tools.standalone.gene_record import (
+    genes_are_held,
     offered_where_genes_are_held,
     read_gene_record,
 )
@@ -128,6 +130,10 @@ def pinned_research_reads(ctx: RunContext[LeadDeps]) -> str:
     )
 
 
+async def pinned_gene_record_rule(ctx: RunContext[LeadDeps]) -> str | None:
+    return EXPLORE_GENE_RECORD_RULE if await genes_are_held(ctx.deps.site_id) else None
+
+
 def hold_the_redirect_short(
     ctx: RunContext[LeadDeps], output: str | DeferredToolRequests
 ) -> str | DeferredToolRequests:
@@ -178,6 +184,7 @@ def build_explore_agent() -> ExploreAgent:
         pinned_run_budget,
         pinned_eda_sheet,
         pinned_research_reads,
+        pinned_gene_record_rule,
         pinned_off_topic_redirect,
     ):
         agent.instructions(fn)

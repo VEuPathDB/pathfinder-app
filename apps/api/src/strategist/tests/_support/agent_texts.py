@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import functools
 import inspect
 import json
 from collections.abc import Callable, Iterator, Mapping
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, get_args, get_type_hints
 
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, Tool
@@ -25,12 +26,14 @@ from strategist.ai.prompts.loader import (
     load_request_guide,
     load_system_prompt,
 )
-from strategist.tests._support.literal_reach import Literal, literals_reached, reach
+from strategist.tests._support.literal_reach import Literal, all_literals, reach
 from strategist.tests._support.sub_agents import agent_tool_names
+from strategist.tests._support.tool_names import held_tool_names
 
 
 class AgentSite(NamedTuple):
     qualname: str
+    role: str
     build: Callable[[], Agent[Any, Any]] | None
     texts: Callable[[], list[str]]
 
@@ -90,6 +93,17 @@ def held_tools(agent: Agent[Any, Any]) -> dict[str, Tool[Any]]:
     }
 
 
+def _gated(tool: Tool[Any]) -> bool:
+    if tool.prepare is None:
+        return False
+    return type(None) in get_args(get_type_hints(tool.prepare).get("return"))
+
+
+def held_on_every_site(agent: Agent[Any, Any]) -> frozenset[str]:
+    gated = {name for name, tool in held_tools(agent).items() if _gated(tool)}
+    return held_tool_names(agent) - gated
+
+
 def static_texts(role: str, agent: Agent[Any, Any]) -> list[str]:
     texts = [
         sourced.instruction
@@ -109,7 +123,7 @@ def static_texts(role: str, agent: Agent[Any, Any]) -> list[str]:
 
 def _built_site(role: str, qualname: str) -> AgentSite:
     build = BUILT[role]
-    return AgentSite(qualname, build, lambda: static_texts(role, build()))
+    return AgentSite(qualname, role, build, lambda: static_texts(role, build()))
 
 
 AGENT_SITES: tuple[AgentSite, ...] = (
@@ -125,21 +139,25 @@ AGENT_SITES: tuple[AgentSite, ...] = (
     _built_site("synthesis", "strategist.ai.audit.synthesis.build_synthesis_agent"),
     AgentSite(
         "strategist.ai.agents.compactor.build_compactor_agent",
+        "compactor",
         None,
         lambda: [_COMPACTOR_INSTRUCTIONS],
     ),
     AgentSite(
         "strategist.ai.lead.message_reader._model_reading",
+        "message-reading",
         None,
         lambda: [load_reading_guide()],
     ),
     AgentSite(
         "strategist.ai.lead.message_reader._stated_request",
+        "stated-request",
         None,
         lambda: [load_request_guide()],
     ),
     AgentSite(
         "strategist.ai.conversation.title_generator.generate_conversation_title",
+        "conversation-title",
         None,
         lambda: [_TITLE_INSTRUCTIONS],
     ),
@@ -168,6 +186,14 @@ def _wrappers(toolset: AbstractToolset[Any]) -> Iterator[object]:
         yield type(toolset)
 
 
+def _with_closures(obj: object) -> Iterator[object]:
+    yield obj
+    if inspect.isfunction(obj):
+        for inner in inspect.getclosurevars(obj).nonlocals.values():
+            if callable(inner):
+                yield from _with_closures(inner)
+
+
 def roots(role: str) -> set[str]:
     agent = BUILT[role]()
     objects: list[object] = []
@@ -182,7 +208,8 @@ def roots(role: str) -> set[str]:
     objects.extend(type(capability) for capability in _capabilities(agent))
     for toolset in agent.toolsets:
         objects.extend(_wrappers(toolset))
-    found = {name for name in map(_qualname, objects) if name is not None}
+    unwrapped = [inner for each in objects for inner in _with_closures(each)]
+    found = {name for name in map(_qualname, unwrapped) if name is not None}
     received = {text for text, roles in DISPATCH_TEXTS.items() if role in roles}
     return found | received
 
@@ -191,11 +218,12 @@ def _fences(own: set[str]) -> set[str]:
     return ({site.qualname for site in AGENT_SITES} | set(DISPATCH_TEXTS)) - own
 
 
-def reached_units(role: str) -> set[str]:
+@functools.cache
+def reached_units(role: str) -> frozenset[str]:
     own = roots(role)
-    return reach(own, _fences(own))
+    return frozenset(reach(own, _fences(own)))
 
 
 def reached_by(role: str) -> list[Literal]:
-    own = roots(role)
-    return literals_reached(own, _fences(own))
+    reached = reached_units(role)
+    return [literal for literal in all_literals() if literal.enclosing in reached]

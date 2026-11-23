@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import contextlib
+import json
 from collections.abc import AsyncIterator, Callable, Iterator
 from typing import Any
 
 import pytest
 from pydantic_ai._instrumentation import get_instructions
+from pydantic_ai._run_context import get_current_run_context
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -58,16 +60,31 @@ def _since_last_response(messages: list[ModelMessage]) -> Iterator[tuple[str, st
                 yield text
 
 
+def _descriptions(parameters: ModelRequestParameters) -> Iterator[tuple[str, str]]:
+    for tool in parameters.function_tools:
+        yield f"description of {tool.name}", tool.description or ""
+        yield f"schema of {tool.name}", json.dumps(tool.parameters_json_schema)
+
+
+def _role() -> str | None:
+    run = get_current_run_context()
+    return None if run is None or run.agent is None else run.agent.name
+
+
 def foreign_in_request(
-    messages: list[ModelMessage], parameters: ModelRequestParameters
+    messages: list[ModelMessage],
+    parameters: ModelRequestParameters,
+    role: str | None,
 ) -> list[str]:
     offered = {tool.name for tool in parameters.function_tools}
     texts = [("instructions", get_instructions(messages, parameters) or "")]
+    texts.extend(_descriptions(parameters))
     texts.extend(_since_last_response(messages))
     found: list[str] = []
     for kind, text in texts:
         named = named_tools(text)
-        foreign = sorted((named - offered - allowed_in(text)) | (named & RETIRED_TOOLS))
+        unheld = named - offered - allowed_in(text, role)
+        foreign = sorted(unheld | (named & RETIRED_TOOLS))
         if foreign:
             found.append(f"{kind} names {foreign}")
     return found
@@ -78,7 +95,7 @@ def _refuse(
     messages: list[ModelMessage],
     parameters: ModelRequestParameters,
 ) -> None:
-    found = foreign_in_request(messages, parameters)
+    found = foreign_in_request(messages, parameters, _role())
     if found:
         message = f"A model request names tools it does not offer: {found}"
         refused.append(message)

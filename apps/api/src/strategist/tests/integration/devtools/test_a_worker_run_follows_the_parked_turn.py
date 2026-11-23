@@ -230,6 +230,9 @@ async def _work_the_durable_jobs(jobs: InMemoryConnector) -> None:
         )
 
 
+@pytest.mark.foreign_tool_names(
+    "the second assistant holds the control test without its listing tools"
+)
 @pytest.mark.usefixtures("controls_assistant", "controls_wire", "worker_seams")
 async def test_a_real_two_task_park_is_followed_to_the_completion_reply(
     tmp_path: Path,

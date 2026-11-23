@@ -50,6 +50,9 @@ def _refusals(messages: list[ModelMessage]) -> list[str]:
     ]
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the sweep without the live strategy read"
+)
 async def test_a_sweep_with_no_controls_never_reaches_a_card() -> None:
     told: list[str] = []
 
@@ -126,6 +129,9 @@ async def test_a_parameter_named_by_its_label_is_refused_before_the_card(
     )
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the sweep without the live strategy read"
+)
 async def test_a_saved_control_set_is_controls_enough_for_the_card() -> None:
     call = ToolCallPart(
         tool_name="optimize_search_parameters",
@@ -157,6 +163,9 @@ async def test_a_saved_control_set_is_controls_enough_for_the_card() -> None:
     assert [c.tool_call_id for c in result.output.approvals] == ["call_sweep"]
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the sweep without the live strategy read"
+)
 async def test_typed_control_ids_are_no_control_set() -> None:
     told: list[str] = []
     typed = {

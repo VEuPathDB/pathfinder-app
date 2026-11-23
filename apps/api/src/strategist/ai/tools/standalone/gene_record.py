@@ -47,12 +47,16 @@ class GeneRecordReader(Protocol):
     def resolving(self) -> ResolveContext: ...
 
 
+async def genes_are_held(site_id: str) -> bool:
+    classes = await record_class_names(site_id)
+    return bool(GENE_RECORD_CLASSES & classes.keys())
+
+
 async def offered_where_genes_are_held(
     ctx: RunContext[GeneRecordReader], tool_def: ToolDefinition
 ) -> ToolDefinition | None:
     """The record read, offered only on a site that publishes a gene record class."""
-    classes = await record_class_names(ctx.deps.site_id)
-    return tool_def if GENE_RECORD_CLASSES & classes.keys() else None
+    return tool_def if await genes_are_held(ctx.deps.site_id) else None
 
 
 async def read_gene_record(

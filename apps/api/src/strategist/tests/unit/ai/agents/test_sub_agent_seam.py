@@ -270,6 +270,7 @@ INSTRUCTION_ORDER = {
         "pinned_discovered_searches",
         "pinned_run_budget",
         "pinned_research_reads",
+        "pinned_gene_record_rule",
     ],
 }
 

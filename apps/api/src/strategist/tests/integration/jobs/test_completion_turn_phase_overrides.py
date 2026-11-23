@@ -284,6 +284,9 @@ _PINNED = {
 }
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the compute without the study read"
+)
 async def test_the_deferred_task_row_carries_the_turn_s_picks(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -308,6 +311,9 @@ async def test_the_deferred_task_row_carries_the_turn_s_picks(
     }
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the compute without the study read"
+)
 async def test_the_completion_turn_runs_under_the_pinned_model(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -332,6 +338,9 @@ async def test_the_completion_turn_runs_under_the_pinned_model(
     assert _SEEN[1].reasoning == {"lead": _PINNED_EFFORT}
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the compute without the study read"
+)
 async def test_a_turn_that_pins_nothing_leaves_the_row_empty(
     app: FastAPI,
     patch_app_db_engine: None,
