@@ -1,5 +1,4 @@
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
 
@@ -23,11 +22,11 @@ async function openStrategy(context: BrowserContext, siteId: string): Promise<st
 
 test.describe("Recalled memories", () => {
   test("renders the recalled-memory card from data-memory-retrieved", async ({
+    siteId,
     page,
     context,
     chatPage,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     const chatStream = [

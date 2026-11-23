@@ -7,7 +7,6 @@
  */
 
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
 
@@ -39,10 +38,10 @@ test.describe("Parameter Sweep", () => {
   test.describe.configure({ mode: "serial" });
 
   test("optimize_search_parameters task renders progress and completes", async ({
+    siteId,
     page,
     context,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     const chatStream = [
@@ -115,10 +114,10 @@ test.describe("Parameter Sweep", () => {
   });
 
   test("chat stream delivers assistant response for sweep request", async ({
+    siteId,
     page,
     context,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     const chatStream = [

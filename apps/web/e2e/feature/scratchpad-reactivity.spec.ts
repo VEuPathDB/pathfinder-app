@@ -19,7 +19,6 @@
 import type { BrowserContext, Route } from "@playwright/test";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { availableSiteId } from "../fixtures/available-site";
 import { openNotes } from "../fixtures/rail";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 
@@ -111,10 +110,10 @@ test.describe("Notes rail", () => {
   test.describe.configure({ mode: "serial" });
 
   test("notes panel shows note created by agent mid-stream", async ({
+    siteId,
     page,
     context,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const conversationId = await openConversation(context, siteId);
     const notesUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes`;
 
@@ -175,8 +174,7 @@ test.describe("Notes rail", () => {
     expect(notesVersion).toBeGreaterThan(0);
   });
 
-  test("user can pin and delete a note", async ({ page, context }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
+  test("user can pin and delete a note", async ({ siteId, page, context }) => {
     const conversationId = await openConversation(context, siteId);
     const notesUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes`;
     const noteUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes/${NOTE_ID}`;
