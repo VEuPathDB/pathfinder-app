@@ -30,7 +30,6 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
-    renumber_criteria,
 )
 from strategist.services.strategies import data_marks
 from strategist.services.strategies.commit import CommitResult
@@ -82,7 +81,7 @@ def _built() -> tuple[OperationalSpec, StrategySession]:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph(graph_id="g1", name="gametocytes", site_id="plasmodb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(tree.root)
+    graph.steps = flatten_tree(tree)
     graph.recompute_roots()
     session.graph = graph
     step_id = next(iter(graph.steps))
@@ -92,7 +91,7 @@ def _built() -> tuple[OperationalSpec, StrategySession]:
         wdk_strategy_id=900,
         wdk_step_tree=WDKStepTree(step_id=11),
     )
-    return renumber_criteria(spec, tree.step_id_by_criterion), session
+    return spec, session
 
 
 async def _edited(monkeypatch: pytest.MonkeyPatch, *, arrived: int = 0) -> LeadDeps:

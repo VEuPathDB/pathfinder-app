@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
@@ -28,10 +29,10 @@ from strategist.ai.tools.standalone._eda_step_guard import (
     refuse_half_a_cut,
 )
 from strategist.ai.tools.standalone._eda_step_spec import (
+    bind_the_export,
     restate_the_structure,
     scope_the_exported_criterion,
     spec_after_the_replacement,
-    spec_binding_the_export,
     state_the_exported_step,
     structure_states_the_graph,
 )
@@ -174,12 +175,7 @@ def _state_the_export(
     if waiting is None:
         state_the_exported_step(ctx, graph, plan.node, plan.binding)
         return
-    ctx.deps.state.domain.restate_every_record(
-        {waiting.criterion_id: plan.node.id},
-        lambda spec: spec_binding_the_export(
-            spec, waiting.criterion_id, plan.node, plan.binding
-        ),
-    )
+    bind_the_export(ctx.deps.state.domain, plan.node, plan.binding)
 
 
 async def _list_the_classes(ctx: RunContext[LeadDeps]) -> None:
@@ -337,6 +333,9 @@ async def create_eda_step(
     waiting = export_placement(
         spec, graph, criterion_id, dataset_id=binding.dataset_id, asked=asked
     )
+    if waiting is not None:
+        plan = replace(plan, node=node.model_copy(update={"id": waiting.criterion_id}))
+        node = plan.node
     write = export_write(
         ctx, graph, node, asked=asked, join=None if waiting is None else waiting.join
     )

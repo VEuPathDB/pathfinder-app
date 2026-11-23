@@ -25,7 +25,6 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
-    renumber_criteria,
 )
 from strategist.tests._support.bound_values import bound
 
@@ -33,7 +32,7 @@ _PF = MultiPickValue(values=["Plasmodium falciparum 3D7"])
 
 
 def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
-    return build_step_tree(spec).root
+    return build_step_tree(spec)
 
 
 def _bound(cid: str, search: str) -> Criterion:
@@ -337,51 +336,8 @@ def _protease_spec() -> OperationalSpec:
     )
 
 
-class TestCriterionIdsBecomeStepIds:
-    def test_the_build_reports_the_step_id_it_minted_for_each_criterion(self) -> None:
-        built = build_step_tree(_protease_spec())
+class TestCriterionIdsAreStepIds:
+    def test_each_criterion_is_the_id_of_the_step_it_built(self) -> None:
+        built = flatten_tree(build_step_tree(_protease_spec()))
 
-        assert set(built.step_id_by_criterion) == {
-            "c1_protease_text",
-            "c2_go",
-            "c3_orthologs",
-        }
-        assert set(built.step_id_by_criterion.values()) <= set(flatten_tree(built.root))
-
-    def test_a_built_spec_addresses_its_steps_by_step_id(self) -> None:
-        spec = _protease_spec()
-        built = build_step_tree(spec)
-
-        renumbered = renumber_criteria(spec, built.step_id_by_criterion)
-
-        assert {c.id for c in renumbered.criteria} == set(
-            built.step_id_by_criterion.values()
-        )
-        assert renumbered.structure is not None
-        assert (
-            renumbered.structure.root.criterion_id
-            == built.step_id_by_criterion["c3_orthologs"]
-        )
-        combine_node = renumbered.structure.root.inputs[0]
-        assert [node.criterion_id for node in combine_node.inputs] == [
-            built.step_id_by_criterion["c1_protease_text"],
-            built.step_id_by_criterion["c2_go"],
-        ]
-
-    def test_renumbering_keeps_every_bound_value(self) -> None:
-        spec = _protease_spec()
-        built = build_step_tree(spec)
-
-        renumbered = renumber_criteria(spec, built.step_id_by_criterion)
-
-        seed = renumbered.criteria[0]
-        assert seed.search_name == "GenesByText"
-        assert seed.param_values == {"organism": MultiPickValue(values=["Plasmodium"])}
-
-    def test_a_criterion_the_build_did_not_place_keeps_its_id(self) -> None:
-        spec = _protease_spec()
-        spec.criteria.append(Criterion(id="c4_unused", text="unused", search_name="X"))
-
-        renumbered = renumber_criteria(spec, build_step_tree(spec).step_id_by_criterion)
-
-        assert "c4_unused" in {c.id for c in renumbered.criteria}
+        assert {"c1_protease_text", "c2_go", "c3_orthologs"} <= set(built)

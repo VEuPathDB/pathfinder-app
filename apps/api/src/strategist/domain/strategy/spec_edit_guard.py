@@ -17,7 +17,8 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import CombineOp, StepKind
 
 from strategist.domain.refusal import Check, Problems, RefusalKey
-from strategist.domain.strategy.combination_check import meeting_operator
+from strategist.domain.strategy.combination_check import meeting_combine
+from strategist.domain.strategy.combine_order import MIRRORED_OPERATORS
 from strategist.domain.strategy.constraint_grounding import ground_against_spec
 from strategist.domain.strategy.constraints import ConstraintKind, ConstraintSource
 from strategist.domain.strategy.linked_values import linked_params
@@ -25,6 +26,7 @@ from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
+    criteria_under,
 )
 from strategist.domain.strategy.session import StrategyGraph
 
@@ -103,11 +105,18 @@ def contradicted_joins(
         brought = _brought(graph, step_id, stated)
         if brought.unnamed:
             continue
-        declared = meeting_operator(structure, brought.named)
-        if declared is not None and declared is not operator:
-            found[brought.named] = JoinContradiction(
-                declared=declared, written=operator
-            )
+        node = meeting_combine(structure, brought.named)
+        if node is None or node.combine_operator is operator:
+            continue
+        secondary = step.secondary_input_id or ""
+        if MIRRORED_OPERATORS[node.combine_operator] is operator and (
+            criteria_under(node.inputs[0]) & brought.named
+            == _brought(graph, secondary, stated).named
+        ):
+            continue
+        found[brought.named] = JoinContradiction(
+            declared=node.combine_operator, written=operator
+        )
     return found
 
 

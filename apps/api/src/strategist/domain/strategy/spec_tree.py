@@ -1,4 +1,4 @@
-"""The step tree a spec converts to, and the spec re-keyed on the steps it built."""
+"""The step tree a spec converts to, each step under its criterion's id."""
 
 from __future__ import annotations
 
@@ -29,54 +29,22 @@ class _Operand(NamedTuple):
     saved: SavedStrategyRef | None
 
 
-class SpecTree(NamedTuple):
-    """The tree a spec converts to, and the step each criterion became."""
-
-    root: StrategyStepNode
-    step_id_by_criterion: dict[str, str]
-
-
-def build_step_tree(spec: OperationalSpec) -> SpecTree:
-    """Convert the spec and report the step id it minted for each criterion."""
+def build_step_tree(spec: OperationalSpec) -> StrategyStepNode:
     if spec.structure is None:
         msg = "spec has no structure"
         raise ValueError(msg)
     by_id = {c.id: c for c in spec.criteria}
-    minted: dict[str, str] = {}
-    return SpecTree(
-        root=_node_to_step(spec.structure.root, by_id, minted),
-        step_id_by_criterion=minted,
+    return _node_to_step(spec.structure.root, by_id)
+
+
+def node_for(criterion: Criterion) -> StrategyStepNode:
+    return StrategyStepNode(
+        id=criterion.id,
+        search_name=criterion.search_name,
+        parameters=criterion.step_parameters,
+        display_name=criterion_title(criterion).name,
+        wdk_weight=criterion.weight,
     )
-
-
-def renumber_criteria(
-    spec: OperationalSpec, step_id_by_criterion: dict[str, str]
-) -> OperationalSpec:
-    """Re-key the spec on the step ids a build produced.
-
-    A criterion and the step it built are then the same address, so a later
-    edit changes that step rather than rebuilding the strategy around it.
-    """
-    renumbered = spec.model_copy(deep=True)
-    for criterion in renumbered.criteria:
-        criterion.id = step_id_by_criterion.get(criterion.id, criterion.id)
-        criterion.absence_of = step_id_by_criterion.get(
-            criterion.absence_of, criterion.absence_of
-        )
-    for slot in renumbered.open_slots:
-        slot.criterion_id = step_id_by_criterion.get(
-            slot.criterion_id, slot.criterion_id
-        )
-    if renumbered.structure is not None:
-        _renumber_structure(renumbered.structure.root, step_id_by_criterion)
-    return renumbered
-
-
-def _renumber_structure(node: StructureNode, mapping: dict[str, str]) -> None:
-    if node.criterion_id is not None:
-        node.criterion_id = mapping.get(node.criterion_id, node.criterion_id)
-    for child in node.inputs:
-        _renumber_structure(child, mapping)
 
 
 def _bound_criterion(
@@ -89,57 +57,39 @@ def _bound_criterion(
     return crit
 
 
-def _node_to_step(
-    node: StructureNode, by_id: dict[str, Criterion], minted: dict[str, str]
-) -> StrategyStepNode:
+def _node_to_step(node: StructureNode, by_id: dict[str, Criterion]) -> StrategyStepNode:
     if node.kind == "leaf":
         crit = _bound_criterion(node, by_id, "criterion")
         if crit.saved_strategy_ref is not None:
-            saved_step = clone_with_fresh_ids(crit.saved_strategy_ref.subtree)
-            minted[crit.id] = saved_step.id
-            return saved_step
-        step = StrategyStepNode(
-            search_name=crit.search_name,
-            parameters=crit.step_parameters,
-            display_name=criterion_title(crit).name,
-            wdk_weight=crit.weight,
-        )
-        minted[crit.id] = step.id
-        return step
+            saved = clone_with_fresh_ids(crit.saved_strategy_ref.subtree)
+            return saved.model_copy(update={"id": crit.id})
+        return node_for(crit)
     if node.kind == "transform":
         crit = _bound_criterion(node, by_id, "transform criterion")
-        step = StrategyStepNode(
-            search_name=crit.search_name,
-            parameters=crit.step_parameters,
-            display_name=criterion_title(crit).name,
-            wdk_weight=crit.weight,
-            primary_input=_node_to_step(node.inputs[0], by_id, minted),
+        return node_for(crit).model_copy(
+            update={"primary_input": _node_to_step(node.inputs[0], by_id)}
         )
-        minted[crit.id] = step.id
-        return step
     if node.kind == "copy":
         msg = "a copy is stated as criteria of its own before the build"
         raise ValueError(msg)
     operator = node.combine_operator
     combined = _combine(
-        _node_to_operand(node.inputs[0], by_id, minted),
-        _node_to_operand(node.inputs[1], by_id, minted),
+        _node_to_operand(node.inputs[0], by_id),
+        _node_to_operand(node.inputs[1], by_id),
         operator,
     )
     for extra in node.inputs[2:]:
-        combined = _combine(combined, _node_to_operand(extra, by_id, minted), operator)
+        combined = _combine(combined, _node_to_operand(extra, by_id), operator)
     return combined.step
 
 
-def _node_to_operand(
-    node: StructureNode, by_id: dict[str, Criterion], minted: dict[str, str]
-) -> _Operand:
+def _node_to_operand(node: StructureNode, by_id: dict[str, Criterion]) -> _Operand:
     """One side of a combine, and the saved strategy it stands for."""
     saved = None
     if node.kind == "leaf":
         crit = by_id.get(node.named_criterion)
         saved = crit.saved_strategy_ref if crit is not None else None
-    return _Operand(step=_node_to_step(node, by_id, minted), saved=saved)
+    return _Operand(step=_node_to_step(node, by_id), saved=saved)
 
 
 def _combine(left: _Operand, right: _Operand, operator: CombineOp) -> _Operand:

@@ -45,7 +45,7 @@ def _kinds(node: StructureNode) -> list[str]:
 
 
 def test_the_round_trip_builds_the_seed_intersect_its_two_transforms() -> None:
-    built = build_step_tree(restate_copies(round_trip_spec())).root
+    built = build_step_tree(restate_copies(round_trip_spec()))
 
     assert built.operator is CombineOp.INTERSECT
     seed, back = built.primary_input, built.secondary_input
@@ -67,7 +67,7 @@ def test_the_round_trip_builds_the_seed_intersect_its_two_transforms() -> None:
 
 
 def test_the_double_transform_keeps_the_source_organism() -> None:
-    built = build_step_tree(restate_copies(round_trip_spec())).root
+    built = build_step_tree(restate_copies(round_trip_spec()))
 
     assert extract_output_organisms(built, ORGANISM_PARAMS) == {SOURCE}
     assert built.secondary_input is not None
@@ -221,7 +221,7 @@ def test_a_carry_changes_the_organism_of_the_records() -> None:
 
 
 def test_a_round_trip_and_a_search_change_no_organism() -> None:
-    built = build_step_tree(restate_copies(round_trip_spec())).root
+    built = build_step_tree(restate_copies(round_trip_spec()))
 
     assert (
         organism_change(built, ORGANISM_PARAMS),

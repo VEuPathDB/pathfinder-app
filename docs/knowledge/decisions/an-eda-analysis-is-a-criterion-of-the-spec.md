@@ -146,14 +146,13 @@ operator and at any depth (`domain/strategy/join_point.py::join_point`, and
 its inputs in order the export joins the built inputs before it, or comes first
 before the first built input after it. The join is an added step, a combine over
 the joined step and the export, and a rewire of the joined step's consumer when
-it has one. The criterion takes the step's id
-and its binding on the plan, the answer and the dispatch record, the turn's
-entry spec takes the same id so the turn's diff reads the criterion as changed
+it has one. The export is made under the criterion's own id, and the
+criterion takes its binding on the plan, the answer and the dispatch record
+(`ai/tools/standalone/_eda_step_spec.py::bind_the_export`); the turn's entry
+spec already names that id, so the turn's diff reads the criterion as changed
 and not as dropped. An export is refused only when no combine above its
 criterion names a step the strategy holds, or when the strategy does not hold
-the joined criteria as one branch. `StrategyDomainState.restate_every_record` does that for the export
-and re-keys the same records for `build_strategy`, so a resumed dispatch
-never plans against a criterion whose step exists.
+the joined criteria as one branch.
 An export on a dataset a criterion waits on that names no criterion is
 refused. An export on a thread with no spec states one.
 

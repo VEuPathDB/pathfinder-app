@@ -402,3 +402,25 @@ def test_a_contradicting_write_names_the_framing_pass() -> None:
         assert "framing pass" in refusal
         assert foreign_names(refusal, build_lead_agent()) == []
         assert foreign_names(refusal, build_execution_agent()) == []
+
+
+def test_a_mirrored_join_with_its_sides_swapped_states_the_spec() -> None:
+    graph = graph_of(combine("step_root", leaf("c_k"), leaf("c_e"), CombineOp.RMINUS))
+    structure = SpecStructure(
+        root=spec_joined(CombineOp.MINUS, spec_leaf("c_e"), spec_leaf("c_k"))
+    )
+
+    assert contradicted_joins(structure, graph, ["c_e", "c_k"]) == {}
+
+
+def test_a_mirrored_join_on_the_same_sides_departs_from_the_spec() -> None:
+    graph = graph_of(combine("step_root", leaf("c_e"), leaf("c_k"), CombineOp.RMINUS))
+    structure = SpecStructure(
+        root=spec_joined(CombineOp.MINUS, spec_leaf("c_e"), spec_leaf("c_k"))
+    )
+
+    assert contradicted_joins(structure, graph, ["c_e", "c_k"]) == {
+        frozenset({"c_e", "c_k"}): JoinContradiction(
+            declared=CombineOp.MINUS, written=CombineOp.RMINUS
+        )
+    }

@@ -26,7 +26,6 @@ from strategist.domain.strategy.edit_plan import (
     UnsupportedEditError,
     criterion_for,
     live_join,
-    node_for,
     restructure,
 )
 from strategist.domain.strategy.operational_spec import (
@@ -50,6 +49,7 @@ from strategist.domain.strategy.operations.resolutions import compute_delete_cho
 from strategist.domain.strategy.orthology import round_trip_refusal
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_diff import CriterionChange, SpecDiff
+from strategist.domain.strategy.spec_tree import node_for
 from strategist.domain.strategy.stated_shape import (
     StatedShape,
     criteria_with_steps,

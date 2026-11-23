@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection
 
 from pydantic import ConfigDict, Field, OnErrorOmit
 from veupathdb.domain.strategy import StrategyAst
@@ -127,26 +127,15 @@ class AddedSearch(CamelModel):
     rationale: StepRationale | None = None
 
 
-def step_words(
-    spec: OperationalSpec, step_id_by_criterion: Mapping[str, str] | None = None
-) -> StepWords:
+def step_words(spec: OperationalSpec) -> StepWords:
     """The words, the reason and the step name of every criterion that runs a
-    search, by step id.
-
-    A criterion id is its step id once the strategy is built; a build names
-    the step each criterion minted.
-    """
-    minted = step_id_by_criterion or {}
+    search, by step id."""
     searched = [c for c in spec.criteria if c.search_name]
     return StepWords(
-        criterion_texts={minted.get(c.id, c.id): c.text for c in searched},
-        rationales={
-            minted.get(c.id, c.id): c.rationale
-            for c in searched
-            if c.rationale is not None
-        },
-        answers={minted.get(c.id, c.id): c.answers for c in searched if c.answers},
-        titles={minted.get(c.id, c.id): criterion_title(c) for c in searched},
+        criterion_texts={c.id: c.text for c in searched},
+        rationales={c.id: c.rationale for c in searched if c.rationale is not None},
+        answers={c.id: c.answers for c in searched if c.answers},
+        titles={c.id: criterion_title(c) for c in searched},
     )
 
 

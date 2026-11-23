@@ -29,7 +29,6 @@ from strategist.domain.strategy.spec_fold import (
 from strategist.domain.strategy.spec_to_operations import operations_for
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
-    renumber_criteria,
 )
 from strategist.domain.strategy.stated_shape import (
     criteria_with_steps,
@@ -120,10 +119,10 @@ def _built() -> tuple[OperationalSpec, StrategyGraph]:
     tree = build_step_tree(spec)
     graph = StrategyGraph(graph_id="g1", name="gametocytes", site_id="plasmodb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(tree.root)
+    graph.steps = flatten_tree(tree)
     graph.recompute_roots()
-    graph.last_step_id = tree.root.id
-    return renumber_criteria(spec, tree.step_id_by_criterion), graph
+    graph.last_step_id = tree.id
+    return spec, graph
 
 
 def _plan(
@@ -139,11 +138,11 @@ def test_the_built_step_carries_the_option_the_spec_states() -> None:
     """The stated dataset reaches the step, and a defaulted value does not."""
     tree = build_step_tree(fold_option_criteria(_framed()).spec)
 
-    assert tree.root.parameters == {
+    assert tree.parameters == {
         "organism": MultiPickValue(values=["Pf3D7"]),
         "dataset": StringValue(value=_TIMECOURSE),
     }
-    assert list(tree.step_id_by_criterion) == [_EXPRESSION]
+    assert tree.id == _EXPRESSION
 
 
 def test_the_folded_criterion_states_what_both_criteria_asked() -> None:

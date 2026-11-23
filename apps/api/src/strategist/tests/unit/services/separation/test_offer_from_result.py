@@ -59,7 +59,7 @@ def test_the_offer_builds_the_tree_the_run_assembled() -> None:
     built = build_step_tree(offer.spec)
 
     assert offer.spec.ready_to_build
-    assert _shape(built.root) == (
+    assert _shape(built) == (
         CombineOp.UNION,
         (
             CombineOp.UNION,
@@ -79,7 +79,7 @@ def test_a_subtracted_candidate_is_an_excluded_criterion() -> None:
     )
     offer = _offer(result.model_copy(update={"tree": minus}))
 
-    root = build_step_tree(offer.spec).root
+    root = build_step_tree(offer.spec)
     roles = {c.id: c.role for c in offer.spec.criteria}
 
     assert (
@@ -110,7 +110,7 @@ def test_a_subtracted_branch_builds_nested_and_keeps_back_its_right_input() -> N
     )
     offer = _offer(result.model_copy(update={"tree": minus}))
 
-    branch = build_step_tree(offer.spec).root.secondary_input
+    branch = build_step_tree(offer.spec).secondary_input
     roles = {c.id: c.role for c in offer.spec.criteria}
 
     assert branch is not None

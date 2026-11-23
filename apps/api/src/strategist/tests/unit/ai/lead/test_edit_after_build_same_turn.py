@@ -201,22 +201,21 @@ async def _edit(deps: LeadDeps, seams: EditSeams, draft: OperationalSpec) -> Edi
     return result
 
 
-async def test_the_build_renumbers_the_turn_entry_record_onto_its_steps(
+async def test_the_build_keeps_the_turn_entry_records_criterion_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The build re-keys the criteria, so the entry record is re-keyed too."""
     deps = await _built_turn(monkeypatch)
 
     entry = deps.state.domain.spec_before_turn
     assert entry is not None
-    assert [c.id for c in entry.criteria] == [_built_criterion_id(deps)]
-    assert _built_criterion_id(deps) != _ANNOTATION
+    assert [c.id for c in entry.criteria] == [_ANNOTATION]
+    assert _built_criterion_id(deps) == _ANNOTATION
 
 
 async def test_the_ledger_after_a_build_reports_no_dropped_criterion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The re-key is not a change to the spec, so the diff names no casualty."""
+    """A build is not a change to the spec, so the diff names no casualty."""
     deps = await _built_turn(monkeypatch)
 
     ledger = derive_ledger(deps.state, deps.intent)

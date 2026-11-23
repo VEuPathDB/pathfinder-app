@@ -58,12 +58,12 @@ def _spec(*criteria: Criterion) -> OperationalSpec:
     )
 
 
-def test_the_words_carry_each_criterions_reason_by_the_step_it_built() -> None:
-    words = step_words(_spec(_TEXT), {"c_text": "step_text"})
+def test_the_words_carry_each_criterions_reason_by_its_id() -> None:
+    words = step_words(_spec(_TEXT))
 
     assert (words.criterion_texts, words.rationales) == (
-        {"step_text": "protease genes"},
-        {"step_text": _CHOSEN},
+        {"c_text": "protease genes"},
+        {"c_text": _CHOSEN},
     )
 
 
@@ -99,7 +99,7 @@ def test_an_added_search_carries_its_reason() -> None:
 
 def test_the_graph_stores_the_reason_and_hydrates_it_back() -> None:
     graph = graph_of(three_step_root())
-    graph.note_words(step_words(_spec(_TEXT), {"c_text": "step_text"}))
+    graph.note_words(step_words(_spec(_TEXT.model_copy(update={"id": "step_text"}))))
     ast = graph.to_strategy_ast()
     assert isinstance(ast, StrategyAst)
 

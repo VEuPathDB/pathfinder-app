@@ -25,7 +25,6 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
-    renumber_criteria,
 )
 from strategist.services.strategies.commit import CommitResult
 from strategist.tests._support.bound_values import bound
@@ -65,10 +64,10 @@ def _on_screen() -> tuple[OperationalSpec, StrategySession]:
     session = StrategySession(site_id="vectorbase")
     graph = StrategyGraph(graph_id="g1", name="obp", site_id="vectorbase")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(tree.root)
+    graph.steps = flatten_tree(tree)
     graph.recompute_roots()
     session.graph = graph
-    return renumber_criteria(spec, tree.step_id_by_criterion), session
+    return spec, session
 
 
 def _with_the_domain_leaf(before: OperationalSpec) -> OperationalSpec:

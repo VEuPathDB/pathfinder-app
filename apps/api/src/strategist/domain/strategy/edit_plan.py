@@ -30,7 +30,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.operations import GraphOperation, ReplaceSubtreeOp
 from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.domain.strategy.step_naming import criterion_title
+from strategist.domain.strategy.spec_tree import node_for
 
 __all__ = [
     "COPY_UNSTATED",
@@ -39,7 +39,6 @@ __all__ = [
     "UnsupportedEditError",
     "criterion_for",
     "live_join",
-    "node_for",
     "restructure",
 ]
 
@@ -76,16 +75,6 @@ class EditPlan:
     def emit(self, op: GraphOperation) -> None:
         self.ops.append(op)
         apply_operation(self.graph, op)
-
-
-def node_for(criterion: Criterion) -> StrategyStepNode:
-    return StrategyStepNode(
-        id=criterion.id,
-        search_name=criterion.search_name,
-        parameters=criterion.step_parameters,
-        display_name=criterion_title(criterion).name,
-        wdk_weight=criterion.weight,
-    )
 
 
 def criterion_for(plan: EditPlan, node: StructureNode) -> Criterion:

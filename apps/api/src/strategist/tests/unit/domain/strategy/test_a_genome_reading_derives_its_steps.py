@@ -46,7 +46,7 @@ from strategist.domain.strategy.spec_fold import fold_option_criteria
 from strategist.domain.strategy.spec_hydration import StepReading
 from strategist.domain.strategy.spec_replay import spec_replaying
 from strategist.domain.strategy.spec_to_operations import operations_for
-from strategist.domain.strategy.spec_tree import build_step_tree, renumber_criteria
+from strategist.domain.strategy.spec_tree import build_step_tree
 from strategist.domain.strategy.step_rationale import SearchRationale
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.recorded_counts import CRYPTO_IOWA, TGON_STRAINS
@@ -159,13 +159,13 @@ def test_all_leaves_the_binding_and_the_step_count_and_settles() -> None:
     assert settled.result_count == 501
     assert settled.genome_group == _all_of(*_PLASMODIUM)
     assert read.structure == spec.structure
-    assert build_step_tree(read).root.operator is None
+    assert build_step_tree(read).operator is None
 
 
 def test_at_least_one_builds_a_left_minus_a_right_on_the_exact_wire() -> None:
     read = _read(_spec(_profile(["pber", "pfal"], ["mmus"])), _at_least_one(*_PAIR))
 
-    root = build_step_tree(read).root
+    root = build_step_tree(read)
 
     assert root.operator is CombineOp.MINUS
     assert root.primary_input is not None
@@ -298,11 +298,11 @@ def _graph_of(root: StrategyStepNode) -> StrategyGraph:
 def _built() -> tuple[OperationalSpec, StrategyGraph, StrategyAst]:
     read = _read(_spec(_profile(["pber", "pfal"], ["hsap"])), _at_least_one(*_PAIR))
     tree = build_step_tree(read)
-    spec = renumber_criteria(read, tree.step_id_by_criterion)
+    spec = read
     return (
         spec,
-        _graph_of(tree.root),
-        StrategyAst(record_type="transcript", root=tree.root),
+        _graph_of(tree),
+        StrategyAst(record_type="transcript", root=tree),
     )
 
 

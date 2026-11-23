@@ -30,7 +30,6 @@ from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.ai.agents.strategy_instructions import _render_step_params
-from strategist.domain.strategy.edit_plan import node_for
 from strategist.domain.strategy.operations import (
     AddLeafOp,
     AttachNewRoot,
@@ -39,6 +38,7 @@ from strategist.domain.strategy.operations import (
 from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_hydration import spec_from_ast
+from strategist.domain.strategy.spec_tree import node_for
 from strategist.persistence.models import PersistedStrategyGraph
 from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.variant_comparison import (

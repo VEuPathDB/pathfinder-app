@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from pydantic_ai import RunContext
 from veupathdb.domain.strategy import StrategyStepNode, subtree_ids
 
+from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 from strategist.domain.strategy.operational_spec import (
@@ -25,9 +26,6 @@ from strategist.domain.strategy.spec_hydration import (
     spec_from_ast,
 )
 from strategist.domain.strategy.spec_reconciliation import spec_without_steps
-from strategist.domain.strategy.spec_tree import (
-    renumber_criteria,
-)
 
 
 def criterion_note(ctx: RunContext[LeadDeps], step_id: str) -> str:
@@ -103,23 +101,29 @@ def scope_the_exported_criterion(
     ]
 
 
-def spec_binding_the_export(
-    spec: OperationalSpec,
-    criterion_id: str,
-    node: StrategyStepNode,
-    binding: AnalysisBinding,
-) -> OperationalSpec:
-    """The spec whose waiting criterion is the exported step, bound by its analysis.
+def bind_the_export(
+    domain: StrategyDomainState, node: StrategyStepNode, binding: AnalysisBinding
+) -> None:
+    domain.operational_spec = _bound(domain.operational_spec, node, binding)
+    domain.answered_spec = _bound(domain.answered_spec, node, binding)
+    domain.spec_before_dispatch = _bound(domain.spec_before_dispatch, node, binding)
 
-    The criterion keeps the words the framing pass stated it in and takes the
-    step's id, so the structure names the step where it named the criterion.
-    """
-    renumbered = renumber_criteria(spec, {criterion_id: node.id})
-    renumbered.criteria = [
-        criterion_analysing(c, node.search_name, binding) if c.id == node.id else c
-        for c in renumbered.criteria
-    ]
-    return renumbered
+
+def _bound(
+    spec: OperationalSpec | None, node: StrategyStepNode, binding: AnalysisBinding
+) -> OperationalSpec | None:
+    if spec is None or all(c.id != node.id for c in spec.criteria):
+        return spec
+    return spec.model_copy(
+        update={
+            "criteria": [
+                criterion_analysing(c, node.search_name, binding)
+                if c.id == node.id
+                else c
+                for c in spec.criteria
+            ]
+        }
+    )
 
 
 def structure_the_graph_states(graph: StrategyGraph, goal: str) -> SpecStructure | None:

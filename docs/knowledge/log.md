@@ -2,6 +2,15 @@
 
 ## 2026-11-23
 
+* **A criterion keeps its id through a build.** `build_step_tree` returns the step tree and
+  mints every leaf and transform under its criterion's id (`node_for`, now in
+  `spec_tree.py`), and a saved reference's cloned root under its criterion's id, so a build
+  re-keys nothing: `renumber_criteria`, `SpecTree` and `restate_every_record` are gone, and an
+  operator reading the build carried is still held after it. An EDA export into a waiting
+  criterion is made under that criterion's id and binds it in place. A mirrored join with its
+  sides swapped (`RMINUS` over the inputs a spec's `MINUS` names in the other order) states the
+  spec's join, so the guard no longer refuses it.
+
 * **A write that departs from the plan names every departure at once.** A build or a batch
   measures the record classes, the organism scopes, the joins and the stated values of the
   tree it would leave and raises one `PlanDeparturesError` carrying `Problems`; the tool

@@ -335,7 +335,7 @@ async def test_an_answered_card_pushes_the_minus_with_no_model_in_between(
     minted = minted_spec(thread.domain.operational_spec)
     outcome = await build_strategy_from_spec(
         deps=_context(conversation_id, session_maker),
-        root=minted.tree.root,
+        root=minted.root,
     )
 
     assert outcome.failed_steps == []

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import CombineOp, flatten_tree
 
-from strategist.domain.strategy.edit_plan import node_for
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -24,6 +23,7 @@ from strategist.domain.strategy.spec_reconciliation import (
 from strategist.domain.strategy.spec_to_operations import operations_for
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
+    node_for,
 )
 from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
@@ -50,7 +50,7 @@ def _spec(*criteria: Criterion, structure: SpecStructure) -> OperationalSpec:
 def test_the_step_carries_the_document_the_criterion_does_not_state() -> None:
     spec = _spec(analysed(), structure=SpecStructure(root=_leaf(EXPORTED)))
 
-    root = build_step_tree(spec).root
+    root = build_step_tree(spec)
 
     assert spec.criteria[0].resolved_params == {}
     assert root.search_name == "GenesByEdaVizWithCompute"
@@ -156,7 +156,7 @@ def test_the_steps_a_built_spec_mints_hold_every_analysis_document() -> None:
         structure=_joined(CombineOp.INTERSECT, _leaf(EXPORTED), _leaf("step_9e1f7a20")),
     )
 
-    steps = flatten_tree(build_step_tree(spec).root)
+    steps = flatten_tree(build_step_tree(spec))
 
     assert sorted(
         step.parameters["eda_analysis_spec"].model_dump_json()
