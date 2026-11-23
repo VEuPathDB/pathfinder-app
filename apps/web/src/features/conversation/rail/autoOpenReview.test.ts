@@ -7,16 +7,11 @@ const FIRST_TURN = {
   conversationId: "c1",
   autoOpenedConversation: null,
   autoOpenChecked: null,
-  railWouldFloat: false,
 };
 
 describe("shouldAutoOpenReview", () => {
   it("opens Review on the thread's first user message", () => {
     expect(shouldAutoOpenReview(FIRST_TURN)).toBe(true);
-  });
-
-  it("leaves the rail closed on a viewport too narrow to hold it", () => {
-    expect(shouldAutoOpenReview({ ...FIRST_TURN, railWouldFloat: true })).toBe(false);
   });
 
   it("waits for the reader to say something", () => {

@@ -50,8 +50,9 @@ export function currentDockLayout(): DockLayout {
   return dockLayoutAt(window.innerWidth);
 }
 
-export function rightWouldFloat(): boolean {
-  return dockLayout({
+export function railMayOpenItself(): boolean {
+  if (typeof window === "undefined") return false;
+  return !dockLayout({
     ...storedInput(window.innerWidth),
     rightOpen: true,
     lastOpened: "right",

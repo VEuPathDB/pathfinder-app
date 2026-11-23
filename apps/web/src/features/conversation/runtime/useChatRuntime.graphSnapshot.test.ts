@@ -4,7 +4,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useRightRailStore } from "@/state/useRightRailStore";
+import {
+  useLeftSidebarStore,
+  useRightRailStore,
+  useSideOrderStore,
+} from "@/state/useRightRailStore";
 
 import { useChatRuntime } from "./useChatRuntime";
 
@@ -45,6 +49,8 @@ function buildTurn(): Response {
 
 beforeEach(() => {
   useRightRailStore.setState({ openPanel: null, lastSeen: {} });
+  useLeftSidebarStore.setState({ collapsed: false, width: 360 });
+  useSideOrderStore.setState({ lastOpened: "left" });
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
@@ -64,21 +70,40 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+async function sendBuildTurn(): Promise<void> {
+  const { result } = renderHook(() =>
+    useChatRuntime({ conversationId: CONVERSATION_ID }),
+  );
+  await act(async () => {
+    await result.current.chat.sendMessage({ text: "Build it." });
+  });
+  await waitFor(() => {
+    expect(
+      result.current.chat.messages.flatMap((m) => m.parts.map((p) => p.type)),
+    ).toContain("data-graph-snapshot");
+  });
+}
+
 describe("useChatRuntime, a graph snapshot", () => {
   it("opens the strategy panel on the steps the snapshot carries", async () => {
-    const { result } = renderHook(() =>
-      useChatRuntime({ conversationId: CONVERSATION_ID }),
-    );
-
-    await act(async () => {
-      await result.current.chat.sendMessage({ text: "Build it." });
-    });
+    window.innerWidth = 1600;
+    await sendBuildTurn();
 
     await waitFor(() => {
       expect(useRightRailStore.getState().openPanel).toBe("strategy");
     });
     expect(useRightRailStore.getState().lastSeen[CONVERSATION_ID]).toMatchObject({
       strategyStepCount: 2,
+    });
+  });
+
+  it("leaves the rail closed when the panel would float over the chat", async () => {
+    window.innerWidth = 1280;
+    await sendBuildTurn();
+
+    expect(useRightRailStore.getState()).toMatchObject({
+      openPanel: null,
+      lastSeen: {},
     });
   });
 });

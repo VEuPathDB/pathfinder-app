@@ -27,6 +27,7 @@ import { refetchStrategy, strategyQueryOptions } from "@/lib/api/strategy";
 import { getMyQuotaQueryKey } from "@strategist/shared/generated/hooks/useGetMyQuota";
 import { listScratchpadNotesQueryOptions } from "@strategist/shared/generated/hooks/useListScratchpadNotes";
 import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
+import { railMayOpenItself } from "@/state/useDockLayout";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { useRightRailStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -147,9 +148,7 @@ export function useChatRuntime({
         case "data-graph-snapshot": {
           const snapshot = graphSnapshotSchema.parse(dataPart.data);
           void refetchStrategy(queryClient, conversationId);
-          // Surface the freshly built strategy: switch the rail to the
-          // Strategy panel so the user sees the result of the auto-build.
-          if (snapshot.nodes.length > 0) {
+          if (snapshot.nodes.length > 0 && railMayOpenItself()) {
             useRightRailStore.getState().openPanelId(conversationId, "strategy", {
               strategyStepCount: snapshot.nodes.length,
             });

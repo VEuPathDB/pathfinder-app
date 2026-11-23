@@ -2,7 +2,7 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { useDockLayout } from "./useDockLayout";
+import { railMayOpenItself, useDockLayout } from "./useDockLayout";
 import {
   useLeftSidebarStore,
   useRightRailStore,
@@ -26,5 +26,19 @@ describe("useDockLayout", () => {
     window.innerWidth = 1600;
     const { result } = renderHook(() => useDockLayout());
     expect(result.current).toEqual({ leftFloats: false, rightFloats: false });
+  });
+});
+
+describe("railMayOpenItself", () => {
+  it("refuses when the rail would float over the chat", () => {
+    useRightRailStore.setState({ openPanel: null });
+    window.innerWidth = 1280;
+    expect(railMayOpenItself()).toBe(false);
+  });
+
+  it("allows when the rail docks beside the chat", () => {
+    useRightRailStore.setState({ openPanel: null });
+    window.innerWidth = 1600;
+    expect(railMayOpenItself()).toBe(true);
   });
 });

@@ -8,7 +8,7 @@ import { NarrowBackdrop } from "@/lib/components/NarrowBackdrop";
 import { RIGHT_PANEL_WIDTH_PX } from "@/lib/layout/dock";
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
-import { rightWouldFloat, useDockLayout } from "@/state/useDockLayout";
+import { railMayOpenItself, useDockLayout } from "@/state/useDockLayout";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
 import {
@@ -60,8 +60,8 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
       conversationId,
       autoOpenedConversation,
       autoOpenChecked,
-      railWouldFloat: typeof window !== "undefined" && rightWouldFloat(),
-    })
+    }) &&
+    railMayOpenItself()
   ) {
     setAutoOpenChecked(conversationId);
     queueMicrotask(() => autoOpen(conversationId, "review"));
