@@ -31,7 +31,8 @@ opens `/shared/<token>`, inside the website that frames Strategist.
   owner's account. A test classes every tool an agent carries as an owner read or not, so a new tool
   cannot slip past. A study the owner uploaded (an `EDAUD_` dataset,
   `domain/account_datasets.py`) is account data too. Its id, and the study and analysis ids and
-  names the thread's EDA calls and analysis states give it, are its marks. A call that names a
+  names that any chunk naming a mark gives it, gathered until no new one appears, are its marks;
+  every string and key in a chunk is tested as it is, never as escaped JSON. A call that names a
   mark keeps its call and loses its contents; a data part that names one is left out; a text or
   reasoning block whose joined text names one reads only "This part names a private dataset and
   is not shared."; and any other chunk that names one has every mark in it replaced.

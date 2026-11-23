@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from strategist.domain.owner_reads import (
     NOT_SHARED,
     OWNER_READ_TOOLS,
@@ -332,3 +334,61 @@ def test_a_chunk_of_another_shape_that_names_an_upload_is_withheld() -> None:
         },
         {"type": "source-document", "sourceId": "s-2", "title": "PlasmoDB release 68"},
     ]
+
+
+def _strings(value: object) -> list[str]:
+    match value:
+        case str():
+            return [value]
+        case list():
+            return [s for item in value for s in _strings(item)]
+        case dict():
+            return [s for k, v in value.items() for s in [str(k), *_strings(v)]]
+        case _:
+            return []
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        f"{chr(0xC9)}tude de P. vivax {chr(0x2013)} sang",
+        'The "3D7" upload',
+        "Gametocytes\nday 12",
+    ],
+)
+def test_a_name_that_json_escapes_is_still_hidden(name: str) -> None:
+    chunks: list[dict[str, object]] = [
+        {
+            "type": "data-eda.analysis-state",
+            "id": "a-up-2",
+            "data": {
+                "datasetId": UPLOAD,
+                "analysisId": "a-up-2",
+                "studyDisplayName": name,
+            },
+        },
+        {"type": "source-document", "sourceId": "s-1", "title": f"From {name}"},
+        {"type": "text-delta", "id": "t-3", "delta": f"Read {name} today."},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert [s for s in _strings(shown) if name in s] == []
+
+
+def test_a_name_reached_through_another_mark_is_hidden() -> None:
+    chunks: list[dict[str, object]] = [
+        *_call("c-12", "describe_eda_study", {"datasetId": UPLOAD, "studyId": "ST_up"}),
+        {
+            "type": "data-eda.viz",
+            "id": "v-2",
+            "data": {"studyId": "ST_up", "displayName": "Ring stage counts"},
+        },
+        {"type": "source-document", "sourceId": "s-3", "title": "Ring stage counts"},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert [
+        s for s in _strings(shown) if "Ring stage counts" in s or "ST_up" in s
+    ] == []

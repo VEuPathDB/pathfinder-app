@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from typing import Final
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from veupathdb.wdk import EDA_USER_DATASET_PREFIX
 
-_UPLOAD_ID: Final = re.compile(rf"{re.escape(EDA_USER_DATASET_PREFIX)}\w+")
+_WORD: Final = re.compile(r"\w+")
 UPLOAD_WORDS: Final = "a private dataset"
 
 
@@ -14,8 +15,28 @@ def is_account_dataset(dataset_id: str) -> bool:
     return dataset_id.startswith(EDA_USER_DATASET_PREFIX)
 
 
-def account_datasets_in(text: str) -> set[str]:
-    return set(_UPLOAD_ID.findall(text))
+def leaves(value: JsonValue) -> Iterator[str]:
+    match value:
+        case str():
+            yield value
+        case list():
+            for item in value:
+                yield from leaves(item)
+        case dict():
+            for key, item in value.items():
+                yield key
+                yield from leaves(item)
+        case _:
+            return
+
+
+def account_datasets_in(value: JsonValue) -> set[str]:
+    return {
+        word
+        for leaf in leaves(value)
+        for word in _WORD.findall(leaf)
+        if is_account_dataset(word)
+    }
 
 
 class StudyNames(BaseModel):
@@ -39,19 +60,26 @@ class StudyNames(BaseModel):
         } - {""}
 
 
-def names_any(text: str, marks: set[str]) -> bool:
-    return any(mark in text for mark in marks)
+def names_any(value: JsonValue, marks: set[str]) -> bool:
+    return any(mark in leaf for leaf in leaves(value) for mark in marks)
+
+
+def _replaced(text: str, marks: set[str]) -> str:
+    for mark in sorted(marks, key=len, reverse=True):
+        text = text.replace(mark, UPLOAD_WORDS)
+    return text
 
 
 def scrubbed(value: JsonValue, marks: set[str]) -> JsonValue:
     match value:
         case str():
-            for mark in sorted(marks, key=len, reverse=True):
-                value = value.replace(mark, UPLOAD_WORDS)
-            return value
+            return _replaced(value, marks)
         case list():
             return [scrubbed(item, marks) for item in value]
         case dict():
-            return {key: scrubbed(item, marks) for key, item in value.items()}
+            return {
+                _replaced(key, marks): scrubbed(item, marks)
+                for key, item in value.items()
+            }
         case _:
             return value

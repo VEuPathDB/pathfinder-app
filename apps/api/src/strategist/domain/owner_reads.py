@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
@@ -9,7 +8,6 @@ from strategist.domain.account_datasets import (
     UPLOAD_WORDS,
     StudyNames,
     account_datasets_in,
-    is_account_dataset,
     names_any,
     scrubbed,
 )
@@ -37,7 +35,6 @@ OWNER_READ_TOOLS: Final = frozenset(
 )
 
 _RECALLED_MEMORIES: Final = "data-memory-retrieved"
-_ANALYSIS_STATE: Final = "data-eda.analysis-state"
 _DATA_PART: Final = "data-"
 UPLOAD_BLOCK: Final = f"This part names {UPLOAD_WORDS} and is not shared."
 
@@ -97,11 +94,11 @@ class _Carrier(BaseModel):
 
 
 def _names(chunk: dict[str, Any], marks: set[str]) -> bool:
-    return names_any(json.dumps(chunk), marks)
+    return names_any(chunk, marks)
 
 
 def _upload_marks(chunks: list[dict[str, Any]], read: list[_ToolChunk]) -> set[str]:
-    marks = account_datasets_in(json.dumps(chunks))
+    marks = set[str]().union(*(account_datasets_in(chunk) for chunk in chunks))
     carriers = [_Carrier.model_validate(chunk) for chunk in chunks]
     while True:
         calls = {
@@ -113,11 +110,8 @@ def _upload_marks(chunks: list[dict[str, Any]], read: list[_ToolChunk]) -> set[s
             *(
                 carrier.marks()
                 for raw, shape, carrier in zip(chunks, read, carriers, strict=True)
-                if (shape.tool_call_id is not None and shape.tool_call_id in calls)
-                or (
-                    shape.type == _ANALYSIS_STATE
-                    and is_account_dataset(carrier.data.dataset_id)
-                )
+                if _names(raw, marks)
+                or (shape.tool_call_id is not None and shape.tool_call_id in calls)
             )
         )
         if found == marks:
