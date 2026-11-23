@@ -67,6 +67,7 @@ class Check(StrEnum):
     REQUIREMENTS = "requirements"
     RESOLVE = "resolve"
     ROLE = "role"
+    SAME_NAMED_SUBSET = "same_named_subset"
     SAVED_STRATEGY = "saved_strategy"
     SEARCH = "search"
     SOURCES = "sources"

@@ -9,7 +9,9 @@ from collections.abc import Sequence
 from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
 
-from strategist.ai.agents.state import AgentToolState, LookupRecord
+from strategist.ai.agents.lookup_record import LookupRecord
+from strategist.ai.agents.state import AgentToolState
+from strategist.ai.tools.standalone._catalog_elsewhere import joined
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue
@@ -22,6 +24,7 @@ _TYPEAHEAD = "typeAhead"
 _PICKS = frozenset({"multi-pick-vocabulary", "single-pick-vocabulary"})
 # A refusal lists at most this many of the entries the lookups matched.
 _LISTED = 20
+_PAIR = 2
 
 
 def _written_out(term: str, messages: Sequence[str]) -> bool:
@@ -108,9 +111,38 @@ def pick_problems(
         if said is not None:
             key = RefusalKey(check=Check.LOOKUP, parameter=param.name)
             found.append(Problem(key=key, sentence=said))
-    return Problems(found=tuple(found)).plus(
-        _picks_the_lookup_did_not_mean(state, definition, call, infos, held)
+    return (
+        Problems(found=tuple(found))
+        .plus(_picks_the_lookup_did_not_mean(state, definition, call, infos, held))
+        .plus(_same_named_subsets(state, definition, call))
     )
+
+
+def _same_named_subsets(
+    state: AgentToolState, definition: WDKSearch, call: CriterionCall
+) -> Problems:
+    found: list[Problem] = []
+    for param in definition.parameters or []:
+        record = state.looked_up.get((call.search_name, param.name))
+        if param.type != "multi-pick-vocabulary" or record is None:
+            continue
+        picks = call.terms(param.name)
+        for name, group in record.same_named.items():
+            held = [v for v in group if v in picks]
+            named = any(_written_out(v, state.request_messages) for v in held)
+            if not held or len(held) == len(group) or named:
+                continue
+            found.append(
+                Problem(
+                    key=RefusalKey(check=Check.SAME_NAMED_SUBSET, parameter=param.name),
+                    sentence=(
+                        f"{joined(group)} share the name {name!r}. Bind "
+                        f"{'both' if len(group) == _PAIR else 'all of them'}, or "
+                        "ask which one on the card."
+                    ),
+                )
+            )
+    return Problems(found=tuple(found))
 
 
 def _named(value: str, labels: dict[str, str]) -> str:

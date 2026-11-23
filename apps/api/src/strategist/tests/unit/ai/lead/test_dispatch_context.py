@@ -11,7 +11,7 @@ from pydantic_ai.usage import RunUsage
 from veupathdb.domain.parameters import PhrasingMatch, VocabLookup
 from veupathdb.domain.strategy import CombineOp
 
-from strategist.ai.agents.state import LookupRecord
+from strategist.ai.agents.lookup_record import LookupRecord
 from strategist.ai.capabilities.metering import RunPricing
 from strategist.ai.graph._lead_capture import LeadRunCapture, absorb_sub_agent_usage
 from strategist.ai.graph.state import PipelineState
@@ -282,6 +282,7 @@ def test_a_lookup_one_pass_ran_does_not_reach_the_next_pass() -> None:
                 )
             ],
         ),
+        (),
     )
 
     second = agent_deps_for(deps, call_id="call_test").agent_state

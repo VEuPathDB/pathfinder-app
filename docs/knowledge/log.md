@@ -136,6 +136,18 @@
   the build, a step above it is skipped, and no strategy is put. The WDK ids a recreate
   replaced are kept on the strategy row (`replaced_wdk_step_ids`) until a put deletes them.
 
+* **Entries that share a name are one name.** A lookup listed IPR050205 and IPR050236, both
+  "SERINE/THREONINE-PROTEIN KINASE", and one run bound IPR050205 alone (9 genes) while
+  another run of the same request bound all nine phrase entries (23 genes), with no word of
+  the choice. veupathdb-py 0.9.0b16 groups the entries whose
+  names past their accessions fold equal (`same_named_groups`): the exact step names none of
+  them for that name, and `VocabLookup.same_named` lists the groups a lookup kept.
+  `LookupRecord.same_named` (`ai/agents/lookup_record.py`) holds them by name, and
+  `_frame_lookups.pick_problems` refuses a multi-pick binding that holds part of a group
+  (`Check.SAME_NAMED_SUBSET`): "IPR050205 and IPR050236 share the name
+  'SERINE/THREONINE-PROTEIN KINASE'. Bind both, or ask which one on the card." An entry a
+  request message names by its accession binds alone.
+
 * **One transform reader, by the input class.** `list_transforms` took a free `record_type` and
   listed the searches listed under it, so a transcript plan read with `record_type="gene"` saw
   only `GenesFromTranscripts` and FRAME reported that the site has no orthology transform. It
@@ -144,7 +156,7 @@
   bound criterion (every transform when none is bound), each with the record type it is listed
   under, so a protein plan on OrthoMCL still reads `GroupsFromSequences` under `group`.
   `role_problems` names the same list. A FRAME `site_has_no_search` report stands only when a
-  catalog read of the pass covers the plan's record classes (`CatalogRead.covers`); otherwise
+  catalog read of the pass covers the plan's record classes (`frame_result_checks._covers`); otherwise
   FRAME is sent back once, and a report it keeps reaches the Lead as an `absence_not_read` gap
   that names the read that answers it.
 

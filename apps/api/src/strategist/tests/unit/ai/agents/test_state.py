@@ -14,9 +14,9 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import ParameterInfo
 
+from strategist.ai.agents.lookup_record import LookupRecord
 from strategist.ai.agents.state import (
     AgentToolState,
-    LookupRecord,
     ParamVocabSnapshot,
     SearchOverview,
 )
@@ -236,13 +236,16 @@ def test_the_lookups_of_one_parameter_hold_every_entry_they_matched() -> None:
     st = AgentToolState()
 
     st.record_lookup(
-        "GenesByInterproDomain", "domain_typeahead", _matched("OBP", ["PF01395"])
+        "GenesByInterproDomain", "domain_typeahead", _matched("OBP", ["PF01395"]), ()
     )
     st.record_lookup(
-        "GenesByInterproDomain", "domain_typeahead", _matched("PBP/GOBP", ["PF22651"])
+        "GenesByInterproDomain",
+        "domain_typeahead",
+        _matched("PBP/GOBP", ["PF22651"]),
+        (),
     )
     st.record_lookup(
-        "GenesByInterproDomain", "domain_typeahead", VocabLookup(terms=["x"])
+        "GenesByInterproDomain", "domain_typeahead", VocabLookup(terms=["x"]), ()
     )
 
     assert st.looked_up == {

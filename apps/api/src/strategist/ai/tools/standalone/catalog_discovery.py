@@ -240,7 +240,9 @@ async def get_parameter_options(
     _snapshot_param_vocab(deps, search_name, result)
     deps.agent_state.mark_param_read(read_key)
     if result.vocab_lookup is not None:
-        deps.agent_state.record_lookup(search_name, parameter_id, result.vocab_lookup)
+        deps.agent_state.record_lookup(
+            search_name, parameter_id, result.vocab_lookup, result.vocabulary()
+        )
     return with_summary(
         result,
         _options_summary(parameter_id, result),

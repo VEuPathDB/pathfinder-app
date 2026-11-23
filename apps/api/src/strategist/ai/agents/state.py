@@ -15,6 +15,7 @@ from veupathdb.domain.parameters import ParamValue, VocabLookup, VocabOption
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import ExperimentCard, ParameterInfo, SheetEntry
 
+from strategist.ai.agents.lookup_record import LookupRecord
 from strategist.ai.agents.unserved import UnservedSearch
 from strategist.domain.refusal import RefusalLedger
 from strategist.domain.strategy.computed_groups import HeldComparison
@@ -74,22 +75,6 @@ class ParamVocabSnapshot(BaseModel):
             total=self.allowed_values_total,
             lookup=self.vocab_lookup,
         )
-
-
-class LookupRecord(BaseModel):
-    """The entries the lookups of one parameter matched this pass, each with the
-    query term that matched it first."""
-
-    model_config = ConfigDict(frozen=True)
-
-    matched: dict[str, str] = Field(default_factory=dict)
-
-    def merged(self, lookup: VocabLookup) -> LookupRecord:
-        found = {value: m.term for m in lookup.matches for value in m.values}
-        return LookupRecord(matched={**found, **self.matched})
-
-    def matched_by(self, term: str) -> list[str]:
-        return [value for value, first in self.matched.items() if first == term]
 
 
 class CreatedGeneSet(BaseModel):
@@ -448,11 +433,16 @@ class AgentToolState:
         return f"{search_name}|{parameter_id}|{ctx}|{';'.join(terms)}"
 
     def record_lookup(
-        self, search_name: str, parameter_id: str, lookup: VocabLookup
+        self,
+        search_name: str,
+        parameter_id: str,
+        lookup: VocabLookup,
+        options: Sequence[VocabOption],
     ) -> None:
         """Add the entries a query of the parameter matched to its lookups."""
         key = (search_name, parameter_id)
-        self.looked_up[key] = self.looked_up.get(key, LookupRecord()).merged(lookup)
+        held = self.looked_up.get(key, LookupRecord())
+        self.looked_up[key] = held.merged(lookup, options)
 
     def mark_param_read(self, key: str) -> None:
         self.read_param_options.add(key)

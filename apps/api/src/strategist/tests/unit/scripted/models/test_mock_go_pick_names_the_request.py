@@ -106,6 +106,7 @@ def _refusals(values: SiteValues, request: str) -> list[str]:
                     for pick in picks
                 ],
             ),
+            (),
         )
         call = CriterionCall(
             criterion_id=crit.criterion_id,
