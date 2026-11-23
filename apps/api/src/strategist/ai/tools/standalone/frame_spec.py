@@ -33,7 +33,7 @@ from strategist.ai.tools.standalone._frame_datasets import (
     with_typed_ids,
 )
 from strategist.ai.tools.standalone._frame_eda import (
-    refuse_a_bound_analysis,
+    bound_analysis_problems,
     wait_for_the_analysis,
 )
 from strategist.ai.tools.standalone._frame_gene_set import set_gene_set_criterion
@@ -88,6 +88,7 @@ from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
 )
+from strategist.platform.refusals import refuse_problems
 from strategist.services.strategies.sheet_params import catalog_search_definition
 
 
@@ -225,7 +226,11 @@ async def set_criterion(
     value from the fresh vocabulary or the same null for each listed parameter,
     and it closes. Re-call the same way once the user answers an open slot."""
     state = ctx.deps.agent_state
-    refuse_a_bound_analysis(state, criterion_id)
+    refuse_problems(
+        bound_analysis_problems(state, criterion_id).under(
+            criterion=criterion_id, search=""
+        )
+    )
     links, early = linked_requirements(state, criterion_id, answers)
     stated = Criterion(
         id=criterion_id,

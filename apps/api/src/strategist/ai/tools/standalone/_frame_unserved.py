@@ -10,7 +10,7 @@ from veupathdb.errors import VEuPathDBError, WDKError
 
 from strategist.ai.agents.unserved import SearchNotServedError, UnservedSearch
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.record_classes import search_record_types
 
@@ -27,7 +27,7 @@ async def listed_record_type(
     ctx: RunContext[AgentDeps], criterion_id: str, search_name: str, early: Problems
 ) -> str:
     if not search_name:
-        found = Problems.one(RefusalKey(check="search"), _NO_SEARCH)
+        found = Problems.one(RefusalKey(check=Check.SEARCH), _NO_SEARCH)
         raise ProblemsRefusal(
             early.plus(found).under(criterion=criterion_id, search="")
         )
@@ -93,8 +93,6 @@ def _refusal(
             f"{named} times and stops here."
         )
         raise SearchNotServedError(msg)
-    key = RefusalKey(check="unserved", criterion=criterion_id, search=search_name)
-    placed = early.under(criterion=criterion_id, search=search_name)
     if held.where == _ANY_RECORD_TYPE:
         said = (
             f"{sentence} {criterion_id} is not bound. Bind a search that "
@@ -108,4 +106,5 @@ def _refusal(
             f"requirement only {search_name} answers is site_refused_the_search, "
             f"with {search_name} named."
         )
-    return ProblemsRefusal(placed.plus(Problems.one(key, said)))
+    found = early.plus(Problems.one(RefusalKey(check=Check.UNSERVED), said))
+    return ProblemsRefusal(found.under(criterion=criterion_id, search=search_name))

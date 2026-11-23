@@ -21,7 +21,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.organism_phrases import stated_organisms
 from strategist.domain.strategy.text_expression import unquoted_phrase_refusal
@@ -203,10 +203,10 @@ def word_problems(
                 else None
             )
             said.append(
-                ("organism_carried", carried)
+                (Check.ORGANISM_CARRIED, carried)
                 if carried is not None
                 else (
-                    "organism_named",
+                    Check.ORGANISM_NAMED,
                     _an_organism_the_request_does_not_name(
                         definition, call, info, state.stated_requirements
                     ),
@@ -214,7 +214,7 @@ def word_problems(
             )
         if parameter_class(info) == "string":
             said.append(
-                ("phrase", _an_unquoted_phrase(call, info, state.request_messages))
+                (Check.PHRASE, _an_unquoted_phrase(call, info, state.request_messages))
             )
         found += [
             Problem(key=RefusalKey(check=check, parameter=info.name), sentence=s)

@@ -17,7 +17,7 @@ from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap, PassGapKind
 from strategist.ai.lead.frame_questions import questions_that_bind_to_nothing
-from strategist.domain.refusal import RefusalKey
+from strategist.domain.refusal import Check, RefusalKey
 from strategist.domain.strategy.constraints import CONSTRAINT_KINDS
 from strategist.domain.strategy.organism_steps import organisms_no_step_limits
 from strategist.domain.strategy.requirement_reports import (
@@ -52,7 +52,9 @@ def hold_the_reports_to_the_requirement_list(
     holds = ", ".join(numbered_requirements(held_list)) or "none"
     return [
         held(
-            RefusalKey(check="the_reports_to_the_requirement_list", criterion=number),
+            RefusalKey(
+                check=Check.THE_REPORTS_TO_THE_REQUIREMENT_LIST, criterion=number
+            ),
             (
                 f"requirement_problems names {number}, and the list holds {holds}. "
                 "A report names a requirement by its number in 'Requirements the "
@@ -93,7 +95,7 @@ def hold_an_organism_to_a_step(
     asked = [(number, numbered[number].requested_value) for number in unmet]
     return [
         held(
-            RefusalKey(check="an_organism_to_a_step", criterion=number),
+            RefusalKey(check=Check.AN_ORGANISM_TO_A_STEP, criterion=number),
             (
                 f"{number} asks for {value} (organism), and no step of the draft "
                 "limits its records to an organism. A unit of a phyletic "
@@ -121,7 +123,7 @@ def hold_the_structure_to_bound_criteria(
         return []
     return [
         held(
-            RefusalKey(check="the_structure_to_bound_criteria", criterion=node),
+            RefusalKey(check=Check.THE_STRUCTURE_TO_BOUND_CRITERIA, criterion=node),
             (
                 f"set_structure names {node}, and the draft binds no search for "
                 "it. Bind it with set_criterion, or call set_structure again "
@@ -164,7 +166,7 @@ def hold_the_questions_to_the_draft(
         )
         return [gap] if still else []
 
-    return [held(RefusalKey(check="the_questions_to_the_draft"), unbound, gaps)]
+    return [held(RefusalKey(check=Check.THE_QUESTIONS_TO_THE_DRAFT), unbound, gaps)]
 
 
 def hold_the_questions_to_a_dimension(
@@ -175,7 +177,7 @@ def hold_the_questions_to_a_dimension(
     return [
         held(
             RefusalKey(
-                check="the_questions_to_a_dimension",
+                check=Check.THE_QUESTIONS_TO_A_DIMENSION,
                 criterion=question.criterion_id,
                 parameter=question.param_name,
             ),
@@ -211,7 +213,9 @@ def hold_the_route_to_another_site(
     )
     return [
         held(
-            RefusalKey(check="the_route_to_another_site", criterion=report.requirement),
+            RefusalKey(
+                check=Check.THE_ROUTE_TO_ANOTHER_SITE, criterion=report.requirement
+            ),
             (
                 f"another_site_answers for {report.requirement} names "
                 f"{report.site!r}, which is no other site. Name one of "
@@ -291,7 +295,9 @@ def _missing_after_refusal(
         "site_has_no_search. Keep site_has_no_search for a requirement no search "
         "on this site answers."
     )
-    return [held(RefusalKey(check="the_reports_to_the_refusals"), said, gapped(gap))]
+    return [
+        held(RefusalKey(check=Check.THE_REPORTS_TO_THE_REFUSALS), said, gapped(gap))
+    ]
 
 
 def hold_the_reports_to_the_refusals(
@@ -300,7 +306,9 @@ def hold_the_reports_to_the_refusals(
     state = ctx.deps.agent_state
     misreported = [
         held(
-            RefusalKey(check="the_reports_to_the_refusals", criterion=r.requirement),
+            RefusalKey(
+                check=Check.THE_REPORTS_TO_THE_REFUSALS, criterion=r.requirement
+            ),
             said,
             *_dropped_with_gap(
                 r,

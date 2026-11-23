@@ -22,12 +22,12 @@ from strategist.ai.tools.standalone._frame_result import (
     criterion_return,
     wait_instruction,
 )
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.platform.refusals import ProblemsRefusal
 
 
-def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
+def bound_analysis_problems(state: AgentToolState, criterion_id: str) -> Problems:
     """A criterion the EDA tools bound is that analysis, so FRAME keeps it."""
     words = next(
         (
@@ -38,16 +38,14 @@ def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
         None,
     )
     if words is None:
-        return
+        return Problems()
     msg = (
         f"{criterion_id} is bound to the analysis workflow ({words}). "
         f"Keep it as it is; do not re-bind it, and do not "
         f"restate its comparison with another search. Only the Lead removes it, "
         f"with delete_step."
     )
-    raise ProblemsRefusal(
-        Problems.one(RefusalKey(check="bound_analysis", criterion=criterion_id), msg)
-    )
+    return Problems.one(RefusalKey(check=Check.BOUND_ANALYSIS), msg)
 
 
 def waiting_problems(state: AgentToolState, criterion_id: str) -> Problems:
@@ -67,7 +65,7 @@ def waiting_problems(state: AgentToolState, criterion_id: str) -> Problems:
     if waiting is None:
         return Problems()
     return Problems.one(
-        RefusalKey(check="waiting"),
+        RefusalKey(check=Check.WAITING),
         f"{criterion_id} waits for the analysis workflow on dataset {waiting}, and "
         f'create_eda_step(criterion_id="{criterion_id}") binds it and nothing '
         f"else does. Keep it in the structure where it stands and bind no other "
@@ -132,10 +130,9 @@ def eda_wait_problems(
             f'set_criterion with params={{"{EDA_DATASET_ID_PARAM}": "<dataset '
             f'id>"}} and nothing else, naming the dataset the comparison runs on.'
         )
-    key = RefusalKey(check="eda_wait", criterion=criterion.id, search=search_name)
+    key = RefusalKey(check=Check.EDA_WAIT)
     waits = Problems(found=tuple(Problem(key=key, sentence=s) for s in found))
-    lacked = answers_the_sheet_lacks(criterion.answers, sheet)
-    return waits.plus(lacked.under(criterion=criterion.id, search=search_name))
+    return waits.plus(answers_the_sheet_lacks(criterion.answers, sheet))
 
 
 def record_the_wait(state: AgentToolState, criterion: Criterion, dataset: str) -> None:
@@ -163,7 +160,9 @@ def wait_for_the_analysis(
     state = ctx.deps.agent_state
     dataset = _named_dataset(params) or described.default_dataset_id
     problems = early.under(criterion=stated.id, search=described.search_name).plus(
-        eda_wait_problems(state, definition, stated, dataset)
+        eda_wait_problems(state, definition, stated, dataset).under(
+            criterion=stated.id, search=definition.url_segment
+        )
     )
     if dataset is None or not problems.empty:
         raise ProblemsRefusal(problems)

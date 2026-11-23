@@ -14,7 +14,7 @@ from veupathdb_mcp.catalog import (
     read_search_definition,
 )
 
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
@@ -141,7 +141,7 @@ class ProposedReading(ProposedReadingDraft):
 def drafted(draft: ProposedReadingDraft) -> ProposedReading | Problems:
     said = _shape_problem(draft)
     if said is not None:
-        key = RefusalKey(check="proposal_shape", criterion=draft.title)
+        key = RefusalKey(check=Check.PROPOSAL_SHAPE, criterion=draft.title)
         return Problems.one(key, said)
     return ProposedReading.model_validate(draft.model_dump(by_alias=True))
 

@@ -11,7 +11,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState, LookupRecord
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
 from strategist.domain.strategy.value_label import label_term
@@ -109,7 +109,7 @@ def pick_problems(
         new = _new_picks(state, call, param.name, held)
         said = _lookup_problem(state, call, param, new) if new else None
         if said is not None:
-            key = RefusalKey(check="lookup", parameter=param.name)
+            key = RefusalKey(check=Check.LOOKUP, parameter=param.name)
             found.append(Problem(key=key, sentence=said))
     return Problems(found=tuple(found)).plus(
         _picks_the_lookup_did_not_mean(state, definition, call, infos, held)
@@ -182,6 +182,6 @@ def _picks_the_lookup_did_not_mean(
         labels = {o.value: o.display for o in by_name[param.name].vocabulary()}
         said = _an_obsolete_pick(state, _where(call, param), new, record, labels)
         if said is not None:
-            key = RefusalKey(check="obsolete_pick", parameter=param.name)
+            key = RefusalKey(check=Check.OBSOLETE_PICK, parameter=param.name)
             found.append(Problem(key=key, sentence=said))
     return Problems(found=tuple(found))

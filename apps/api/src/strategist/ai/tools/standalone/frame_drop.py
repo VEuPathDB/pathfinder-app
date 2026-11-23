@@ -9,10 +9,10 @@ from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_saved import holds_open_saved_slot
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.platform.refusals import ProblemsRefusal
 
-_DROP = RefusalKey(check="drop")
+_DROP = RefusalKey(check=Check.DROP)
 
 
 class DropCriterionResult(CamelModel):

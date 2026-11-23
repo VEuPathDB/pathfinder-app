@@ -10,7 +10,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.services.strategies.user_dataset_searches import (
     dataset_parameter,
     user_dataset_offers,
@@ -32,7 +32,7 @@ def unknown_names(call: CriterionCall, infos: list[ParameterInfo]) -> Problems:
     return Problems(
         found=tuple(
             Problem(
-                key=RefusalKey(check="unknown_names", parameter=name),
+                key=RefusalKey(check=Check.UNKNOWN_NAMES, parameter=name),
                 sentence=(
                     f"No such parameter on {call.search_name}: {name!r}. Nearest: "
                     f"{get_close_matches(name, bindable, n=5, cutoff=0.0)}. The valid "
@@ -52,7 +52,7 @@ def undecided(call: CriterionCall, infos: list[ParameterInfo]) -> Problems:
     if not missing:
         return Problems()
     return Problems.one(
-        RefusalKey(check="undecided"),
+        RefusalKey(check=Check.UNDECIDED),
         f"Decide every required parameter of {call.search_name}: missing "
         f"{missing}. Pass a value from the sheet, or null for the default. "
         f"The valid names are listed above; do not request the sheet again.",
@@ -69,7 +69,7 @@ async def upload_problems(
     parameter = dataset_parameter(definition)
     if parameter is None:
         return Problems()
-    key = RefusalKey(check="upload", parameter=parameter.name)
+    key = RefusalKey(check=Check.UPLOAD, parameter=parameter.name)
     offers = await user_dataset_offers(site_id, call.search_name)
     if not offers:
         types = ", ".join(sorted(user_dataset_types(definition)))

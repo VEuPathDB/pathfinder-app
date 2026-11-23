@@ -11,7 +11,7 @@ from pydantic_ai.messages import ToolReturn
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone._frame_stages import input_stage
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -38,7 +38,7 @@ async def saved_strategy_listing(
             "This conversation has no signed-in user, so it cannot read the saved "
             "strategy library. Bind the criterion to a search instead."
         )
-        raise ProblemsRefusal(Problems.one(RefusalKey(check="saved_strategy"), msg))
+        raise ProblemsRefusal(Problems.one(RefusalKey(check=Check.SAVED_STRATEGY), msg))
     return await list_saved_strategies(
         deps.db_session_factory, user_id=deps.user_id, site_id=deps.site_id
     )

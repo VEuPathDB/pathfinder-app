@@ -19,7 +19,7 @@ from strategist.ai.capabilities.error_classification import (
 )
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone.graph_helpers import counted_records
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     ParameterAlternatives,
@@ -74,7 +74,7 @@ async def bound_count(
             raise
         raise ProblemsRefusal(
             Problems.one(
-                RefusalKey(check="count", search=search_name),
+                RefusalKey(check=Check.COUNT, search=search_name),
                 f"The site refused to run {search_name} at these values ({answer}). "
                 f"The criterion is not bound. Bind another search for this "
                 f"requirement, or other values. A requirement only this search "
@@ -140,7 +140,7 @@ def _empty_obsolete_picks(
     return Problems(
         found=tuple(
             Problem(
-                key=RefusalKey(check="obsolete_pick", parameter=pick.param),
+                key=RefusalKey(check=Check.OBSOLETE_PICK, parameter=pick.param),
                 sentence=pick.refusal(
                     criterion.search_name,
                     shown[pick.param],
@@ -151,7 +151,7 @@ def _empty_obsolete_picks(
             for pick in obsolete_picks(criterion.measurements, infos)
             if held[pick.param].source != "default"
         )
-    ).under(criterion=criterion.id, search=criterion.search_name)
+    )
 
 
 async def record_and_count_criterion(
@@ -173,7 +173,10 @@ async def record_and_count_criterion(
         ctx, resolved, record_type, criterion.search_name, definition
     )
     if count == 0:
-        refuse_problems(_empty_obsolete_picks(criterion, infos, record_type))
+        empty = _empty_obsolete_picks(criterion, infos, record_type)
+        refuse_problems(
+            empty.under(criterion=criterion.id, search=criterion.search_name)
+        )
     state = ctx.deps.agent_state
     state.frame_set_criterion(criterion)
     alternatives = empty_binding_alternatives(count, infos, criterion)

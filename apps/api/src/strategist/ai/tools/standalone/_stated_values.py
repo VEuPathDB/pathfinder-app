@@ -30,7 +30,7 @@ from strategist.ai.capabilities.error_classification import (
     ErrorCategory,
     classify_error,
 )
-from strategist.domain.refusal import Closing, Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Closing, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
@@ -56,7 +56,7 @@ async def _retrying[T](search_name: str, closing: Closing, read: Awaitable[T]) -
     except VEuPathDBError as exc:
         if classify_error(exc) is ErrorCategory.TRANSIENT:
             raise
-        key = RefusalKey(check="stated_value", search=search_name)
+        key = RefusalKey(check=Check.STATED_VALUE, search=search_name)
         named = Problems(
             found=tuple(
                 Problem(key=p.key, sentence=f"{search_name}: {p.sentence}")

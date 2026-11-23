@@ -23,7 +23,7 @@ from strategist.ai.agents.held_answer import (
 )
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
-from strategist.domain.refusal import RefusalKey
+from strategist.domain.refusal import Check, RefusalKey
 from strategist.domain.strategy.expression_handles import (
     held_expressions,
 )
@@ -239,7 +239,7 @@ def _read(checked: _Held) -> Changed:
 
 def _held_readings(original: SlotQuestion, checked: _Held) -> list[HeldAnswer]:
     key = RefusalKey(
-        check="the_readings_to_the_site",
+        check=Check.THE_READINGS_TO_THE_SITE,
         criterion=original.criterion_id,
         parameter=original.param_name,
     )

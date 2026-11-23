@@ -6,11 +6,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.readings import AcceptedReading, ReadingChooser
 
-_READING = RefusalKey(check="reading")
+_READING = RefusalKey(check=Check.READING)
 
 
 def reading_label_problems(

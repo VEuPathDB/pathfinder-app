@@ -13,7 +13,7 @@ from strategist.ai.tools.standalone._frame_result import (
     SetCriterionResult,
 )
 from strategist.ai.tools.standalone._frame_stages import input_stage
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
 from strategist.platform.refusals import ProblemsRefusal
@@ -21,7 +21,7 @@ from strategist.platform.refusals import ProblemsRefusal
 GROUPS_DISPLAY_NAME = "Groups"
 
 
-_COMPUTED = RefusalKey(check="computed_groups")
+_COMPUTED = RefusalKey(check=Check.COMPUTED_GROUPS)
 
 
 def _held(ctx: RunContext[AgentDeps], handle: str) -> HeldComparison:

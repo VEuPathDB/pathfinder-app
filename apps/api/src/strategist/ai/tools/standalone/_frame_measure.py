@@ -19,7 +19,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_count import record_and_count_criterion
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone.graph_helpers import counted_noun
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.genome_set_names import required_genomes_name
 from strategist.domain.strategy.measurement_clauses import measurement_clauses
 from strategist.domain.strategy.operational_spec import (
@@ -63,7 +63,7 @@ async def labelled_picks(
     return read.labels, Problems(
         found=tuple(
             Problem(
-                key=RefusalKey(check="labels", parameter=pick.param),
+                key=RefusalKey(check=Check.LABELS, parameter=pick.param),
                 sentence=(
                     f"{pick.param} ({shown.get(pick.param, '')}) on {call.search_name} "
                     f"holds {pick.term!r}, which its vocabulary gives no label. Pass "

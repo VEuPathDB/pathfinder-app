@@ -14,7 +14,7 @@ from strategist.ai.tools.standalone._frame_result import (
 )
 from strategist.ai.tools.standalone._frame_stages import input_stage
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
 from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.evidence.gene_sets import list_stored_gene_sets
@@ -52,7 +52,7 @@ async def _bind(
     if match is None:
         raise ProblemsRefusal(
             Problems.one(
-                RefusalKey(check="gene_set", criterion=stated.id),
+                RefusalKey(check=Check.GENE_SET, criterion=stated.id),
                 _unresolved_message(reference, listed),
             )
         )

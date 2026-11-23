@@ -7,7 +7,7 @@ from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import RequirementLink
 from strategist.domain.strategy.requirement_reports import numbered_requirements
 
@@ -73,7 +73,7 @@ def linked_requirements(
     if not unknown:
         return links, Problems()
     return links, Problems.one(
-        RefusalKey(check="requirements"),
+        RefusalKey(check=Check.REQUIREMENTS),
         f"answers names {unknown}, which the requirement list does not hold. "
         f"The list holds {', '.join(numbered) or 'none'}; name only those, or "
         f"pass an empty list when the criterion answers none of them.",
@@ -87,7 +87,7 @@ def answers_the_sheet_lacks(
     return Problems(
         found=tuple(
             Problem(
-                key=RefusalKey(check="answers", parameter=link.param),
+                key=RefusalKey(check=Check.ANSWERS, parameter=link.param),
                 sentence=(
                     f"answers names the parameters {[link.param]}, which the sheet "
                     f"does not hold. The sheet holds {names or 'none'}; name one of "

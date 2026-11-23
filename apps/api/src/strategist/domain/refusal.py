@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -28,6 +29,69 @@ type Closing = Literal[
 ]
 
 Sentence = Annotated[str, BeforeValidator(_one_line), StringConstraints(min_length=1)]
+
+
+class Check(StrEnum):
+    AN_OPTION_TO_A_HELD_EXPRESSION = "an_option_to_a_held_expression"
+    AN_OPTION_TO_ITS_PARAMETER = "an_option_to_its_parameter"
+    AN_ORGANISM_TO_A_STEP = "an_organism_to_a_step"
+    ANSWERS = "answers"
+    BOUND_ANALYSIS = "bound_analysis"
+    COMPUTED_GROUPS = "computed_groups"
+    COUNT = "count"
+    DEPENDENT = "dependent"
+    DROP = "drop"
+    EDA_WAIT = "eda_wait"
+    EXPRESSION = "expression"
+    GENE_IDS = "gene_ids"
+    GENE_SET = "gene_set"
+    IN_PLACE = "in_place"
+    LABELS = "labels"
+    LOOKUP = "lookup"
+    OBSOLETE_PICK = "obsolete_pick"
+    OFF_TOPIC_ESSAY = "off_topic_essay"
+    OPEN_VALUE_IN_PROSE = "open_value_in_prose"
+    ORGANISM_CARRIED = "organism_carried"
+    ORGANISM_NAMED = "organism_named"
+    PHRASE = "phrase"
+    PHYLETIC = "phyletic"
+    PROPOSAL_PLAN = "proposal_plan"
+    PROPOSAL_SEARCH = "proposal_search"
+    PROPOSAL_SHAPE = "proposal_shape"
+    PROPOSAL_TITLE = "proposal_title"
+    RADIO = "radio"
+    READING = "reading"
+    REQUIRED = "required"
+    REQUIREMENTS = "requirements"
+    RESOLVE = "resolve"
+    ROLE = "role"
+    SAVED_STRATEGY = "saved_strategy"
+    SEARCH = "search"
+    SOURCES = "sources"
+    STATED_VALUE = "stated_value"
+    THE_DIGEST_TO_THE_EVIDENCE = "the_digest_to_the_evidence"
+    THE_QUESTIONS_TO_A_DIMENSION = "the_questions_to_a_dimension"
+    THE_QUESTIONS_TO_THE_DRAFT = "the_questions_to_the_draft"
+    THE_READINGS_TO_THE_SITE = "the_readings_to_the_site"
+    THE_REPORTS_TO_THE_REFUSALS = "the_reports_to_the_refusals"
+    THE_REPORTS_TO_THE_REQUIREMENT_LIST = "the_reports_to_the_requirement_list"
+    THE_ROUTE_TO_ANOTHER_SITE = "the_route_to_another_site"
+    THE_STRUCTURE_TO_BOUND_CRITERIA = "the_structure_to_bound_criteria"
+    THE_TAXA_TO_THEIR_SCOPE = "the_taxa_to_their_scope"
+    UNBUILT_EDA_CRITERION = "unbuilt_eda_criterion"
+    UNDECIDED = "undecided"
+    UNFOLLOWED_REACH = "unfollowed_reach"
+    UNKNOWN_NAMES = "unknown_names"
+    UNLISTED_SEARCH = "unlisted_search"
+    UNMET_REQUIREMENT = "unmet_requirement"
+    UNSAVED_CONTROLS = "unsaved_controls"
+    UNSERVED = "unserved"
+    UNVERIFIED_BUILD = "unverified_build"
+    UPLOAD = "upload"
+    VALIDATION = "validation"
+    VARIANT_PARAMETERS = "variant_parameters"
+    WAITING = "waiting"
+    WHY = "why"
 
 
 class RefusalKey(CamelModel):

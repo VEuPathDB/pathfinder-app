@@ -20,7 +20,7 @@ from strategist.ai.tools.standalone import catalog, catalog_discovery
 from strategist.ai.tools.standalone.record_reads import record_columns_block
 from strategist.ai.tools.standalone.search_reads import resolved_search
 from strategist.domain.comparison_facts import ComparedVariant, ComparisonFact
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.ranking import score_rows
 from strategist.domain.strategy.reading_plan import OfferedReading
@@ -64,7 +64,7 @@ async def _resolved(
     searches: list[VariantSpec] = []
     for search in draft.searches:
         key = RefusalKey(
-            check="proposal_search", criterion=draft.title, search=search.label
+            check=Check.PROPOSAL_SEARCH, criterion=draft.title, search=search.label
         )
         try:
             searches.append(await resolved_search(ctx, search, record_type=_GENES))
@@ -73,7 +73,7 @@ async def _resolved(
     return searches, found
 
 
-def _repeated(check: str, named: list[str], what: str, fix: str) -> Problems:
+def _repeated(check: Check, named: list[str], what: str, fix: str) -> Problems:
     if len(set(named)) == len(named):
         return Problems()
     return Problems.one(
@@ -98,14 +98,14 @@ async def checked_proposals(
                 found = found.plus(refused)
     found = found.plus(
         _repeated(
-            "proposal_title",
+            Check.PROPOSAL_TITLE,
             [draft.title for draft in drafts],
             "carry the same title",
             "Give each plan its own.",
         )
     ).plus(
         _repeated(
-            "proposal_plan",
+            Check.PROPOSAL_PLAN,
             [held.spec.goal for held in checked],
             "state the same plan",
             "Propose each plan once.",

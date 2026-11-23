@@ -21,7 +21,7 @@ from strategist.ai.tools.standalone._variant_targets import (
 )
 from strategist.domain.membership_facts import MembershipFact
 from strategist.domain.record_page import ListedRecord
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.text_expression import unquoted_phrase_refusal
 from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.evidence.comparisons import (
@@ -68,7 +68,7 @@ async def _refuse_an_unlisted_search(
     except VagueSearchQueryError:
         found = []
     unlisted = f"{site_id} lists no search {name} ({search.label})."
-    key = RefusalKey(check="unlisted_search", criterion=search.label, search=name)
+    key = RefusalKey(check=Check.UNLISTED_SEARCH, criterion=search.label, search=name)
     if not found:
         msg = (
             f"{unlisted} The catalog lookup for '{query}' finds no search, so "
@@ -97,7 +97,7 @@ def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantSpec) -
                 )
                 if refusal is not None:
                     key = RefusalKey(
-                        check="phrase",
+                        check=Check.PHRASE,
                         criterion=search.label,
                         search=search.search_name,
                         parameter=name,
@@ -191,7 +191,7 @@ async def genes_in_search(
             "Name the gene ids to check."
         )
         raise ProblemsRefusal(
-            Problems.one(RefusalKey(check="gene_ids", criterion=search.label), msg)
+            Problems.one(RefusalKey(check=Check.GENE_IDS, criterion=search.label), msg)
         )
     spec = await resolved_search(ctx, search, record_type=_GENES)
     site_id = ctx.deps.site_id

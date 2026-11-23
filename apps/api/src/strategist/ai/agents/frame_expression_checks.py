@@ -12,7 +12,7 @@ from veupathdb_mcp.catalog import ortho_taxonomy
 from strategist.ai.agents.held_answer import HeldAnswer, gapped, held
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
-from strategist.domain.refusal import RefusalKey
+from strategist.domain.refusal import Check, RefusalKey
 from strategist.domain.strategy.named_groups import (
     NamedGroup,
     ScopedTaxon,
@@ -142,7 +142,7 @@ def _stray_ask(taxon: ScopedTaxon, tree: PhyleticTree) -> str:
 
 
 def _taxon_held(name: str, ask: str, gap: PassGap) -> HeldAnswer:
-    key = RefusalKey(check="the_taxa_to_their_scope", criterion=name)
+    key = RefusalKey(check=Check.THE_TAXA_TO_THEIR_SCOPE, criterion=name)
     return held(key, ask, gapped(gap))
 
 

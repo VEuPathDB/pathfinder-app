@@ -12,7 +12,7 @@ from strategist.ai.graph._lead_answers import is_pure_approval
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.intent import BUILDING_INTENTS, IntentClassification
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.domain.refusal import RefusalKey
+from strategist.domain.refusal import Check, RefusalKey
 
 # The tools that write: they frame, materialize, patch or check a strategy, or
 # they edit the EDA analysis a step is exported from.
@@ -94,7 +94,7 @@ def verification_pending(deps: LeadDeps) -> bool:
     """
     markers = deps.state.turn_markers
     return (
-        markers.answer_ledger.used(RefusalKey(check="unverified_build")) > 0
+        markers.answer_ledger.used(RefusalKey(check=Check.UNVERIFIED_BUILD)) > 0
         and markers.built
         and not markers.verified
     )

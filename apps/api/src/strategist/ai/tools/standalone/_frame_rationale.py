@@ -17,7 +17,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
 )
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.step_rationale import (
@@ -75,7 +75,7 @@ class ChosenWhy:
     problems: Problems = field(default_factory=Problems)
 
 
-_WHY = RefusalKey(check="why")
+_WHY = RefusalKey(check=Check.WHY)
 
 
 @dataclass(frozen=True)
@@ -254,7 +254,7 @@ def sources_retrieved(
     if not absent:
         return forms, Problems()
     return forms, Problems.one(
-        RefusalKey(check="sources"),
+        RefusalKey(check=Check.SOURCES),
         f"The why of {criterion_id} cites {', '.join(absent)}, and no read of "
         f"this turn returned it. Cite only what a research read or "
         f"read_experiment returned this turn, or leave sources empty.",

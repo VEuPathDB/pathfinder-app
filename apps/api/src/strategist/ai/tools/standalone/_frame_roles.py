@@ -8,7 +8,7 @@ from veupathdb_mcp import tool_payloads
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone.catalog import record_a_listing
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import CriterionRole
 
 
@@ -19,7 +19,7 @@ def saved_input_problems(
     if role != "transform":
         return Problems()
     return Problems.one(
-        RefusalKey(check="role"),
+        RefusalKey(check=Check.ROLE),
         f"{criterion_id} starts from a {saved}, which is an input and not "
         f'a search that maps one, so bind it with role="seed".',
     )
@@ -34,7 +34,7 @@ async def role_problems(
     """A transform runs on a previous step, and every other role runs alone."""
     takes_an_input_step = bool(definition.allowed_primary_input_record_class_names)
     search_name = definition.url_segment
-    key = RefusalKey(check="role")
+    key = RefusalKey(check=Check.ROLE)
     if role == "transform" and not takes_an_input_step:
         listings = await tool_payloads.list_transform_listings(
             ctx.deps.site_id, record_type

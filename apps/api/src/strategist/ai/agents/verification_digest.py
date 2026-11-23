@@ -20,7 +20,7 @@ from strategist.domain.evidence import (
     WithheldEvidence,
     WithheldKind,
 )
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.platform.refusals import TURN_REFUSALS_PER_RULE, last_answer
 from strategist.services.gene_records.read import gene_record_url
 
@@ -91,7 +91,7 @@ def hold_the_digest_to_the_evidence(
         return output
     markers = ctx.deps.turn_markers
     key = RefusalKey(
-        check="the_digest_to_the_evidence",
+        check=Check.THE_DIGEST_TO_THE_EVIDENCE,
         criterion=ctx.deps.verification_scope.check_id,
     )
     said = unbacked_digest_message(held.found)

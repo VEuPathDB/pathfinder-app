@@ -46,7 +46,7 @@ from strategist.ai.tools.standalone._catalog_elsewhere import (
     reach_sentence,
     tree_tops,
 )
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.genome_group_steps import criterion_as_stated
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
@@ -180,6 +180,10 @@ async def _elsewhere(
     )
 
 
+def _placed(problems: Problems, call: CriterionCall, search: SearchContext) -> Problems:
+    return problems.under(criterion=call.criterion_id, search=search.search_name)
+
+
 async def read_call(
     search: SearchContext,
     fetch_at: ParamFetcher,
@@ -203,19 +207,14 @@ async def read_call(
             },
         )
     except ValidationError as exc:
-        key = RefusalKey(
-            check="stated_value",
-            criterion=call.criterion_id,
-            search=search.search_name,
-        )
         problems = await _elsewhere(
             definition,
-            library_problems(exc, key),
+            library_problems(exc, RefusalKey(check=Check.STATED_VALUE)),
             library_rows(exc),
             state,
             search.site_id,
         )
-        raise ProblemsRefusal(problems) from exc
+        raise ProblemsRefusal(_placed(problems, call, search)) from exc
     read = call.with_read(values)
     given_back = {name for name in call.params if name not in read.params}
     kept = {
@@ -280,7 +279,7 @@ def radio_overrides(
     )
     if issue is None:
         return overrides, Problems()
-    key = RefusalKey(check="radio", parameter=issue.pair.free_text)
+    key = RefusalKey(check=Check.RADIO, parameter=issue.pair.free_text)
     return overrides, Problems.one(key, _radio_retry(call, issue, infos))
 
 
@@ -371,9 +370,7 @@ async def resolve_proposals(
     ``unread`` as data, which the catalog tool and the separation enumerator
     read without refusing, so this call refuses it here."""
     stated = {name: v for name, v in call.params.items() if v is not None}
-    key = RefusalKey(
-        check="resolve", criterion=call.criterion_id, search=search.search_name
-    )
+    key = RefusalKey(check=Check.RESOLVE)
     try:
         resolved = await resolve_params_with_intent(
             about=about,
@@ -385,16 +382,15 @@ async def resolve_proposals(
         )
     except ValidationError as exc:
         found = _resolver_problems(call, library_problems(exc, key))
-        raise ProblemsRefusal(found) from exc
-    refuse_problems(
-        Problems(
-            found=tuple(
-                Problem(
-                    key=key.model_copy(update={"parameter": name}),
-                    sentence=unread_quantity(name),
-                )
-                for name in resolved.unread
+        raise ProblemsRefusal(_placed(found, call, search)) from exc
+    unread = Problems(
+        found=tuple(
+            Problem(
+                key=key.model_copy(update={"parameter": name}),
+                sentence=unread_quantity(name),
             )
+            for name in resolved.unread
         )
     )
+    refuse_problems(_placed(unread, call, search))
     return resolved

@@ -40,7 +40,7 @@ from strategist.ai.tools.standalone._frame_result import (
 )
 from strategist.ai.tools.standalone._frame_stages import search_stage
 from strategist.ai.tools.standalone._frame_unserved import an_unserved_search_refused
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.platform.refusals import library_problems, refuse_problems
 
@@ -60,7 +60,7 @@ def _entry_problems(
     try:
         entries_or_refusal(name, options, call.terms(name))
     except ValidationError as exc:
-        return library_problems(exc, RefusalKey(check="dependent", parameter=name))
+        return library_problems(exc, RefusalKey(check=Check.DEPENDENT, parameter=name))
     return Problems()
 
 

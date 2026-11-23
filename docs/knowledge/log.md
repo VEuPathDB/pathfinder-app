@@ -2,6 +2,14 @@
 
 ## 2026-11-23
 
+* **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
+  `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new
+  budget; a test refuses a production key that names its check in free text. A key a call builds
+  holds only what the call cannot know: the criterion and the search come from one `under()` where
+  the call places its problems (the binding reads and the resolver, the unserved search, the EDA
+  wait, the obsolete picks, a variant's required and phyletic problems). The bound-analysis check
+  returns its problem instead of raising it. No key changes.
+
 * **Strategist takes veupathdb-py 0.9.0b14 and veupathdb-mcp 0.9.0b19.** Both carry the refusal
   work: a read and a walk name every miss once, and a refused walk names the quantity it held
   back. The pins in `apps/api/pyproject.toml` and the two MCP build contexts in

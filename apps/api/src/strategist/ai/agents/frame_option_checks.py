@@ -19,7 +19,7 @@ from strategist.ai.agents.held_answer import (
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
-from strategist.domain.refusal import RefusalKey
+from strategist.domain.refusal import Check, RefusalKey
 from strategist.domain.strategy.card_answers import option_refusal
 from strategist.domain.strategy.expression_handles import held_expressions, is_handle
 from strategist.domain.strategy.question_options import SetValues
@@ -42,7 +42,7 @@ def hold_an_option_to_a_held_expression(
     return [
         held(
             RefusalKey(
-                check="an_option_to_a_held_expression",
+                check=Check.AN_OPTION_TO_A_HELD_EXPRESSION,
                 criterion=question.criterion_id,
                 parameter=question.param_name,
             ),
@@ -134,7 +134,7 @@ async def hold_an_option_to_its_parameter(
     return [
         held(
             RefusalKey(
-                check="an_option_to_its_parameter",
+                check=Check.AN_OPTION_TO_ITS_PARAMETER,
                 criterion=question.criterion_id,
                 parameter=question.param_name,
             ),

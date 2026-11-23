@@ -31,7 +31,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.tools.standalone._stated_values import typed_values
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.session import StrategySession
 from strategist.platform.refusals import (
@@ -137,7 +137,7 @@ def _genes(count: int | None) -> str:
 
 
 _IN_PLACE = Problems.one(
-    RefusalKey(check="in_place"),
+    RefusalKey(check=Check.IN_PLACE),
     "A step of the strategy is never a parameter: each variant is counted in "
     "place in the strategy's result.",
 )
@@ -245,7 +245,7 @@ async def _derived_phyletic(
     try:
         return await variant_phyletic_values(about, *search, lists)
     except ValidationError as refused:
-        return library_problems(refused, RefusalKey(check="phyletic", search=search[1]))
+        return library_problems(refused, RefusalKey(check=Check.PHYLETIC))
 
 
 def _of_variant(problems: Problems, variant: VariantInput) -> Problems:
@@ -266,9 +266,7 @@ def required_problems(
     return Problems(
         found=tuple(
             Problem(
-                key=RefusalKey(
-                    check="required", search=variant.search_name, parameter=name
-                ),
+                key=RefusalKey(check=Check.REQUIRED, parameter=name),
                 sentence=(
                     f"{variant.search_name} requires "
                     f"{info.display_name or info.name}; state a value."
@@ -370,7 +368,7 @@ async def resolved_variants(
         Problems(
             found=tuple(
                 Problem(
-                    key=RefusalKey(check="variant_parameters", search=search[1]),
+                    key=RefusalKey(check=Check.VARIANT_PARAMETERS, search=search[1]),
                     sentence=said,
                 )
                 for search, infos in published.items()

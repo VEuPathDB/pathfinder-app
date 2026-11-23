@@ -26,7 +26,7 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_record import TurnRecord, turn_record
 from strategist.ai.lead.verdict_claims import open_value_in_prose
 from strategist.domain.clipped import list_clipped_to, text_clipped_to
-from strategist.domain.refusal import Problem, Problems, RefusalKey
+from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.questions import AskedQuestion
 from strategist.platform.refusals import TURN_REFUSALS_PER_RULE, last_answer
 
@@ -201,7 +201,7 @@ def correct_once(
     markers = ctx.deps.state.turn_markers
     found = Problems(
         found=tuple(
-            Problem(key=RefusalKey(check=m.kind), sentence=m.sentence)
+            Problem(key=RefusalKey(check=Check(m.kind)), sentence=m.sentence)
             for m in mismatches
         )
     )
@@ -209,7 +209,7 @@ def correct_once(
     refused = set(charge.refused.keys())
     if refused and not last_answer(ctx):
         markers.answer_ledger = charge.ledger
-        return [m for m in mismatches if RefusalKey(check=m.kind) in refused]
+        return [m for m in mismatches if RefusalKey(check=Check(m.kind)) in refused]
     if mismatches:
         markers.unchecked_reply = True
     return []

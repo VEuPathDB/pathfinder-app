@@ -7,7 +7,7 @@ from veupathdb_mcp.catalog import PhyleticPattern
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.domain.refusal import Problems, RefusalKey
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.computed_groups import is_comparison_handle
 from strategist.domain.strategy.expression_handles import (
     BuiltPattern,
@@ -28,7 +28,7 @@ def held_handle(
     return handle
 
 
-_EXPRESSION = RefusalKey(check="expression", parameter=PHYLETIC_EXPRESSION_PARAM)
+_EXPRESSION = RefusalKey(check=Check.EXPRESSION, parameter=PHYLETIC_EXPRESSION_PARAM)
 
 
 def with_stored_expressions(
