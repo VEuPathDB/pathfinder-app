@@ -22,9 +22,8 @@ stage reads.
   `deploy/sites/qa.yml` before anything reads settings, unless the environment names
   another file. The hermetic tiers read the same list, so every link a test expects is a
   QA link, and the integration tier's refusal guard refuses the QA hosts.
-- **The nightlies** (`wdk-nightly.yml`, `mcp-nightly.yml`) set `VEUPATHDB_SITES_CONFIG`
-  to the QA file at the top of the workflow, so the served MCP endpoint reads it too.
-  `ci.yml` needs none: its e2e job reads the compose list, and its test job reads the
+- **CI runs no live lane** ([CI runs recorded tests only](ci-runs-recorded-tests-only.md)).
+  `ci.yml` names no list: its e2e job reads the compose list, and its test job reads the
   conftest's default.
 - **Recording**: the client's recorders (veupathdb-py 0.1.0b4) reach only the QA sites
   whatever the process names, and the EDA provenance recorder here reads the QA file
@@ -46,8 +45,7 @@ except `docs/`, the backup directory, `thesis/`, the ignored local outputs and s
 files, and fails on a production host: the bare site name, `www.`, `beta.`, the `auth.`
 sign-in server or a numbered server. A mailbox such as a help address is not a host. It
 also fails on a test site whose entry differs from the QA file, on an e2e service that
-reads another file, and on a workflow that runs a live lane without the QA file at its
-top level. A seed binds a hidden `dataset_url` at the one entry QA's vocabulary holds for it, a dataset record link on the production host, because WDK refuses a step that leaves it out; the host check passes a dataset record link and nothing else on that host.
+reads another file, and on a workflow that runs a live lane at all. A seed binds a hidden `dataset_url` at the one entry QA's vocabulary holds for it, a dataset record link on the production host, because WDK refuses a step that leaves it out; the host check passes a dataset record link and nothing else on that host.
 
 No production data stays in a test path either. Every response a test reads
 (`tests/fixtures/wdk`, `organisms`, `eda`, `separation`, `controls`, the web separation
@@ -68,8 +66,7 @@ No replacement is written by hand.
 # What this costs
 
 Outside the VEuPathDB network the QA sites answer every service call with a redirect to
-a pre-release login. Until automated clients have a way through it, the e2e job and both
-nightlies stay disabled
-([QA sites need a pass for automated clients](../backlog/qa-sites-need-a-pass-for-automated-clients.md)).
+a pre-release login, so the live lane and the recorders run by hand from a host inside
+the network, and the e2e job stays disabled until it runs on replayed recordings.
 Every expected count, identifier and vocabulary a live test or an e2e spec pins was
 measured on production and is re-measured on QA once QA answers.

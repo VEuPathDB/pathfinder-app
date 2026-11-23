@@ -6,11 +6,9 @@ on:
     tags: ["*"]
   pull_request:
     branches: [main]
-  # The full-stack tier runs on pull requests and once a night on main only
-  # while the E2E_ENABLED repository variable is true; a push to main runs the
-  # unit and lint tiers only.
-  schedule:
-    - cron: "0 5 * * *"
+  # Every job reads recorded or replayed responses; none reaches a live site
+  # or a model. A hand-started run adds the integration tier and refreshes the
+  # recorded test durations; nothing runs on a schedule.
   workflow_dispatch:
 
 concurrency:
@@ -26,7 +24,7 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
-    # A scheduled or hand-started run has no diff to filter, so it runs everything.
+    # A hand-started run has no diff to filter, so it runs everything.
     outputs:
       api: ${{ steps.filter.outputs.api == 'true' || steps.filter.outcome == 'skipped' }}
       web: ${{ steps.filter.outputs.web == 'true' || steps.filter.outcome == 'skipped' }}
@@ -230,8 +228,8 @@ jobs:
         working-directory: apps/api
         run: uv run sphinx-build -b html docs docs/_build/html
 
-  # A push to main runs the unit tier; a pull request, the nightly run and
-  # a hand-started run add the integration tier, split by recorded duration.
+  # A push to main runs the unit tier; a pull request and a hand-started run
+  # add the integration tier, split by recorded duration.
   test-api:
     name: Test API (unit ${{ matrix.group }}/3)
     runs-on: ubuntu-latest
@@ -252,11 +250,11 @@ jobs:
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           STRATEGIST_CHAT_PROVIDER: mock
           GROUP: ${{ matrix.group }}
-          STORE: ${{ github.event_name == 'schedule' && '--store-durations' || '' }}
+          STORE: ${{ github.event_name == 'workflow_dispatch' && '--store-durations' || '' }}
         run: >-
           uv run pytest src/strategist/tests/unit -m "not live_model and not live_wdk"
           --splits 3 --group "$GROUP" --durations-path .test_durations
-          -n auto --durations=25 --cov=src --cov-report= $STORE
+          -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
@@ -267,7 +265,7 @@ jobs:
           include-hidden-files: true
 
       - name: Upload the recorded durations
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
           name: durations-unit-${{ matrix.group }}
@@ -310,11 +308,11 @@ jobs:
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           STRATEGIST_CHAT_PROVIDER: mock
           GROUP: ${{ matrix.group }}
-          STORE: ${{ github.event_name == 'schedule' && '--store-durations' || '' }}
+          STORE: ${{ github.event_name == 'workflow_dispatch' && '--store-durations' || '' }}
         run: >-
           uv run pytest src/strategist/tests/integration -m "not live_model and not live_wdk"
           --splits 8 --group "$GROUP" --durations-path .test_durations
-          -n auto --durations=25 --cov=src --cov-report= $STORE
+          -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
@@ -325,7 +323,7 @@ jobs:
           include-hidden-files: true
 
       - name: Upload the recorded durations
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
           name: durations-integration-${{ matrix.group }}
@@ -379,7 +377,7 @@ jobs:
     name: Refresh the API test durations
     runs-on: ubuntu-latest
     needs: [test-api, test-api-integration]
-    if: ${{ github.event_name == 'schedule' && needs.test-api.result == 'success' && needs.test-api-integration.result == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && needs.test-api.result == 'success' && needs.test-api-integration.result == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -551,7 +549,9 @@ jobs:
 
   # The full-stack tier builds once, runs E2E_SHARDS shards at two Playwright
   # workers each and merges their reports. A push to main does not run it: the
-  # pull request that landed the change already did.
+  # pull request that landed the change already did. It reaches live sites, so
+  # E2E_ENABLED stays off until it runs on replayed recordings
+  # (docs/superpowers/specs/2026-11-23-e2e-replays-recorded-wdk.md).
   e2e-build:
     name: E2E build
     runs-on: ubuntu-latest

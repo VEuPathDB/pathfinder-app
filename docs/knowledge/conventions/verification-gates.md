@@ -13,10 +13,15 @@ Gates passing is necessary, not sufficient: see the definition of done in `CLAUD
 `.github/workflows/ci.yml` runs them in tiers, and the cadence is part of the
 gate: the lint and unit tiers run on every push and every pull request; the
 full-stack Playwright tier and the API integration tier run on every pull
-request, once a night on `main`, and on a hand-started run, never on a bare push
-to `main`, because the pull request that landed the commit already ran them and
-the private repository's Actions minutes are metered. A scheduled run treats
-every path as changed.
+request and on a hand-started run, never on a bare push to `main`, because the
+pull request that landed the commit already ran them and the private
+repository's Actions minutes are metered. Nothing runs on a schedule. A
+hand-started run treats every path as changed and refreshes the recorded API
+test durations (the `test-durations` artifact). CI makes no live call: every
+job reads recorded or replayed responses
+([CI runs recorded tests only](../decisions/ci-runs-recorded-tests-only.md)).
+The full-stack tier reaches live sites, so the repository variable
+`E2E_ENABLED` keeps it off until it runs on replayed recordings.
 
 The full-stack tier builds once and runs in shards. `e2e-build` builds the api
 and web images on the Actions layer cache and hands them to the shards as one
@@ -197,10 +202,10 @@ The WDK rules answer to two suites, and which lane a rule lands in follows from 
 
 The same tier holds the schema half. `wdk_fixtures verify` validates each body Strategist sends or has recorded against the WDK JSON Schema its endpoint annotates, reading the copy vendored under `veupathdb-py: src/veupathdb/testing/fixtures/wdk/schema/`; it is offline, it fails when a vendored file no longer matches the sha256 in `schema-pin.json`, and `veupathdb-py: tests/unit/devtools/` runs it as a test as well as the CLI running it as a gate. Which schemas WDK enforces, and which of its own annotations the service breaks, is WDK-HTTP-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
 
-**Nightly, live, never blocking.** `pytest -m live_wdk` is the second lane: the same rules against running sites, plus the checks a fixture cannot answer - a search still exists, a vocabulary still carries a pinned term, a sentinel count is still in band, and the pinned fixtures still describe the wire. It reads the QA sites: the root conftest puts `deploy/sites/qa.yml` in force for every test unless `VEUPATHDB_SITES_CONFIG` names another file ([tests run against the QA sites](../decisions/tests-run-against-the-qa-sites.md)). It skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` (or `WDK_TEST_TOKEN`), runs on a schedule in `.github/workflows/wdk-nightly.yml`, and files an issue rather than failing a build. The `apps/api` half of the lane loads site catalogs. A catalog load starts the semantic index sync beside itself and never waits on it, so the lane needs no database: an unreachable one leaves ranking lexical and is logged once. Every resource a live check creates is deleted in teardown: the account is a researcher's own.
+**Live, by hand, never in CI.** `pytest -m live_wdk` is the second lane: the same rules against running sites, plus the checks a fixture cannot answer - a search still exists, a vocabulary still carries a pinned term, a sentinel count is still in band, and the pinned fixtures still describe the wire. It reads the QA sites: the root conftest puts `deploy/sites/qa.yml` in force for every test unless `VEUPATHDB_SITES_CONFIG` names another file ([tests run against the QA sites](../decisions/tests-run-against-the-qa-sites.md)). It skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` (or `WDK_TEST_TOKEN`), and it runs only by hand (`yarn wdk:live`) from a host that reaches QA, never in a workflow; the monthly refresh of the recordings is run by hand when the user asks. The `apps/api` half of the lane loads site catalogs. A catalog load starts the semantic index sync beside itself and never waits on it, so the lane needs no database: an unreachable one leaves ranking lexical and is logged once. Every resource a live check creates is deleted in teardown: the account is a researcher's own.
 
 ```
-yarn wdk:live       # run the nightly lane by hand
+yarn wdk:live       # run the live lane by hand
 yarn wdk:record     # re-record the pinned fixtures from the QA sites
 yarn check:wdk-rules
 cd apps/api && uv run python -m veupathdb.devtools.fixtures verify   # offline
@@ -213,7 +218,7 @@ cd apps/api && uv run python -m veupathdb.devtools.eda_schemas vendor    # re-pi
 
 **A vendored schema is re-downloaded, not edited either.** `vendor` fetches the enforced schemas and their transitive `$ref` closure at the commit the pin names, deletes what the closure no longer reaches, and rewrites the pin only when a byte changed. Moving to a newer WDK is one edit to the pin's `sha` followed by `vendor`; a hand-edited copy fails `verify` instead of passing quietly.
 
-`node scripts/check-test-sites.mjs` holds every test path to the QA sites: it reads every file of the repository except `docs/`, `thesis/`, the ignored local outputs and secret env files, and fails on a production, `www`, `beta`, `auth` or numbered-server host, except in a dataset record link (`/a/app/record/dataset/DS_...`), the form a QA site's own vocabulary gives a hidden `dataset_url`; on a test site whose entry differs from `deploy/sites/qa.yml`; on an e2e service that reads another file; and on a workflow that runs a live lane without `VEUPATHDB_SITES_CONFIG` at the QA file. Every recording a test reads is a QA recording, and a test whose recording is absent skips with "needs a QA recording: re-record once QA access exists" only while it is missing.
+`node scripts/check-test-sites.mjs` holds every test path to the QA sites: it reads every file of the repository except `docs/`, `thesis/`, the ignored local outputs and secret env files, and fails on a production, `www`, `beta`, `auth` or numbered-server host, except in a dataset record link (`/a/app/record/dataset/DS_...`), the form a QA site's own vocabulary gives a hidden `dataset_url`; on a test site whose entry differs from `deploy/sites/qa.yml`; on an e2e service that reads another file; and on a workflow that runs a live lane at all (the `live_wdk` marker, a served `veupathdb_mcp` or the fixtures recorder). Every recording a test reads is a QA recording, and a test whose recording is absent skips with "needs a QA recording: re-record once QA access exists" only while it is missing.
 
 **The EDA fixtures answer the same way.** The recorded EDA bodies under `veupathdb-py: src/veupathdb/testing/fixtures/eda/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/strategist/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without, and reads the QA sites unless `VEUPATHDB_SITES_CONFIG` names another file. The schema half is `veupathdb.devtools.eda_schemas verify`: it reads the `service-eda` RAML type library vendored under `veupathdb-py: src/veupathdb/testing/fixtures/eda/upstream/`, converts it to JSON Schema, and validates every recorded EDA body against the type its resource declares; it is offline, fails on a sha256 drift from its own `schema-pin.json`, and absorbs only the divergences `veupathdb-py: docs/knowledge/eda/rest-surface.md` records as defects in the spec.
 
@@ -265,17 +270,16 @@ gate set, from their own package root, in their own environment. The commands an
 what each one proves are
 `assistant-platform: docs/knowledge/conventions/verification-gates.md`.
 
-**Our own MCP server is read by the conformance suite in the live lane.**
+**Our own MCP server is read by the conformance suite in the live lane, by hand.**
 `apps/api/src/strategist/tests/integration/mcp/` is marked `live_wdk`, so it
 skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` and without
 `WDK_MCP_SERVICE_TOKENS` naming the value the served container carries.
 `test_conformance_ours.py` runs the suite as its own process against
 `STRATEGIST_MCP_URL` (default `http://localhost:8100/mcp`) with the WDK-backed
 account hook, and reads the admission record; `MCP_ADMISSION_REPORT` names where
-that record is written for a lane to collect. `.github/workflows/mcp-nightly.yml`
-serves the endpoint, runs the lane on a schedule, uploads the record and files
-an issue on failure. Like the WDK lane, it never blocks a pull request: an
-admitted source is quarantined by an issue, not by a red build.
+that record is written. No workflow serves the endpoint or runs the suite: like
+the WDK lane, it runs by hand against a served endpoint that reaches QA, and it
+never blocks a pull request.
 
 Only warm sites appear in that run's arguments. A catalog read of a site the
 container has not loaded builds a per-site index inside a 2g ceiling and the

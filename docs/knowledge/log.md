@@ -1,5 +1,20 @@
 # Log
 
+## 2026-11-23
+
+* **CI runs recorded tests only.** No CI job reaches a live site or a model, and nothing
+  runs on a schedule: `ci.yml` lost its nightly trigger, and a hand-started run refreshes
+  the recorded API test durations. `wdk-nightly.yml` and `mcp-nightly.yml` are deleted;
+  the `live_wdk` lane, the MCP admission run and the recording refresh run by hand.
+  `check-test-sites.mjs` refuses a workflow that runs a live lane, and the e2e tier stays
+  behind `E2E_ENABLED` until it replays recordings. The backlog item "QA sites need a pass
+  for automated clients" left: nothing automated reaches QA from outside the network now,
+  and what remained of it is "The e2e tier runs on replayed recordings". See
+  [CI runs recorded tests only](decisions/ci-runs-recorded-tests-only.md).
+* **A model reading a settled decision cuts short is still metered.** `read_message`
+  waits for the cancelled model reading to end, so the spend of a run that reached the
+  model is recorded before the turn absorbs the meter.
+
 ## 2026-11-22
 
 * **Every value shown to an agent reads back.** A filter with no clauses is shown `[]`

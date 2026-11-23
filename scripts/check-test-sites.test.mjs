@@ -6,7 +6,6 @@ import {
   E2E_COMPOSE,
   QA_SITES,
   TEST_SITES,
-  WORKFLOW_SITES,
   collect,
   composeServices,
   mountedFiles,
@@ -75,18 +74,15 @@ const COMPOSE = (workerConfig = "/app/e2e-sites.yaml") => `services:
       - "5433:5432"
 `;
 
-const NIGHTLY = (sites = WORKFLOW_SITES) => `name: WDK nightly
+const LIVE = (command) => `name: WDK live
 
 env:
-  VEUPATHDB_SITES_CONFIG: ${sites}
+  VEUPATHDB_SITES_CONFIG: \${{ github.workspace }}/deploy/sites/qa.yml
 
 jobs:
   live-lane:
     steps:
-      - name: Run the live lane
-        env:
-          WDK_TEST_EMAIL: \${{ secrets.WDK_TEST_EMAIL }}
-        run: uv run pytest src/strategist/tests -m live_wdk -q
+      - run: ${command}
 `;
 
 const CI = (sites = "plasmodb", extra = "") => `name: CI
@@ -109,7 +105,6 @@ const files = (overrides = {}) =>
       [QA_SITES]: QA,
       [TEST_SITES]: LIST,
       [E2E_COMPOSE]: COMPOSE(),
-      ".github/workflows/wdk-nightly.yml": NIGHTLY(),
       ".github/workflows/ci.yml": CI(),
       "apps/web/playwright.config.ts": "export default {};\n",
       ...overrides,
@@ -245,30 +240,17 @@ test("a compose service that sets no site list is refused", () => {
   ]);
 });
 
-test("a live workflow with another site list is refused", () => {
-  assert.deepEqual(
-    offencesIn(files({ ".github/workflows/wdk-nightly.yml": NIGHTLY("/elsewhere/sites.yaml") })),
-    [
-      `.github/workflows/wdk-nightly.yml: reaches a live site, and its top-level env sets VEUPATHDB_SITES_CONFIG to /elsewhere/sites.yaml, not ${WORKFLOW_SITES}`,
-    ],
-  );
-});
-
-test("a live workflow with no site list is refused", () => {
-  const unset = NIGHTLY().replace(/env:\n {2}VEUPATHDB_SITES_CONFIG: .*\n\n/, "");
-
-  assert.deepEqual(offencesIn(files({ ".github/workflows/wdk-nightly.yml": unset })), [
-    `.github/workflows/wdk-nightly.yml: reaches a live site, and its top-level env sets VEUPATHDB_SITES_CONFIG to nothing, not ${WORKFLOW_SITES}`,
-  ]);
-});
-
-test("a workflow that serves the MCP endpoint is a live workflow", () => {
-  const served = "name: MCP\njobs:\n  a:\n    steps:\n      - run: uv run python -m veupathdb_mcp &\n";
-
-  assert.deepEqual(offencesIn(files({ ".github/workflows/mcp-nightly.yml": served })), [
-    `.github/workflows/mcp-nightly.yml: reaches a live site, and its top-level env sets VEUPATHDB_SITES_CONFIG to nothing, not ${WORKFLOW_SITES}`,
-  ]);
-});
+for (const command of [
+  "uv run pytest src/strategist/tests -m live_wdk -q",
+  "uv run python -m veupathdb_mcp &",
+  "uv run python -m veupathdb.devtools.fixtures record",
+]) {
+  test(`a workflow that runs \`${command}\` is refused even on the QA sites`, () => {
+    assert.deepEqual(offencesIn(files({ ".github/workflows/live.yml": LIVE(command) })), [
+      ".github/workflows/live.yml: runs a live lane, and CI runs recorded tests only",
+    ]);
+  });
+}
 
 test("a workflow with no live lane needs no site list", () => {
   assert.deepEqual(

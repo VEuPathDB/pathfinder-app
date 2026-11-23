@@ -13,7 +13,7 @@ status: stable
 `apps/api/src/strategist/tests/integration/mcp/test_conformance_ours.py` composes
 the suite as its own pytest process against the served endpoint, and reads the
 admission record the run writes. It is marked `live_wdk`, so it runs in the
-nightly lane and never blocks a pull request.
+live lane, by hand, and never in CI.
 
 **The first credential is the registered VEuPathDB account.** Eighteen served
 tools carry sample arguments in that run, the two OrthoMCL expression builders on

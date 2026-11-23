@@ -37,7 +37,7 @@ Measured: toxodb `10 searches, experiments on plasmodb`; vectorbase `5 searches,
 | 2 | toxodb, the S2 conversation (78 genes) | Send `Carry these to their orthologs in Neospora caninum Liverpool.` | Same layout, `isSyntenic=no`: 145 genes, `NCLIV_` ids |
 | 3 | Each | Step editor of the transform | `Syntenic Orthologs Only?` reads `no` |
 
-Measured: both built `isSyntenic=yes`: vectorbase 235, toxodb 69 (FND-1, blocker). The vectorbase card read `0 of 8 sampled genes fit` beside `Supported` (FND-6). Pass 2 (2026-09-25, build 71): toxodb built the 78-gene seed and the transform with `isSyntenic` at its default, 145 genes. The nightly case `uat-s5-toxodb` holds those values.
+Measured: both built `isSyntenic=yes`: vectorbase 235, toxodb 69 (FND-1, blocker). The vectorbase card read `0 of 8 sampled genes fit` beside `Supported` (FND-6). Pass 2 (2026-09-25, build 71): toxodb built the 78-gene seed and the transform with `isSyntenic` at its default, 145 genes. The eval case `uat-s5-toxodb` holds those values.
 
 ## X4 - Orthology on fungidb - core
 

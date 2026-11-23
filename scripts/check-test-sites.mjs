@@ -10,7 +10,6 @@ export const TEST_SITES = "e2e-sites.yaml";
 export const E2E_COMPOSE = "docker-compose.e2e.yml";
 export const WORKFLOWS = ".github/workflows";
 export const PYPROJECT = "apps/api/pyproject.toml";
-export const WORKFLOW_SITES = "${{ github.workspace }}/deploy/sites/qa.yml";
 export const EXCLUDED = new Set([
   "docs",
   "thesis",
@@ -136,14 +135,6 @@ export function mountedFiles(composeText) {
   return [...files];
 }
 
-function workflowSites(text) {
-  for (const line of topLevelBlock(text, "env")) {
-    const variable = new RegExp(String.raw`^\s+${SITES_VARIABLE}:\s*(.+?)\s*$`).exec(line);
-    if (variable !== null) return variable[1].replace(/^"(.*)"$/, "$1");
-  }
-  return null;
-}
-
 function e2eSites(text) {
   const listed = /^\s+E2E_SITES:\s*(\S+)/m.exec(text);
   return listed === null ? [] : listed[1].split(",").map((site) => site.trim());
@@ -192,14 +183,7 @@ export function offencesIn(texts) {
 
   for (const [path, text] of texts) {
     if (!path.startsWith(`${WORKFLOWS}/`)) continue;
-    if (LIVE_RUN.test(text)) {
-      const named = workflowSites(text);
-      if (named !== WORKFLOW_SITES) {
-        offences.push(
-          `${path}: reaches a live site, and its top-level env sets ${SITES_VARIABLE} to ${named ?? "nothing"}, not ${WORKFLOW_SITES}`,
-        );
-      }
-    }
+    if (LIVE_RUN.test(text)) offences.push(`${path}: runs a live lane, and CI runs recorded tests only`);
     for (const site of e2eSites(text)) {
       if (!listed.has(site)) offences.push(`${path}: E2E_SITES names ${site}, which ${TEST_SITES} does not list`);
     }

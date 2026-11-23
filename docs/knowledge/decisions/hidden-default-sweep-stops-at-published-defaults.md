@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The hidden-default sweep stops at published defaults, and the rest is dated rather than measured
-description: The nightly sweep binds every required parameter from its own initialDisplayValue and measures what WDK answers. It does not invent a value for channel or dataset_url. Researching a plausible value per search was rejected: it is 131 separate per-search studies whose answer expires, and the artifact already names every search that refuses and every search that 500s.
+description: The live sweep binds every required parameter from its own initialDisplayValue and measures what WDK answers. It does not invent a value for channel or dataset_url. Researching a plausible value per search was rejected: it is 131 separate per-search studies whose answer expires, and the artifact already names every search that refuses and every search that 500s.
 tags: [wdk-alignment, parameters, silent-zero, measurement, site-model]
 generated: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
@@ -50,7 +50,7 @@ Two things the sweep already does make the study unnecessary:
 - **The artifact names every search by outcome.** `SweepReport.measured` holds one
   `SearchMeasurement` per search with its `status` and WDK's own message in
   `note`, so the 58 that answer 500 are listed by name in
-  `wdk-hidden-defaults.json`, which the nightly lane uploads on every run. The
+  `wdk-hidden-defaults.json`, which the live lane writes on every run. The
   lane also records the enumeration counts through `DriftLog`, so the next drift
   in which parameters exist is dated rather than rediscovered.
 

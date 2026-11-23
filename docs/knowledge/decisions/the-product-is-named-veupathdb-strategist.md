@@ -66,7 +66,7 @@ because a worker started as `-m pathfinder.jobs.worker` does not start from this
 - **Local names.** The local and test databases are `strategist` and `strategist_test` (the
   integration guard refuses any other), the e2e images `strategist-e2e-api` and
   `strategist-e2e-web`, the root workspace `strategist`, and the local Langfuse defaults name
-  Strategist. The nightly MCP lane reads the secret `STRATEGIST_MCP_SERVICE_TOKENS`.
+  Strategist.
 
 What still says `pathfinder`, and why:
 
