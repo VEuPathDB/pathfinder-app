@@ -36,7 +36,6 @@ from schemathesis.config import (
 )
 from schemathesis.config import HealthCheck as STHealthCheck
 from schemathesis.core.result import Ok
-from schemathesis.core.transport import Response
 from schemathesis.filters import FilterSet
 from schemathesis.generation import GenerationMode
 from schemathesis.openapi import from_asgi
@@ -231,12 +230,10 @@ def test_openapi_conformance(
 ) -> None:
     """Fuzz one operation and validate the response against its schema."""
     del seeded_memories
-    response: Response = case.call_and_validate(
+    case.call_and_validate(
         checks=_CHECKS,
         headers={"X-Requested-With": "XMLHttpRequest"},
     )
-    assert response.status_code >= 100
-    assert response.status_code < 600
 
 
 def _parsed_operations(schema: BaseSchema) -> list[APIOperation[Any, Any, Any, Any]]:
