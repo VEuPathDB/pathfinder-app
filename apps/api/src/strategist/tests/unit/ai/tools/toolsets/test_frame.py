@@ -54,7 +54,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "list_gene_sets": (frozenset({"offset"}), frozenset()),
     "list_saved_strategies": (frozenset(), frozenset()),
     "list_searches": (frozenset({"record_type"}), frozenset({"record_type"})),
-    "list_transforms": (frozenset({"record_type"}), frozenset({"record_type"})),
+    "list_transforms": (frozenset(), frozenset()),
     "lookup_gene_records": (
         frozenset({"limit", "organism", "query"}),
         frozenset({"query"}),

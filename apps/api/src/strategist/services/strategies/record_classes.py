@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping
 
+from pydantic import ConfigDict
 from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStep,
@@ -11,7 +12,9 @@ from veupathdb.domain.strategy import (
     rebuild_tree,
     walk,
 )
+from veupathdb.model import CamelModel
 from veupathdb.wdk import WDKSearch
+from veupathdb_mcp import tool_payloads
 from veupathdb_mcp.catalog import (
     get_raw_record_types,
     get_raw_searches,
@@ -20,6 +23,7 @@ from veupathdb_mcp.catalog import (
 
 from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import StepPushFailure
+from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.record_class_check import (
     SearchRecordClasses,
     first_mixed_combine,
@@ -77,6 +81,44 @@ async def site_transforms(site_id: str) -> dict[str, SearchRecordClasses]:
         for search in await get_raw_searches(site_id, record.url_segment)
         if search.allowed_primary_input_record_class_names
     }
+
+
+def plan_classes(spec: OperationalSpec) -> frozenset[str] | None:
+    found = frozenset(c.record_class for c in spec.criteria if c.record_class)
+    return found or None
+
+
+class ListedTransform(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    display_name: str
+    description: str
+    record_type: str
+
+
+async def transforms_accepting(
+    site_id: str, classes: frozenset[str] | None
+) -> list[ListedTransform]:
+    found: list[ListedTransform] = []
+    for record in await get_raw_record_types(site_id):
+        listed_under = record.url_segment
+        takes = {
+            search.url_segment: frozenset(
+                search.allowed_primary_input_record_class_names or ()
+            )
+            for search in await get_raw_searches(site_id, listed_under)
+        }
+        found.extend(
+            ListedTransform.model_validate(
+                listing.model_dump() | {"record_type": listed_under}
+            )
+            for listing in await tool_payloads.list_transform_listings(
+                site_id, listed_under
+            )
+            if classes is None or takes.get(listing.name, frozenset()) & classes
+        )
+    return found
 
 
 def _own_search(step: StrategyStep) -> str | None:

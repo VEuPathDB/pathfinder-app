@@ -32,6 +32,7 @@ Sentence = Annotated[str, BeforeValidator(_one_line), StringConstraints(min_leng
 
 
 class Check(StrEnum):
+    AN_ABSENCE_TO_A_READ = "an_absence_to_a_read"
     AN_OPTION_TO_A_HELD_EXPRESSION = "an_option_to_a_held_expression"
     AN_OPTION_TO_ITS_PARAMETER = "an_option_to_its_parameter"
     AN_ORGANISM_TO_A_STEP = "an_organism_to_a_step"

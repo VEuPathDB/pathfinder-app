@@ -41,6 +41,7 @@ _ADDED_SEARCHES = (
 _NO_READINGS: Mapping[str, str] = MappingProxyType({})
 
 PassGapKind = Literal[
+    "absence_not_read",
     "reading_left_out",
     "question_without_readings",
     "readings_name_no_requirement",

@@ -135,6 +135,19 @@
   rebuild dropped are deleted after the put. A draft or a refused step is a failed step of
   the build, a step above it is skipped, and no strategy is put. The WDK ids a recreate
   replaced are kept on the strategy row (`replaced_wdk_step_ids`) until a put deletes them.
+
+* **One transform reader, by the input class.** `list_transforms` took a free `record_type` and
+  listed the searches listed under it, so a transcript plan read with `record_type="gene"` saw
+  only `GenesFromTranscripts` and FRAME reported that the site has no orthology transform. It
+  now takes no argument: `services/strategies/record_classes.py::transforms_accepting` lists, across
+  every record type of the site, the transforms whose primary input accepts a record class of a
+  bound criterion (every transform when none is bound), each with the record type it is listed
+  under, so a protein plan on OrthoMCL still reads `GroupsFromSequences` under `group`.
+  `role_problems` names the same list. A FRAME `site_has_no_search` report stands only when a
+  catalog read of the pass covers the plan's record classes (`CatalogRead.covers`); otherwise
+  FRAME is sent back once, and a report it keeps reaches the Lead as an `absence_not_read` gap
+  that names the read that answers it.
+
 * **One rename tool and one definition of obsolete.** The building pass held a second
   `rename_strategy` (`ai/tools/standalone/conversation.py`) that took a required description,
   wrote it as the strategy's stated description (sent to WDK at the next push in place of the

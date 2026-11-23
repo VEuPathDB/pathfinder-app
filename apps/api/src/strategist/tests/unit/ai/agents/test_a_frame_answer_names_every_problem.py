@@ -27,6 +27,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementReport,
 )
 from strategist.platform.refusals import SpentRefusal
+from strategist.tests._support.catalog_reads import listing
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _UNKNOWN = RequirementReport(
@@ -61,6 +62,7 @@ _GAPS = [
 def _context() -> RunContext[AgentDeps]:
     ctx = agent_run_context()
     state = ctx.deps.agent_state
+    state.catalog_reads = [listing(["GenesByReef"])]
     state.stated_requirements = [
         Constraint(
             kind=ConstraintKind.UNTYPED,

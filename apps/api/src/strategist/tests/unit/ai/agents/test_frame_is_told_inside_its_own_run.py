@@ -35,6 +35,7 @@ from strategist.domain.strategy.requirement_reports import (
 )
 from strategist.platform.refusals import ANSWER_REFUSALS_PER_KEY
 from strategist.services.strategies import reading_check
+from strategist.tests._support.catalog_reads import listing
 from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -76,6 +77,7 @@ async def test_a_number_the_list_lacks_is_corrected_before_the_caller_reads_it()
 
     deps = agent_run_context().deps
     deps.agent_state.stated_requirements = [_GPI]
+    deps.agent_state.catalog_reads = [listing(["GenesByText"])]
     agent = build_frame_agent()
 
     with agent.override(model=streamed(_frame, model_name="scripted")):

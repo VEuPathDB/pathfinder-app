@@ -175,6 +175,7 @@ class CatalogRead(BaseModel):
     query: str = ""
     record_type: str
     hits: list[CatalogHit]
+    accepting: frozenset[str] | None = None
 
     @property
     def ranked(self) -> bool:

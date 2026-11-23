@@ -48,7 +48,6 @@ def test_a_catalog_read_names_its_record_type_and_a_gene_tool_takes_none() -> No
         Tool(search_for_searches),
         Tool(browse_search_categories),
         Tool(list_searches),
-        Tool(list_transforms),
     ]
     derived: list[Tool[Any]] = [
         Tool(lookup_phyletic_codes),
@@ -57,8 +56,12 @@ def test_a_catalog_read_names_its_record_type_and_a_gene_tool_takes_none() -> No
         Tool(build_control_set),
     ]
 
-    assert [("record_type" in _arguments(t)[1]) for t in readers] == [True] * 4
+    assert [("record_type" in _arguments(t)[1]) for t in readers] == [True] * 3
     assert [("record_type" in _arguments(t)[0]) for t in derived] == [False] * 4
+
+
+def test_the_transform_listing_reads_the_plans_classes_and_takes_none() -> None:
+    assert _arguments(Tool(list_transforms)) == (set(), set())
 
 
 @pytest.mark.parametrize(

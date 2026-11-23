@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from pydantic_ai import RunContext
 from veupathdb.wdk import WDKSearch
-from veupathdb_mcp import tool_payloads
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone.catalog import record_a_listing
+from strategist.ai.tools.standalone.catalog import record_transforms
 from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import CriterionRole
+from strategist.services.strategies.record_classes import (
+    plan_classes,
+    transforms_accepting,
+)
 
 
 def saved_input_problems(
@@ -27,7 +30,6 @@ def saved_input_problems(
 
 async def role_problems(
     ctx: RunContext[AgentDeps],
-    record_type: str,
     definition: WDKSearch,
     role: CriterionRole,
 ) -> Problems:
@@ -36,16 +38,16 @@ async def role_problems(
     search_name = definition.url_segment
     key = RefusalKey(check=Check.ROLE)
     if role == "transform" and not takes_an_input_step:
-        listings = await tool_payloads.list_transform_listings(
-            ctx.deps.site_id, record_type
-        )
+        classes = plan_classes(ctx.deps.agent_state.operational_spec_draft)
+        listings = await transforms_accepting(ctx.deps.site_id, classes)
         offered = sorted(listing.name for listing in listings)
-        record_a_listing(ctx, "list_transforms", record_type, listings)
+        record_transforms(ctx, classes, listings)
+        taking = ", ".join(sorted(classes)) if classes else "any record type"
         return Problems.one(
             key,
             f"{search_name} takes no input step, so it cannot be a transform. "
             f'Bind it with role="filter" or role="seed", or name one of the '
-            f"transforms on {record_type}: {', '.join(offered)}.",
+            f"transforms that take {taking}: {', '.join(offered)}.",
         )
     if role != "transform" and takes_an_input_step:
         return Problems.one(

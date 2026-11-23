@@ -13,7 +13,7 @@ from strategist.ai.agents.held_answer import (
     gapped,
     held,
 )
-from strategist.ai.agents.state import AgentToolState
+from strategist.ai.agents.state import AgentToolState, CatalogRead
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap, PassGapKind
 from strategist.ai.lead.frame_questions import questions_that_bind_to_nothing
@@ -28,6 +28,7 @@ from strategist.domain.strategy.requirement_reports import (
 )
 from strategist.domain.strategy.structure_bindings import unbound_in_structure
 from strategist.services.gene_sets.homes import site_kind
+from strategist.services.strategies.record_classes import plan_classes
 
 
 def _dropped(report: RequirementReport) -> Changed:
@@ -70,6 +71,49 @@ def hold_the_reports_to_the_requirement_list(
         )
         for report in output.requirement_problems
         if (number := report.requirement) in unknown
+    ]
+
+
+def _covers(read: CatalogRead, record_class: str) -> bool:
+    if read.tool == "list_transforms":
+        return read.accepting is None or record_class in read.accepting
+    return read.record_type == record_class
+
+
+def _unread_classes(state: AgentToolState) -> list[str]:
+    classes = plan_classes(state.operational_spec_draft)
+    if classes is None:
+        return [] if state.catalog_reads else ["any record type"]
+    return sorted(
+        c for c in classes if not any(_covers(r, c) for r in state.catalog_reads)
+    )
+
+
+def hold_an_absence_to_a_read(
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    unread = ", ".join(_unread_classes(ctx.deps.agent_state))
+    if not unread:
+        return []
+    return [
+        held(
+            RefusalKey(check=Check.AN_ABSENCE_TO_A_READ, criterion=number),
+            (
+                f"site_has_no_search for {number} rests on no catalog read of "
+                f"{unread} this pass. Call list_transforms or search_for_searches "
+                f"on {unread}, and report {number} only if the read shows no search."
+            ),
+            *_dropped_with_gap(
+                report,
+                "absence_not_read",
+                f"The pass reported {number} as a search the site lacks, and no "
+                f"catalog read of this pass covers {unread}, so it was not read. "
+                f"list_transforms or search_for_searches on {unread} answers it.",
+            ),
+        )
+        for report in output.requirement_problems
+        if report.problem is RequirementProblem.SITE_HAS_NO_SEARCH
+        and (number := report.requirement)
     ]
 
 
@@ -324,6 +368,7 @@ def hold_the_reports_to_the_refusals(
 
 
 __all__ = [
+    "hold_an_absence_to_a_read",
     "hold_an_organism_to_a_step",
     "hold_the_questions_to_a_dimension",
     "hold_the_questions_to_the_draft",
