@@ -23,19 +23,19 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
-    CombineOp,
     StepKind,
+    StepSettings,
     StrategyAst,
     StrategyStep,
     StrategyStepNode,
     flatten_tree,
     rebuild_tree,
+    settings_of,
     subtree_ids,
     walk,
 )
 from veupathdb.errors import DataParsingError, VEuPathDBError
 from veupathdb.wdk import (
-    WDKSearchConfig,
     WDKStep,
     WDKStrategyDetails,
     get_strategy_api,
@@ -59,6 +59,8 @@ from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_
 from strategist.services.strategies.write_lock import strategy_write_lock
 
 logger = get_logger(__name__)
+
+_OWN_LINES = frozenset({"search_name", "parameters"})
 
 
 __all__ = [
@@ -208,24 +210,18 @@ async def _take_the_sites_values(
     tree: _SiteTree | None,
     site_id: str,
 ) -> list[str]:
-    operators = (
-        {}
-        if tree is None
-        else {node.id: node.operator for node in walk(tree.ast.root) if node.operator}
-    )
+    nodes = {} if tree is None else {node.id: node for node in walk(tree.ast.root)}
     moved: list[str] = []
     for wdk_key, wdk_step in live.steps.items():
         step = _held_step(graph, local_of, wdk_key)
         if step is None:
             continue
-        if step.kind is StepKind.COMBINE:
-            taken = _take_the_operator(step, operators.get(wdk_key))
-        else:
-            taken = await _take_the_parameters(
-                step, wdk_step.search_name, _wire_of(wdk_step), site_id=site_id
-            )
-        weighed = _take_the_weight(step, wdk_step.search_config)
-        if taken or weighed:
+        taken = step.kind is not StepKind.COMBINE and await _take_the_parameters(
+            step, wdk_step.search_name, _wire_of(wdk_step), site_id=site_id
+        )
+        node = nodes.get(wdk_key)
+        settled = node is not None and _take_the_settings(step, settings_of(node))
+        if taken or settled:
             moved.append(step.id)
     return moved
 
@@ -237,24 +233,26 @@ def _wire_of(step: WDKStep) -> WireStep:
     )
 
 
-def _take_the_weight(step: StrategyStep, config: WDKSearchConfig) -> bool:
-    """A graph that holds no weight leaves the weight to the site."""
-    if step.wdk_weight is None or "wdk_weight" not in config.model_fields_set:
-        return False
-    if config.wdk_weight == step.wdk_weight:
-        return False
-    step.wdk_weight = config.wdk_weight
-    return True
+def _take_the_settings(step: StrategyStep, site: StepSettings) -> bool:
+    """Take every setting the site holds otherwise, its search and values aside.
 
-
-def _take_the_operator(step: StrategyStep, operator: CombineOp | None) -> bool:
-    """A colocation is not a set operation, so it keeps its own operator."""
-    if operator is None or step.operator in (None, CombineOp.COLOCATE):
-        return False
-    if operator == step.operator:
-        return False
-    step.operator = operator
-    return True
+    A filter WDK added on its own is not one the step states, and a step with
+    no record of what WDK added leaves its filters to the commit.
+    """
+    added = step.filters_wdk_added
+    stated = site.model_copy(
+        update={
+            "filters": step.filters
+            if added is None
+            else [f for f in site.filters if f not in added]
+        }
+    )
+    held = settings_of(step)
+    moved = [name for name in held.changed(stated) if name not in _OWN_LINES]
+    taken = dict(stated)
+    for name in moved:
+        setattr(step, name, taken[name])
+    return bool(moved)
 
 
 async def _take_the_parameters(
