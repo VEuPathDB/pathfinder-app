@@ -29,6 +29,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import (
     agent_tool_names,
     pinned_sub_agent,
@@ -207,7 +208,7 @@ async def _verify(
     deps: LeadDeps,
     script: _Script,
 ) -> VerificationDelta:
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", script.model)
+    monkeypatch.setattr(sub_agent_tools, "scripted", scripted_with(model=script.model))
     with pinned_sub_agent(
         monkeypatch,
         "verification",

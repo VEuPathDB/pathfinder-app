@@ -47,6 +47,7 @@ from strategist.platform.model_keys import (
     turn_deployment_refusals,
 )
 from strategist.tests._support.logs import logged_events
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import Collector
 
 _LEAD_NODE_LOGGER = "strategist.ai.graph.lead_node"
@@ -131,7 +132,7 @@ def _drive_model(
     capture: LeadRunCapture,
     writer: Collector,
 ) -> None:
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: model))
     state = PipelineState(
         conversation_id=uuid4(),
         user_id=uuid4(),

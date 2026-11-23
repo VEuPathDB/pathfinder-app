@@ -33,6 +33,7 @@ from strategist.ai.lead.verify_dispatch import run_verification
 from strategist.ai.tools.toolsets import execution
 from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.operational_spec import Criterion
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -82,8 +83,12 @@ def deleted_step_ids() -> list[str]:
 def scripted_delete(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: call_then_final_model("delete_step", _DELETE_ARGS, _RECOVERY_FINAL),
+        "scripted",
+        scripted_with(
+            model=lambda: call_then_final_model(
+                "delete_step", _DELETE_ARGS, _RECOVERY_FINAL
+            )
+        ),
     )
 
 
@@ -153,8 +158,12 @@ async def test_verification_approval_reaches_the_client(
 ) -> None:
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: call_then_final_model(_RETIRE_TOOL, _RETIRE_ARGS, _VERIFICATION_FINAL),
+        "scripted",
+        scripted_with(
+            model=lambda: call_then_final_model(
+                _RETIRE_TOOL, _RETIRE_ARGS, _VERIFICATION_FINAL
+            )
+        ),
     )
     deps = _deps()
 
@@ -365,11 +374,13 @@ async def test_the_stored_dispatch_arguments_drive_the_re_entry(
 
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: call_then_final_model(
-            "bind_criterion",
-            {"criterion_id": "c1"},
-            {"summary": "bound one", "disposition": "spec_ready"},
+        "scripted",
+        scripted_with(
+            model=lambda: call_then_final_model(
+                "bind_criterion",
+                {"criterion_id": "c1"},
+                {"summary": "bound one", "disposition": "spec_ready"},
+            )
         ),
     )
     deps = _deps()

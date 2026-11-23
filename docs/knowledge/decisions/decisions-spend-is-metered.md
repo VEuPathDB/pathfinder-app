@@ -17,7 +17,7 @@ the deployment's. The turn's router is the one exception: it is sent inside
 `decisions_on_the_deployment()` on `platform/model_keys.py::deployment_provider`, charged as
 paid by the deployment, and asked only while the researcher's monthly deployment allowance
 holds ([a thread answers in Explore or Build](a-thread-answers-in-explore-or-build.md)). A
-mock deployment asks no decision.
+mock deployment asks no decision: its transport is `strategist_scripted.decisions.no_decision`.
 
 Each answer's usage (input tokens, cache reads, cache writes) is priced by
 `assistant_core.cost.cost_for_run` as gpt-6-luna with no output tokens, and reported to the

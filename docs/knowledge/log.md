@@ -88,6 +88,13 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **Production reaches the scripted model through one seam.** `strategist/ai/scripted.py::scripted()`
+  imports `strategist_scripted` by name and returns its `SCRIPTED`, one `ScriptedDeployment` record of
+  the stand-ins a mock deployment runs instead of a provider: the model, the intent, route and operator
+  readers, the no-decision transport, the injection judge and the three audit models. `Settings` refuses
+  `STRATEGIST_CHAT_PROVIDER=mock` when the package is not importable, so a mock deployment of the
+  production image fails at boot. The judge and the no-decision transport live in the package now.
+
 * **The e2e image stage adds the scripted model.** `apps/api/Dockerfile` names its stages: `runtime`
   (the production image), `e2e` (`runtime` plus `src/strategist_scripted`), and a last `FROM runtime`,
   so a build with no target ships no scripted model. `docker-compose.e2e.yml` and CI's e2e build name

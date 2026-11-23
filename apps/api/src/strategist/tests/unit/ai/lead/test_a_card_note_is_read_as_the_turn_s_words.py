@@ -10,6 +10,7 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.intent import IntentClassification, UserIntent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.constraints import ConstraintKind
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -55,7 +56,7 @@ def _reading(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         read.append(words)
         return _ANSWER
 
-    monkeypatch.setattr(_lead_reading, "scripted_intent", _scripted)
+    monkeypatch.setattr(_lead_reading, "scripted", scripted_with(intent=_scripted))
     return read
 
 

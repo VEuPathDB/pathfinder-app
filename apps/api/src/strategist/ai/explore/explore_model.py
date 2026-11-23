@@ -6,7 +6,7 @@ from assistant_core.platform.types import ReasoningEffort
 
 from strategist.ai.explore.explore_agent import EXPLORE_MODEL, ExploreAgent
 from strategist.ai.graph._lead_model import LeadModelContext
-from strategist.ai.models.mock import get_mock_model
+from strategist.ai.scripted import scripted
 from strategist.platform.config import get_settings
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.platform.model_keys import is_mock_deployment, keyed_model
@@ -21,7 +21,7 @@ def resolve_explore_model_context(
 ) -> LeadModelContext:
     if is_mock_deployment():
         return LeadModelContext(
-            override=agent.override(model=get_mock_model()),
+            override=agent.override(model=scripted().model()),
             model_id="mock:explore",
             reasoning_effort=None,
         )

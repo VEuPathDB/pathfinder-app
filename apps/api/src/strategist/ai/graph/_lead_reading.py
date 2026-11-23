@@ -19,7 +19,7 @@ from strategist.ai.lead.sub_agent_stops import (
     spent_its_output_retries,
 )
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.models.mock.reading import scripted_intent
+from strategist.ai.scripted import scripted
 from strategist.domain.exchanges import exchanges_text
 from strategist.domain.strategy.requirement_reports import numbered_requirements
 from strategist.domain.strategy.session import StrategyGraph
@@ -109,7 +109,7 @@ async def _intent_of_words(
     meter: SpendMeter,
 ) -> UserIntent:
     if is_mock_deployment():
-        return scripted_intent(deps.state, words)
+        return scripted().intent(deps.state, words)
     read = _reader_input(
         state, deps, words, await record_class_names(deps.runtime.site_id)
     )

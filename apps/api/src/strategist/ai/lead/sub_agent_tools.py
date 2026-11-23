@@ -36,7 +36,7 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.lead.intent import UserIntent
 from strategist.ai.lead.phase_stop import PhaseStop
-from strategist.ai.models.mock import get_mock_model
+from strategist.ai.scripted import scripted
 from strategist.domain.strategy.constraints import Constraint, ConstraintKind
 from strategist.domain.strategy.orthology import restate_copies
 from strategist.domain.strategy.session import StrategySession
@@ -198,7 +198,7 @@ def phase_override_kwargs(
     """
     effective_model = phase_model_id(runtime, role)
     if not effective_model:
-        return {"model": get_mock_model()}
+        return {"model": scripted().model()}
     tier_cfg = _configured_tier_config(role)
     effort = runtime.phase_reasoning.get(role) or (
         tier_cfg.reasoning_effort if tier_cfg is not None else None

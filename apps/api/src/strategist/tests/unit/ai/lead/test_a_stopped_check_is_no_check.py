@@ -25,6 +25,7 @@ from strategist.domain.strategy.build_outcome import BuiltCounts
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import StrategySession
 from strategist.tests._support.run_context import run_context_for
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead._budget_stop_turn import (
     built_outcome,
@@ -156,7 +157,9 @@ async def test_a_check_whose_answer_is_out_of_shape_every_time_is_a_typed_stop(
     state, session = _checked_earlier()
     deps = lead_deps(state, strategy_session=session)
     misshapen = final_result_model({"digest": {"keyFindings": "Checked."}})
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", lambda: misshapen)
+    monkeypatch.setattr(
+        sub_agent_tools, "scripted", scripted_with(model=lambda: misshapen)
+    )
 
     with pinned_sub_agent(
         monkeypatch,

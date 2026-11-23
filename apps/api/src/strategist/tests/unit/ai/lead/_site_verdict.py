@@ -13,6 +13,7 @@ from strategist.ai.lead.verify_dispatch import run_verification
 from strategist.ai.tools.toolsets import verification
 from strategist.services.strategies import organism_params, record_classes
 from strategist.services.strategies.site_counts import SiteCounts
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead.conftest import final_result_model
 
@@ -72,7 +73,9 @@ async def verify(
     monkeypatch: pytest.MonkeyPatch, deps: LeadDeps, digest: dict[str, Any]
 ) -> VerificationDelta:
     monkeypatch.setattr(
-        sub_agent_tools, "get_mock_model", lambda: final_result_model(digest)
+        sub_agent_tools,
+        "scripted",
+        scripted_with(model=lambda: final_result_model(digest)),
     )
     with pinned_sub_agent(
         monkeypatch,

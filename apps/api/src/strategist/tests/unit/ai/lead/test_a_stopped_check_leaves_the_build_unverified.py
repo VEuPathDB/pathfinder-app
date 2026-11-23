@@ -25,6 +25,7 @@ from strategist.ai.lead.verify_dispatch import run_verification, verify_strategy
 from strategist.ai.tools.toolsets import verification
 from strategist.domain.turn_facts import UNVERIFIED_BUILD
 from strategist.tests._support.run_context import run_context_for
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead._budget_stop_turn import (
     built_outcome,
@@ -80,7 +81,7 @@ def _over_budget_model() -> Any:
 async def _verify_on(
     monkeypatch: pytest.MonkeyPatch, deps: LeadDeps, model: Any
 ) -> VerificationDelta | VerificationStopped | object:
-    monkeypatch.setattr(sub_agent_tools, "get_mock_model", lambda: model)
+    monkeypatch.setattr(sub_agent_tools, "scripted", scripted_with(model=lambda: model))
     with pinned_sub_agent(
         monkeypatch,
         "verification",

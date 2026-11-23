@@ -24,7 +24,7 @@ from strategist.ai.graph.turn_route import (
     decided_route,
     route_request_for,
 )
-from strategist.ai.models.mock.route import scripted_route
+from strategist.ai.scripted import scripted
 from strategist.domain.modes import (
     EXPLORE_PHASE,
     READINGS_PHASE,
@@ -70,7 +70,7 @@ async def _picked_route(
     if state.mode == "build" or not state.user_prompt:
         return "build"
     ask = (
-        scripted_route(state.user_prompt)
+        scripted().route(state.user_prompt)
         if is_mock_deployment()
         else await _service(state, runtime)
     )

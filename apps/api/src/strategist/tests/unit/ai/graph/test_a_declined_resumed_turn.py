@@ -16,6 +16,7 @@ from strategist.ai.lead import lead_proposal
 from strategist.ai.lead.deltas import EditDelta
 from strategist.ai.lead.proposal import PROPOSAL_TOOL, AddCriterionChange
 from strategist.domain.strategy.spec_diff import SpecDiff
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import (
     CARD_REPLY,
     Collector,
@@ -86,7 +87,7 @@ def _edits(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_a_resumed_turn_the_model_declined_shows_the_notice_alone(
     writer: Collector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(_lead_model, "get_mock_model", _proposing)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=_proposing))
     first = lead_state()
     parked = await drive_lead(state=first, deps=lead_deps(first), writer=writer)
     assert parked.pending_approval is not None
@@ -98,7 +99,7 @@ async def test_a_resumed_turn_the_model_declined_shows_the_notice_alone(
     }
     entry = resumed.model_copy(deep=True)
     deps = lead_deps(resumed)
-    monkeypatch.setattr(_lead_model, "get_mock_model", _declining)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=_declining))
     declined = Collector()
 
     capture = await drive_lead(state=resumed, deps=deps, writer=declined)

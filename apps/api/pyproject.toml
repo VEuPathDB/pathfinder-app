@@ -194,7 +194,7 @@ max-branches = 10
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["strategist"]
+known-first-party = ["strategist", "strategist_scripted"]
 
 [tool.mypy]
 python_version = "3.14"

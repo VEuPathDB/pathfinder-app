@@ -24,6 +24,7 @@ from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import bound_uploads
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.services.strategies.user_dataset_searches import OwnedUpload
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests._support.user_dataset_doubles import UPLOAD_DATASET
 from strategist.tests.fixtures.builders import add_step_to_graph
@@ -147,7 +148,9 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
         return final_result_part(_DIGEST)
 
     monkeypatch.setattr(
-        sub_agent_tools, "get_mock_model", lambda: tool_script_model(_answer)
+        sub_agent_tools,
+        "scripted",
+        scripted_with(model=lambda: tool_script_model(_answer)),
     )
     with pinned_sub_agent(
         monkeypatch,

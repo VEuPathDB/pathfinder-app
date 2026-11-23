@@ -23,6 +23,7 @@ from pydantic_ai.models.function import FunctionModel
 
 from strategist.ai.graph import _lead_model
 from strategist.persistence.models import ControlSet
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.scripted_reading import read_as
 from strategist.tests.integration.chat._helpers import (
     chat_post_body,
@@ -71,7 +72,7 @@ def _sweeping_lead() -> FunctionModel:
 @pytest.fixture(autouse=True)
 def sweeping_lead(monkeypatch: pytest.MonkeyPatch) -> None:
     read_as(monkeypatch, "follow_up_question")
-    monkeypatch.setattr(_lead_model, "get_mock_model", _sweeping_lead)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=_sweeping_lead))
 
 
 @pytest.fixture(autouse=True)

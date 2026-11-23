@@ -26,6 +26,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.session import StrategySession
 from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import ensure_sync_state
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead.conftest import (
     call_then_final_model,
@@ -96,11 +97,13 @@ def _renaming_toolset() -> FunctionToolset[AgentDeps]:
 def renaming_sub_agent(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: call_then_final_model(
-            "rename_the_search",
-            {"search_name": "GenesByTaxon"},
-            _RECOVERY_FINAL,
+        "scripted",
+        scripted_with(
+            model=lambda: call_then_final_model(
+                "rename_the_search",
+                {"search_name": "GenesByTaxon"},
+                _RECOVERY_FINAL,
+            )
         ),
     )
     with pinned_sub_agent(
@@ -117,8 +120,8 @@ def idle_sub_agent(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """A recovery pass that answers and calls no tool."""
     monkeypatch.setattr(
         sub_agent_tools,
-        "get_mock_model",
-        lambda: final_result_model(_RECOVERY_FINAL),
+        "scripted",
+        scripted_with(model=lambda: final_result_model(_RECOVERY_FINAL)),
     )
     with pinned_sub_agent(
         monkeypatch,

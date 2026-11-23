@@ -36,6 +36,7 @@ from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.ai.lead.turn_facts import turn_facts
 from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.tests._support.run_context import lead_run_context
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -149,7 +150,7 @@ async def test_a_parked_delete_writes_its_question_for_the_card(
         return LIVE
 
     monkeypatch.setattr(deleted_steps, "read_live_state", _live)
-    monkeypatch.setattr(_lead_model, "get_mock_model", _calls_delete)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=_calls_delete))
     state = pipeline_state(
         user_prompt="Delete the intersection step.", user_message_id=uuid4()
     )

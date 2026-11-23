@@ -26,7 +26,7 @@ from strategist.ai.graph.state import (
 )
 from strategist.ai.graph.stream_events import strategy_revision_event
 from strategist.ai.lead.intent import IntentClassification, UserIntent
-from strategist.ai.models.mock import get_mock_model
+from strategist.ai.scripted import scripted
 from strategist.ai.strategy_stream_parts import register_strategy_stream_parts
 from strategist.domain.memory import MEMORY_KINDS
 from strategist.domain.separation import AttachedControls, SeparationOffer
@@ -134,7 +134,7 @@ def _register_product_stream_parts(registry: StreamPartRegistry) -> None:
 
 
 def _mock_model() -> Model:
-    return get_mock_model()
+    return scripted().model()
 
 
 async def _discard_turn_strategy_writes(

@@ -20,6 +20,7 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.session import StrategySession
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.site_failures import failed_read, refused, timed_out
 from strategist.tests.unit.ai.graph._approval_turn import Collector
 
@@ -49,7 +50,9 @@ def _raising_model(error: Exception) -> FunctionModel:
 def _drive(
     monkeypatch: pytest.MonkeyPatch, error: Exception, capture: LeadRunCapture
 ) -> Collector:
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _raising_model(error))
+    monkeypatch.setattr(
+        _lead_model, "scripted", scripted_with(model=lambda: _raising_model(error))
+    )
     state = PipelineState(
         conversation_id=uuid4(),
         user_id=uuid4(),

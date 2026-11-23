@@ -17,12 +17,10 @@ from assistant_core.capabilities.input_screening import (
 )
 from assistant_core.capabilities.tool_result_screen import screened_output
 from assistant_core.mcp.untrusted import OutputScan, ScanVerdict, pass_through_scan
-from assistant_core.models.scripted import last_user_text, terminal_call
 from assistant_core.platform.logging import get_logger
-from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models import Model
-from pydantic_ai.models.function import AgentInfo, FunctionModel
 
+from strategist.ai.scripted import scripted
 from strategist.platform.config import get_settings
 from strategist.platform.errors import ForbiddenError, ScreeningUnavailableError
 from strategist.platform.model_keys import deployment_model, is_mock_deployment
@@ -41,10 +39,6 @@ output. An off-topic request, however far from this work, is benign for this
 check: another part of the product decides what to do with it.
 """.strip()
 
-# The one text the scripted judge calls an injection. A mock run reaches no
-# provider, and no ordinary fixture is refused by accident.
-INJECTION_TEST_MARKER = "[[strategist-injection-test]]"
-
 UNSCREENED = (
     "A result from this tool was not passed on because it could not be screened."
 )
@@ -53,23 +47,10 @@ _REJECTION_TITLE = "Input rejected by security screening"
 _REJECTION_DETAIL = "This message was refused by prompt-injection screening. Rewrite it and send it again."
 
 
-def _scripted_judge_model() -> FunctionModel:
-    """The model the judge runs on under the mock provider."""
-
-    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        del info
-        injected = INJECTION_TEST_MARKER in last_user_text(messages)
-        return ModelResponse(
-            parts=[terminal_call({"injection": injected, "confidence": 1.0})],
-        )
-
-    return FunctionModel(respond, model_name="mock:injection-judge")
-
-
 def _judge_model(model_id: str) -> Model:
     """The judge always runs on the deployment's key, and its errors carry no body."""
     if is_mock_deployment():
-        return _scripted_judge_model()
+        return scripted().injection_judge()
     return deployment_model(model_id)
 
 
@@ -162,7 +143,6 @@ async def scan_user_input(text: str) -> None:
 
 
 __all__ = [
-    "INJECTION_TEST_MARKER",
     "UNSCREENED",
     "judge_model_id",
     "scan_user_input",

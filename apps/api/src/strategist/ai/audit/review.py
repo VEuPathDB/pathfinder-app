@@ -27,7 +27,6 @@ from strategist.ai.audit.instructions import (
     LITERATURE_INSTRUCTIONS,
     REVIEWER_INSTRUCTIONS,
 )
-from strategist.ai.audit.mock import build_review_mock, build_synthesis_mock
 from strategist.ai.audit.retrievals import AuditRetrievalToolset
 from strategist.ai.audit.synthesis import (
     SynthesisStoppedError,
@@ -40,6 +39,7 @@ from strategist.ai.capabilities.error_classification import (
     RetryDetail,
 )
 from strategist.ai.capabilities.screened_sources import screened_sources
+from strategist.ai.scripted import scripted
 from strategist.domain.audit.verdicts import (
     MAX_CAUSE,
     FindingReview,
@@ -235,13 +235,13 @@ async def review_finding(
 
 def review_model(model_id: str) -> Model:
     if is_mock_deployment():
-        return build_review_mock()
+        return scripted().reviewer()
     return infer_model(maybe_wrap_model(keyed_model(model_id), REVIEW_ROLE))
 
 
 def synthesis_model(model_id: str) -> Model:
     if is_mock_deployment():
-        return build_synthesis_mock()
+        return scripted().synthesis()
     return infer_model(maybe_wrap_model(keyed_model(model_id), REVIEW_ROLE))
 
 

@@ -41,6 +41,7 @@ from strategist.tests._support.provider_wire import (
     ProviderWire,
     allow_requests_to_the_wire,
 )
+from strategist.tests._support.scripted import scripted_with
 from strategist.tests.unit.ai.graph._approval_turn import LEAD_FINAL, Collector
 from strategist.tests.unit.ai.lead.conftest import final_result_part, tool_script_model
 from strategist.tests.unit.domain.strategy._builders import combine, leaf
@@ -106,7 +107,7 @@ def _drive(
     monkeypatch: pytest.MonkeyPatch, model: Model, state: PipelineState
 ) -> tuple[LeadRunCapture, Collector]:
     allow_requests_to_the_wire(monkeypatch)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: model))
     capture = LeadRunCapture()
     writer = Collector()
     emitted: Any = writer
@@ -227,12 +228,12 @@ def test_the_turn_after_a_declined_one_never_sends_its_prompt(
 ) -> None:
     entry = StrategyDomainState(exchanges=[_EARLIER])
     declining = _declining_model(anthropic_keys)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: declining)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: declining))
 
     declined = _handed_back_domain(asyncio.run(_turn(_state(_DECLINED_PROMPT, entry))))
     recorder = _Recorder()
     answering = tool_script_model(recorder.answer)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: answering)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: answering))
     answered = _handed_back_domain(asyncio.run(_turn(_state(_NEXT_PROMPT, declined))))
 
     assert declined == entry
@@ -262,7 +263,7 @@ def test_a_withdrawn_turn_hands_finalize_no_check_to_write_notes_from(
     monkeypatch: pytest.MonkeyPatch, anthropic_keys: ProviderWire
 ) -> None:
     declining = _declining_model(anthropic_keys)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: declining)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: declining))
     checked_earlier = TurnMarkers(message_id=uuid4(), verification_dispatched=True)
     state = _state(_DECLINED_PROMPT, StrategyDomainState(turn_markers=checked_earlier))
 
@@ -294,7 +295,7 @@ def test_a_change_built_before_a_decline_reads_next_turn_as_an_outside_change(
         raise ContentFilterError(msg)
 
     declining = tool_script_model(_builds_then_declines)
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: declining)
+    monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=lambda: declining))
     state = _state(_DECLINED_PROMPT, StrategyDomainState(answered_graph=answered))
 
     handed_back = _handed_back_domain(asyncio.run(_turn(state, working)))

@@ -4,9 +4,10 @@ import base64
 import binascii
 import tomllib
 from functools import cached_property, lru_cache
+from importlib.util import find_spec
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Literal, Self, get_args, get_origin
+from typing import Final, Literal, Self, get_args, get_origin
 
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from assistant_core.platform.pydantic_base import computed
@@ -46,6 +47,7 @@ _PLACEHOLDER_SECRET_MARKERS = (
     "example",
 )
 _ALLOWED_CHAT_PROVIDERS = {"default", "mock"}
+SCRIPTED_PACKAGE: Final = "strategist_scripted"
 
 
 class TomlConfigSettingsSource(PydanticBaseSettingsSource):
@@ -371,6 +373,12 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
         if provider == "mock" and self.api_env != "test":
             msg = "STRATEGIST_CHAT_PROVIDER=mock is only allowed when API_ENV=test."
+            raise ValueError(msg)
+        if provider == "mock" and find_spec(SCRIPTED_PACKAGE) is None:
+            msg = (
+                "STRATEGIST_CHAT_PROVIDER=mock needs the strategist_scripted package, "
+                "which only the test environment and the e2e image contain."
+            )
             raise ValueError(msg)
 
     @cached_property
