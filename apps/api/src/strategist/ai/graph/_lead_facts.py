@@ -32,6 +32,7 @@ def show_the_facts(writer: Any, deps: LeadDeps, capture: LeadRunCapture) -> Turn
 
 
 def show_the_links(writer: Any, deps: LeadDeps, facts: TurnFacts) -> None:
-    links = reply_links(facts, deps.state.turn_markers.retrieved_sources)
+    markers = deps.state.turn_markers
+    links = reply_links(facts, markers.retrieved_sources, markers.route_links)
     if links.links:
         emit_chunk(writer, reply_links_event(links))

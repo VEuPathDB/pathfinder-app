@@ -9,6 +9,8 @@ from pydantic_ai import ModelRetry
 from strategist.ai.agents.frame import _FRAME_INSTRUCTIONS
 from strategist.ai.agents.frame_result_checks import hold_the_route_to_another_site
 from strategist.ai.agents.refusal_bound import REFUSALS_PER_CHECK
+from strategist.ai.conversation._turn_helpers import _extract_chunk
+from strategist.ai.graph._lead_facts import show_the_links
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import frame_dispatch
@@ -21,6 +23,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
 )
+from strategist.domain.turn_facts import TurnFacts
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -134,6 +137,30 @@ async def test_a_route_for_a_number_no_requirement_holds_says_the_site_answers_i
     )
 
     assert result == FrameResult(disposition="needs_user", summary=_ORTHOMCL)
+
+
+async def test_the_reply_vouches_for_the_link_to_the_other_site(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _stub(*, agent_deps: AgentDeps, **_kwargs: object) -> FrameResult:
+        del agent_deps
+        return _pass_with_a_route_to("orthomcl")
+
+    monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _stub)
+    deps = lead_deps(pipeline_state())
+    await run_frame(
+        deps=deps,
+        parent_tool_call_id="call_frame_1",
+        work_order="absent from at least 2 other strains",
+    )
+    written: list[object] = []
+
+    show_the_links(written.append, deps, TurnFacts())
+
+    chunks = [c for p in written if (c := _extract_chunk(p)) is not None]
+    assert [chunk["data"] for chunk in chunks] == [
+        {"links": ["https://qa.orthomcl.org/orthomcl.qa/app/strategist/conversation"]}
+    ]
 
 
 def test_the_lead_gives_any_sites_sentence_and_offers_no_switch() -> None:

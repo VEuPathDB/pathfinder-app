@@ -247,6 +247,8 @@ class TurnMarkers(CamelModel):
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
     # reply cites is checked against it.
     retrieved_sources: list[str] = Field(default_factory=list)
+    # The new-conversation pages on another site this turn's routes link.
+    route_links: list[str] = Field(default_factory=list)
     # The control sets this turn wrote. A reply that claims one is checked
     # against it.
     created_control_sets: list[CreatedControlSet] = Field(default_factory=list)
@@ -300,6 +302,10 @@ class TurnMarkers(CamelModel):
         """Record one reference this turn retrieved, once."""
         if reference and reference not in self.retrieved_sources:
             self.retrieved_sources.append(reference)
+
+    def record_route_link(self, url: str) -> None:
+        if url not in self.route_links:
+            self.route_links.append(url)
 
     def retrieved_as(self, reference: str) -> str | None:
         """The form a read of this turn returned the reference in, else None."""

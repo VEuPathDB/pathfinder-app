@@ -31,10 +31,12 @@ def reference_urls(reference: str) -> list[str]:
     return list(dict.fromkeys(found))
 
 
-def reply_links(facts: TurnFacts, retrieved: Sequence[str]) -> ReplyLinks:
+def reply_links(
+    facts: TurnFacts, retrieved: Sequence[str], routes: Sequence[str] = ()
+) -> ReplyLinks:
     records = [source.url for source in facts.citable_records()]
     sources = [url for reference in retrieved for url in reference_urls(reference)]
-    return ReplyLinks(links=list(dict.fromkeys([*records, *sources])))
+    return ReplyLinks(links=list(dict.fromkeys([*records, *sources, *routes])))
 
 
 __all__ = ["ReplyLinks", "reference_urls", "reply_links"]

@@ -119,7 +119,9 @@ record's page; any other record reference is dropped. Beside the reply the serve
 `ai/graph/_lead_facts.py::show_the_links` for the Lead and for Explore): the pages of the records
 the facts can cite, and each url, DOI and PMID a research read of the turn returned
 (`TurnMarkers.retrieved_sources`, recorded by `RetrievalRecordingToolset`), a DOI as its
-`doi.org` page and a PMID as its PubMed page. The web renders the reply's markdown with
+`doi.org` page and a PMID as its PubMed page, and the new-conversation page of each site a
+framing pass routed the request to (`TurnMarkers.route_links`, recorded by
+`ai/lead/frame_dispatch.py`). The web renders the reply's markdown with
 `features/conversation/content/vouchedLinks.tsx::VouchedLink` as its link element: a link whose
 address is in that part opens in a new tab, and any other link renders as its words alone. An
 image renders as its alt text and raw HTML is not rendered, so no markdown the model writes
