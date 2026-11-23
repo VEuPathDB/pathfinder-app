@@ -37,7 +37,7 @@ describe("formatMessageTime", () => {
     const result = formatMessageTime("2020-06-15T10:30:00Z");
     // Should contain a colon (time) and some date component
     expect(result).toContain(":");
-    expect(result.length).toBeGreaterThan(0);
+    expect(result).toContain("Jun");
   });
 
   it("handles a date from yesterday", () => {
@@ -45,7 +45,7 @@ describe("formatMessageTime", () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const result = formatMessageTime(yesterday.toISOString());
     // Yesterday is not today, so it should include a date portion
-    expect(result.length).toBeGreaterThan(0);
+    expect(result).toContain(yesterday.toLocaleString(undefined, { month: "short" }));
     expect(result).toContain(":");
   });
 });
@@ -80,8 +80,7 @@ describe("formatSidebarTime", () => {
       // Should NOT contain the year number for same-year dates
       expect(result).not.toBe("Yesterday");
       expect(result).not.toContain(":");
-      // Should not be empty
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain("Jan");
     }
   });
 
@@ -107,6 +106,6 @@ describe("formatSidebarTime", () => {
     const result = formatSidebarTime(twoDaysAgo.toISOString());
     // Two days ago is neither today nor yesterday
     expect(result).not.toBe("Yesterday");
-    expect(result.length).toBeGreaterThan(0);
+    expect(result).toContain(twoDaysAgo.toLocaleString(undefined, { month: "short" }));
   });
 });

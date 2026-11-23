@@ -339,4 +339,6 @@ async def test_a_patched_leaf_whose_name_stood_still_writes_no_name(
     await push_steps_with_plan(graph, sync_state, "plasmodb", plan)
 
     assert counting_api.named("update_step_properties") == []
-    assert counting_api.named("update_step_search_config") != []
+    assert [
+        call.kwargs for call in counting_api.named("update_step_search_config")
+    ] == [{"step_id": 500, "search_name": "SearchA"}]

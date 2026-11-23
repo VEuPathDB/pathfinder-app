@@ -100,6 +100,7 @@ test.describe("Auth", () => {
     const sitesResp = await apiClient.get("api/v1/sites");
     expect(sitesResp.ok()).toBeTruthy();
     const sites = await sitesResp.json();
+    // weak-ok(nonempty): the deployment decides how many sites it serves; the next line names this one.
     expect(sites.length).toBeGreaterThan(0);
     const siteIds = sites.map((s: { id: string }) => s.id);
     expect(siteIds).toContain(siteId);

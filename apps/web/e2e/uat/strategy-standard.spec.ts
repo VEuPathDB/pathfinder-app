@@ -205,6 +205,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
 
     const card = await expectEvidence(page, counts.root);
     const genes = await sampledGeneIds(card);
+    // weak-ok(nonempty): the live site decides the sample; an empty sample passes the loop below vacuously.
     expect(genes.length).toBeGreaterThan(0);
     for (const gene of genes)
       expect(gene.startsWith(siteGeneIdPrefix(siteId))).toBe(true);

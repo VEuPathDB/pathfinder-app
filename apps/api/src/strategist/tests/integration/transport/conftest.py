@@ -14,7 +14,13 @@ from assistant_core.conversation.checkpointer import to_psycopg_url
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform import db
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
 from strategist.domain.memory import MEMORY_KINDS
 from strategist.jobs.app import procrastinate_app
@@ -126,8 +132,11 @@ async def patched_app(
     """Build the app once per session against the test database, seed one
     user, and serve the memory store from a loop-free double.
     """
-    db._engine = db_engine
-    db._session_factory_instance = session_maker
+    served = create_async_engine(db_engine.url, poolclass=NullPool)
+    db._engine = served
+    db._session_factory_instance = async_sessionmaker(
+        served, class_=AsyncSession, expire_on_commit=False, autoflush=False
+    )
 
     get_settings.cache_clear()
     test_connector = procrastinate.PsycopgConnector(
@@ -169,3 +178,4 @@ async def patched_app(
     # A cancel reads the job table, so the served app needs an open app.
     async with procrastinate_app.open_async():
         yield app, user_id
+    await served.dispose()

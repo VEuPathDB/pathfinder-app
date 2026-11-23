@@ -20,6 +20,7 @@ from strategist.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from strategist.domain.strategy.operations import AddLeafOp
 from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_reconciliation import spec_without_steps
@@ -274,7 +275,7 @@ def test_a_new_leaf_leaves_every_other_step_exactly_as_it_was(
     _holds_the_shape(after, after_graph)
     _is_idempotent(after, after_graph)
     assert new_id in after_graph.steps
-    assert len(ops) >= 1
+    assert [op.step.id for op in ops if isinstance(op, AddLeafOp)] == [new_id]
 
 
 @PROFILE

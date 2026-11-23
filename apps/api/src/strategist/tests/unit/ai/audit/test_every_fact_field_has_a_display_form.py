@@ -73,6 +73,7 @@ def test_every_field_of_every_registered_answer_has_a_display_form() -> None:
     for source in FACT_SOURCES:
         kinds = {kind for _, kind in fact_schema(source).leaves}
 
+        # weak-ok(nonempty): an answer with no field passes the subset check vacuously.
         assert len(kinds) >= 1, source.__name__
         assert kinds <= _DISPLAY_KINDS, source.__name__
 

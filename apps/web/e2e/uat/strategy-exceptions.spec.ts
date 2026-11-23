@@ -521,6 +521,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     );
 
     const reply = await replyText(apiClient, id);
+    // weak-ok(nonempty): the live model words the reply; a reply is the behavior and the next line caps it.
     expect(reply.length).toBeGreaterThan(0);
     expect(reply.length).toBeLessThan(400);
     await expect(chatPage.assistantMessages.getByTestId("trace-group")).toHaveCount(0);
@@ -635,6 +636,7 @@ test.describe("Another site's experiment", { tag: "@named-site" }, () => {
       traceRows(reply, "Find searches").getByTestId("trace-row-summary"),
     ).toContainText([/^\d+ searches(, experiments on .+)?$/]);
     // The arc binds the site's own top hit, so the layout is read, not named.
+    // weak-ok(nonempty): the site's own top hit decides the layout; a stored step is the behavior.
     await expect
       .poll(async () => (await storedNodes(apiClient, toxo)).length, {
         timeout: 60_000,
@@ -665,6 +667,7 @@ test.describe("Another site's experiment", { tag: "@named-site" }, () => {
       ((await listed.json()) as { name: string }[]).map((s) => s.name),
     );
     const steps = (await readConversation(apiClient, plasmo)).steps ?? [];
+    // weak-ok(nonempty): the live model decides the layout; an empty list passes the check below vacuously.
     expect(steps.length).toBeGreaterThan(0);
     expect(
       steps

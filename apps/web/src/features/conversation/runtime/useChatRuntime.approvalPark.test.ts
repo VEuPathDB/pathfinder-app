@@ -88,6 +88,7 @@ describe("useChatRuntime after an approval", () => {
       void result.current.chat.sendMessage({ text: "sweep the version" });
     });
     await waitFor(() => {
+      // weak-ok(nonempty): the wait ends once the tail opens; how many tails open is not under test.
       expect(tails).not.toHaveLength(0);
       expect(result.current.chat.status).toBe("ready");
     });

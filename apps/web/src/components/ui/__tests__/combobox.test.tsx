@@ -147,8 +147,8 @@ describe("Combobox (multiple)", () => {
     await user.click(await screen.findByText("Alpha"));
     await user.click(screen.getByText("Gamma"));
 
-    expect(screen.getAllByText("Alpha").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Gamma").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Alpha")).toHaveLength(2);
+    expect(screen.getAllByText("Gamma")).toHaveLength(2);
 
     const alphaItems = screen.getAllByText("Alpha");
     await user.click(alphaItems[0]!);

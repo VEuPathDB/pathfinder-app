@@ -178,6 +178,7 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
       "vectorbase",
       prompt("other-site-experiment", X1_TEXT),
     );
+    // weak-ok(nonempty): the live model decides the layout; a stored step is the behavior.
     await expect
       .poll(async () => (await storedNodes(apiClient, id)).length, { timeout: 60_000 })
       .toBeGreaterThan(0);

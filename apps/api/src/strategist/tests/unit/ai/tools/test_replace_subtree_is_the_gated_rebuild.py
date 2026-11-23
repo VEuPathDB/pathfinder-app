@@ -90,4 +90,4 @@ async def test_an_applied_replacement_removes_no_stated_step(
     assert removed == {"step_k1", "step_k2"}
     assert removed & stated == set()
     assert stated == set(_STATED)
-    assert stub_api.named("create_step") != []
+    assert stub_api.created_searches() == ["GenesByTaxon"]

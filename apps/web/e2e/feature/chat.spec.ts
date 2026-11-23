@@ -29,6 +29,7 @@ test.describe("Chat", () => {
     const strategyId = chatPage.lastStrategyId;
     expect(strategyId).toBeTruthy();
     const messages = await fetchConversationMessages(apiClient, strategyId);
+    // weak-ok(nonempty): the mock decides how many messages the thread stores; a stored thread is the behavior.
     expect(messages.length).toBeGreaterThan(0);
   });
 

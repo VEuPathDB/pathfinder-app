@@ -25,15 +25,12 @@ describe("phase role metadata", () => {
   });
 
   it("describes every role a researcher picks a model for", () => {
-    expect(Object.keys(PICKABLE_ROLE_DESCRIPTIONS).sort()).toEqual([
-      "explore",
-      "frame",
-      "lead",
-      "verification",
-    ]);
-    for (const text of Object.values(PICKABLE_ROLE_DESCRIPTIONS)) {
-      expect(text.length).toBeGreaterThan(0);
-    }
+    expect(PICKABLE_ROLE_DESCRIPTIONS).toEqual({
+      explore: "Talks a research question through before anything is built.",
+      frame: "Turns your question into a plan of searches and fills in their settings.",
+      lead: "Talks with you and decides what happens next.",
+      verification: "Checks the built strategy and reports what it found.",
+    });
     expect(phaseDescription("verification")).toBe(
       "Checks the built strategy and reports what it found.",
     );

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Sequence
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Literal, Protocol
@@ -217,21 +217,27 @@ class SystemClock:
         return datetime.now(UTC)
 
 
+def audit_clock() -> Clock:
+    return SystemClock()
+
+
 @dataclass(frozen=True, kw_only=True)
 class Waits:
     deadline: datetime
     slice_ends: datetime
     first_seconds: float
     longest_seconds: float
-    clock: Clock = field(default_factory=SystemClock)
+    clock: Clock
 
 
 def waits_until(deadline: datetime, *, first_seconds: float) -> Waits:
+    clock = audit_clock()
     return Waits(
         deadline=deadline,
-        slice_ends=datetime.now(UTC) + timedelta(seconds=SLICE_SECONDS),
+        slice_ends=clock.now() + timedelta(seconds=SLICE_SECONDS),
         first_seconds=first_seconds,
         longest_seconds=LONGEST_WAIT_SECONDS,
+        clock=clock,
     )
 
 

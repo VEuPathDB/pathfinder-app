@@ -15,11 +15,6 @@ from assistant_core.capabilities.repetition_guard import (
 from strategist.ai.agents.tool_vocabulary import build_tool_repetition_guard
 
 
-def test_first_call_proceeds() -> None:
-    guard = build_tool_repetition_guard()
-    assert guard.check("get_strategy", {}, run_step=1) is None
-
-
 def test_two_consecutive_identical_calls_proceed() -> None:
     guard = build_tool_repetition_guard()
     assert guard.check("get_strategy", {}, run_step=1) is None

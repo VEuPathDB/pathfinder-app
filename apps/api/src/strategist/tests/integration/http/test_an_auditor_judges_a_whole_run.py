@@ -24,6 +24,7 @@ from strategist.platform.identity import AUDIT_ASSISTANT_ID
 from strategist.services.audit.runs import RunOwner, create_run
 from strategist.services.audit.verdicts import conversation_verdicts
 from strategist.tests._support.audit_planning import STRAINS
+from strategist.tests._support.auditor_limits import auditor_stops_after
 from strategist.tests._support.read_text import as_read
 from strategist.tests.integration.chat._helpers import (
     chat_post_body,
@@ -47,6 +48,7 @@ _GENOME = STRAINS[0]
 _FINDINGS = 29
 _READ = "read_audit_findings"
 _RECORD = "record_gene_model_verdicts"
+_AUDITOR_CALLS = 8
 
 
 async def _post(
@@ -150,25 +152,26 @@ async def test_an_auditor_turn_at_its_limit_keeps_its_verdicts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(mock_run, "FINDINGS_PER_MOCK_CALL", 1)
+    auditor_stops_after(monkeypatch, _AUDITOR_CALLS)
 
     chunks, thread, owner = await _judged(app, db_session, in_memory_jobs)
     after = await _post(app, owner, in_memory_jobs, _asked(thread, "hello"))
 
     stored = await conversation_verdicts(thread, owner)
-    assert len(_called(chunks)) == 40
-    assert len(stored) == 19
+    assert len(_called(chunks)) == _AUDITOR_CALLS
+    assert len(stored) == 3
     assert _of_type(chunks, "error") == []
     shown = _text(chunks)
     assert (
         shown.startswith("**Findings of audit run"),
-        shown.endswith(budget_stop_prose(19)),
+        shown.endswith(budget_stop_prose(3)),
     ) == (
         True,
         True,
     )
-    assert budget_stop_prose(19) == (
+    assert budget_stop_prose(3) == (
         "I stopped this turn at its limit of model requests and tool calls, before "
-        "I finished. I stored 19 verdicts in this turn, and each one is kept. Ask "
+        "I finished. I stored 3 verdicts in this turn, and each one is kept. Ask "
         "me to go on and I judge the findings that have no verdict yet."
     )
     assert _text(after) == AUDITOR_GREETING

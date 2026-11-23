@@ -498,6 +498,7 @@ test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
     await sendPrefill(chatPage, ANALYZE_PROMPT, "impact");
 
     const replies = await repliesAfter(chatPage, repliesBefore);
+    // weak-ok(nonempty): the live model decides how many replies it writes; an empty list passes the next check vacuously.
     expect(replies.length).toBeGreaterThan(0);
     expect(replies.map((reply) => reply.cardBeforeProse)).not.toContain(true);
     expect(

@@ -12,7 +12,10 @@ from veupathdb_mcp.catalog import ParameterInfo
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead.derive import derive_ledger
-from strategist.domain.strategy.operational_spec import OperationalSpec
+from strategist.domain.strategy.operational_spec import (
+    OperationalSpec,
+    ParameterAlternatives,
+)
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     bind,
@@ -93,7 +96,14 @@ async def test_a_rebind_that_matches_records_drops_the_choices_it_carried(
 
     _serve_count(monkeypatch, next(counts))
     await bind(state, "RecordsByMethod", _PICK_V3)
-    assert state.operational_spec_draft.criteria[0].alternatives != []
+    assert state.operational_spec_draft.criteria[0].alternatives == [
+        ParameterAlternatives(
+            param_name="method_version",
+            bound=["v3"],
+            option_count=3,
+            other_options=["v2", "v1"],
+        )
+    ]
 
     _serve_count(monkeypatch, next(counts))
     await bind(state, "RecordsByMethod", {"method_version": "v2"})

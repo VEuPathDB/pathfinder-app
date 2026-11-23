@@ -86,6 +86,25 @@ class StubAPI:
     def named(self, name: str) -> list[Call]:
         return [call for call in self.calls if call.name == name]
 
+    def created_searches(self) -> list[str]:
+        return [call.kwargs["search_name"] for call in self.named("create_step")]
+
+    def combines(self) -> list[tuple[int, int, str]]:
+        return [
+            (
+                call.kwargs["primary_step_id"],
+                call.kwargs["secondary_step_id"],
+                call.kwargs["boolean_operator"],
+            )
+            for call in self.named("create_combined_step")
+        ]
+
+    def search_configs(self) -> list[tuple[int, dict[str, str]]]:
+        return [
+            (call.kwargs["step_id"], call.kwargs["parameters"])
+            for call in self.named("update_step_search_config")
+        ]
+
     delete_orphaned_steps = StepsMixin.delete_orphaned_steps
 
     async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:

@@ -237,13 +237,6 @@ def test_a_provider_failure_reaches_the_reply_without_its_response_body(
     assert "org-abc123" not in fallback_prose(capture, None, change="unchanged")
 
 
-def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
-    assert fallback_prose(LeadRunCapture(), None, change="unchanged") == (
-        "I couldn't produce a response for this turn. Please rephrase or provide "
-        "more context and I'll try again."
-    )
-
-
 def test_a_model_that_never_answered_is_recorded_as_unanswered(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

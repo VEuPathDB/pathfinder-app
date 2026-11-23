@@ -28,14 +28,6 @@ def test_the_grace_is_a_week() -> None:
     assert timedelta(days=7) == ORPHAN_VECTOR_GRACE
 
 
-def test_one_name_covers_the_function_and_the_task() -> None:
-    """One concept, one name: the task is the function it calls."""
-    ensure_registered()
-
-    assert prune_orphan_vectors.__name__ == "prune_orphan_vectors"
-    assert "maintenance:prune_orphan_vectors" in procrastinate_app.tasks
-
-
 def test_the_sweep_runs_once_a_day() -> None:
     ensure_registered()
     registered = procrastinate_app.periodic_registry.periodic_tasks

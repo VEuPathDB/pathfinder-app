@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections import Counter
 from collections.abc import Iterator
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import httpx
 import pytest
@@ -53,8 +53,6 @@ from strategist.tests.integration.jobs._audit_jobs import (
 )
 from strategist.tests.integration.jobs._audit_reviews import work_reviews
 
-_TOLERANCE = timedelta(seconds=5)
-
 
 @pytest.fixture
 def wired(monkeypatch: pytest.MonkeyPatch) -> Checks:
@@ -89,10 +87,9 @@ def _model_lengths(payloads: list[object]) -> list[int]:
 async def test_a_start_queues_one_job_on_the_audit_queue_and_no_task_row(
     jobs: InMemoryConnector, wired: Checks
 ) -> None:
-    del wired
     owner = await seed_thread()
     run_id = await create_run(owner=owner, scope=SCOPE)
-    asked_at = datetime.now(UTC)
+    asked_at = wired.clock.now()
 
     started = await start_run(run_id, owner)
 
@@ -112,7 +109,7 @@ async def test_a_start_queues_one_job_on_the_audit_queue_and_no_task_row(
         "deadline": run.deadline_at.isoformat().replace("+00:00", "Z"),
         "pause": 30.0,
     }
-    assert abs(run.deadline_at - (asked_at + timedelta(hours=6))) < _TOLERANCE
+    assert run.deadline_at == asked_at + timedelta(hours=6)
     assert (started.phase, started.halted) == ("queued", None)
     kept = await sealed(run_id)
     assert kept is not None

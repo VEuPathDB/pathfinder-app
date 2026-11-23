@@ -202,12 +202,6 @@ class TestTheValidators:
 
 
 class TestTheDisplayLabel:
-    def test_combine_default_search_name_is_injected(self) -> None:
-        a, b = _pair()
-        node = _unnamed_combine(a, b, CombineOp.INTERSECT)
-
-        assert node.search_name == COMBINE_SEARCH_NAME
-
     def test_display_label_combine_never_leaks_sentinel(self) -> None:
         a, b = _pair()
         node = _unnamed_combine(a, b, CombineOp.INTERSECT)

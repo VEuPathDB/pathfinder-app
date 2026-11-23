@@ -14,6 +14,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.usage import UsageLimits
 
+from strategist.ai.audit.auditor import AUDITOR_LIMITS
 from strategist.ai.audit.budget_stop import StopAtTheBudget, budget_stop_prose
 from strategist.ai.audit.deps import AuditDeps
 from strategist.ai.audit.reply import AuditReply
@@ -110,3 +111,7 @@ def test_the_stop_reply_counts_the_verdicts_it_kept() -> None:
         "finished. I stored 1 verdict in this turn, and each one is kept. Ask me to "
         "go on and I judge the findings that have no verdict yet."
     )
+
+
+def test_an_auditor_turn_holds_forty_requests_and_forty_tool_calls() -> None:
+    assert UsageLimits(request_limit=40, tool_calls_limit=40) == AUDITOR_LIMITS

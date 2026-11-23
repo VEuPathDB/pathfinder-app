@@ -167,7 +167,10 @@ class TestAReplacementThatReachesTheCommit:
         assert "step_k2" not in graph.steps
         assert result.replaced_step_id == "step_k2"
         assert result.dropped_step_ids == ["step_k2"]
-        assert api.named("create_step") != []
+        assert api.created_searches() == [
+            "GenesByTaxon",
+            "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC",
+        ]
 
     async def test_the_spec_states_the_export_where_the_old_criterion_stood(
         self, monkeypatch: pytest.MonkeyPatch

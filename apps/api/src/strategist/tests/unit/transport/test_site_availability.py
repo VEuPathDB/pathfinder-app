@@ -139,14 +139,3 @@ async def test_the_sites_list_names_the_failure_in_words(two_sites: None) -> Non
     sites = {site.id: site for site in await catalog_router.list_sites()}
 
     assert sites["veupathdb"].unavailable_reason == "the site did not answer in time"
-
-
-async def test_a_site_still_loading_says_its_catalog_is_loading(
-    two_sites: None,
-) -> None:
-    del two_sites
-    get_readiness().register_catalog("veupathdb")
-
-    sites = {site.id: site for site in await catalog_router.list_sites()}
-
-    assert sites["veupathdb"].unavailable_reason == "its catalog is still loading"

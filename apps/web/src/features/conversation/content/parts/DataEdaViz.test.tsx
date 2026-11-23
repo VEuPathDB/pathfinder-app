@@ -413,10 +413,7 @@ describe("the gene-id copy control", () => {
 
     expect(writeText).toHaveBeenCalledTimes(1);
     const copied = writeText.mock.calls[0]?.[0] as string;
-    expect(copied.split(", ").length).toBeGreaterThan(0);
-    for (const id of copied.split(", ")) {
-      expect(id).toMatch(/^\S+$/);
-    }
+    expect(copied).toBe("PF3D7_0100200");
     expect(details.open).toBe(false);
     expect(await screen.findByLabelText("Copy gene ids")).toBeVisible();
   });

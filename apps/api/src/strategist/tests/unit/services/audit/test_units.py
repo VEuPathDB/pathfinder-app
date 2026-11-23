@@ -292,17 +292,21 @@ async def test_no_pause_is_taken_once_every_unit_answered() -> None:
     )
 
 
-def test_the_waits_of_a_job_carry_its_pause_and_a_thirty_minute_slice() -> None:
-    before = datetime.now(UTC)
-    waits = waits_until(START, first_seconds=120.0)
-    assert (waits.deadline, waits.first_seconds, waits.longest_seconds) == (
-        START,
-        120.0,
-        900.0,
+def test_the_waits_of_a_job_carry_its_pause_and_a_thirty_minute_slice(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clock = FakeClock(START)
+    monkeypatch.setattr(units, "audit_clock", lambda: clock)
+
+    waits = waits_until(START + timedelta(hours=6), first_seconds=120.0)
+
+    assert (waits.first_seconds, waits.longest_seconds) == (120.0, 900.0)
+    assert (waits.deadline, waits.slice_ends) == (
+        START + timedelta(hours=6),
+        START + timedelta(minutes=30),
     )
+    assert waits.clock is clock
     assert (units.FIRST_WAIT_SECONDS, units.SLICE_SECONDS) == (30.0, 1800.0)
-    assert before + timedelta(minutes=30) <= waits.slice_ends
-    assert waits.slice_ends <= datetime.now(UTC) + timedelta(minutes=30)
 
 
 @pytest.mark.parametrize(
