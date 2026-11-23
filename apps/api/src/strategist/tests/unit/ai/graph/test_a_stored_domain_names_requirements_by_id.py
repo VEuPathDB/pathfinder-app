@@ -9,6 +9,7 @@ from pydantic import TypeAdapter
 
 from strategist.ai.graph.state import StrategyDomainState, VerificationDigest
 from strategist.assistants.strategist_spec import STRATEGIST_CHECKPOINT_TYPES
+from strategist.domain.refusal import RefusalLedger
 from strategist.domain.site_checks import SiteCheckGap
 from strategist.domain.strategy.question_options import Keep, Withdraw
 from strategist.domain.strategy.readings import ReadValues
@@ -225,3 +226,7 @@ def test_a_stored_verdict_naming_an_unrecorded_requirement_is_dropped() -> None:
     )
 
     assert (domain.site_verdict, domain.verified_revision) == (None, "")
+
+
+def test_a_stored_record_of_the_old_refusal_counters_loads_an_empty_ledger() -> None:
+    assert _read().turn_markers.answer_ledger == RefusalLedger()

@@ -224,7 +224,7 @@ class AgentToolState:
     # its text restates.
     stated_requirements: list[Constraint] = field(default_factory=list)
     held_group_scopes: dict[str, GroupScope] = field(default_factory=dict)
-    # The searches the site refused to run this pass, with what it answered.
+    # The searches the site refused to run this turn, with what it answered.
     refused_searches: dict[str, str] = field(default_factory=dict)
     builder_refusals: dict[str, str] = field(default_factory=dict)
     unserved_searches: dict[str, UnservedSearch] = field(default_factory=dict)

@@ -152,7 +152,7 @@ async def test_three_refusals_of_one_key_spend_no_tool_retry() -> None:
         f"No more attempts for c1 / {_S}. The last refusal: c1 names nothing."
     )
     assert deps.refusal_book.ledger.used(C1) == TOOL_REFUSALS_PER_KEY
-    assert [s.spent for s in deps.refusal_book.spent] == [
+    assert [s.answer.spent for s in deps.refusal_book.spent] == [
         (Problem(key=C1, sentence="c1 names nothing."),)
     ]
     assert result.output == "done"

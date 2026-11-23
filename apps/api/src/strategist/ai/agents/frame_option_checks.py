@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 from pydantic_ai import RunContext
 from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_PARAM
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.held_answer import (
+    Changed,
+    Gaps,
     HeldAnswer,
+    asked_gaps,
+    gapped,
     held,
     with_question,
     without_question,
@@ -23,7 +27,7 @@ from strategist.domain.strategy.questions import SlotQuestion
 from strategist.services.strategies.sheet_params import criterion_sheets
 
 
-def _unknown(question: SlotQuestion, held: dict[str, str]) -> list[str]:
+def unheld_handles(question: SlotQuestion, held: dict[str, str]) -> list[str]:
     if question.param_name != PHYLETIC_EXPRESSION_PARAM:
         return []
     offered = [*question.options, *(r.value for r in question.readings)]
@@ -48,16 +52,14 @@ def hold_an_option_to_a_held_expression(
                 "the card would bind nothing. Offer a handle "
                 "build_phyletic_expression returned, or build the reading first."
             ),
-            _dropped(question, names),
+            *_dropped(question, names),
         )
         for question in output.open_questions
-        if (names := _unknown(question, held_names))
+        if (names := unheld_handles(question, held_names))
     ]
 
 
-def _dropped(
-    question: SlotQuestion, names: list[str]
-) -> Callable[[FrameResult], FrameResult]:
+def _dropped(question: SlotQuestion, names: list[str]) -> tuple[Gaps, Changed]:
     gap = PassGap(
         kind="expression_handle_unknown",
         sentence=(
@@ -66,7 +68,7 @@ def _dropped(
             "question was dropped."
         ),
     )
-    return lambda output: without_question(output, question).with_gaps([gap])
+    return gapped(gap), lambda output: without_question(output, question)
 
 
 def _refusals(
@@ -104,14 +106,14 @@ def _unbindable(question: SlotQuestion, refusals: list[str]) -> str:
     )
 
 
-def _free_text(
-    question: SlotQuestion, said: str
-) -> Callable[[FrameResult], FrameResult]:
+def _free_text(question: SlotQuestion, said: str) -> tuple[Gaps, Changed]:
     gap = PassGap(
         kind="option_not_a_value",
         sentence=f"{said}, so the question asks in free text.",
     )
-    return lambda output: with_question(output, question, options=[]).with_gaps([gap])
+    return asked_gaps(question, gap), lambda output: with_question(
+        output, question, options=[]
+    )
 
 
 async def hold_an_option_to_its_parameter(
@@ -141,10 +143,14 @@ async def hold_an_option_to_its_parameter(
                 "parameter takes, or ask in free text: leave `options` empty and "
                 "the researcher answers in words."
             ),
-            _free_text(question, said),
+            *_free_text(question, said),
         )
         for question, said in unbindable
     ]
 
 
-__all__ = ["hold_an_option_to_a_held_expression", "hold_an_option_to_its_parameter"]
+__all__ = [
+    "hold_an_option_to_a_held_expression",
+    "hold_an_option_to_its_parameter",
+    "unheld_handles",
+]

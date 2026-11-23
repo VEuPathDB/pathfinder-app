@@ -4,18 +4,27 @@ requirements the pass was given."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import reduce
 
 from pydantic_ai import RunContext
 from veupathdb.errors import ValidationError
 
-from strategist.ai.agents.held_answer import HeldAnswer, held, with_question
+from strategist.ai.agents.frame_option_checks import unheld_handles
+from strategist.ai.agents.held_answer import (
+    Changed,
+    HeldAnswer,
+    asked_gaps,
+    gapped,
+    held,
+    holds_question,
+    kept,
+    with_question,
+)
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
 from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.expression_handles import (
-    UnknownExpressionError,
     held_expressions,
 )
 from strategist.domain.strategy.operational_spec import Criterion
@@ -81,6 +90,17 @@ def _unkeyed(question: SlotQuestion, held: list[str]) -> list[PassGap]:
     return [PassGap(kind="readings_name_no_requirement", sentence=said)]
 
 
+def _unknown_keys(question: SlotQuestion, held: list[str]) -> list[PassGap]:
+    unknown = sorted(set(question.requirements) - set(held))
+    if not held or not unknown or not set(question.requirements) & set(held):
+        return []
+    said = (
+        f"{question.question!r} names {unknown}, which the requirement list does "
+        "not hold, so a pick of its readings replaces none of them."
+    )
+    return [PassGap(kind="reading_keys_unknown", sentence=said)]
+
+
 def _bare(question: SlotQuestion, problems: list[str]) -> _Held:
     said = (
         f"{question.question!r} reaches the card with no readings: "
@@ -130,12 +150,6 @@ async def _spelled(
                 f"{_first_sentence(str(refused))}"
             )
             continue
-        except UnknownExpressionError as unheld:
-            refusals.append(
-                f"{reading.label!r} on {named} names {unheld.handle}, which no "
-                "build_phyletic_expression call of this conversation holds"
-            )
-            continue
         readings.append(
             reading
             if spelled is None
@@ -172,7 +186,8 @@ async def _checked(ctx: RunContext[AgentDeps], question: SlotQuestion) -> _Held:
         None,
     )
     if criterion is None:
-        return _Held(question, keys, _unkeyed(question, held))
+        gaps = [*_unkeyed(question, held), *_unknown_keys(question, held)]
+        return _Held(question, keys, gaps)
     unreadable = _unreadable(question, criterion)
     if unreadable:
         return _bare(question, [unreadable])
@@ -199,20 +214,27 @@ async def _checked(ctx: RunContext[AgentDeps], question: SlotQuestion) -> _Held:
                 for r in refusals
             ),
             *_unkeyed(kept, held),
+            *_unknown_keys(kept, held),
             *([] if record_type else [_unknown_class(question, criterion)]),
         ],
     )
 
 
-def _read(checked: _Held) -> Callable[[FrameResult], FrameResult]:
-    readings = checked.question.readings
-    return lambda output: with_question(
-        output, checked.question, readings=readings
-    ).with_gaps(checked.gaps)
+def _spelled_into(checked: _Held) -> Changed:
+    def let_through(output: FrameResult) -> FrameResult:
+        readings = checked.question.readings
+        return with_question(output, checked.question, readings=readings)
+
+    return let_through
 
 
-def _kept(output: FrameResult) -> FrameResult:
-    return output
+def _read(checked: _Held) -> Changed:
+    def spell(output: FrameResult) -> FrameResult:
+        if not holds_question(output, checked.question):
+            return output
+        return _spelled_into(checked)(output).with_gaps(checked.gaps)
+
+    return spell
 
 
 def _held_readings(original: SlotQuestion, checked: _Held) -> list[HeldAnswer]:
@@ -221,13 +243,15 @@ def _held_readings(original: SlotQuestion, checked: _Held) -> list[HeldAnswer]:
         criterion=original.criterion_id,
         parameter=original.param_name,
     )
-    lets = [_read(checked), *[_kept] * (len(checked.problems) - 1)]
+    first = (asked_gaps(checked.question, *checked.gaps), _spelled_into(checked))
+    rest = (gapped(), kept)
+    lets = [first, *[rest] * (len(checked.problems) - 1)]
     return [
         held(
             key,
             f"Change this reading, or ask nothing about it and say why in summary: "
             f"{problem}.",
-            let,
+            *let,
         )
         for problem, let in zip(checked.problems, lets, strict=True)
     ]
@@ -235,16 +259,25 @@ def _held_readings(original: SlotQuestion, checked: _Held) -> list[HeldAnswer]:
 
 async def hold_the_readings_to_the_site(
     ctx: RunContext[AgentDeps], output: FrameResult
-) -> tuple[FrameResult, list[HeldAnswer]]:
+) -> tuple[Changed, list[HeldAnswer]]:
+    state = ctx.deps.agent_state
+    held_names = held_expressions(state.built_expressions, state.operational_spec_draft)
     checked = [
-        (q, await _checked(ctx, q) if q.readings else _Held(q))
+        (
+            q,
+            await _checked(ctx, q)
+            if q.readings and not unheld_handles(q, held_names)
+            else _Held(q),
+        )
         for q in output.open_questions
     ]
-    spelled = output
-    answers: list[HeldAnswer] = []
-    for original, read in checked:
-        if read.problems:
-            answers.extend(_held_readings(original, read))
-        else:
-            spelled = _read(read)(spelled)
-    return spelled, answers
+    spellings = [_read(read) for _, read in checked if not read.problems]
+    answers = [
+        answer
+        for original, read in checked
+        if read.problems
+        for answer in _held_readings(original, read)
+    ]
+    return lambda answer: reduce(
+        lambda kept, spell: spell(kept), spellings, answer
+    ), answers

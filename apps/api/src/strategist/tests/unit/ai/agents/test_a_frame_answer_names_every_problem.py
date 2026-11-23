@@ -10,7 +10,7 @@ from strategist.ai.agents.frame_answer import hold_the_frame_answer
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.lead.deltas import FrameResult, PassGap
-from strategist.domain.refusal import Problem, RefusalKey, RefusalLedger
+from strategist.domain.refusal import Problems, RefusalKey, RefusalLedger
 from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -120,24 +120,52 @@ async def test_the_last_answer_is_refused_nothing_and_names_every_gap() -> None:
     assert ctx.deps.agent_state.answer_ledger == RefusalLedger()
 
 
-async def test_a_spent_criterion_call_is_named_as_a_gap() -> None:
+def _spent(criterion: str) -> Problems:
+    key = RefusalKey(check="unknown_names", criterion=criterion)
+    return Problems.one(key, f"{criterion} names no such parameter.")
+
+
+async def _gaps_of(run_id: str, ctx: RunContext[AgentDeps]) -> list[PassGap]:
+    answered = await hold_the_frame_answer(
+        replace(ctx, run_id=run_id), FrameResult(disposition="spec_ready")
+    )
+    assert isinstance(answered, FrameResult)
+    return answered.gaps
+
+
+async def test_a_criterion_call_spent_in_this_pass_is_one_gap_per_key() -> None:
     ctx = agent_run_context()
-    spent = SpentRefusal(
-        spent=(
-            Problem(
-                key=RefusalKey(check="unknown_names", criterion="c_reef"),
-                sentence="c_reef names no such parameter.",
-            ),
+    book = ctx.deps.refusal_book
+    for _ in range(2):
+        book.spend(_spent("c_reef"), by="set_criterion", run_id="frame-1")
+
+    gaps = await _gaps_of("frame-1", ctx)
+
+    assert gaps == [
+        PassGap(
+            kind="refusal_spent",
+            sentence=SpentRefusal(spent=_spent("c_reef").found).note,
         )
-    )
-    ctx.deps.refusal_book.spent.append(spent)
+    ]
 
-    answered = await hold_the_frame_answer(ctx, FrameResult(disposition="spec_ready"))
 
-    assert answered == FrameResult(
-        disposition="spec_ready",
-        gaps=[PassGap(kind="refusal_spent", sentence=spent.note)],
-    )
+async def test_a_spent_call_corrected_in_the_pass_is_no_gap() -> None:
+    ctx = agent_run_context()
+    book = ctx.deps.refusal_book
+    book.spend(_spent("c_reef"), by="set_criterion", run_id="frame-1")
+
+    book.clear(RefusalKey(check="set_criterion", criterion="c_reef"))
+
+    assert (book.spent, await _gaps_of("frame-1", ctx)) == ([], [])
+
+
+async def test_another_agents_or_an_earlier_pass_s_spent_call_is_no_gap() -> None:
+    ctx = agent_run_context()
+    book = ctx.deps.refusal_book
+    book.spend(_spent("c_reef"), by="run_step_query", run_id="build-1")
+    book.spend(_spent("c_tide"), by="set_criterion", run_id="frame-1")
+
+    assert await _gaps_of("frame-2", ctx) == []
 
 
 def test_a_record_of_the_old_counters_loads_with_an_empty_ledger() -> None:

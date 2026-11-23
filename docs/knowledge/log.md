@@ -7,8 +7,13 @@
   `HeldAnswer` (`ai/agents/held_answer.py`), keyed by the check and the requirement, criterion or
   parameter it names, and every problem of one answer is refused in one `ModelRetry`. Each key is
   refused at most twice (`ANSWER_REFUSALS_PER_KEY`) on `AgentToolState.answer_ledger`, then let
-  through with its gap; the last answer is refused nothing, and a spent tool call of the turn is a
-  `refusal_spent` gap. The Lead's rules and VERIFY's digest charge `TurnMarkers.answer_ledger`
+  through, and every gap is read from the final answer, so a dropped question carries none. The
+  last answer is refused nothing. A FRAME pass names each key its own tool calls spent and never
+  corrected as one `refusal_spent` gap; a success clears the spent call with its ledger row. One
+  cause is one problem: an unheld expression handle is the option check's alone. The searches the
+  site refused are kept for the turn, so a later pass checks a "site refused" report against them,
+  and one naming no known refusal is refused. A reading's unknown requirement key let through is a
+  `reading_keys_unknown` gap. The Lead's rules and VERIFY's digest charge `TurnMarkers.answer_ledger`
   once per turn per key. `refusal_bound.py`, `REFUSALS_PER_CHECK`, `may_refuse` and the
   `output_refusals`, `refused_rules` and `refused_digests` counters are gone; a stored record that
   holds them loads with an empty ledger. A FRAME pass that stopped with no criteria bound quotes

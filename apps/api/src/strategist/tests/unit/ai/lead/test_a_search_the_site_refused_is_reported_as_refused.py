@@ -18,6 +18,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import frame_dispatch
 from strategist.ai.lead.deltas import FrameResult
+from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.ai.lead.frame_dispatch import run_frame
 from strategist.ai.tools.standalone import _frame_count
 from strategist.domain.strategy.constraints import ConstraintKind
@@ -26,6 +27,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementReport,
 )
 from strategist.tests._support.held_answers import let_through, said
+from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -126,7 +128,7 @@ def test_no_search_after_a_refusal_is_sent_back() -> None:
     assert let_through(held, missing) == missing.with_gap(
         "missing_after_refusal",
         f"The pass reports a requirement no search answers after the site refused "
-        f"{_DIAMOND} this pass.",
+        f"{_DIAMOND} this turn.",
     )
 
 
@@ -138,10 +140,25 @@ def test_a_refusal_of_a_search_the_site_ran_is_sent_back() -> None:
     assert "ByBlast" in " ".join(said(held))
 
 
-def test_a_refusal_report_with_nothing_refused_this_pass_passes() -> None:
+def test_a_refusal_report_when_the_site_refused_nothing_this_turn_is_sent_back() -> (
+    None
+):
     output = _pass(_refused("ByBlast"))
 
-    assert hold_the_reports_to_the_refusals(_ctx(AgentToolState()), output) == []
+    held = hold_the_reports_to_the_refusals(_ctx(AgentToolState()), output)
+
+    assert said(held) == [
+        (
+            "site_refused_the_search for R1 names ByBlast, and the site refused no "
+            "search this turn. A requirement no search on this site answers is "
+            "site_has_no_search."
+        )
+    ]
+    assert let_through(held, output) == _pass().with_gap(
+        "report_dropped",
+        "The pass reported the site refused 'ByBlast' for R1, and it did not this "
+        "turn.",
+    )
 
 
 def test_a_refusal_of_a_search_the_site_ran_is_told_the_searches_it_refused() -> None:
@@ -151,7 +168,7 @@ def test_a_refusal_of_a_search_the_site_ran_is_told_the_searches_it_refused() ->
 
     assert said(held) == [
         (
-            "site_refused_the_search for R1 names ByBlast, and this pass saw the "
+            "site_refused_the_search for R1 names ByBlast, and this turn saw the "
             f"site refuse only {_DIAMOND}. Name one of those, or report the "
             "requirement as site_has_no_search."
         )
@@ -167,7 +184,7 @@ def test_a_refusal_report_let_through_is_dropped_with_its_gap() -> None:
     assert let_through(held, output) == _pass(_refused()).with_gap(
         "report_dropped",
         "The pass reported the site refused 'ByBlast' for R1, and it did not this "
-        "pass.",
+        "turn.",
     )
 
 
@@ -222,3 +239,14 @@ async def test_the_card_says_the_site_failed_and_offers_to_keep_it(
         "Keep the map proteins search",
         "Drop the map proteins search",
     ]
+
+
+def test_a_refusal_one_pass_saw_is_known_to_the_next_pass() -> None:
+    deps = lead_deps(pipeline_state(user_prompt="genes with a diamond hit"))
+    first = agent_deps_for(deps, call_id="call_frame_1")
+    first.agent_state.refused_searches[_DIAMOND] = _ANSWER
+
+    second = agent_deps_for(deps, call_id="call_frame_2")
+    held = hold_the_reports_to_the_refusals(run_context_for(second), _pass(_refused()))
+
+    assert (second.agent_state.refused_searches, held) == ({_DIAMOND: _ANSWER}, [])

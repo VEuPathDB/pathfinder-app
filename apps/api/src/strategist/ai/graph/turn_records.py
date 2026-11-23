@@ -208,6 +208,8 @@ class TurnMarkers(CamelModel):
     verification_stopped: bool = False
     refusal_book: RefusalBook = Field(default_factory=RefusalBook)
     answer_ledger: RefusalLedger = Field(default_factory=RefusalLedger)
+    # The searches the site refused to run this turn, with what it answered.
+    refused_searches: dict[str, str] = Field(default_factory=dict)
     unchecked_reply: bool = False
     # The researcher allowed this turn's reads of their account.
     account_reads_allowed: bool = False

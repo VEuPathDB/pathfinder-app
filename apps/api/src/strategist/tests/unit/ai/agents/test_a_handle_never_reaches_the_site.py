@@ -6,9 +6,11 @@ from pathlib import Path
 import pytest
 from assistant_core.graph.turn_state import UserQuestionAnswer
 from pydantic import BaseModel
+from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb_mcp.catalog import PhyleticPattern, ValidatedParams
 
+from strategist.ai.agents.frame_answer import hold_the_frame_answer
 from strategist.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.state import StrategyDomainState
@@ -27,7 +29,6 @@ from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading
 from strategist.services.strategies import reading_check
 from strategist.services.strategies.reading_check import site_spelling
-from strategist.tests._support.held_answers import said
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -121,10 +122,11 @@ async def test_each_recorded_handle_reaches_the_site_as_its_expression(
         readings=[Reading(label=h, value=h) for h in _HANDLES],
     )
 
-    held, refused = await hold_the_readings_to_the_site(
-        agent_run_context(agent_state=state),
-        FrameResult(disposition="needs_user", open_questions=[question]),
+    asked = FrameResult(disposition="needs_user", open_questions=[question])
+    spell, refused = await hold_the_readings_to_the_site(
+        agent_run_context(agent_state=state), asked
     )
+    held = spell(asked)
 
     assert refused == []
     assert [w for w in sent if w.startswith("expr:")] == []
@@ -157,12 +159,14 @@ async def test_a_question_offering_an_unheld_handle_is_sent_back(
         readings=[Reading(label=h, value=h) for h in _HANDLES],
     )
 
-    _, refused = await hold_the_readings_to_the_site(
-        agent_run_context(agent_state=state),
-        FrameResult(disposition="needs_user", open_questions=[question]),
-    )
+    with pytest.raises(ModelRetry) as refused:
+        await hold_the_frame_answer(
+            agent_run_context(agent_state=state),
+            FrameResult(disposition="needs_user", open_questions=[question]),
+        )
 
-    assert _ANY_GENOME in " ".join(said(refused))
+    told = refused.value.message
+    assert (told.count(_ANY_GENOME), told.count("names " + _ANY_GENOME)) == (1, 0)
     assert sent == []
 
 

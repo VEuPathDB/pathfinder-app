@@ -86,9 +86,9 @@ async def _held(
             )
         ]
     )
-    held, refused = await hold_the_readings_to_the_site(ctx, _asked())
+    spell, refused = await hold_the_readings_to_the_site(ctx, _asked())
     assert refused == []
-    return held, spelled
+    return spell(_asked()), spelled
 
 
 async def test_a_criterion_with_no_class_is_read_under_the_class_the_catalog_lists(

@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from pydantic_ai import RunContext
 from veupathdb.wdk import get_site_router
 
-from strategist.ai.agents.held_answer import HeldAnswer, gapped, held
+from strategist.ai.agents.held_answer import (
+    Changed,
+    Gaps,
+    HeldAnswer,
+    asked_gaps,
+    gapped,
+    held,
+)
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap, PassGapKind
@@ -25,19 +30,18 @@ from strategist.domain.strategy.structure_bindings import unbound_in_structure
 from strategist.services.gene_sets.homes import site_kind
 
 
-def _dropped(report: RequirementReport) -> Callable[[FrameResult], FrameResult]:
+def _dropped(report: RequirementReport) -> Changed:
     def let_through(output: FrameResult) -> FrameResult:
-        kept = [r for r in output.requirement_problems if r != report]
-        return output.model_copy(update={"requirement_problems": kept})
+        kept_reports = [r for r in output.requirement_problems if r != report]
+        return output.model_copy(update={"requirement_problems": kept_reports})
 
     return let_through
 
 
 def _dropped_with_gap(
     report: RequirementReport, kind: PassGapKind, sentence: str
-) -> Callable[[FrameResult], FrameResult]:
-    drop = _dropped(report)
-    return lambda output: drop(output).with_gap(kind, sentence)
+) -> tuple[Gaps, Changed]:
+    return gapped(PassGap(kind=kind, sentence=sentence)), _dropped(report)
 
 
 def hold_the_reports_to_the_requirement_list(
@@ -55,7 +59,7 @@ def hold_the_reports_to_the_requirement_list(
                 "researcher stated'. Use one of those numbers, or leave the entry "
                 "out and say it in summary."
             ),
-            _dropped_with_gap(
+            *_dropped_with_gap(
                 report,
                 "report_dropped",
                 f"The pass reported {number}, which the requirement list does not "
@@ -153,7 +157,14 @@ def hold_the_questions_to_the_draft(
         kind="questions_bind_nothing",
         sentence="The pass asks questions whose answers bind nothing its draft holds.",
     )
-    return [held(RefusalKey(check="the_questions_to_the_draft"), unbound, gapped(gap))]
+
+    def gaps(final: FrameResult) -> list[PassGap]:
+        still = questions_that_bind_to_nothing(
+            final, state.operational_spec_draft, state.sets_the_site
+        )
+        return [gap] if still else []
+
+    return [held(RefusalKey(check="the_questions_to_the_draft"), unbound, gaps)]
 
 
 def hold_the_questions_to_a_dimension(
@@ -174,14 +185,15 @@ def hold_the_questions_to_a_dimension(
                 f"{CONSTRAINT_KINDS}, and the `recommended_value` you would use if "
                 "the user does not answer."
             ),
-            gapped(
+            asked_gaps(
+                question,
                 PassGap(
                     kind="question_decides_nothing",
                     sentence=(
                         f"The question {question.question!r} names no dimension and "
                         "recommends no value."
                     ),
-                )
+                ),
             ),
         )
         for question in output.open_questions
@@ -205,7 +217,7 @@ def hold_the_route_to_another_site(
                 f"{report.site!r}, which is no other site. Name one of "
                 f"{', '.join(others)}, or bind the search this site holds."
             ),
-            _dropped_with_gap(
+            *_dropped_with_gap(
                 report,
                 "report_dropped",
                 f"The pass named {report.site!r} as another site that answers "
@@ -246,11 +258,14 @@ def _misreport(report: RequirementReport, state: AgentToolState) -> str | None:
         )
     if refused:
         return (
-            f"{named} names {report.search}, and this pass saw the site refuse "
+            f"{named} names {report.search}, and this turn saw the site refuse "
             f"only {', '.join(refused)}. Name one of those, or report the "
             "requirement as site_has_no_search."
         )
-    return None
+    return (
+        f"{named} names {report.search}, and the site refused no search this "
+        "turn. A requirement no search on this site answers is site_has_no_search."
+    )
 
 
 def _missing_after_refusal(
@@ -267,11 +282,11 @@ def _missing_after_refusal(
         kind="missing_after_refusal",
         sentence=(
             "The pass reports a requirement no search answers after the site "
-            f"refused {', '.join(refused)} this pass."
+            f"refused {', '.join(refused)} this turn."
         ),
     )
     said = (
-        f"The site refused to run {answers} this pass. A requirement that search "
+        f"The site refused to run {answers} this turn. A requirement that search "
         "answers is site_refused_the_search with that search named in search, not "
         "site_has_no_search. Keep site_has_no_search for a requirement no search "
         "on this site answers."
@@ -287,11 +302,11 @@ def hold_the_reports_to_the_refusals(
         held(
             RefusalKey(check="the_reports_to_the_refusals", criterion=r.requirement),
             said,
-            _dropped_with_gap(
+            *_dropped_with_gap(
                 r,
                 "report_dropped",
                 f"The pass reported the site refused {r.search!r} for "
-                f"{r.requirement}, and it did not this pass.",
+                f"{r.requirement}, and it did not this turn.",
             ),
         )
         for r in output.requirement_problems

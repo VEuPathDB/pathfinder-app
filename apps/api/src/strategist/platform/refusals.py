@@ -270,10 +270,49 @@ def call_key(tool: ToolDefinition, args: Mapping[str, Any]) -> RefusalKey:
     )
 
 
+class SpentCall(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    answer: SpentRefusal
+    by: str
+    run_id: str = ""
+
+    def without(self, on: RefusalKey) -> SpentCall | None:
+        if self.by != on.check:
+            return self
+        kept = tuple(
+            p
+            for p in self.answer.spent
+            if (p.key.criterion, p.key.search) != (on.criterion, on.search)
+        )
+        if not kept:
+            return None
+        return self.model_copy(update={"answer": SpentRefusal(spent=kept)})
+
+
 class RefusalBook(CamelModel):
     ledger: RefusalLedger = Field(default_factory=RefusalLedger)
-    spent: list[SpentRefusal] = Field(default_factory=list)
+    spent: list[SpentCall] = Field(default_factory=list)
     charged: int = 0
+
+    def spend(self, spent: Problems, *, by: str, run_id: str) -> SpentRefusal:
+        answer = SpentRefusal(spent=spent.found)
+        self.spent.append(SpentCall(answer=answer, by=by, run_id=run_id))
+        return answer
+
+    def clear(self, on: RefusalKey) -> None:
+        self.ledger = self.ledger.cleared(on)
+        self.spent = [
+            kept for call in self.spent if (kept := call.without(on)) is not None
+        ]
+
+    def spent_in(self, run_id: str) -> list[SpentRefusal]:
+        firsts: dict[RefusalKey, Problem] = {}
+        for call in self.spent:
+            if call.run_id == run_id:
+                for problem in call.answer.spent:
+                    firsts.setdefault(problem.key, problem)
+        return [SpentRefusal(spent=(problem,)) for problem in firsts.values()]
 
 
 class KeepsRefusals(Protocol):
@@ -316,12 +355,6 @@ def _refused_problems(
             raise error
 
 
-def _spend(book: RefusalBook, spent: Problems) -> SpentRefusal:
-    answer = SpentRefusal(spent=spent.found)
-    book.spent.append(answer)
-    return answer
-
-
 @dataclass
 class KeyedRefusalToolset[DepsT: KeepsRefusals](WrapperToolset[DepsT]):
     @property
@@ -340,17 +373,18 @@ class KeyedRefusalToolset[DepsT: KeepsRefusals](WrapperToolset[DepsT]):
             result = await self.wrapped.call_tool(name, tool_args, ctx, tool)
         except (ModelRetry, AppError) as error:
             problems = _refused_problems(tool.tool_def, tool_args, error)
+            run_id = ctx.run_id or ""
             if book.charged >= TOOL_REFUSALS_PER_TURN:
-                return _spend(book, problems)
+                return book.spend(problems, by=name, run_id=run_id)
             charge = book.ledger.charge(problems, TOOL_REFUSALS_PER_KEY, by=name)
             book.ledger = charge.ledger
             if charge.refused.empty:
-                return _spend(book, charge.spent)
+                return book.spend(charge.spent, by=name, run_id=run_id)
             book.charged += 1
             said = refusal_text(charge)
             closing = closing_of(error)
             raise CallRefused(f"{said} {closing}" if closing else said) from error
-        book.ledger = book.ledger.cleared(call_key(tool.tool_def, tool_args))
+        book.clear(call_key(tool.tool_def, tool_args))
         return result
 
 
@@ -387,6 +421,7 @@ __all__ = [
     "ProblemsRefusal",
     "RefusalBook",
     "ServiceRefusalRetry",
+    "SpentCall",
     "SpentRefusal",
     "agent_capabilities",
     "call_key",

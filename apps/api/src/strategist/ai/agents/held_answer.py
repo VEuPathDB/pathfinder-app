@@ -7,23 +7,35 @@ from strategist.ai.lead.deltas import FrameResult, PassGap
 from strategist.domain.refusal import Problem, RefusalKey
 from strategist.domain.strategy.questions import SlotQuestion
 
+type Changed = Callable[[FrameResult], FrameResult]
+type Gaps = Callable[[FrameResult], list[PassGap]]
+
+
+def kept(output: FrameResult) -> FrameResult:
+    return output
+
 
 @dataclass(frozen=True)
 class HeldAnswer:
     problem: Problem
-    let_through: Callable[[FrameResult], FrameResult]
+    gaps: Gaps
+    let_through: Changed = kept
 
 
 def held(
-    key: RefusalKey, sentence: str, let_through: Callable[[FrameResult], FrameResult]
+    key: RefusalKey, sentence: str, gaps: Gaps, let_through: Changed = kept
 ) -> HeldAnswer:
     return HeldAnswer(
-        problem=Problem(key=key, sentence=sentence), let_through=let_through
+        problem=Problem(key=key, sentence=sentence), gaps=gaps, let_through=let_through
     )
 
 
-def gapped(gap: PassGap) -> Callable[[FrameResult], FrameResult]:
-    return lambda output: output.with_gaps([gap])
+def gapped(*gaps: PassGap) -> Gaps:
+    return lambda final: list(gaps)
+
+
+def asked_gaps(question: SlotQuestion, *gaps: PassGap) -> Gaps:
+    return lambda final: list(gaps) if holds_question(final, question) else []
 
 
 def _same(one: SlotQuestion, other: SlotQuestion) -> bool:
@@ -32,6 +44,10 @@ def _same(one: SlotQuestion, other: SlotQuestion) -> bool:
         other.param_name,
         other.question,
     )
+
+
+def holds_question(output: FrameResult, question: SlotQuestion) -> bool:
+    return any(_same(q, question) for q in output.open_questions)
 
 
 def without_question(output: FrameResult, question: SlotQuestion) -> FrameResult:
@@ -49,4 +65,15 @@ def with_question(
     return output.model_copy(update={"open_questions": changed})
 
 
-__all__ = ["HeldAnswer", "gapped", "held", "with_question", "without_question"]
+__all__ = [
+    "Changed",
+    "Gaps",
+    "HeldAnswer",
+    "asked_gaps",
+    "gapped",
+    "held",
+    "holds_question",
+    "kept",
+    "with_question",
+    "without_question",
+]

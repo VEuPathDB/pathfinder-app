@@ -137,10 +137,24 @@ def test_a_parked_turn_resumes_with_its_refusal_book() -> None:
         Problems.one(_KEY, "not held."), 3, by="read_gene_record"
     )
     book.ledger = charge.ledger
-    book.spent.append(SpentRefusal(spent=Problems.one(_KEY, "not held.").found))
+    book.spend(Problems.one(_KEY, "not held."), by="read_gene_record", run_id="r1")
     book.charged = 1
 
     resumed = PipelineState.model_validate(state.model_dump(mode="json", by_alias=True))
 
     assert lead_deps(resumed).refusal_book == book
     assert resumed.turn_markers.refusal_book.ledger.used(_KEY) == 1
+
+
+async def test_a_success_after_a_spent_key_clears_its_spent_call() -> None:
+    fails = [True, True, True, True, False]
+    deps = _deps()
+
+    result = await _agent(
+        _script("read_gene_record", [{"gene_id": _GENE}] * len(fails)),
+        KeyedRefusalToolset(wrapped=_gene_reads(fails)),
+    ).run("read", deps=deps)
+
+    outcomes = [p.outcome for p in _returns(result.all_messages())]
+    assert outcomes == ["failed", "failed", "failed", "success", "success"]
+    assert (deps.refusal_book.ledger.uses, deps.refusal_book.spent) == ((), [])

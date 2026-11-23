@@ -44,6 +44,7 @@ PassGapKind = Literal[
     "reading_left_out",
     "question_without_readings",
     "readings_name_no_requirement",
+    "reading_keys_unknown",
     "report_dropped",
     "question_decides_nothing",
     "questions_bind_nothing",

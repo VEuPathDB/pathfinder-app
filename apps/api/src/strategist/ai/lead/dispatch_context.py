@@ -151,6 +151,7 @@ def agent_deps_for(deps: LeadDeps, *, call_id: str) -> AgentDeps:
             request_messages=state.researcher_messages(),
             turn_counts=deps.turn_counts,
             offered_readings=offered_readings(state),
+            refused_searches=state.turn_markers.refused_searches,
         ),
         turn_markers=state.turn_markers,
         ledger_summary=ledger.render_summary(),

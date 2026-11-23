@@ -13,7 +13,8 @@ def said(held: Sequence[HeldAnswer]) -> list[str]:
 
 
 def let_through(held: Sequence[HeldAnswer], output: FrameResult) -> FrameResult:
-    return reduce(lambda kept, answer: answer.let_through(kept), held, output)
+    final = reduce(lambda kept, answer: answer.let_through(kept), held, output)
+    return final.with_gaps([gap for answer in held for gap in answer.gaps(final)])
 
 
 def charged(ledger: RefusalLedger) -> list[str]:

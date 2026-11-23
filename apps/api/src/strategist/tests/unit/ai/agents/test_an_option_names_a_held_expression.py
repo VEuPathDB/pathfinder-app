@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
+import pytest
 from pydantic import TypeAdapter
+from pydantic_ai import ModelRetry
 from pydantic_ai.tools import RunContext
 from veupathdb_mcp.catalog import PhyleticPattern
 
+from strategist.ai.agents.frame_answer import hold_the_frame_answer
 from strategist.ai.agents.frame_option_checks import hold_an_option_to_a_held_expression
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
@@ -82,6 +87,31 @@ def test_let_through_the_question_is_dropped_with_a_named_gap() -> None:
     assert (held.open_questions, held.gaps) == (
         [],
         [
+            PassGap(
+                kind="expression_handle_unknown",
+                sentence=(
+                    f"The pass offered {[_UNKNOWN]} on c_more.{_EXPRESSION}, which "
+                    "no held expression answers, so the question was dropped."
+                ),
+            )
+        ],
+    )
+
+
+async def test_an_unheld_handle_is_one_problem_and_its_dropped_question_no_gap() -> (
+    None
+):
+    ctx = _context()
+    asked = _asked(expression_handle(_BUILT), _UNKNOWN)
+
+    with pytest.raises(ModelRetry) as refused:
+        await hold_the_frame_answer(ctx, asked)
+    answered = await hold_the_frame_answer(replace(ctx, retry=ctx.max_retries), asked)
+
+    assert refused.value.message.count(_UNKNOWN) == 1
+    assert answered == FrameResult(
+        disposition="needs_user",
+        gaps=[
             PassGap(
                 kind="expression_handle_unknown",
                 sentence=(

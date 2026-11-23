@@ -61,8 +61,11 @@ finds as a `HeldAnswer`: the problem, keyed by the check and the requirement, cr
 parameter it names, and what the check does when the problem is let through. Every problem of
 one answer is charged at once on `AgentToolState.answer_ledger`, at most
 `ANSWER_REFUSALS_PER_KEY = 2` refusals per key, and one `ModelRetry` names every live one. A
-spent key is let through with its gap, and a spent tool call of the turn
-(`RefusalBook.spent`) is a `refusal_spent` gap. The Lead's rules and VERIFY's digest are
+spent key is let through, and each gap is read from the final answer, so a question another
+check dropped carries no gap. One cause is one problem: the option check owns an unheld
+expression handle, and the readings check skips that question. A key a FRAME tool call of the
+same run spent is one `refusal_spent` gap (`RefusalBook.spent_in`); a later success of that call
+clears it with its ledger row. The Lead's rules and VERIFY's digest are
 charged once per turn per key on `TurnMarkers.answer_ledger` (`TURN_REFUSALS_PER_RULE`). The
 Lead's prose faults hold a bound of their own (`TurnMarkers.prose_refusals`), so rules refused
 first never leave a reply that cannot render without its correction. No check refuses when the
