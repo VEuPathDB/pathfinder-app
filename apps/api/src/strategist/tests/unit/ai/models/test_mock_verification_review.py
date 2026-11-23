@@ -173,7 +173,7 @@ def test_a_control_whose_read_is_refused_is_not_asked_again() -> None:
                     tool_name="read_gene_record",
                     content=f"{_SAMPLED[0]} is a control.",
                     tool_call_id="call_read_1",
-                    outcome="retried",
+                    outcome="failed",
                 )
             ]
         ),
