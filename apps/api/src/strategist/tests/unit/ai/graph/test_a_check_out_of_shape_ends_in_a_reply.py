@@ -155,7 +155,7 @@ def test_a_check_whose_answer_is_out_of_shape_ends_in_the_leads_reply(
     assert capture.response.prose == _REPLY
     assert writer.chunks_of("error") == []
     markers = deps.state.turn_markers
-    assert (markers.output_refusals, markers.unchecked_reply) == (0, False)
+    assert (markers.answer_ledger.uses, markers.unchecked_reply) == ((), False)
     assert markers.build_unverified is True
     stop = deps.last_phase_stop
     assert stop is not None

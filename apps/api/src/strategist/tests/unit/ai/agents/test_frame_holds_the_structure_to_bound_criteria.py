@@ -3,14 +3,11 @@ never bound, so the pass binds it or drops it before the build refuses it."""
 
 from __future__ import annotations
 
-import pytest
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import RunContext
 
 from strategist.ai.agents.frame_result_checks import (
     hold_the_structure_to_bound_criteria,
 )
-from strategist.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
 from strategist.domain.strategy.operational_spec import (
@@ -20,6 +17,7 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.structure_bindings import unbound_in_structure
+from strategist.tests._support.held_answers import let_through, said
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 
@@ -50,10 +48,9 @@ def _spec(*, bound_lanterns: bool) -> OperationalSpec:
     )
 
 
-def _context(spec: OperationalSpec, refusals: int = 0) -> RunContext[AgentDeps]:
+def _context(spec: OperationalSpec) -> RunContext[AgentDeps]:
     ctx = agent_run_context()
     ctx.deps.agent_state.operational_spec_draft = spec
-    ctx.deps.agent_state.refusals = refusals
     return ctx
 
 
@@ -66,17 +63,17 @@ def test_the_criteria_a_structure_names_and_the_draft_never_bound() -> None:
 
 
 def test_a_ready_spec_naming_an_unbound_criterion_is_sent_back() -> None:
-    ctx = _context(_spec(bound_lanterns=False))
-
-    with pytest.raises(ModelRetry) as sent_back:
-        hold_the_structure_to_bound_criteria(ctx, FrameResult())
-
-    assert str(sent_back.value) == (
-        "set_structure names c_lantern, c_tide, and the draft binds no search for "
-        "them. Bind each with set_criterion, or call set_structure again without "
-        "them: the build refuses a node no bound criterion stands for."
+    held = hold_the_structure_to_bound_criteria(
+        _context(_spec(bound_lanterns=False)), FrameResult()
     )
-    assert ctx.deps.agent_state.refusals == 1
+
+    assert said(held) == [
+        f"set_structure names {node}, and the draft binds no search for it. Bind "
+        "it with set_criterion, or call set_structure again without it: the build "
+        "refuses a node no bound criterion stands for."
+        for node in ("c_lantern", "c_tide")
+    ]
+    assert [answer.problem.key.criterion for answer in held] == ["c_lantern", "c_tide"]
 
 
 def test_a_spec_that_waits_on_the_user_is_not_held() -> None:
@@ -86,7 +83,7 @@ def test_a_spec_that_waits_on_the_user_is_not_held() -> None:
         _context(_spec(bound_lanterns=False)), result
     )
 
-    assert held == result
+    assert held == []
 
 
 def test_a_structure_of_bound_criteria_passes() -> None:
@@ -94,19 +91,15 @@ def test_a_structure_of_bound_criteria_passes() -> None:
     assert spec.structure is not None
     spec.structure.root.inputs.pop()
 
-    assert hold_the_structure_to_bound_criteria(_context(spec), FrameResult()) == (
-        FrameResult()
-    )
+    assert hold_the_structure_to_bound_criteria(_context(spec), FrameResult()) == []
 
 
 def test_at_the_bound_the_unbound_criteria_are_a_named_gap() -> None:
     held = hold_the_structure_to_bound_criteria(
-        _context(_spec(bound_lanterns=True), refusals=REFUSALS_PER_CHECK),
-        FrameResult(),
+        _context(_spec(bound_lanterns=True)), FrameResult()
     )
 
-    assert isinstance(held, FrameResult)
-    assert held.gaps == [
+    assert let_through(held, FrameResult()).gaps == [
         PassGap(
             kind="structure_names_unbound",
             sentence="The structure names c_tide, which no bound criterion stands for.",

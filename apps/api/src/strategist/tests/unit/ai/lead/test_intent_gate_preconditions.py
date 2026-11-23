@@ -24,6 +24,7 @@ from strategist.domain.eda_thread import OpenEdaAnalysis
 from strategist.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.session import StrategySession
+from strategist.tests._support.held_answers import refused_once
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
     OfferedTools,
@@ -150,7 +151,7 @@ def test_a_saved_set_is_served_while_a_build_waits_for_its_check() -> None:
         with_steps=True,
     )
     deps.state.turn_markers.built = True
-    deps.state.turn_markers.refused_rules = ["unverified_build"]
+    deps.state.turn_markers.answer_ledger = refused_once("unverified_build")
 
     offered = _offered(deps)
 
@@ -166,7 +167,7 @@ def test_a_verification_that_ran_and_failed_keeps_the_gate_closed() -> None:
         with_steps=True,
     )
     deps.state.turn_markers.built = True
-    deps.state.turn_markers.refused_rules = ["unverified_build"]
+    deps.state.turn_markers.answer_ledger = refused_once("unverified_build")
     deps.state.turn_markers.verification_dispatched = True
 
     assert _offered(deps) & BUILDING_TOOLS == {"verify_strategy"}

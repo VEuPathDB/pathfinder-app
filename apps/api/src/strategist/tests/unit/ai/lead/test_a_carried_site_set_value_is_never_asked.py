@@ -10,6 +10,7 @@ from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKSearchResponse
 
+from strategist.ai.agents.frame_answer import hold_the_frame_answer
 from strategist.ai.agents.frame_result_checks import hold_the_questions_to_the_draft
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead import frame_dispatch
@@ -100,7 +101,7 @@ async def _frame_asks(monkeypatch: pytest.MonkeyPatch, asked: FrameResult) -> An
 
     async def _pass(**kwargs: Any) -> Any:
         agent_deps: AgentDeps = kwargs["agent_deps"]
-        return hold_the_questions_to_the_draft(run_context_for(agent_deps), asked)
+        return await hold_the_frame_answer(run_context_for(agent_deps), asked)
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _pass)
     return await run_frame(
@@ -181,7 +182,7 @@ async def test_a_question_on_a_carried_value_the_researcher_sets_is_held(
             deps=deps, parent_tool_call_id="t1", work_order=frame_work_order("go", deps)
         )
 
-    assert seen == [_ask("c_text", "text_expression")]
+    assert seen == [[]]
 
 
 async def test_a_carried_search_the_catalog_cannot_read_is_left_out(

@@ -7,7 +7,6 @@ from dataclasses import dataclass
 
 from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
 
-from strategist.ai.agents.refusal_bound import may_refuse
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.state import VerificationDigest
 from strategist.ai.lead.contract_messages import (
@@ -21,6 +20,8 @@ from strategist.domain.evidence import (
     WithheldEvidence,
     WithheldKind,
 )
+from strategist.domain.refusal import Problems, RefusalKey
+from strategist.platform.refusals import TURN_REFUSALS_PER_RULE, last_answer
 from strategist.services.gene_records.read import gene_record_url
 
 
@@ -80,21 +81,26 @@ def _held_review(ctx: RunContext[AgentDeps], digest: VerificationDigest) -> _Hel
 def hold_the_digest_to_the_evidence(
     ctx: RunContext[AgentDeps], output: VerificationDelta | DeferredToolRequests
 ) -> VerificationDelta | DeferredToolRequests:
-    """Refuse, once per check and within the pass's refusal bound, a digest that
-    states what no read of the turn holds; past that, take each such item out of
-    the review and record it as withheld."""
+    """Refuse, once per check of the turn, a digest that states what no read of
+    the turn holds; past that, take each such item out of the review and record
+    it as withheld."""
     if not isinstance(output, VerificationDelta):
         return output
     held = _held_review(ctx, output.digest)
     if not held.withheld:
         return output
     markers = ctx.deps.turn_markers
-    check_id = ctx.deps.verification_scope.check_id
-    state = ctx.deps.agent_state
-    if check_id not in markers.refused_digests and may_refuse(ctx, state.refusals):
-        markers.refused_digests.append(check_id)
-        state.refusals += 1
-        raise ModelRetry(unbacked_digest_message(held.found))
+    key = RefusalKey(
+        check="the_digest_to_the_evidence",
+        criterion=ctx.deps.verification_scope.check_id,
+    )
+    said = unbacked_digest_message(held.found)
+    charge = markers.answer_ledger.charge(
+        Problems.one(key, said), TURN_REFUSALS_PER_RULE
+    )
+    if not charge.refused.empty and not last_answer(ctx):
+        markers.answer_ledger = charge.ledger
+        raise ModelRetry(said)
     digest = output.digest.model_copy(update={"review": held.review})
     return output.model_copy(update={"digest": digest})
 

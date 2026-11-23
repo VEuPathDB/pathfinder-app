@@ -23,7 +23,7 @@ from strategist.domain.last_change import LastChange
 from strategist.domain.membership_facts import MembershipFact
 from strategist.domain.read_facts import ReadFact
 from strategist.domain.record_facts import OrthologFact, SourceFact
-from strategist.domain.refusal import Closing, Problems
+from strategist.domain.refusal import Closing, Problems, RefusalLedger
 from strategist.domain.strategy.constraints import StoredConstraint
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.step_words import AddedSearch
@@ -206,9 +206,8 @@ class TurnMarkers(CamelModel):
     verification_dispatched: bool = False
     # The last check of this turn has no digest: it stopped, raised or still runs.
     verification_stopped: bool = False
-    output_refusals: int = 0
     refusal_book: RefusalBook = Field(default_factory=RefusalBook)
-    refused_rules: list[str] = Field(default_factory=list)
+    answer_ledger: RefusalLedger = Field(default_factory=RefusalLedger)
     unchecked_reply: bool = False
     # The researcher allowed this turn's reads of their account.
     account_reads_allowed: bool = False
@@ -247,8 +246,6 @@ class TurnMarkers(CamelModel):
     tallies: list[TallyFact] = Field(default_factory=list)
     column_reaches: list[StepReach] = Field(default_factory=list)
     table_reads: list[ReadFact] = Field(default_factory=list)
-    # The checks whose digest was corrected once for its control results.
-    refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
     # reply cites is checked against it.
     retrieved_sources: list[str] = Field(default_factory=list)

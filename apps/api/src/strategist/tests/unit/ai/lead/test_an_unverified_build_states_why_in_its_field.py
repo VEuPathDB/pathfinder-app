@@ -80,7 +80,7 @@ def test_a_reason_beside_a_recorded_stop_passes_on_the_first_answer() -> None:
 
     assert hold_the_turn_contract(run_context_for(deps), answer) == answer
     markers = deps.state.turn_markers
-    assert (markers.output_refusals, markers.unchecked_reply) == (0, False)
+    assert (markers.answer_ledger.uses, markers.unchecked_reply) == ((), False)
 
 
 def test_the_reason_the_refusal_asks_for_passes_unmarked() -> None:
@@ -131,7 +131,7 @@ def test_a_reply_that_says_verified_passes_beside_the_status(sentence: str) -> N
 
     assert hold_the_turn_contract(run_context_for(deps), answer) == answer
     markers = deps.state.turn_markers
-    assert (markers.output_refusals, markers.unchecked_reply) == (0, False)
+    assert (markers.answer_ledger.uses, markers.unchecked_reply) == ((), False)
     assert _unverified_status(deps) == UNVERIFIED_BUILD
 
 
@@ -181,7 +181,7 @@ def test_a_card_on_an_unverified_build_shows_the_status_and_passes_unmarked() ->
     assert results is None
     assert _unverified_status(deps) == UNVERIFIED_BUILD
     markers = deps.state.turn_markers
-    assert (markers.output_refusals, markers.unchecked_reply) == (0, False)
+    assert (markers.answer_ledger.uses, markers.unchecked_reply) == ((), False)
 
 
 @pytest.mark.parametrize("sentence", [*_SAYS_VERIFIED, _CLAIMS_A_CHECK])
@@ -192,7 +192,7 @@ def test_a_card_that_says_verified_passes_beside_the_status(sentence: str) -> No
 
     assert results is None
     markers = deps.state.turn_markers
-    assert (markers.output_refusals, markers.unchecked_reply) == (0, False)
+    assert (markers.answer_ledger.uses, markers.unchecked_reply) == ((), False)
     assert _unverified_status(deps) == UNVERIFIED_BUILD
 
 

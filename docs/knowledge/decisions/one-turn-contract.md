@@ -22,7 +22,8 @@ status: stable
   class, in a fixed order. Each `Mismatch` carries its `kind` and the sentence the existing
   message function in `dispatch_messages.py` renders.
 - `hold_the_turn_contract` - the single output validator on the Lead agent. It reconciles
-  once per turn, each rule kind kept on `TurnMarkers.refused_rules`, and raises one `ModelRetry`
+  once per turn, each rule kind charged as its own key on `TurnMarkers.answer_ledger`
+  (`TURN_REFUSALS_PER_RULE`), and raises one `ModelRetry`
   listing every mismatch under one heading.
 
 Seven rules covered what seven validators covered: an unverified build, a misreported change in
@@ -60,7 +61,7 @@ turn vouches for its address. See [the product renders the facts](the-product-re
 and [a refusal rests on typed state](a-refusal-rests-on-typed-state.md).
 
 The precondition gate reads which rule refused: `intent_gate.verification_pending` is
-`"unverified_build" in refused_rules and built and not verified`, so a turn corrected for want
+the `unverified_build` key charged on `answer_ledger`, built and not verified, so a turn corrected for want
 of a check reaches `verify_strategy` and no other tool that writes. A refusal by any other rule
 narrows nothing; a refusal for an unbuilt EDA criterion leaves the EDA tools that build it.
 A build is finished before it is checked: `unverified_build` does not fire while a criterion

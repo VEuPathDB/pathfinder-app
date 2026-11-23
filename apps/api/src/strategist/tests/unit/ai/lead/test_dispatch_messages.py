@@ -164,6 +164,21 @@ class TestNothingBoundIsStillNothing:
 
         assert result.disposition == "needs_user"
 
+    def test_a_refused_pass_quotes_what_it_was_told(self) -> None:
+        stop = PhaseStop(
+            role="frame",
+            reason=PhaseStopReason.OUTPUT_RETRIES,
+            refusal="requirement_problems names R9, and the list holds R1.",
+        )
+
+        result = frame_result_from_draft(None, stop)
+
+        assert result.summary == (
+            "FRAME stopped on an answer that had the wrong shape every time with no "
+            "criteria bound. It was told: requirement_problems names R9, and the "
+            "list holds R1."
+        )
+
 
 def test_a_continuation_keeps_a_criterion_waiting_for_its_analysis() -> None:
     """The waiting criterion is recorded work, never a search still to find."""

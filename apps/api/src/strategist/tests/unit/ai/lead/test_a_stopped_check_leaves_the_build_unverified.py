@@ -123,7 +123,7 @@ async def test_a_stopped_check_leaves_the_status_and_takes_a_reason(
     assert _unverified(deps) == UNVERIFIED_BUILD
     assert hold_the_turn_contract(run_context_for(deps), answer) == answer
     markers = deps.state.turn_markers
-    assert (markers.output_refusals, markers.unchecked_reply) == (0, False)
+    assert (markers.answer_ledger.uses, markers.unchecked_reply) == ((), False)
 
 
 @pytest.mark.parametrize(

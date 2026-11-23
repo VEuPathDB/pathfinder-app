@@ -11,7 +11,6 @@ from pydantic import ConfigDict, Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
-from strategist.ai.agents.refusal_bound import may_refuse
 from strategist.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_NOTE
 from strategist.ai.lead.contract_messages import (
     eda_criterion_not_built_message,
@@ -27,7 +26,9 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_record import TurnRecord, turn_record
 from strategist.ai.lead.verdict_claims import open_value_in_prose
 from strategist.domain.clipped import list_clipped_to, text_clipped_to
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.questions import AskedQuestion
+from strategist.platform.refusals import TURN_REFUSALS_PER_RULE, last_answer
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -198,11 +199,17 @@ def correct_once(
     ctx: RunContext[LeadDeps], mismatches: Sequence[Mismatch]
 ) -> list[Mismatch]:
     markers = ctx.deps.state.turn_markers
-    found = [m for m in mismatches if m.kind not in markers.refused_rules]
-    if found and may_refuse(ctx, markers.output_refusals):
-        markers.output_refusals += 1
-        markers.refused_rules.extend(m.kind for m in found)
-        return found
+    found = Problems(
+        found=tuple(
+            Problem(key=RefusalKey(check=m.kind), sentence=m.sentence)
+            for m in mismatches
+        )
+    )
+    charge = markers.answer_ledger.charge(found, TURN_REFUSALS_PER_RULE)
+    refused = set(charge.refused.keys())
+    if refused and not last_answer(ctx):
+        markers.answer_ledger = charge.ledger
+        return [m for m in mismatches if RefusalKey(check=m.kind) in refused]
     if mismatches:
         markers.unchecked_reply = True
     return []

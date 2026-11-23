@@ -56,6 +56,7 @@ PassGapKind = Literal[
     "record_type_unknown",
     "structure_names_unbound",
     "option_not_a_value",
+    "refusal_spent",
 ]
 
 

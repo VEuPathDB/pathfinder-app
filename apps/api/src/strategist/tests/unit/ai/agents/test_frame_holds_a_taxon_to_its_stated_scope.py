@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import contextlib
 import math
 
 import pytest
-from pydantic_ai import DeferredToolRequests
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.parameters import PhyleticTree, StringValue
 
@@ -18,6 +15,7 @@ from strategist.ai.lead.deltas import FrameResult
 from strategist.domain.strategy.named_groups import GroupScope
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
 from strategist.domain.strategy.readings import AcceptedReading
+from strategist.tests._support.held_answers import let_through, said
 from strategist.tests._support.ortho_taxonomy import (
     labelled_genomes,
     recorded_ortho_taxonomy,
@@ -79,9 +77,11 @@ def _context(
 
 
 async def _sent_back(ctx: RunContext[AgentDeps], result: FrameResult) -> str:
-    with pytest.raises(ModelRetry) as sent_back:
-        await hold_the_taxa_to_their_scope(ctx, result)
-    return str(sent_back.value)
+    return " ".join(said(await hold_the_taxa_to_their_scope(ctx, result)))
+
+
+async def _let_through(ctx: RunContext[AgentDeps], result: FrameResult) -> FrameResult:
+    return let_through(await hold_the_taxa_to_their_scope(ctx, result), result)
 
 
 async def test_a_whole_group_two_genomes_short_is_sent_back_naming_both() -> None:
@@ -93,22 +93,21 @@ async def test_a_whole_group_two_genomes_short_is_sent_back_naming_both() -> Non
     assert f"all of Plasmodium, {len(PLAS)} genomes" in told
     assert "as present in the unit" in told
     assert "or as absent in a unit of its own" in told
-    assert ctx.deps.agent_state.refusals == 1
 
 
 async def test_the_same_units_with_a_named_scope_bind() -> None:
     result = _bound(NAMED)
 
-    assert await hold_the_taxa_to_their_scope(
-        _context(_per_species(SHORT)), result
-    ) is (result)
+    assert (
+        await hold_the_taxa_to_their_scope(_context(_per_species(SHORT)), result) == []
+    )
 
 
 async def test_one_genome_of_one_species_needs_no_scope() -> None:
     result = _bound()
     ctx = _context("pfal>=1T", "Show every Plasmodium falciparum 3D7 group.")
 
-    assert await hold_the_taxa_to_their_scope(ctx, result) is result
+    assert await hold_the_taxa_to_their_scope(ctx, result) == []
 
 
 async def test_units_over_many_species_with_no_scope_are_sent_back_then_bind_a_gap() -> (
@@ -118,9 +117,7 @@ async def test_units_over_many_species_with_no_scope_are_sent_back_then_bind_a_g
     result = _bound()
 
     told = await _sent_back(ctx, result)
-    with contextlib.suppress(ModelRetry):
-        await hold_the_taxa_to_their_scope(ctx, result)
-    held = await hold_the_taxa_to_their_scope(ctx, result)
+    held = await _let_through(ctx, result)
 
     assert "group_scopes states no scope for Plasmodium" in told
     assert "taxon 'Plasmodium'" in told
@@ -138,7 +135,7 @@ async def test_a_whole_scope_with_an_exception_binds_without_it(absent: str) -> 
         GroupScope(taxon="Plasmodium", scope="whole", except_codes=["pber"])
     )
 
-    assert await hold_the_taxa_to_their_scope(ctx, result) is result
+    assert await hold_the_taxa_to_their_scope(ctx, result) == []
 
 
 async def test_a_scope_the_thread_holds_applies_to_a_pass_that_states_none() -> None:
@@ -153,17 +150,14 @@ async def test_a_scope_the_pass_states_replaces_the_one_the_thread_holds() -> No
     ctx.deps.agent_state.held_group_scopes = {"plasmodium": WHOLE}
     result = _bound(NAMED)
 
-    assert await hold_the_taxa_to_their_scope(ctx, result) is result
+    assert await hold_the_taxa_to_their_scope(ctx, result) == []
 
 
-async def test_the_last_answer_binds_with_the_genomes_named_as_a_gap() -> None:
+async def test_a_let_through_binds_with_the_genomes_named_as_a_gap() -> None:
     ctx = _context(_per_species(SHORT))
     result = _bound(WHOLE)
-    for _ in range(2):
-        with pytest.raises(ModelRetry):
-            await hold_the_taxa_to_their_scope(ctx, result)
 
-    held = await hold_the_taxa_to_their_scope(ctx, result)
+    held = await _let_through(ctx, result)
 
     assert held == result.with_gap(
         "group_genomes_left_out",
@@ -172,13 +166,8 @@ async def test_the_last_answer_binds_with_the_genomes_named_as_a_gap() -> None:
     )
 
 
-async def _gap_at_the_bound(expression: str) -> FrameResult | DeferredToolRequests:
-    ctx = _context(expression)
-    result = _bound(WHOLE)
-    for _ in range(2):
-        with pytest.raises(ModelRetry):
-            await hold_the_taxa_to_their_scope(ctx, result)
-    return await hold_the_taxa_to_their_scope(ctx, result)
+async def _gap_at_the_bound(expression: str) -> FrameResult:
+    return await _let_through(_context(expression), _bound(WHOLE))
 
 
 def _left_out_gap(listed: str) -> FrameResult:
@@ -219,9 +208,9 @@ async def test_an_accepted_reading_that_leaves_genomes_out_is_sent_back() -> Non
 async def test_a_pass_that_asks_is_not_held_to_a_scope() -> None:
     result = FrameResult(summary="Asked.", disposition="needs_user")
 
-    assert await hold_the_taxa_to_their_scope(
-        _context(_per_species(SHORT)), result
-    ) is (result)
+    assert (
+        await hold_the_taxa_to_their_scope(_context(_per_species(SHORT)), result) == []
+    )
 
 
 async def test_a_clade_code_stated_whole_holds_the_clade() -> None:
@@ -241,7 +230,7 @@ async def test_a_narrowed_pass_under_a_held_whole_scope_binds_its_own_scope() ->
     ctx.deps.agent_state.held_group_scopes = {"plasmodium": WHOLE}
     result = _bound(GroupScope(taxon="Plasmodium vivax", scope="whole"))
 
-    assert await hold_the_taxa_to_their_scope(ctx, result) is result
+    assert await hold_the_taxa_to_their_scope(ctx, result) == []
 
 
 async def test_a_narrowed_pass_with_no_scope_is_asked_for_its_own_taxon() -> None:
@@ -262,9 +251,7 @@ async def test_a_held_whole_scope_still_spanned_is_held_as_an_earlier_pass_state
     result = _bound()
 
     told = await _sent_back(ctx, result)
-    with contextlib.suppress(ModelRetry):
-        await hold_the_taxa_to_their_scope(ctx, result)
-    held = await hold_the_taxa_to_their_scope(ctx, result)
+    held = await _let_through(ctx, result)
 
     assert "An earlier pass of this request stated all of Plasmodium" in told
     assert "names pccb, pcym." in told
@@ -283,7 +270,7 @@ async def test_a_scope_restated_under_another_spelling_replaces_the_held_one() -
     }
     result = _bound(GroupScope(taxon="Haemosporida", scope="named"))
 
-    assert await hold_the_taxa_to_their_scope(ctx, result) is result
+    assert await hold_the_taxa_to_their_scope(ctx, result) == []
 
 
 async def test_an_exception_that_is_no_genome_of_the_taxon_is_sent_back() -> None:
@@ -293,9 +280,7 @@ async def test_an_exception_that_is_no_genome_of_the_taxon_is_sent_back() -> Non
     )
 
     told = await _sent_back(ctx, result)
-    with contextlib.suppress(ModelRetry):
-        await hold_the_taxa_to_their_scope(ctx, result)
-    held = await hold_the_taxa_to_their_scope(ctx, result)
+    held = await _let_through(ctx, result)
 
     assert (
         "except_codes of taxon 'Plasmodium' names P. berghei, which is no genome "

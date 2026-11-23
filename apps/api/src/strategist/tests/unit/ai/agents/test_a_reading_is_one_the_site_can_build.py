@@ -14,7 +14,7 @@ from veupathdb.domain.parameters import ParamKind, ParamValue, StringValue
 from veupathdb.errors import ValidationError, WDKError
 from veupathdb_mcp.catalog import ParameterInfo, ValidatedParams
 
-from strategist.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
+from strategist.ai.agents.frame_answer import hold_the_frame_answer
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead import lead_consult
@@ -127,7 +127,7 @@ async def _held(question: SlotQuestion, criterion: Criterion) -> FrameResult | o
         operational_spec_draft=OperationalSpec(criteria=[criterion]),
         stated_requirements=[_PRESENT],
     )
-    return await hold_the_readings_to_the_site(
+    return await hold_the_frame_answer(
         agent_run_context(agent_state=state),
         FrameResult(disposition="needs_user", open_questions=[question]),
     )
@@ -232,7 +232,7 @@ async def test_a_question_that_names_no_requirement_goes_back_in_one_sentence(
         )
 
     assert str(refused.value) == (
-        "Change these readings, or ask nothing about them and say why in "
+        "Change this reading, or ask nothing about it and say why in "
         "summary: c_plas.phyletic_expression: name in the question's "
         "`requirements` the keys of the requirements its readings approximate, "
         "from R1."
@@ -253,7 +253,7 @@ async def test_a_key_spelled_without_its_letter_goes_back_with_the_keys_held(
         )
 
     assert str(refused.value) == (
-        "Change these readings, or ask nothing about them and say why in "
+        "Change this reading, or ask nothing about it and say why in "
         "summary: c_plas.phyletic_expression: replace ['1'] in the question's "
         "`requirements` with keys the requirement list holds, from R1."
     )
@@ -271,7 +271,7 @@ async def test_a_question_with_no_keys_reaches_the_card_when_none_were_stated(
         operational_spec_draft=OperationalSpec(criteria=[_criterion()]),
     )
 
-    held = await hold_the_readings_to_the_site(
+    held = await hold_the_frame_answer(
         agent_run_context(agent_state=state),
         FrameResult(disposition="needs_user", open_questions=[question]),
     )
@@ -441,9 +441,9 @@ async def test_a_reading_question_that_names_no_slot_is_named_by_its_words() -> 
     with pytest.raises(ModelRetry) as refused:
         await _held(question, _criterion())
 
-    assert str(refused.value) == (
-        "Change these readings, or ask nothing about them and say why in summary: "
+    assert (
+        "Change this reading, or ask nothing about it and say why in summary: "
         "the question 'Present in which genomes?' offers the readings ['Every one "
         "of the 61 genomes', 'Most of them']: name the `criterion_id` and "
         "`param_name` its readings set."
-    )
+    ) in str(refused.value)

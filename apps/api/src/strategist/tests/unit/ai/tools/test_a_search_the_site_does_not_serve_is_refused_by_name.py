@@ -19,6 +19,7 @@ from strategist.domain.strategy.requirement_reports import (
 )
 from strategist.services.strategies import sheet_params
 from strategist.tests._support.catalog_reads import listing
+from strategist.tests._support.held_answers import said
 from strategist.tests._support.orthomcl_site import TYPED_GENE_ID, recorded_refusal
 from strategist.tests._support.record_classes import list_searches_under
 from strategist.tests.unit.ai.tools._orthomcl_site import (
@@ -184,7 +185,7 @@ async def test_the_report_of_the_refused_search_is_held(
         ],
     )
 
-    assert hold_the_reports_to_the_refusals(ctx, report) is report
+    assert hold_the_reports_to_the_refusals(ctx, report) == []
 
 
 async def test_a_404_the_catalog_wraps_is_the_sites_refusal_too(
@@ -230,11 +231,12 @@ async def test_a_report_of_an_unlisted_name_is_sent_back_naming_it(
         ],
     )
 
-    with pytest.raises(ModelRetry) as sent_back:
-        hold_the_reports_to_the_refusals(ctx, report)
+    held = hold_the_reports_to_the_refusals(ctx, report)
 
-    assert sent_back.value.message == (
-        "site_refused_the_search names ['ByProteinId'], which the site's catalog "
-        "lists under no record type. A requirement no search on this site answers "
-        "is site_has_no_search."
-    )
+    assert said(held) == [
+        (
+            "site_refused_the_search for R1 names ByProteinId, which the site's "
+            "catalog lists under no record type. A requirement no search on this "
+            "site answers is site_has_no_search."
+        )
+    ]

@@ -5,8 +5,6 @@ from collections.abc import Mapping
 
 import pytest
 from pydantic import TypeAdapter
-from pydantic_ai import DeferredToolRequests
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -26,9 +24,9 @@ from veupathdb_mcp.catalog import (
 from strategist.ai.agents.frame import build_frame_agent
 from strategist.ai.agents.frame_option_checks import hold_an_option_to_its_parameter
 from strategist.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
-from strategist.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.constraints import ConstraintKind
 from strategist.domain.strategy.expression_handles import (
     BuiltPattern,
@@ -43,6 +41,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading
 from strategist.services.strategies import reading_check
+from strategist.tests._support.held_answers import let_through, said
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -87,11 +86,10 @@ def _criterion(kind: ParamKind, param: str = "the_param") -> Criterion:
     )
 
 
-def _context(criterion: Criterion, *, refusals: int = 0) -> RunContext[AgentDeps]:
+def _context(criterion: Criterion) -> RunContext[AgentDeps]:
     ctx = agent_run_context()
     state = ctx.deps.agent_state
     state.operational_spec_draft = OperationalSpec(criteria=[criterion])
-    state.refusals = refusals
     return ctx
 
 
@@ -116,18 +114,16 @@ async def test_an_option_its_kind_cannot_read_is_sent_back(
 ) -> None:
     ctx = _context(_criterion(kind))
 
-    with pytest.raises(ModelRetry) as sent_back:
-        await hold_an_option_to_its_parameter(
-            ctx, _asked(_question(_VALUES[kind][0], offered))
-        )
+    held = await hold_an_option_to_its_parameter(
+        ctx, _asked(_question(_VALUES[kind][0], offered))
+    )
 
-    assert str(sent_back.value) == (
+    assert " ".join(said(held)) == (
         f"c_one.the_param offered a value the card cannot bind: {offered!r} is not a "
         f"value of the_param: it takes a {kind} value. An option binds its value as "
         "written. Offer values this parameter takes, or ask in free text: leave "
         "`options` empty and the researcher answers in words."
     )
-    assert ctx.deps.agent_state.refusals == 1
 
 
 async def test_a_label_on_an_expression_parameter_is_sent_back_with_the_grammar_fault() -> (
@@ -135,13 +131,12 @@ async def test_a_label_on_an_expression_parameter_is_sent_back_with_the_grammar_
 ):
     ctx = _context(_criterion("string", _EXPRESSION))
 
-    with pytest.raises(ModelRetry) as sent_back:
-        await hold_an_option_to_its_parameter(
-            ctx,
-            _asked(_question(_TYPED_EXPRESSION, _EXPRESSION_LABEL, param=_EXPRESSION)),
-        )
+    held = await hold_an_option_to_its_parameter(
+        ctx,
+        _asked(_question(_TYPED_EXPRESSION, _EXPRESSION_LABEL, param=_EXPRESSION)),
+    )
 
-    told = str(sent_back.value)
+    told = " ".join(said(held))
     assert f"{_EXPRESSION_LABEL!r} is not a value of {_EXPRESSION}" in told
     assert "'Keep' needs an operator and a count" in told
     assert "ask in free text" in told
@@ -151,10 +146,11 @@ async def test_a_count_the_expression_model_cannot_hold_is_sent_back() -> None:
     offered = f"APIC>={'9' * 5000}T"
     ctx = _context(_criterion("string", _EXPRESSION))
 
-    with pytest.raises(ModelRetry, match="is not a value of phyletic_expression"):
-        await hold_an_option_to_its_parameter(
-            ctx, _asked(_question(_TYPED_EXPRESSION, offered, param=_EXPRESSION))
-        )
+    held = await hold_an_option_to_its_parameter(
+        ctx, _asked(_question(_TYPED_EXPRESSION, offered, param=_EXPRESSION))
+    )
+
+    assert "is not a value of phyletic_expression" in " ".join(said(held))
 
 
 @pytest.mark.parametrize("kind", list(_VALUES))
@@ -162,8 +158,7 @@ async def test_options_the_kind_reads_pass(kind: ParamKind) -> None:
     asked = _asked(_question(*_VALUES[kind]))
     ctx = _context(_criterion(kind))
 
-    assert await hold_an_option_to_its_parameter(ctx, asked) == asked
-    assert ctx.deps.agent_state.refusals == 0
+    assert await hold_an_option_to_its_parameter(ctx, asked) == []
 
 
 async def test_a_typed_expression_and_a_handle_pass() -> None:
@@ -179,7 +174,7 @@ async def test_a_typed_expression_and_a_handle_pass() -> None:
         _context(_criterion("string", _EXPRESSION)), asked
     )
 
-    assert held == asked
+    assert held == []
 
 
 async def test_a_held_handle_is_read_as_its_expression() -> None:
@@ -198,7 +193,7 @@ async def test_a_held_handle_is_read_as_its_expression() -> None:
     )
     asked = _asked(_question(handle, "MAMM>=1T", param=_EXPRESSION))
 
-    assert await hold_an_option_to_its_parameter(ctx, asked) == asked
+    assert await hold_an_option_to_its_parameter(ctx, asked) == []
 
 
 async def test_a_label_on_a_held_filter_value_is_sent_back() -> None:
@@ -213,10 +208,11 @@ async def test_a_label_on_a_held_filter_value_is_sent_back() -> None:
         },
     )
 
-    with pytest.raises(ModelRetry, match="is not a value of the_param"):
-        await hold_an_option_to_its_parameter(
-            _context(criterion), _asked(_question(_FILTER_VALUE, _FILTER_LABEL))
-        )
+    held = await hold_an_option_to_its_parameter(
+        _context(criterion), _asked(_question(_FILTER_VALUE, _FILTER_LABEL))
+    )
+
+    assert "is not a value of the_param" in " ".join(said(held))
 
 
 async def test_a_slot_of_the_spec_names_the_kind_too() -> None:
@@ -229,10 +225,11 @@ async def test_a_slot_of_the_spec_names_the_kind_too() -> None:
         ],
     )
 
-    with pytest.raises(ModelRetry, match="is not a value of the_param"):
-        await hold_an_option_to_its_parameter(
-            ctx, _asked(_question(_FILTER_VALUE, _FILTER_LABEL))
-        )
+    held = await hold_an_option_to_its_parameter(
+        ctx, _asked(_question(_FILTER_VALUE, _FILTER_LABEL))
+    )
+
+    assert "is not a value of the_param" in " ".join(said(held))
 
 
 @pytest.mark.parametrize(
@@ -271,10 +268,14 @@ async def test_a_reading_its_kind_cannot_read_is_sent_back_and_raises_nothing_el
     )
     criterion = _criterion(kind).model_copy(update={"record_class": "transcript"})
 
-    with pytest.raises(ModelRetry) as sent_back:
-        await hold_the_readings_to_the_site(_context(criterion), _asked(question))
+    _, held = await hold_the_readings_to_the_site(_context(criterion), _asked(question))
 
-    assert told in str(sent_back.value)
+    assert [answer.problem.key for answer in held] == [
+        RefusalKey(
+            check="the_readings_to_the_site", criterion="c_one", parameter="the_param"
+        )
+    ]
+    assert told in " ".join(said(held))
 
 
 async def test_options_beside_readings_are_the_reading_check_s_to_refuse() -> None:
@@ -290,7 +291,7 @@ async def test_options_beside_readings_are_the_reading_check_s_to_refuse() -> No
 
     assert (
         await hold_an_option_to_its_parameter(_context(_criterion("filter")), asked)
-        == asked
+        == []
     )
 
 
@@ -301,8 +302,7 @@ async def test_a_kind_that_takes_any_word_passes_a_word(kind: ParamKind) -> None
     asked = _asked(_question("Pf3D7", "PvP01"))
 
     assert (
-        await hold_an_option_to_its_parameter(_context(_criterion(kind)), asked)
-        == asked
+        await hold_an_option_to_its_parameter(_context(_criterion(kind)), asked) == []
     )
 
 
@@ -317,7 +317,7 @@ async def test_a_question_that_names_no_slot_passes() -> None:
 
     assert (
         await hold_an_option_to_its_parameter(_context(_criterion("filter")), asked)
-        == asked
+        == []
     )
 
 
@@ -346,19 +346,10 @@ async def test_a_value_the_site_sets_binds_nothing_so_it_refuses_nothing(
     ctx.deps.agent_state.record_read("SomeSearch", sheet_of([param]))
     asked = _asked(_question(_FILTER_LABEL, "Another label"))
 
-    assert await hold_an_option_to_its_parameter(ctx, asked) == asked
+    assert await hold_an_option_to_its_parameter(ctx, asked) == []
 
 
-async def test_a_parked_run_is_no_result_to_check() -> None:
-    parked = DeferredToolRequests()
-
-    assert (
-        await hold_an_option_to_its_parameter(_context(_criterion("filter")), parked)
-        is parked
-    )
-
-
-async def test_at_the_bound_the_question_asks_in_free_text_with_a_named_gap() -> None:
+async def test_let_through_the_question_asks_in_free_text_with_a_named_gap() -> None:
     other = SlotQuestion(
         question="Which other value?",
         recommended_value="1",
@@ -367,14 +358,13 @@ async def test_at_the_bound_the_question_asks_in_free_text_with_a_named_gap() ->
         options=["1", "2"],
     )
     question = _question(_FILTER_VALUE, _FILTER_LABEL, "a word")
-    ctx = _context(_criterion("filter"), refusals=REFUSALS_PER_CHECK)
+    asked = FrameResult(disposition="needs_user", open_questions=[question, other])
 
-    held = await hold_an_option_to_its_parameter(
-        ctx,
-        FrameResult(disposition="needs_user", open_questions=[question, other]),
+    held = let_through(
+        await hold_an_option_to_its_parameter(_context(_criterion("filter")), asked),
+        asked,
     )
 
-    assert isinstance(held, FrameResult)
     assert held.open_questions == [
         question.model_copy(update={"options": []}),
         other,
@@ -390,7 +380,6 @@ async def test_at_the_bound_the_question_asks_in_free_text_with_a_named_gap() ->
             ),
         )
     ]
-    assert ctx.deps.agent_state.refusals == REFUSALS_PER_CHECK
 
 
 def _final(question: dict[str, object]) -> ToolCallPart:

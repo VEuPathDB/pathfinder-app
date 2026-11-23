@@ -18,7 +18,6 @@ from veupathdb.domain.parameters import ParamValue, PhyleticExpression
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.agents.frame import build_frame_agent
-from strategist.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from strategist.ai.lead.deltas import FrameResult, PassGap
 from strategist.domain.strategy.constraints import (
     Constraint,
@@ -34,6 +33,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
 )
+from strategist.platform.refusals import ANSWER_REFUSALS_PER_KEY
 from strategist.services.strategies import reading_check
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -88,7 +88,7 @@ async def test_a_number_the_list_lacks_is_corrected_before_the_caller_reads_it()
     ]
     [sent_back] = told
     assert sent_back == (
-        "requirement_problems names ['R4'], and the list holds R1. A report names "
+        "requirement_problems names R4, and the list holds R1. A report names "
         "a requirement by its number in 'Requirements the researcher stated'. Use "
         "one of those numbers, or leave the entry out and say it in summary."
     )
@@ -245,7 +245,7 @@ async def test_a_question_keyed_nowhere_is_told_the_one_change(echoed: None) -> 
 
     assert told == [
         (
-            "Change these readings, or ask nothing about them and say why in "
+            "Change this reading, or ask nothing about it and say why in "
             f"summary: {_FAMILIES}.{_EXPRESSION}: name in the question's "
             "`requirements` the keys of the requirements its readings "
             "approximate, from R1, R2."
@@ -267,14 +267,14 @@ async def test_a_question_keyed_with_no_requirement_stated_reaches_the_caller(
     )
 
     assert [t.split(",")[0] for t in told] == [
-        "requirement_problems names ['R2']",
-        "requirement_problems names ['R2']",
+        "requirement_problems names R2",
+        "requirement_problems names R2",
     ]
     assert output.requirement_problems == []
     assert output.gaps == [
         PassGap(
             kind="report_dropped",
-            sentence="The pass reported ['R2'], which the requirement list does not hold.",
+            sentence="The pass reported R2, which the requirement list does not hold.",
         )
     ]
     [question] = output.open_questions
@@ -355,8 +355,8 @@ async def test_prose_readings_are_dropped_with_the_site_s_reasons(
         criterion_id=_BANDS,
     )
 
-    assert len(told) == REFUSALS_PER_CHECK
-    assert all(t.startswith("Change these readings") for t in told)
+    assert len(told) == ANSWER_REFUSALS_PER_KEY
+    assert all(t.startswith(("Change this reading", "2 problems")) for t in told)
     [question] = output.open_questions
     assert (question.question, question.readings, question.requirements) == (
         _SCOPE,
@@ -397,7 +397,7 @@ async def test_two_unkeyed_answers_then_one_reading_ends_without_a_retry_error(
         ]
     )
 
-    assert len(told) == REFUSALS_PER_CHECK
+    assert len(told) == ANSWER_REFUSALS_PER_KEY
     [question] = output.open_questions
     assert question.readings == []
     assert [g.kind for g in output.gaps] == ["question_without_readings"]
@@ -410,7 +410,7 @@ async def test_options_beside_readings_repeated_ends_without_a_retry_error(
 
     assert [t.split(":")[1].strip() for t in told] == [
         f"{_FAMILIES}.{_EXPRESSION} offers the readings ['At most 3 Microsporidia genomes', 'At most 5 Microsporidia genomes', 'At most 10 Microsporidia genomes']",
-    ] * REFUSALS_PER_CHECK
+    ] * ANSWER_REFUSALS_PER_KEY
     [question] = output.open_questions
     assert (question.options, question.readings) == (["3", "5"], [])
     assert output.gaps[0].kind == "question_without_readings"
@@ -420,14 +420,14 @@ def _undecided() -> dict[str, object]:
     return _asked(on_readings=["R2"], on_question=[], recommendedValue="")
 
 
-async def test_every_check_shares_one_bound_and_the_last_answer_passes(
+async def test_each_check_keeps_its_own_bound_and_the_last_answer_passes(
     echoed: None,
 ) -> None:
     output, told = await _run(
         [_undecided(), _asked(on_readings=None, on_question=[]), _undecided()]
     )
 
-    assert [t.split(" ")[0] for t in told] == ["These", "Change"]
+    assert [t.split(" ")[0] for t in told] == ["The", "Change", "The"]
     assert [g.kind for g in output.gaps] == ["question_decides_nothing"]
 
 
@@ -436,7 +436,7 @@ async def test_readings_left_unkeyed_past_the_bound_say_a_pick_replaces_none(
 ) -> None:
     output, told = await _run([_asked(on_readings=None, on_question=[])])
 
-    assert len(told) == REFUSALS_PER_CHECK
+    assert len(told) == ANSWER_REFUSALS_PER_KEY
     assert output.gaps == [
         PassGap(
             kind="readings_name_no_requirement",

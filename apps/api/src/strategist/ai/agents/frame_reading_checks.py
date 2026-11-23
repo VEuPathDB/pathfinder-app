@@ -4,14 +4,16 @@ requirements the pass was given."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
+from pydantic_ai import RunContext
 from veupathdb.errors import ValidationError
 
-from strategist.ai.agents.refusal_bound import may_refuse
+from strategist.ai.agents.held_answer import HeldAnswer, held, with_question
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.expression_handles import (
     UnknownExpressionError,
     held_expressions,
@@ -202,23 +204,47 @@ async def _checked(ctx: RunContext[AgentDeps], question: SlotQuestion) -> _Held:
     )
 
 
+def _read(checked: _Held) -> Callable[[FrameResult], FrameResult]:
+    readings = checked.question.readings
+    return lambda output: with_question(
+        output, checked.question, readings=readings
+    ).with_gaps(checked.gaps)
+
+
+def _kept(output: FrameResult) -> FrameResult:
+    return output
+
+
+def _held_readings(original: SlotQuestion, checked: _Held) -> list[HeldAnswer]:
+    key = RefusalKey(
+        check="the_readings_to_the_site",
+        criterion=original.criterion_id,
+        parameter=original.param_name,
+    )
+    lets = [_read(checked), *[_kept] * (len(checked.problems) - 1)]
+    return [
+        held(
+            key,
+            f"Change this reading, or ask nothing about it and say why in summary: "
+            f"{problem}.",
+            let,
+        )
+        for problem, let in zip(checked.problems, lets, strict=True)
+    ]
+
+
 async def hold_the_readings_to_the_site(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    if not isinstance(output, FrameResult):
-        return output
-    held = [
-        await _checked(ctx, q) if q.readings else _Held(q)
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> tuple[FrameResult, list[HeldAnswer]]:
+    checked = [
+        (q, await _checked(ctx, q) if q.readings else _Held(q))
         for q in output.open_questions
     ]
-    problems = [p for h in held for p in h.problems]
-    state = ctx.deps.agent_state
-    if problems and may_refuse(ctx, state.refusals):
-        state.refusals += 1
-        msg = (
-            f"Change these readings, or ask nothing about them and say why in "
-            f"summary: {'; '.join(problems)}."
-        )
-        raise ModelRetry(msg)
-    checked = output.model_copy(update={"open_questions": [h.question for h in held]})
-    return checked.with_gaps([g for h in held for g in h.gaps])
+    spelled = output
+    answers: list[HeldAnswer] = []
+    for original, read in checked:
+        if read.problems:
+            answers.extend(_held_readings(original, read))
+        else:
+            spelled = _read(read)(spelled)
+    return spelled, answers

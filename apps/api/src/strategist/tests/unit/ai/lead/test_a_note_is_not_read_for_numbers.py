@@ -88,4 +88,4 @@ def test_a_cards_reply_that_writes_numbers_reaches_the_card() -> None:
     deps = _micro()
     held = hold_the_contract_on_a_card(run_context_for(deps), requests)
 
-    assert (held, deps.state.turn_markers.output_refusals) == (None, 0)
+    assert (held, deps.state.turn_markers.answer_ledger.uses) == (None, ())

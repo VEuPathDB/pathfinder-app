@@ -21,6 +21,7 @@ from strategist.ai.lead.intent_gate import BUILDING_TOOLS, tools_the_turn_offers
 from strategist.ai.lead.proposal import PROPOSAL_TOOL
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.revision import strategy_revision
+from strategist.tests._support.held_answers import refused_once
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -114,7 +115,7 @@ def test_a_turn_with_no_check_offers_the_edit() -> None:
 def test_a_refused_reply_after_a_tree_failure_reaches_only_the_check() -> None:
     """The refusal and the card rule each withdraw tools; neither adds one."""
     deps = _checked(_digest(success=False, cause=FailureCause.STRUCTURE_VIOLATION))
-    deps.state.turn_markers.refused_rules = ["unverified_build"]
+    deps.state.turn_markers.answer_ledger = refused_once("unverified_build")
 
     assert _offered(deps) == {PROPOSAL_TOOL, "verify_strategy"}
 

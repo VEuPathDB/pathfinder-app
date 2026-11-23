@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 from assistant_core.graph.turn_state import UserQuestionAnswer
 from pydantic import BaseModel
-from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb_mcp.catalog import PhyleticPattern, ValidatedParams
 
@@ -28,6 +27,7 @@ from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading
 from strategist.services.strategies import reading_check
 from strategist.services.strategies.reading_check import site_spelling
+from strategist.tests._support.held_answers import said
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -121,11 +121,12 @@ async def test_each_recorded_handle_reaches_the_site_as_its_expression(
         readings=[Reading(label=h, value=h) for h in _HANDLES],
     )
 
-    held = await hold_the_readings_to_the_site(
+    held, refused = await hold_the_readings_to_the_site(
         agent_run_context(agent_state=state),
         FrameResult(disposition="needs_user", open_questions=[question]),
     )
 
+    assert refused == []
     assert [w for w in sent if w.startswith("expr:")] == []
     assert sorted(set(sent)) == sorted(_written(h) for h in _HANDLES)
     assert held == FrameResult(disposition="needs_user", open_questions=[question])
@@ -156,13 +157,12 @@ async def test_a_question_offering_an_unheld_handle_is_sent_back(
         readings=[Reading(label=h, value=h) for h in _HANDLES],
     )
 
-    with pytest.raises(ModelRetry) as refused:
-        await hold_the_readings_to_the_site(
-            agent_run_context(agent_state=state),
-            FrameResult(disposition="needs_user", open_questions=[question]),
-        )
+    _, refused = await hold_the_readings_to_the_site(
+        agent_run_context(agent_state=state),
+        FrameResult(disposition="needs_user", open_questions=[question]),
+    )
 
-    assert _ANY_GENOME in str(refused.value)
+    assert _ANY_GENOME in " ".join(said(refused))
     assert sent == []
 
 

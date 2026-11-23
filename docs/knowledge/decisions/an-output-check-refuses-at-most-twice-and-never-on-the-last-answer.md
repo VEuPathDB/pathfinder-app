@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An output check refuses at most twice and never on the last answer
-description: An output type checks only shape and normalizes what is unambiguous; every judgement on a FRAME, VERIFY or Lead answer is an output check that refuses only for a change the model can make, out of one budget of two refusals per pass, and never on the last answer the run allows; past that it drops what cannot stand and records a typed gap that the Lead, VERIFY and the facts part read. Refusing until the answer is fixed, per-check bounds and judgement on the types were rejected.
+description: An output type checks only shape and normalizes what is unambiguous; every judgement on a FRAME, VERIFY or Lead answer is an output check that refuses only for a change the model can make, at most twice per key, every problem of an answer in one refusal, and never on the last answer the run allows; past that it drops what cannot stand and records a typed gap that the Lead, VERIFY and the facts part read. Refusing until the answer is fixed, one bound shared by every check and judgement on the types were rejected.
 tags: [agents, frame, lead, ergonomics]
 generated: { by: claude-code/opus-5, at: 2026-10-22T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-10-22T00:00:00Z }
@@ -55,13 +55,19 @@ dispatch. Any other unrecovered error says the turn stopped on an error, shows t
 error beside the reply and offers to start over. The reply never sends the
 researcher to Settings for a fault no model caused.
 
-**One budget per pass.** `ai/agents/refusal_bound.py::may_refuse` holds
-`REFUSALS_PER_CHECK = 2`, one count shared by every check of a pass
-(`AgentToolState.refusals` for FRAME and VERIFY, `TurnMarkers.output_refusals`
-for the Lead's rules). The Lead's prose faults hold a bound of their own
-(`TurnMarkers.prose_refusals`), so rules refused first never leave a reply that
-cannot render without its correction. No check refuses when the run context reports the last retry the
-agent allows (`ctx.retry >= ctx.max_retries`), so the last answer always stands.
+**One budget per key.** FRAME's checks run as one output validator
+(`ai/agents/frame_answer.py::hold_the_frame_answer`). Each check returns every problem it
+finds as a `HeldAnswer`: the problem, keyed by the check and the requirement, criterion or
+parameter it names, and what the check does when the problem is let through. Every problem of
+one answer is charged at once on `AgentToolState.answer_ledger`, at most
+`ANSWER_REFUSALS_PER_KEY = 2` refusals per key, and one `ModelRetry` names every live one. A
+spent key is let through with its gap, and a spent tool call of the turn
+(`RefusalBook.spent`) is a `refusal_spent` gap. The Lead's rules and VERIFY's digest are
+charged once per turn per key on `TurnMarkers.answer_ledger` (`TURN_REFUSALS_PER_RULE`). The
+Lead's prose faults hold a bound of their own (`TurnMarkers.prose_refusals`), so rules refused
+first never leave a reply that cannot render without its correction. No check refuses when the
+run context reports the last retry the agent allows (`ctx.retry >= ctx.max_retries`), so the
+last answer always stands.
 
 **Past the budget, a check degrades and records a typed gap.** FRAME's gaps are
 `FrameResult.gaps` (`PassGap`, one kind per degrade), which the Lead reads with
@@ -95,8 +101,10 @@ of an answer. No part shows only that the model did not speak yet, not that it f
 make, or will not make, then ends the turn on "Exceeded maximum output retries",
 and the work the pass did is lost with it.
 
-**A bound per check.** Six checks on one agent with three retries can still
-exhaust the retries between them.
+**One bound shared by every check.** A check that refused first spent the bound
+of every check after it, so a second problem of the same answer reached the
+researcher as a silent gap. Charging every problem of an answer at once, per key,
+names each one while the last answer still stands.
 
 **Judgement on the output type.** A type's validator refuses every answer,
 including the last, so two such problems together ended the pass on an exceeded

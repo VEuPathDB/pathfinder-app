@@ -23,6 +23,7 @@ from strategist.domain.strategy.constraints import (
 )
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.revision import strategy_revision
+from strategist.tests._support.held_answers import charged
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead._turn_contract_cases import (
     reading_deps,
@@ -111,11 +112,11 @@ def test_each_rule_is_corrected_once_and_the_third_answer_stands() -> None:
         True,
     )
     assert hold_the_turn_contract(ctx, third) == third
-    assert deps.state.turn_markers.refused_rules == [
+    assert charged(deps.state.turn_markers.answer_ledger) == [
         "unfollowed_reach",
         "unmet_requirement",
     ]
-    assert deps.state.turn_markers.output_refusals == 2
+    assert len(deps.state.turn_markers.answer_ledger.uses) == 2
 
 
 def test_a_model_written_link_reaches_the_renderer_unchanged() -> None:

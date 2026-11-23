@@ -86,8 +86,8 @@ async def _held(
             )
         ]
     )
-    held = await hold_the_readings_to_the_site(ctx, _asked())
-    assert isinstance(held, FrameResult)
+    held, refused = await hold_the_readings_to_the_site(ctx, _asked())
+    assert refused == []
     return held, spelled
 
 

@@ -16,24 +16,7 @@ from strategist.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
-from strategist.ai.agents.frame_expression_checks import hold_the_taxa_to_their_scope
-from strategist.ai.agents.frame_genome_checks import (
-    hold_the_genome_reading_to_a_question,
-)
-from strategist.ai.agents.frame_option_checks import (
-    hold_an_option_to_a_held_expression,
-    hold_an_option_to_its_parameter,
-)
-from strategist.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
-from strategist.ai.agents.frame_result_checks import (
-    hold_an_organism_to_a_step,
-    hold_the_questions_to_a_dimension,
-    hold_the_questions_to_the_draft,
-    hold_the_reports_to_the_refusals,
-    hold_the_reports_to_the_requirement_list,
-    hold_the_route_to_another_site,
-    hold_the_structure_to_bound_criteria,
-)
+from strategist.ai.agents.frame_answer import hold_the_frame_answer
 from strategist.ai.agents.scratchpad_guidance import (
     PROMOTED_NOTE_KIND,
     STRATEGIST_SCRATCHPAD_GUIDANCE,
@@ -366,16 +349,5 @@ def build_frame_agent() -> FrameAgent:
         pinned_run_budget,
     ):
         agent.instructions(stable.section(fn))
-    agent.output_validator(hold_the_reports_to_the_requirement_list)
-    agent.output_validator(hold_an_organism_to_a_step)
-    agent.output_validator(hold_the_questions_to_a_dimension)
-    agent.output_validator(hold_the_questions_to_the_draft)
-    agent.output_validator(hold_the_structure_to_bound_criteria)
-    agent.output_validator(hold_the_route_to_another_site)
-    agent.output_validator(hold_the_reports_to_the_refusals)
-    agent.output_validator(hold_an_option_to_a_held_expression)
-    agent.output_validator(hold_an_option_to_its_parameter)
-    agent.output_validator(hold_the_readings_to_the_site)
-    agent.output_validator(hold_the_taxa_to_their_scope)
-    agent.output_validator(hold_the_genome_reading_to_a_question)
+    agent.output_validator(hold_the_frame_answer)
     return agent

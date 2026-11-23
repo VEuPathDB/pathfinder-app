@@ -22,6 +22,7 @@ from strategist.domain.column_reach import ReachedColumn, StepReach, TransformRe
 from strategist.domain.strategy.constraints import ConstraintKind
 from strategist.domain.strategy.questions import AskedQuestion
 from strategist.domain.tally_facts import TallyFact
+from strategist.tests._support.held_answers import charged
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead._turn_contract_cases import (
     kinds,
@@ -140,7 +141,7 @@ def test_a_pfam_question_is_corrected_once_and_its_honest_answer_stands() -> Non
         ]
     )
     assert stood == reply(PFAM_REPLY)
-    assert deps.state.turn_markers.refused_rules == ["unfollowed_reach"]
+    assert charged(deps.state.turn_markers.answer_ledger) == ["unfollowed_reach"]
 
 
 def _card(reply_text: str) -> DeferredToolRequests:
@@ -160,4 +161,4 @@ def test_a_card_that_offers_the_transform_is_not_refused() -> None:
     offer = "The groups can be turned into proteins and counted by taxon code."
 
     assert hold_the_contract_on_a_card(run_context_for(deps), _card(offer)) is None
-    assert deps.state.turn_markers.refused_rules == []
+    assert charged(deps.state.turn_markers.answer_ledger) == []

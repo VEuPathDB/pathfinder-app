@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import pytest
 from pydantic import TypeAdapter
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import RunContext
 from veupathdb_mcp.catalog import PhyleticPattern
 
 from strategist.ai.agents.frame_option_checks import hold_an_option_to_a_held_expression
-from strategist.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
 from strategist.domain.strategy.constraints import ConstraintKind
@@ -17,6 +14,7 @@ from strategist.domain.strategy.expression_handles import (
 )
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading
+from strategist.tests._support.held_answers import let_through, said
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _EXPRESSION = "phyletic_expression"
@@ -28,13 +26,12 @@ _PATTERN = _ADAPTER.validate_python(
 )
 
 
-def _context(refusals: int = 0) -> RunContext[AgentDeps]:
+def _context() -> RunContext[AgentDeps]:
     ctx = agent_run_context(site_id="orthomcl")
     state = ctx.deps.agent_state
     state.built_expressions[expression_handle(_BUILT)] = BuiltPattern(
         expression=_BUILT, pattern=_PATTERN, reading="absent from APIC"
     )
-    state.refusals = refusals
     return ctx
 
 
@@ -58,35 +55,30 @@ def _asked(*values: str) -> FrameResult:
 
 
 def test_an_option_naming_an_unknown_handle_is_sent_back() -> None:
-    ctx = _context()
-
-    with pytest.raises(ModelRetry) as sent_back:
-        hold_an_option_to_a_held_expression(
-            ctx, _asked(expression_handle(_BUILT), _UNKNOWN)
-        )
-
-    assert str(sent_back.value) == (
-        f"c_more.{_EXPRESSION} offers {[_UNKNOWN]}, and no expression of this "
-        "conversation is held under that handle, so the card would bind nothing. "
-        "Offer a handle build_phyletic_expression returned, or build the reading "
-        "first."
+    held = hold_an_option_to_a_held_expression(
+        _context(), _asked(expression_handle(_BUILT), _UNKNOWN)
     )
-    assert ctx.deps.agent_state.refusals == 1
+
+    assert said(held) == [
+        (
+            f"c_more.{_EXPRESSION} offers {[_UNKNOWN]}, and no expression of this "
+            "conversation is held under that handle, so the card would bind "
+            "nothing. Offer a handle build_phyletic_expression returned, or build "
+            "the reading first."
+        )
+    ]
 
 
 def test_options_naming_held_handles_and_typed_expressions_pass() -> None:
     asked = _asked(expression_handle(_BUILT), "APIC>=1T AND MAMM=0T")
 
-    assert hold_an_option_to_a_held_expression(_context(), asked) == asked
+    assert hold_an_option_to_a_held_expression(_context(), asked) == []
 
 
-def test_at_the_bound_the_question_is_dropped_with_a_named_gap() -> None:
-    held = hold_an_option_to_a_held_expression(
-        _context(refusals=REFUSALS_PER_CHECK),
-        _asked(expression_handle(_BUILT), _UNKNOWN),
-    )
+def test_let_through_the_question_is_dropped_with_a_named_gap() -> None:
+    asked = _asked(expression_handle(_BUILT), _UNKNOWN)
+    held = let_through(hold_an_option_to_a_held_expression(_context(), asked), asked)
 
-    assert isinstance(held, FrameResult)
     assert (held.open_questions, held.gaps) == (
         [],
         [

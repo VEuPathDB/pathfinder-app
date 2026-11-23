@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters import (
     PHYLETIC_EXPRESSION_PARAM,
     PhyleticExpression,
@@ -9,9 +9,10 @@ from veupathdb.domain.parameters import (
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import ortho_taxonomy
 
-from strategist.ai.agents.refusal_bound import may_refuse
+from strategist.ai.agents.held_answer import HeldAnswer, gapped, held
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.named_groups import (
     NamedGroup,
     ScopedTaxon,
@@ -140,15 +141,20 @@ def _stray_ask(taxon: ScopedTaxon, tree: PhyleticTree) -> str:
     )
 
 
+def _taxon_held(name: str, ask: str, gap: PassGap) -> HeldAnswer:
+    key = RefusalKey(check="the_taxa_to_their_scope", criterion=name)
+    return held(key, ask, gapped(gap))
+
+
 async def hold_the_taxa_to_their_scope(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    if not isinstance(output, FrameResult) or output.disposition != "spec_ready":
-        return output
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    if output.disposition != "spec_ready":
+        return []
     state = ctx.deps.agent_state
     drafted = await _read_draft(ctx, state.operational_spec_draft.criteria)
     if drafted is None:
-        return output
+        return []
     read, tree = drafted
     expressions = [expression for _, expression in read]
     scoped = scoped_taxa(
@@ -158,32 +164,32 @@ async def hold_the_taxa_to_their_scope(
         (group, _over(read, group, tree))
         for group in unscoped_taxa(expressions, tree, scoped)
     ]
-    stray = [taxon for taxon in scoped if taxon.stray_codes]
     short = [
         (taxon, _over(read, taxon.required, tree), missing)
         for taxon in whole_taxa(scoped)
         if (missing := taxon.required.left_out(expressions, tree))
     ]
-    if not unscoped and not stray and not short:
-        return output
-    if not may_refuse(ctx, state.refusals):
-        return output.with_gaps(
-            [
-                *(_unscoped_gap(group, ids) for group, ids in unscoped),
-                *(_stray_gap(taxon) for taxon in stray),
-                *(_short_gap(taxon, ids, missing) for taxon, ids, missing in short),
-            ]
-        )
-    state.refusals += 1
-    raise ModelRetry(
-        " ".join(
-            [
-                *(_unscoped_ask(group, ids) for group, ids in unscoped),
-                *(_stray_ask(taxon, tree) for taxon in stray),
-                *(_short_ask(taxon, ids, missing) for taxon, ids, missing in short),
-            ]
-        )
-    )
+    return [
+        *(
+            _taxon_held(
+                group.name, _unscoped_ask(group, ids), _unscoped_gap(group, ids)
+            )
+            for group, ids in unscoped
+        ),
+        *(
+            _taxon_held(taxon.group.name, _stray_ask(taxon, tree), _stray_gap(taxon))
+            for taxon in scoped
+            if taxon.stray_codes
+        ),
+        *(
+            _taxon_held(
+                taxon.required.name,
+                _short_ask(taxon, ids, missing),
+                _short_gap(taxon, ids, missing),
+            )
+            for taxon, ids, missing in short
+        ),
+    ]
 
 
 __all__ = ["hold_the_taxa_to_their_scope"]

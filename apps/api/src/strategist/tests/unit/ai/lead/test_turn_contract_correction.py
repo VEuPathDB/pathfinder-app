@@ -17,6 +17,7 @@ from strategist.ai.lead.turn_contract import (
     LeadResponse,
     hold_the_turn_contract,
 )
+from strategist.tests._support.held_answers import charged
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
@@ -66,7 +67,9 @@ class TestTheOneCorrection:
         with pytest.raises(ModelRetry):
             hold_the_turn_contract(run_context_for(deps), report)
 
-        assert deps.state.turn_markers.refused_rules == ["open_value_in_prose"]
+        assert charged(deps.state.turn_markers.answer_ledger) == [
+            "open_value_in_prose"
+        ]
         assert hold_the_turn_contract(run_context_for(deps), report) == reply(
             ASKING_REPLY
         )
@@ -77,7 +80,7 @@ class TestTheOneCorrection:
         report = reply(CLEAN_REPLY)
 
         assert hold_the_turn_contract(run_context_for(deps), report) == report
-        assert deps.state.turn_markers.refused_rules == []
+        assert charged(deps.state.turn_markers.answer_ledger) == []
 
     def test_a_deferred_request_is_not_prose(self) -> None:
         output = DeferredToolRequests()

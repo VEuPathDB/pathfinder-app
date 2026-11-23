@@ -108,7 +108,7 @@ async def test_a_frame_card_offers_a_facet_member_of_the_criterions_organism() -
         ],
     )
 
-    assert await hold_an_option_to_its_parameter(ctx, asked) == asked
+    assert await hold_an_option_to_its_parameter(ctx, asked) == []
 
 
 async def test_two_criteria_on_one_search_read_their_own_organisms() -> None:

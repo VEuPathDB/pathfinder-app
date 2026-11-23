@@ -2,6 +2,18 @@
 
 ## 2026-11-23
 
+* **An answer check charges a ledger per key.** FRAME's twelve checks run as one output validator
+  (`ai/agents/frame_answer.py::hold_the_frame_answer`); each returns every problem it finds as a
+  `HeldAnswer` (`ai/agents/held_answer.py`), keyed by the check and the requirement, criterion or
+  parameter it names, and every problem of one answer is refused in one `ModelRetry`. Each key is
+  refused at most twice (`ANSWER_REFUSALS_PER_KEY`) on `AgentToolState.answer_ledger`, then let
+  through with its gap; the last answer is refused nothing, and a spent tool call of the turn is a
+  `refusal_spent` gap. The Lead's rules and VERIFY's digest charge `TurnMarkers.answer_ledger`
+  once per turn per key. `refusal_bound.py`, `REFUSALS_PER_CHECK`, `may_refuse` and the
+  `output_refusals`, `refused_rules` and `refused_digests` counters are gone; a stored record that
+  holds them loads with an empty ledger. A FRAME pass that stopped with no criteria bound quotes
+  what it was told.
+
 * **Explore checks every proposal and every variant at once.** `propose_readings` takes loose
   drafts (`ProposedReadingDraft`) and checks every one before it counts any
   (`checked_proposals`): each draft's shape, every search of every draft, a title used twice and

@@ -42,12 +42,11 @@ def _panel(**fields: object) -> Criterion:
     )
 
 
-def _context(*criteria: Criterion, refusals: int = 0) -> RunContext[AgentDeps]:
+def _context(*criteria: Criterion) -> RunContext[AgentDeps]:
     ctx = agent_run_context()
     ctx.deps.agent_state.operational_spec_draft = OperationalSpec(
         criteria=list(criteria)
     )
-    ctx.deps.agent_state.refusals = refusals
     return ctx
 
 

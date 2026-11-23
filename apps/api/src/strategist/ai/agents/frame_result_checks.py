@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
+from collections.abc import Callable
+
+from pydantic_ai import RunContext
 from veupathdb.wdk import get_site_router
 
-from strategist.ai.agents.refusal_bound import may_refuse
+from strategist.ai.agents.held_answer import HeldAnswer, gapped, held
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.lead.deltas import FrameResult
+from strategist.ai.lead.deltas import FrameResult, PassGap, PassGapKind
 from strategist.ai.lead.frame_questions import questions_that_bind_to_nothing
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.constraints import CONSTRAINT_KINDS
 from strategist.domain.strategy.organism_steps import organisms_no_step_limits
 from strategist.domain.strategy.requirement_reports import (
@@ -22,68 +25,60 @@ from strategist.domain.strategy.structure_bindings import unbound_in_structure
 from strategist.services.gene_sets.homes import site_kind
 
 
-def _without(output: FrameResult, dropped: list[RequirementReport]) -> FrameResult:
-    return output.model_copy(
-        update={
-            "requirement_problems": [
-                r for r in output.requirement_problems if r not in dropped
-            ]
-        }
-    )
+def _dropped(report: RequirementReport) -> Callable[[FrameResult], FrameResult]:
+    def let_through(output: FrameResult) -> FrameResult:
+        kept = [r for r in output.requirement_problems if r != report]
+        return output.model_copy(update={"requirement_problems": kept})
+
+    return let_through
+
+
+def _dropped_with_gap(
+    report: RequirementReport, kind: PassGapKind, sentence: str
+) -> Callable[[FrameResult], FrameResult]:
+    drop = _dropped(report)
+    return lambda output: drop(output).with_gap(kind, sentence)
 
 
 def hold_the_reports_to_the_requirement_list(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    """Send back a report that names a number the list lacks."""
-    if not isinstance(output, FrameResult):
-        return output
-    state = ctx.deps.agent_state
-    held = state.stated_requirements
-    unknown = unknown_requirement_ids(output.requirement_problems, held)
-    if not unknown:
-        return output
-    if not may_refuse(ctx, state.refusals):
-        dropped = [r for r in output.requirement_problems if r.requirement in unknown]
-        return _without(output, dropped).with_gap(
-            "report_dropped",
-            f"The pass reported {unknown}, which the requirement list does not hold.",
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    held_list = ctx.deps.agent_state.stated_requirements
+    unknown = unknown_requirement_ids(output.requirement_problems, held_list)
+    holds = ", ".join(numbered_requirements(held_list)) or "none"
+    return [
+        held(
+            RefusalKey(check="the_reports_to_the_requirement_list", criterion=number),
+            (
+                f"requirement_problems names {number}, and the list holds {holds}. "
+                "A report names a requirement by its number in 'Requirements the "
+                "researcher stated'. Use one of those numbers, or leave the entry "
+                "out and say it in summary."
+            ),
+            _dropped_with_gap(
+                report,
+                "report_dropped",
+                f"The pass reported {number}, which the requirement list does not "
+                "hold.",
+            ),
         )
-    state.refusals += 1
-    msg = (
-        f"requirement_problems names {unknown}, and the list holds "
-        f"{', '.join(numbered_requirements(held)) or 'none'}. A report names a "
-        "requirement by its number in 'Requirements the researcher stated'. Use "
-        "one of those numbers, or leave the entry out and say it in summary."
-    )
-    raise ModelRetry(msg)
+        for report in output.requirement_problems
+        if (number := report.requirement) in unknown
+    ]
 
 
 def hold_an_organism_to_a_step(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    if not isinstance(output, FrameResult) or output.disposition != "spec_ready":
-        return output
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    if output.disposition != "spec_ready":
+        return []
     state = ctx.deps.agent_state
     unmet = organisms_no_step_limits(
         state.stated_requirements,
         output.requirement_problems,
         state.operational_spec_draft,
     )
-    if not unmet:
-        return output
     numbered = numbered_requirements(state.stated_requirements)
-    if not may_refuse(ctx, state.refusals):
-        asked = "; ".join(f"{n} asks for: {numbered[n].requested_value}" for n in unmet)
-        return output.with_gap(
-            "organism_step_missing",
-            f"No step limits the records to the organism {asked}.",
-        )
-    state.refusals += 1
-    named = ", ".join(
-        f"{n} asks for {numbered[n].requested_value} (organism)" for n in unmet
-    )
-    ids = ", ".join(unmet)
     remedy = (
         "Add a step that does, such as the sequence search by taxonomy "
         "(ByTaxonomy) intersected with the proteins, or a search whose organism "
@@ -91,202 +86,218 @@ def hold_an_organism_to_a_step(
         if site_kind(ctx.deps.site_id) == "orthomcl"
         else "Bind the organism parameter of a search that has one to it."
     )
-    msg = (
-        f"{named}, and no step of the draft limits its records to an organism. A "
-        f"unit of a phyletic expression or the text of a transform does not. "
-        f"{remedy} If no search can, report {ids} in requirement_problems."
-    )
-    raise ModelRetry(msg)
+    asked = [(number, numbered[number].requested_value) for number in unmet]
+    return [
+        held(
+            RefusalKey(check="an_organism_to_a_step", criterion=number),
+            (
+                f"{number} asks for {value} (organism), and no step of the draft "
+                "limits its records to an organism. A unit of a phyletic "
+                f"expression or the text of a transform does not. {remedy} If no "
+                f"search can, report {number} in requirement_problems."
+            ),
+            gapped(
+                PassGap(
+                    kind="organism_step_missing",
+                    sentence=(
+                        "No step limits the records to the organism "
+                        f"{number} asks for: {value}."
+                    ),
+                )
+            ),
+        )
+        for number, value in asked
+    ]
 
 
 def hold_the_structure_to_bound_criteria(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    match output:
-        case FrameResult(disposition="spec_ready"):
-            pass
-        case _:
-            return output
-    state = ctx.deps.agent_state
-    unbound = unbound_in_structure(state.operational_spec_draft)
-    if not unbound:
-        return output
-    ids = ", ".join(unbound)
-    if not may_refuse(ctx, state.refusals):
-        return output.with_gap(
-            "structure_names_unbound",
-            f"The structure names {ids}, which no bound criterion stands for.",
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    if output.disposition != "spec_ready":
+        return []
+    return [
+        held(
+            RefusalKey(check="the_structure_to_bound_criteria", criterion=node),
+            (
+                f"set_structure names {node}, and the draft binds no search for "
+                "it. Bind it with set_criterion, or call set_structure again "
+                "without it: the build refuses a node no bound criterion stands "
+                "for."
+            ),
+            gapped(
+                PassGap(
+                    kind="structure_names_unbound",
+                    sentence=(
+                        f"The structure names {node}, which no bound criterion "
+                        "stands for."
+                    ),
+                )
+            ),
         )
-    state.refusals += 1
-    them = "it" if len(unbound) == 1 else "them"
-    msg = (
-        f"set_structure names {ids}, and the draft binds no search for {them}. "
-        f"Bind each with set_criterion, or call set_structure again without {them}: "
-        "the build refuses a node no bound criterion stands for."
-    )
-    raise ModelRetry(msg)
+        for node in unbound_in_structure(ctx.deps.agent_state.operational_spec_draft)
+    ]
 
 
 def hold_the_questions_to_the_draft(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    """Send back a pass that asks about a slot its draft lacks."""
-    if not isinstance(output, FrameResult) or output.disposition != "needs_user":
-        return output
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    if output.disposition != "needs_user":
+        return []
     state = ctx.deps.agent_state
     unbound = questions_that_bind_to_nothing(
         output, state.operational_spec_draft, state.sets_the_site
     )
     if not unbound:
-        return output
-    if not may_refuse(ctx, state.refusals):
-        return output.with_gap(
-            "questions_bind_nothing",
-            "The pass asks questions whose answers bind nothing its draft holds.",
-        )
-    state.refusals += 1
-    raise ModelRetry(unbound)
+        return []
+    gap = PassGap(
+        kind="questions_bind_nothing",
+        sentence="The pass asks questions whose answers bind nothing its draft holds.",
+    )
+    return [held(RefusalKey(check="the_questions_to_the_draft"), unbound, gapped(gap))]
 
 
 def hold_the_questions_to_a_dimension(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    """Send back a pass that stops on the user with a question that decides nothing."""
-    if not isinstance(output, FrameResult):
-        return output
-    undecided = output.undecided_questions
-    if not undecided:
-        return output
-    state = ctx.deps.agent_state
-    if not may_refuse(ctx, state.refusals):
-        return output.with_gap(
-            "question_decides_nothing",
-            f"These questions name no dimension and recommend no value: {undecided}.",
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    del ctx
+    undecided = set(output.undecided_questions)
+    return [
+        held(
+            RefusalKey(
+                check="the_questions_to_a_dimension",
+                criterion=question.criterion_id,
+                parameter=question.param_name,
+            ),
+            (
+                f"The open question {question.question!r} decides nothing. Give it "
+                "the `dimension` its open parameter states, one of "
+                f"{CONSTRAINT_KINDS}, and the `recommended_value` you would use if "
+                "the user does not answer."
+            ),
+            gapped(
+                PassGap(
+                    kind="question_decides_nothing",
+                    sentence=(
+                        f"The question {question.question!r} names no dimension and "
+                        "recommends no value."
+                    ),
+                )
+            ),
         )
-    state.refusals += 1
-    msg = (
-        f"These open questions decide nothing: {undecided}. Give each "
-        f"one the `dimension` its open parameter states, one of "
-        f"{CONSTRAINT_KINDS}, and the `recommended_value` you would "
-        f"use if the user does not answer."
-    )
-    raise ModelRetry(msg)
+        for question in output.open_questions
+        if question.question in undecided
+    ]
 
 
 def hold_the_route_to_another_site(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    """Send back a report that routes to no site, or to this conversation's own."""
-    if not isinstance(output, FrameResult):
-        return output
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
     others = sorted(
         site.id
         for site in get_site_router().list_sites()
         if site.id != ctx.deps.site_id
     )
-    unrouted = [
-        report
+    return [
+        held(
+            RefusalKey(check="the_route_to_another_site", criterion=report.requirement),
+            (
+                f"another_site_answers for {report.requirement} names "
+                f"{report.site!r}, which is no other site. Name one of "
+                f"{', '.join(others)}, or bind the search this site holds."
+            ),
+            _dropped_with_gap(
+                report,
+                "report_dropped",
+                f"The pass named {report.site!r} as another site that answers "
+                f"{report.requirement}, and it is none.",
+            ),
+        )
         for report in output.requirement_problems
         if report.problem is RequirementProblem.ANOTHER_SITE_ANSWERS
         and report.site not in others
     ]
-    if not unrouted:
-        return output
-    named = [report.site for report in unrouted]
-    state = ctx.deps.agent_state
-    if not may_refuse(ctx, state.refusals):
-        return _without(output, unrouted).with_gap(
-            "report_dropped",
-            f"The pass named {named} as another site that answers, and none is one.",
-        )
-    state.refusals += 1
-    msg = (
-        f"another_site_answers names {named}, which is no other site. Name one "
-        f"of {', '.join(others)}, or bind the search this site holds."
-    )
-    raise ModelRetry(msg)
 
 
-def _misreported_refusals(
-    reports: list[RequirementReport], state: AgentToolState
-) -> tuple[list[RequirementReport], str]:
+def _misreport(report: RequirementReport, state: AgentToolState) -> str | None:
     refused = state.refused_searches
-    unrefused = [
-        r
-        for r in reports
-        if r.problem is RequirementProblem.SITE_REFUSED_THE_SEARCH
-        and r.search not in refused
-    ]
-    unnamed = [r for r in unrefused if not r.search]
-    if unnamed:
-        return unnamed, (
-            f"site_refused_the_search for {[r.requirement for r in unnamed]} names "
-            "no search: put the search the site refused in `search`, or report the "
+    if (
+        report.problem is not RequirementProblem.SITE_REFUSED_THE_SEARCH
+        or report.search in refused
+    ):
+        return None
+    named = f"site_refused_the_search for {report.requirement}"
+    if not report.search:
+        return (
+            f"{named} names no search: put the search the site refused in "
+            "`search`, or report the requirement as site_has_no_search."
+        )
+    if report.search in state.builder_refusals:
+        return (
+            f"{named} names {report.search}, and the site never ran it: "
+            "build_phyletic_expression's own limit refused the pattern "
+            f"({state.builder_refusals[report.search]}). Narrow the pattern, or "
+            "report the requirement as site_has_no_search."
+        )
+    if report.search in state.unserved_searches:
+        return (
+            f"{named} names {report.search}, which the site's catalog lists under "
+            "no record type. A requirement no search on this site answers is "
+            "site_has_no_search."
+        )
+    if refused:
+        return (
+            f"{named} names {report.search}, and this pass saw the site refuse "
+            f"only {', '.join(refused)}. Name one of those, or report the "
             "requirement as site_has_no_search."
         )
-    limited = [r for r in unrefused if r.search in state.builder_refusals]
-    if limited:
-        named = [r.search for r in limited]
-        limits = "; ".join(state.builder_refusals[search] for search in named)
-        return limited, (
-            f"site_refused_the_search names {named}, and the site never ran it: "
-            f"build_phyletic_expression's own limit refused the pattern ({limits}). "
-            "Narrow the pattern, or report the requirement as site_has_no_search."
-        )
-    unlisted = [r for r in unrefused if r.search in state.unserved_searches]
-    if unlisted:
-        return unlisted, (
-            f"site_refused_the_search names {[r.search for r in unlisted]}, which "
-            "the site's catalog lists under no record type. A requirement no "
-            "search on this site answers is site_has_no_search."
-        )
-    if refused and unrefused:
-        return unrefused, (
-            f"site_refused_the_search names {[r.search for r in unrefused]}, and "
-            f"this pass saw the site refuse only {', '.join(refused)}. Name one of "
-            "those, or report the requirement as site_has_no_search."
-        )
-    return [], ""
+    return None
 
 
-def hold_the_reports_to_the_refusals(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    """Send back a refusal of a search the site ran, and a missing search
-    reported after the site refused one."""
-    if not isinstance(output, FrameResult):
-        return output
-    state = ctx.deps.agent_state
-    refused = state.refused_searches
-    reports = output.requirement_problems
-    misreported, change = _misreported_refusals(reports, state)
-    if misreported:
-        if not may_refuse(ctx, state.refusals):
-            return _without(output, misreported).with_gap(
-                "report_dropped",
-                f"The pass reported the site refused "
-                f"{[r.search for r in misreported]}, and it did not this pass.",
-            )
-        state.refusals += 1
-        raise ModelRetry(change)
-    missing = any(r.problem is RequirementProblem.SITE_HAS_NO_SEARCH for r in reports)
+def _missing_after_refusal(
+    output: FrameResult, refused: dict[str, str]
+) -> list[HeldAnswer]:
+    missing = any(
+        r.problem is RequirementProblem.SITE_HAS_NO_SEARCH
+        for r in output.requirement_problems
+    )
     if not refused or not missing:
-        return output
-    if not may_refuse(ctx, state.refusals):
-        return output.with_gap(
-            "missing_after_refusal",
-            f"The pass reports a requirement no search answers after the site "
-            f"refused {', '.join(refused)} this pass.",
-        )
-    state.refusals += 1
+        return []
     answers = "; ".join(f"{name} ({answer})" for name, answer in refused.items())
-    msg = (
+    gap = PassGap(
+        kind="missing_after_refusal",
+        sentence=(
+            "The pass reports a requirement no search answers after the site "
+            f"refused {', '.join(refused)} this pass."
+        ),
+    )
+    said = (
         f"The site refused to run {answers} this pass. A requirement that search "
         "answers is site_refused_the_search with that search named in search, not "
         "site_has_no_search. Keep site_has_no_search for a requirement no search "
         "on this site answers."
     )
-    raise ModelRetry(msg)
+    return [held(RefusalKey(check="the_reports_to_the_refusals"), said, gapped(gap))]
+
+
+def hold_the_reports_to_the_refusals(
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
+    state = ctx.deps.agent_state
+    misreported = [
+        held(
+            RefusalKey(check="the_reports_to_the_refusals", criterion=r.requirement),
+            said,
+            _dropped_with_gap(
+                r,
+                "report_dropped",
+                f"The pass reported the site refused {r.search!r} for "
+                f"{r.requirement}, and it did not this pass.",
+            ),
+        )
+        for r in output.requirement_problems
+        if (said := _misreport(r, state)) is not None
+    ]
+    return [*misreported, *_missing_after_refusal(output, state.refused_searches)]
 
 
 __all__ = [

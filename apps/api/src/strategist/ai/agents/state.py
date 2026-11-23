@@ -13,13 +13,10 @@ from pydantic import (
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import ParamValue, VocabLookup, VocabOption
 from veupathdb.domain.strategy import CombineOp
-from veupathdb_mcp.catalog import (
-    ExperimentCard,
-    ParameterInfo,
-    SheetEntry,
-)
+from veupathdb_mcp.catalog import ExperimentCard, ParameterInfo, SheetEntry
 
 from strategist.ai.agents.unserved import UnservedSearch
+from strategist.domain.refusal import RefusalLedger
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.expression_handles import BuiltPattern
@@ -236,7 +233,7 @@ class AgentToolState:
     )
     built_expressions: dict[str, BuiltPattern] = field(default_factory=dict)
     computed_comparisons: dict[str, HeldComparison] = field(default_factory=dict)
-    refusals: int = 0
+    answer_ledger: RefusalLedger = field(default_factory=RefusalLedger)
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)

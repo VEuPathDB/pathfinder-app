@@ -19,12 +19,12 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
-from strategist.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from strategist.ai.agents.verification import build_verification_agent
 from strategist.ai.agents.verification_digest import hold_the_digest_to_the_evidence
 from strategist.ai.graph.runtime import AgentDeps, VerificationScope
 from strategist.ai.lead.deltas import VerificationDelta
 from strategist.domain.evidence import WithheldEvidence
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -42,6 +42,9 @@ def _session() -> StrategySession:
     graph.recompute_roots()
     session.graph = graph
     return session
+
+
+_CHECK_V1 = RefusalKey(check="the_digest_to_the_evidence", criterion="call_v1")
 
 
 def _context() -> RunContext[AgentDeps]:
@@ -157,7 +160,7 @@ def test_the_digest_is_refused_once_per_check_then_loses_the_unread_gene() -> No
 
     assert isinstance(held, VerificationDelta)
     assert _withheld_from(held) == ([_READ_GENE], [_UNREAD])
-    assert ctx.deps.turn_markers.refused_digests == ["call_v1"]
+    assert ctx.deps.turn_markers.answer_ledger.used(_CHECK_V1) == 1
 
 
 def test_the_last_answer_the_run_allows_loses_the_unread_gene() -> None:
@@ -171,22 +174,28 @@ def test_the_last_answer_the_run_allows_loses_the_unread_gene() -> None:
     assert _withheld_from(held) == ([_READ_GENE], [_UNREAD])
 
 
-def test_the_digest_past_the_pass_s_refusals_loses_the_unread_gene() -> None:
+def test_each_check_of_the_turn_is_refused_once_on_its_own() -> None:
     ctx = _context()
-    ctx.deps.agent_state.refusals = REFUSALS_PER_CHECK
+    with pytest.raises(ModelRetry):
+        hold_the_digest_to_the_evidence(ctx, _sampled())
+    ctx.deps.verification_scope = ctx.deps.verification_scope.model_copy(
+        update={"check_id": "call_v2"}
+    )
 
-    held = hold_the_digest_to_the_evidence(ctx, _sampled())
+    with pytest.raises(ModelRetry):
+        hold_the_digest_to_the_evidence(ctx, _sampled())
 
-    assert isinstance(held, VerificationDelta)
-    assert _withheld_from(held) == ([_READ_GENE], [_UNREAD])
+    assert [use.key.criterion for use in ctx.deps.turn_markers.answer_ledger.uses] == [
+        "call_v1",
+        "call_v2",
+    ]
 
 
 def test_a_source_that_cannot_be_opened_is_taken_off_the_review() -> None:
     ctx = _context()
-    ctx.deps.agent_state.refusals = REFUSALS_PER_CHECK
     delta = _delta(sources=[{"kind": "web", "label": "A page", "why": "it says so"}])
 
-    held = hold_the_digest_to_the_evidence(ctx, delta)
+    held = hold_the_digest_to_the_evidence(replace(ctx, retry=ctx.max_retries), delta)
 
     assert isinstance(held, VerificationDelta)
     assert (held.digest.review.sources, held.digest.review.withheld) == (

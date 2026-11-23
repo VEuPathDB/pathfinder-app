@@ -66,7 +66,7 @@ async def _run(
         run = await agent.run("FRAME work order: frame it", deps=deps)
 
     assert isinstance(run.output, FrameResult)
-    return run.output, told, deps.agent_state.refusals
+    return run.output, told, len(deps.agent_state.answer_ledger.uses)
 
 
 async def test_an_organism_met_only_by_a_phyletic_unit_is_sent_back() -> None:

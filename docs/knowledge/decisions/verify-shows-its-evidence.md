@@ -42,7 +42,7 @@ The card and the facts part show every control count and control gene id from th
 evidence, so no check reads VERIFY's prose or the Lead's reply for them. VERIFY's output
 validator holds only typed parts of its review to the reads of the turn: a sampled gene whose
 record no `read_gene_record` call returned and a source no read returned are refused once per
-check (`TurnMarkers.refused_digests`, keyed by the dispatch), then dropped from the review and
+check (a key on `TurnMarkers.answer_ledger` named by the dispatch), then dropped from the review and
 recorded as withheld (`ai/agents/verification_digest.py`). The Lead's instruction asks its reply
 to restate no control result.
 

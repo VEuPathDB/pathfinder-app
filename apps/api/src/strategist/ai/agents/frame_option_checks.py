@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 
-from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_PARAM
 from veupathdb_mcp.catalog import ParameterInfo
 
-from strategist.ai.agents.refusal_bound import may_refuse
+from strategist.ai.agents.held_answer import (
+    HeldAnswer,
+    held,
+    with_question,
+    without_question,
+)
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.card_answers import option_refusal
 from strategist.domain.strategy.expression_handles import held_expressions, is_handle
 from strategist.domain.strategy.question_options import SetValues
@@ -25,39 +31,42 @@ def _unknown(question: SlotQuestion, held: dict[str, str]) -> list[str]:
 
 
 def hold_an_option_to_a_held_expression(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    if not isinstance(output, FrameResult):
-        return output
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
     state = ctx.deps.agent_state
-    held = held_expressions(state.built_expressions, state.operational_spec_draft)
-    unknown = [
-        (question, names)
-        for question in output.open_questions
-        if (names := _unknown(question, held))
-    ]
-    if not unknown:
-        return output
-    first, names = unknown[0]
-    slot = f"{first.criterion_id}.{first.param_name}"
-    if not may_refuse(ctx, state.refusals):
-        dropped = [question for question, _ in unknown]
-        return output.model_copy(
-            update={
-                "open_questions": [q for q in output.open_questions if q not in dropped]
-            }
-        ).with_gap(
-            "expression_handle_unknown",
-            f"The pass offered {names} on {slot}, which no held expression "
-            "answers, so the question was dropped.",
+    held_names = held_expressions(state.built_expressions, state.operational_spec_draft)
+    return [
+        held(
+            RefusalKey(
+                check="an_option_to_a_held_expression",
+                criterion=question.criterion_id,
+                parameter=question.param_name,
+            ),
+            (
+                f"{question.criterion_id}.{question.param_name} offers {names}, and "
+                "no expression of this conversation is held under that handle, so "
+                "the card would bind nothing. Offer a handle "
+                "build_phyletic_expression returned, or build the reading first."
+            ),
+            _dropped(question, names),
         )
-    state.refusals += 1
-    msg = (
-        f"{slot} offers {names}, and no expression of this conversation is held "
-        "under that handle, so the card would bind nothing. Offer a handle "
-        "build_phyletic_expression returned, or build the reading first."
+        for question in output.open_questions
+        if (names := _unknown(question, held_names))
+    ]
+
+
+def _dropped(
+    question: SlotQuestion, names: list[str]
+) -> Callable[[FrameResult], FrameResult]:
+    gap = PassGap(
+        kind="expression_handle_unknown",
+        sentence=(
+            f"The pass offered {names} on {question.criterion_id}."
+            f"{question.param_name}, which no held expression answers, so the "
+            "question was dropped."
+        ),
     )
-    raise ModelRetry(msg)
+    return lambda output: without_question(output, question).with_gaps([gap])
 
 
 def _refusals(
@@ -95,11 +104,19 @@ def _unbindable(question: SlotQuestion, refusals: list[str]) -> str:
     )
 
 
+def _free_text(
+    question: SlotQuestion, said: str
+) -> Callable[[FrameResult], FrameResult]:
+    gap = PassGap(
+        kind="option_not_a_value",
+        sentence=f"{said}, so the question asks in free text.",
+    )
+    return lambda output: with_question(output, question, options=[]).with_gaps([gap])
+
+
 async def hold_an_option_to_its_parameter(
-    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
-) -> FrameResult | DeferredToolRequests:
-    if not isinstance(output, FrameResult):
-        return output
+    ctx: RunContext[AgentDeps], output: FrameResult
+) -> list[HeldAnswer]:
     state = ctx.deps.agent_state
     asked = {q.criterion_id for q in output.open_questions}
     sheets = await criterion_sheets(
@@ -107,34 +124,27 @@ async def hold_an_option_to_its_parameter(
         [c for c in state.operational_spec_draft.criteria if c.id in asked],
         state.infos_read_this_pass,
     )
-    held = [(q, _refusals(q, state, sheets)) for q in output.open_questions]
-    refused = [_unbindable(q, refusals) for q, refusals in held if refusals]
-    if not refused:
-        return output
-    if may_refuse(ctx, state.refusals):
-        state.refusals += 1
-        msg = (
-            f"{'. '.join(refused)}. An option binds its value as written. Offer "
-            "values this parameter takes, or ask in free text: leave `options` empty "
-            "and the researcher answers in words."
+    unbindable = [
+        (question, _unbindable(question, refusals))
+        for question in output.open_questions
+        if (refusals := _refusals(question, state, sheets))
+    ]
+    return [
+        held(
+            RefusalKey(
+                check="an_option_to_its_parameter",
+                criterion=question.criterion_id,
+                parameter=question.param_name,
+            ),
+            (
+                f"{said}. An option binds its value as written. Offer values this "
+                "parameter takes, or ask in free text: leave `options` empty and "
+                "the researcher answers in words."
+            ),
+            _free_text(question, said),
         )
-        raise ModelRetry(msg)
-    return output.model_copy(
-        update={
-            "open_questions": [
-                q.model_copy(update={"options": []}) if refusals else q
-                for q, refusals in held
-            ]
-        }
-    ).with_gaps(
-        [
-            PassGap(
-                kind="option_not_a_value",
-                sentence=f"{said}, so the question asks in free text.",
-            )
-            for said in refused
-        ]
-    )
+        for question, said in unbindable
+    ]
 
 
 __all__ = ["hold_an_option_to_a_held_expression", "hold_an_option_to_its_parameter"]

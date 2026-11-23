@@ -28,6 +28,7 @@ from strategist.domain.strategy.constraints import (
 )
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.revision import strategy_revision
+from strategist.tests._support.held_answers import charged
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead._turn_contract_cases import reading_deps, reply
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
@@ -183,4 +184,4 @@ def test_a_card_over_an_unmet_requirement_is_not_refused() -> None:
     )
 
     assert hold_the_contract_on_a_card(run_context_for(deps), card) is None
-    assert deps.state.turn_markers.refused_rules == []
+    assert charged(deps.state.turn_markers.answer_ledger) == []

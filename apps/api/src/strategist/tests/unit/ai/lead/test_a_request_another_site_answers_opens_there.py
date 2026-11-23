@@ -4,11 +4,9 @@ that site, with the sentence the portal route already gives, and no question."""
 from __future__ import annotations
 
 import pytest
-from pydantic_ai import ModelRetry
 
 from strategist.ai.agents.frame import _FRAME_INSTRUCTIONS
 from strategist.ai.agents.frame_result_checks import hold_the_route_to_another_site
-from strategist.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from strategist.ai.conversation._turn_helpers import _extract_chunk
 from strategist.ai.graph._lead_facts import show_the_links
 from strategist.ai.graph.runtime import AgentDeps
@@ -24,6 +22,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementReport,
 )
 from strategist.domain.turn_facts import TurnFacts
+from strategist.tests._support.held_answers import let_through, said
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -57,8 +56,11 @@ def test_another_site_answers_with_no_site_is_sent_back() -> None:
         ],
     )
 
-    with pytest.raises(ModelRetry, match="which is no other site"):
-        hold_the_route_to_another_site(agent_run_context(site_id="plasmodb"), unnamed)
+    held = hold_the_route_to_another_site(
+        agent_run_context(site_id="plasmodb"), unnamed
+    )
+
+    assert "which is no other site" in " ".join(said(held))
 
 
 def test_a_site_on_another_problem_is_dropped() -> None:
@@ -191,25 +193,22 @@ def _pass_with_a_route_to(site: str) -> FrameResult:
 
 @pytest.mark.parametrize("site", ["plasmodb", "nowhere"])
 def test_a_route_to_this_site_or_to_no_site_is_sent_back(site: str) -> None:
-    with pytest.raises(ModelRetry, match="which is no other site"):
-        hold_the_route_to_another_site(
-            agent_run_context(site_id="plasmodb"), _pass_with_a_route_to(site)
-        )
+    held = hold_the_route_to_another_site(
+        agent_run_context(site_id="plasmodb"), _pass_with_a_route_to(site)
+    )
+
+    assert "which is no other site" in " ".join(said(held))
 
 
-def test_a_route_to_no_site_past_the_bound_is_dropped_with_its_gap() -> None:
-    ctx = agent_run_context(site_id="plasmodb")
+def test_a_route_to_no_site_let_through_is_dropped_with_its_gap() -> None:
     output = _pass_with_a_route_to("nowhere")
 
-    for _ in range(REFUSALS_PER_CHECK):
-        with pytest.raises(ModelRetry):
-            hold_the_route_to_another_site(ctx, output)
+    held = hold_the_route_to_another_site(agent_run_context(site_id="plasmodb"), output)
 
-    assert hold_the_route_to_another_site(ctx, output) == FrameResult(
-        disposition="needs_user"
-    ).with_gap(
+    assert let_through(held, output) == FrameResult(disposition="needs_user").with_gap(
         "report_dropped",
-        "The pass named ['nowhere'] as another site that answers, and none is one.",
+        f"The pass named 'nowhere' as another site that answers "
+        f"{output.requirement_problems[0].requirement}, and it is none.",
     )
 
 
@@ -218,5 +217,5 @@ def test_a_route_to_another_site_passes() -> None:
 
     assert (
         hold_the_route_to_another_site(agent_run_context(site_id="plasmodb"), output)
-        is output
+        == []
     )

@@ -1,10 +1,8 @@
 """FRAME reads the researcher's requirements as a numbered list, and a report
-that names a number the list lacks is sent back to FRAME once, in its own run."""
+that names a number the list lacks is sent back to FRAME in its own run."""
 
 from __future__ import annotations
 
-import pytest
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import RunContext
 
 from strategist.ai.agents.frame_result_checks import (
@@ -22,6 +20,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
 )
+from strategist.tests._support.held_answers import let_through, said
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 
@@ -66,27 +65,23 @@ def test_frame_reads_the_requirements_under_their_numbers() -> None:
 def test_a_report_of_a_listed_number_passes() -> None:
     result = _result("R2")
 
-    assert hold_the_reports_to_the_requirement_list(_context(), result) is result
+    assert hold_the_reports_to_the_requirement_list(_context(), result) == []
 
 
-def test_a_number_the_list_lacks_is_sent_back_twice_with_the_numbers_it_holds() -> None:
-    ctx = _context()
+def test_a_number_the_list_lacks_is_sent_back_with_the_numbers_it_holds() -> None:
     result = _result("R2", "R5")
 
-    with pytest.raises(ModelRetry) as sent_back:
-        hold_the_reports_to_the_requirement_list(ctx, result)
+    held = hold_the_reports_to_the_requirement_list(_context(), result)
 
-    assert str(sent_back.value) == (
-        "requirement_problems names ['R5'], and the list holds R1, R2. A report "
-        "names a requirement by its number in 'Requirements the researcher "
-        "stated'. Use one of those numbers, or leave the entry out and say it "
-        "in summary."
-    )
-    with pytest.raises(ModelRetry):
-        hold_the_reports_to_the_requirement_list(ctx, result)
-    assert hold_the_reports_to_the_requirement_list(ctx, result) == _result(
-        "R2"
-    ).with_gap(
+    assert said(held) == [
+        (
+            "requirement_problems names R5, and the list holds R1, R2. A report "
+            "names a requirement by its number in 'Requirements the researcher "
+            "stated'. Use one of those numbers, or leave the entry out and say it "
+            "in summary."
+        )
+    ]
+    assert let_through(held, result) == _result("R2").with_gap(
         "report_dropped",
-        "The pass reported ['R5'], which the requirement list does not hold.",
+        "The pass reported R5, which the requirement list does not hold.",
     )

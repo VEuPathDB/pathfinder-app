@@ -72,12 +72,11 @@ def _picked(*slots: OpenSlot) -> Criterion:
     )
 
 
-def _context(*criteria: Criterion, refusals: int = 0) -> RunContext[AgentDeps]:
+def _context(*criteria: Criterion) -> RunContext[AgentDeps]:
     ctx = agent_run_context()
     state = ctx.deps.agent_state
     state.operational_spec_draft = OperationalSpec(criteria=list(criteria))
     state.stated_requirements = list(_STATED)
-    state.refusals = refusals
     return ctx
 
 

@@ -183,8 +183,8 @@ async def test_a_checkpointed_spec_is_classed_by_the_listing_at_turn_entry() -> 
             )
         ],
     )
-    held = await hold_the_readings_to_the_site(ctx, asked)
-    assert isinstance(held, FrameResult)
+    held, refused = await hold_the_readings_to_the_site(ctx, asked)
+    assert refused == []
     assert held.gaps == [
         PassGap(
             kind="record_type_unknown",

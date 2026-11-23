@@ -3,8 +3,6 @@ FRAME once, inside its own run, with the slots the draft holds."""
 
 from __future__ import annotations
 
-import pytest
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.parameters import NumberValue
 
@@ -19,6 +17,7 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.questions import SlotQuestion
+from strategist.tests._support.held_answers import let_through, said
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _CUTOFF = SlotQuestion(
@@ -72,21 +71,17 @@ def _asked(*questions: SlotQuestion) -> FrameResult:
     return FrameResult(disposition="needs_user", open_questions=list(questions))
 
 
-def test_a_question_on_a_criterion_the_draft_lacks_is_sent_back_twice() -> None:
-    ctx = _context(_expression())
+def test_a_question_on_a_criterion_the_draft_lacks_is_sent_back() -> None:
     result = _asked(_CUTOFF)
 
-    with pytest.raises(ModelRetry) as sent_back:
-        hold_the_questions_to_the_draft(ctx, result)
+    held = hold_the_questions_to_the_draft(_context(_expression()), result)
 
-    told = str(sent_back.value)
+    told = " ".join(said(held))
     assert "names c_low_variation.snp_density_upper" in told
     assert "The draft holds c_blood_expression: min_expression_percentile" in told
     assert "record the criterion first with set_criterion" in told
     assert "report it in requirement_problems and ask no question about it" in told
-    with pytest.raises(ModelRetry):
-        hold_the_questions_to_the_draft(ctx, result)
-    assert hold_the_questions_to_the_draft(ctx, result) == result.with_gap(
+    assert let_through(held, result) == result.with_gap(
         "questions_bind_nothing",
         "The pass asks questions whose answers bind nothing its draft holds.",
     )
@@ -97,11 +92,11 @@ def test_a_question_on_an_open_slot_the_draft_holds_passes() -> None:
 
     assert (
         hold_the_questions_to_the_draft(_context(_expression(), _variation()), result)
-        is result
+        == []
     )
 
 
 def test_a_pass_that_does_not_stop_on_the_user_is_not_read() -> None:
     result = FrameResult(disposition="spec_ready", open_questions=[_CUTOFF])
 
-    assert hold_the_questions_to_the_draft(_context(_expression()), result) is result
+    assert hold_the_questions_to_the_draft(_context(_expression()), result) == []

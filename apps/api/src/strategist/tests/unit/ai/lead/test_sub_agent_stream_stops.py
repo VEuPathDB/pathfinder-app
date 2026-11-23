@@ -358,7 +358,7 @@ async def test_a_frame_out_of_shape_hands_the_lead_its_stop() -> None:
     assert isinstance(result, FrameResult)
     assert result.summary == (
         "FRAME stopped on an answer that had the wrong shape every time with no "
-        "criteria bound. Narrow the goal or state fewer criteria, then try again."
+        "criteria bound."
     )
 
 

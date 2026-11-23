@@ -38,6 +38,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
 )
+from strategist.tests._support.held_answers import said
 from strategist.tests._support.synthetic_taxonomy import pattern, synthetic_tree
 
 from .conftest import agent_run_context
@@ -191,14 +192,15 @@ def test_a_report_of_a_site_refusal_the_builder_made_is_sent_back() -> None:
         ]
     )
 
-    with pytest.raises(ModelRetry) as sent_back:
-        hold_the_reports_to_the_refusals(
-            agent_run_context(site_id="orthomcl", agent_state=state), reported
-        )
-
-    assert str(sent_back.value) == (
-        f"site_refused_the_search names ['{PHYLETIC_EXPRESSION_SEARCH}'], and the "
-        f"site never ran it: build_phyletic_expression's own limit refused the "
-        f"pattern ({_LIMIT}). Narrow the pattern, or report the requirement as "
-        "site_has_no_search."
+    held = hold_the_reports_to_the_refusals(
+        agent_run_context(site_id="orthomcl", agent_state=state), reported
     )
+
+    assert said(held) == [
+        (
+            f"site_refused_the_search for R1 names {PHYLETIC_EXPRESSION_SEARCH}, "
+            "and the site never ran it: build_phyletic_expression's own limit "
+            f"refused the pattern ({_LIMIT}). Narrow the pattern, or report the "
+            "requirement as site_has_no_search."
+        )
+    ]

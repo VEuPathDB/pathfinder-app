@@ -35,12 +35,10 @@ def frame_result_from_draft(
     why = "stopped before it finished" if stop is None else stop_phrase(stop)
     bound = [c for c in (spec.criteria if spec else []) if c.bound]
     if not bound:
+        told = f" It was told: {stop.refusal}" if stop and stop.refusal else ""
         return FrameResult(
             disposition="needs_user",
-            summary=(
-                f"FRAME {why} with no criteria bound. "
-                "Narrow the goal or state fewer criteria, then try again."
-            ),
+            summary=f"FRAME {why} with no criteria bound.{told}",
         )
     names = ", ".join(c.id for c in bound)
     return FrameResult(
