@@ -4,7 +4,13 @@ from collections.abc import Mapping, Sequence
 from typing import Annotated, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep, record_class_of
+from veupathdb.domain.strategy import (
+    ColocationParams,
+    CombineOp,
+    StepKind,
+    StrategyStep,
+    record_class_of,
+)
 
 MIN_COMBINE_INPUTS = 2
 COLOCATION_SHAPE = (
@@ -34,6 +40,14 @@ NODE_SHAPES = {
         "the tree already states, with no criterionId and no operator."
     ),
 }
+
+
+def stated_region(
+    operator: CombineOp | None, params: ColocationParams | None
+) -> ColocationParams | None:
+    if operator is CombineOp.COLOCATE and params is None:
+        return ColocationParams()
+    return params
 
 
 def shape_refusal(

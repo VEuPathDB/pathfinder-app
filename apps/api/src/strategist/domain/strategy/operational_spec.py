@@ -32,6 +32,7 @@ from strategist.domain.strategy.structure_reading import (
     SpareWrapper,
     record_class_at,
     shape_refusal,
+    stated_region,
 )
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
@@ -217,13 +218,8 @@ class StructureNode(CamelModel):
         return cls.model_validate(wrapper.inputs[0]).model_dump(by_alias=True)
 
     @model_validator(mode="after")
-    def _a_colocation_states_its_region(self) -> StructureNode:
-        if self.operator is CombineOp.COLOCATE and self.colocation_params is None:
-            self.colocation_params = ColocationParams()
-        return self
-
-    @model_validator(mode="after")
     def _in_the_shape_of_its_kind(self) -> StructureNode:
+        self.colocation_params = stated_region(self.operator, self.colocation_params)
         refusal = shape_refusal(
             self.kind,
             named=self.criterion_id is not None,
@@ -255,11 +251,7 @@ class SpecStructure(CamelModel):
 
 
 def criteria_under(node: StructureNode) -> frozenset[str]:
-    """The criteria this subtree names.
-
-    A leaf and a transform each name one; a combine and a copy name none of
-    their own.
-    """
+    """The criteria this subtree names; a combine and a copy name none of their own."""
     own = frozenset({node.criterion_id}) if node.criterion_id else frozenset[str]()
     return own.union(*(criteria_under(child) for child in node.inputs))
 
