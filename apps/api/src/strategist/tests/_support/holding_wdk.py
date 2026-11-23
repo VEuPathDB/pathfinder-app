@@ -331,6 +331,8 @@ def _kind_of(method: str, path: str) -> str:
         return "strategy read"
     if method == "PUT" and _STEP_CONFIG.fullmatch(path):
         return "search-config put"
+    if method == "PUT" and _STRATEGY_TREE.fullmatch(path):
+        return "strategy tree put"
     if method == "POST" and path.endswith("/steps"):
         return "step create"
     return ""
