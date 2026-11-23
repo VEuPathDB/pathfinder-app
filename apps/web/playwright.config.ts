@@ -80,9 +80,18 @@ export default defineConfig<SiteOption>({
   use: {
     // A relative path resolves under the base path only when the base ends in "/".
     baseURL: `${process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000"}${BASE_PATH}/`,
-    trace: isCI ? "on-first-retry" : "retain-on-failure",
+    trace: isCI
+      ? "on-first-retry"
+      : {
+          mode: "retain-on-failure",
+          screenshots: false,
+          snapshots: true,
+          sources: false,
+        },
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    video: isCI ? "retain-on-failure" : "off",
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     ...devices["Desktop Chrome"],
   },
 
