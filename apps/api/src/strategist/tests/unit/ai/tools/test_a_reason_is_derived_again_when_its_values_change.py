@@ -240,3 +240,34 @@ async def test_an_organism_edit_keeps_a_reason_that_names_no_organism() -> None:
     assert result.rationale.derived_from["text_search_organism"] == [
         "Plasmodium falciparum 3D7"
     ]
+
+
+@pytest.mark.asyncio
+async def test_an_organism_edit_keeps_the_reason_whatever_its_re_sent_why_cites() -> (
+    None
+):
+    state = _state()
+
+    await set_criterion(
+        frame_ctx(state),
+        criterion_id="step_2381d896",
+        text="Genes annotated as rhoptry proteins",
+        search_name=_TEXT.url_segment,
+        params=_EDIT,
+        why=choice(
+            "parameter",
+            "Text term (use * as wildcard)",
+            _HELD_REASON,
+            sources=["https://example.org/rhoptry-review"],
+        ),
+    )
+
+    [criterion] = state.operational_spec_draft.criteria
+    match criterion.rationale:
+        case SearchRationale(reason=reason, sources=sources):
+            assert (reason, sources) == (
+                _HELD_REASON,
+                ["https://example.org/rhoptry-review"],
+            )
+        case kept:
+            pytest.fail(f"the held reason was not kept: {kept!r}")

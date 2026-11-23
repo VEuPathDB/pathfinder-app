@@ -78,42 +78,64 @@ class ChosenWhy:
 _WHY = RefusalKey(check="why")
 
 
-class UncheckedWhyError(Exception):
-    """A why the sheet stage did not check reached the record."""
+@dataclass(frozen=True)
+class _Checked:
+    read: CatalogRead
+    bound: CatalogHit
+    why: SearchChoice
+    sources: list[str]
 
 
-def _needs_a_new_why(state: AgentToolState, call: CriterionCall) -> bool:
-    """A criterion not held on this search, or held with a reason the controls
-    chose, states a new why; a kept search reason is judged by its values."""
+def _held_reason(
+    state: AgentToolState, call: CriterionCall
+) -> tuple[Criterion, SearchRationale | None] | None:
+    """The criterion held on this search and the search reason it keeps, or
+    None when the call states a new why: a criterion not held on the search,
+    or one whose reason the controls chose."""
     held = next(
         (c for c in state.operational_spec_draft.criteria if c.id == call.criterion_id),
         None,
     )
     if held is None or held.search_name != call.search_name:
-        return True
-    return held.rationale is not None and held.rationale.kind != "search"
+        return None
+    match held.rationale:
+        case SearchRationale() | None as kept:
+            return held, kept
+        case _:
+            return None
+
+
+def _checked(
+    ctx: RunContext[AgentDeps],
+    call: CriterionCall,
+    read: CatalogRead | None,
+    why: SearchChoice | None,
+) -> _Checked | Problems:
+    """The why a call records, checked against the catalog read it rests on and
+    the reads of this turn its sources cite."""
+    bound = None if read is None else read.hit(call.search_name)
+    if read is None or bound is None:
+        return Problems.one(_WHY, _unread(call.criterion_id, call.search_name))
+    if why is None:
+        return Problems.one(_WHY, _no_why(call.criterion_id, call.search_name, read))
+    sources, absent = sources_retrieved(ctx, call.criterion_id, why.sources)
+    if not absent.empty:
+        return absent
+    return _Checked(read, bound, why, sources)
 
 
 def why_problems(
     ctx: RunContext[AgentDeps], call: CriterionCall, why: SearchChoice | None
 ) -> Problems:
-    """What the call's why lacks before any value is read: a catalog read that
-    answered the search and a why, when the call needs a new one, and sources
-    a read of this turn returned, whenever it cites any."""
+    """What a call that states a new why lacks before any value is read."""
     state = ctx.deps.agent_state
-    cited = (
-        Problems()
-        if why is None
-        else sources_retrieved(ctx, call.criterion_id, why.sources)[1]
-    )
-    if not _needs_a_new_why(state, call):
-        return cited
-    read = state.last_read_answering(call.search_name)
-    if read is None or read.hit(call.search_name) is None:
-        return Problems.one(_WHY, _unread(call.criterion_id, call.search_name))
-    if why is None:
-        return Problems.one(_WHY, _no_why(call.criterion_id, call.search_name, read))
-    return cited
+    if _held_reason(state, call) is not None:
+        return Problems()
+    match _checked(ctx, call, state.last_read_answering(call.search_name), why):
+        case Problems() as found:
+            return found
+        case _:
+            return Problems()
 
 
 def rationale_for(
@@ -127,61 +149,50 @@ def rationale_for(
     """The recorded reason for this binding, or the problems naming what is wrong.
 
     A binding on the search the criterion already runs keeps its reason while
-    it changes no value the reason was derived from, or only an organism. One that changes such a value records the edit's
-    why, checked like a new one against the catalog read the reason holds, and
-    is refused without one.
+    it changes no value the reason was derived from, or only an organism. One
+    that changes such a value records the edit's why, checked like a new one
+    against the catalog read the reason holds, and is refused without one.
     """
-    criterion_id, search_name = call.criterion_id, call.search_name
     state = ctx.deps.agent_state
-    held = next(
-        (c for c in state.operational_spec_draft.criteria if c.id == criterion_id),
-        None,
-    )
-    read = state.last_read_answering(search_name)
-    # The counts of a criterion the controls chose belong to the values they
-    # measured, so an edit of those values states a reason of its own.
-    if held is not None and held.search_name == search_name:
-        kept = held.rationale
+    read = state.last_read_answering(call.search_name)
+    held = _held_reason(state, call)
+    if held is not None:
+        criterion, kept = held
         if kept is None:
             return ChosenWhy(None)
-        if kept.kind == "search":
-            changed = kept.changed_by(stated_values(values))
-            organisms = {info.name for info in infos if info.organism_param}
-            if not changed:
-                return ChosenWhy(kept)
-            if set(changed) <= organisms:
-                rewired = kept.model_copy(
-                    update={"derived_from": stated_values(values)}
-                )
-                return ChosenWhy(rewired)
-            if why is None:
-                said = _derived_from_changed(criterion_id, kept, changed)
-                return ChosenWhy(None, Problems.one(_WHY, said))
-            read = read or _read_behind(kept, held, record_type)
-    return _new_why(ctx, call, read, why, infos, values)
+        changed = kept.changed_by(stated_values(values))
+        organisms = {info.name for info in infos if info.organism_param}
+        if not changed:
+            return ChosenWhy(kept)
+        if set(changed) <= organisms:
+            return ChosenWhy(
+                kept.model_copy(update={"derived_from": stated_values(values)})
+            )
+        if why is None:
+            said = _derived_from_changed(call.criterion_id, kept, changed)
+            return ChosenWhy(None, Problems.one(_WHY, said))
+        read = read or _read_behind(kept, criterion, record_type)
+    match _checked(ctx, call, read, why):
+        case _Checked() as checked:
+            return ChosenWhy(_recorded(call, checked, infos, values))
+        case found:
+            return ChosenWhy(None, found)
 
 
-def _new_why(
-    ctx: RunContext[AgentDeps],
+def _recorded(
     call: CriterionCall,
-    read: CatalogRead | None,
-    why: SearchChoice | None,
+    checked: _Checked,
     infos: Sequence[ParameterInfo],
     values: Mapping[str, ParamValue],
-) -> ChosenWhy:
-    criterion_id, search_name = call.criterion_id, call.search_name
-    bound = None if read is None else read.hit(search_name)
-    if read is None or bound is None or why is None:
-        msg = f"{criterion_id}: the why of {search_name} reached the record unchecked"
-        raise UncheckedWhyError(msg)
-    sources = sources_retrieved(ctx, criterion_id, why.sources)[0]
+) -> SearchRationale:
+    read, why, search_name = checked.read, checked.why, call.search_name
     others = [h for h in read.hits if h.name != search_name] if read.ranked else []
-    rationale = SearchRationale(
+    return SearchRationale(
         search_name=search_name,
         basis=why.basis,
         term=_shown_term(why, infos),
         reason=why.reason,
-        similarity=bound.similarity,
+        similarity=checked.bound.similarity,
         compared=[
             ComparedSearch(
                 name=h.name, display_name=h.display_name, similarity=h.similarity
@@ -190,10 +201,9 @@ def _new_why(
         ],
         query=read.query,
         tool_call_id=read.tool_call_id,
-        sources=sources,
+        sources=checked.sources,
         derived_from=stated_values(values),
     )
-    return ChosenWhy(rationale)
 
 
 def _shown_term(why: SearchChoice, infos: Sequence[ParameterInfo]) -> str:

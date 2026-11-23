@@ -21,7 +21,10 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone import _frame_proposals, _frame_unserved
+from strategist.ai.tools.standalone import (
+    _frame_proposals,
+    _frame_unserved,
+)
 from strategist.ai.tools.standalone._frame_answers import AnsweredRequirement
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone._frame_sheet import reconcile_dependents

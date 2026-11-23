@@ -21,7 +21,8 @@
   leaves out; and a count of nothing names every obsolete pick. A transform that carries the genes
   to an organism the bind leaves out is named for that organism alone. An expression handle no
   expression stands for joins the sheet stage, and one rule decides when a call states a new
-  why (a criterion not held on the search, or one the controls chose), checked there. A waiting
+  why (a criterion not held on the search, or one the controls chose), checked there with its
+  sources; a call that keeps the held reason is never refused for the why it sends. A waiting
   criterion refuses alone, with only the requirement numbers; the requirement numbers also join
   a missing or unserved search. An unresolved saved-strategy reference is recorded as an open
   slot and answered as one (`next_step`), never refused. The refusals that stand alone (a bound
