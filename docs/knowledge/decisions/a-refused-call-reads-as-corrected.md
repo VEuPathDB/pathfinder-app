@@ -35,7 +35,7 @@ plain `ToolFailed` and draws the red X, and so does a turn that failed. The clie
 corrected call as row status `corrected` (`@veupathdb/assistant-client`), and a
 sub-agent's step as state `corrected` (`ai/lead/sub_agent_events.py`); `TraceRow` draws a
 grey retry glyph with the reason as the row's line. The scripted model reads a refusal by
-either error outcome (`ai/models/mock/reads.py::refused_returns`), so it answers both producers.
+either error outcome (`assistant_core.models.scripted.refused_returns`), so it answers both producers.
 
 # What would falsify this
 

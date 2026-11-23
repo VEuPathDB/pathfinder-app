@@ -10,6 +10,7 @@ import re
 from assistant_core.models.scripted import (
     called_tool_parts,
     current_scope_id,
+    refused_returns,
     scripted_call,
     terminal_call,
 )
@@ -26,7 +27,6 @@ from strategist.ai.models.mock.reads import (
     gene_records,
     instructions_of,
     last_answer,
-    refused_returns,
     returns_of,
     root_wdk_step_id,
 )

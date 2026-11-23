@@ -9,6 +9,7 @@ from dataclasses import dataclass, replace
 from assistant_core.models.scripted import (
     called_tool_parts,
     current_turn,
+    refused_returns,
 )
 from pydantic_ai.messages import (
     ModelMessage,
@@ -21,7 +22,6 @@ from pydantic_ai.messages import (
 from strategist.ai.lead.intent import UserIntent
 from strategist.ai.models.mock import fault_calls, reply_faults
 from strategist.ai.models.mock.arc import Role
-from strategist.ai.models.mock.reads import refused_returns
 
 
 @dataclass(frozen=True)

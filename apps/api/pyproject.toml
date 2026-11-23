@@ -56,7 +56,7 @@ constraint-dependencies = [
     "soupsieve>=4.0.0",  # PYSEC-2026-3071, PYSEC-2026-3072, GHSA-mmhr-3c5m-f64f, GHSA-6655-6qjp-jx7x
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.9.0b4" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.9.0b5" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.9.0b14" }
 veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.9.0-b19" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.9.0b3" }

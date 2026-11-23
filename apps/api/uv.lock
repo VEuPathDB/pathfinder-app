@@ -140,8 +140,8 @@ wheels = [
 
 [[package]]
 name = "assistant-core"
-version = "0.9.0b4"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.9.0b4#a1259e333ca35f3ae777acaf04ac6b59f956b421" }
+version = "0.9.0b5"
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.9.0b5#98d83c2a8632662326855261f6c022075b77c9c4" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -3968,7 +3968,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.9.0b4" },
+    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.9.0b5" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "cryptography", specifier = ">=50.0.0" },
