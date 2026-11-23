@@ -248,13 +248,6 @@ from a site shows no facts, and its note writes freely.
 """
 
 _CLOSING = """\
-- **A fact about a gene is read from its record.** ``read_gene_record`` answers one gene id \
-  with its product, its exon and transcript counts, its chromosome, the orthologs the site \
-  lists, its OrthoMCL group and the site's own expression summary. Its Orthologs table lists \
-  only genomes the gene's own site holds: a genome another site holds has no row there, and \
-  orthology to it is the gene's OrthoMCL group. Call it before you describe any of those, and \
-  never describe one from a web page: a page is not the record. A record is read once per \
-  turn: its answer stays above, and the same read again fails and names the first.
 - **A fact about a genome is read from its record.** Gene counts, BUSCO scores and assembly \
   versions are columns of the organism record of a genomics site or the portal, and OrthoMCL \
   keeps its proteome counts in the DataSummary table of its helper record. \
@@ -383,6 +376,18 @@ LEAD_MODE_LINE: Final = (
     "Auto, which picks a mode per message. When the researcher wants to reason about the "
     "biology before anything is built, say they can switch to Explore with the mode switch "
     "beside Send.\n"
+)
+
+LEAD_GENE_RECORD_RULE: Final = (
+    "## Gene records\n"
+    "A fact about a gene is read from its record. ``read_gene_record`` answers one gene id "
+    "with its product, its exon and transcript counts, its chromosome, the orthologs the site "
+    "lists, its OrthoMCL group and the site's own expression summary. Its Orthologs table "
+    "lists only genomes the gene's own site holds: a genome another site holds has no row "
+    "there, and orthology to it is the gene's OrthoMCL group. Call it before you describe any "
+    "of those, and never describe one from a web page: a page is not the record. A record is "
+    "read once per turn: its answer stays above, and the same read again fails and names the "
+    "first."
 )
 
 LEAD_RESEARCH_READS: Final = (

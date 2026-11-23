@@ -65,7 +65,10 @@ from strategist.tests.integration.chat._helpers import (
 from strategist.tests.integration.http.conftest import WDK_AUTH_HEADER, client_for
 from strategist.tests.integration.jobs import _eda_wire
 
-pytestmark = pytest.mark.usefixtures("site_login_names_the_user")
+pytestmark = [
+    pytest.mark.usefixtures("site_login_names_the_user"),
+    pytest.mark.foreign_tool_names("a test agent holds the compute alone"),
+]
 
 
 _PROMPT = "compare the febrile samples against the normal ones"

@@ -261,6 +261,7 @@ async def _model_reading(
         deps_type=type(None),
         output_type=NativeOutput(_ModelReading, strict=True),
         instructions=load_reading_guide(),
+        name="message-reading",
         capabilities=_capabilities(meter, model_id),
     )
     out = (await agent.run(_prompt(read, files))).output
@@ -288,6 +289,7 @@ async def _stated_request(
         deps_type=type(None),
         output_type=NativeOutput(StatedRequest, strict=True),
         instructions=load_request_guide(),
+        name="stated-request",
         capabilities=_capabilities(meter, model_id),
     )
     prompt = _prompt(read, files, held=True)

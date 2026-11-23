@@ -219,6 +219,9 @@ def _reads_of(gene_id: str, times: int) -> FunctionModel:
     return FunctionModel(respond)
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the record read without the sample read"
+)
 async def test_a_re_read_fails_without_spending_a_retry(asked: list[str]) -> None:
     deps = agent_run_context().deps
     deps.turn_markers.record_sampled_genes(_EIGHT[:2])

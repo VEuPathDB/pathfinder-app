@@ -24,6 +24,7 @@ from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS, RECORD_READS
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.graph.runtime import one_toolset
 from strategist.ai.lead._lead_instructions import (
+    LEAD_GENE_RECORD_RULE,
     LEAD_INSTRUCTIONS,
     LEAD_RESEARCH_READS,
 )
@@ -79,6 +80,7 @@ from strategist.ai.tools.standalone.control_sets import (
     use_control_set,
 )
 from strategist.ai.tools.standalone.gene_record import (
+    genes_are_held,
     offered_where_genes_are_held,
     read_gene_record,
 )
@@ -119,6 +121,10 @@ def pinned_research_reads(ctx: RunContext[LeadDeps]) -> str:
     return research_reads(
         LEAD_RESEARCH_READS, served=research_served(ctx.deps.runtime.tool_sources)
     )
+
+
+async def pinned_gene_record_rule(ctx: RunContext[LeadDeps]) -> str | None:
+    return LEAD_GENE_RECORD_RULE if await genes_are_held(ctx.deps.site_id) else None
 
 
 def build_sweep_toolset() -> AbstractToolset[LeadDeps]:
@@ -247,6 +253,7 @@ def build_lead_agent() -> LeadAgent:
         pinned_statistics,
         pinned_run_budget,
         pinned_research_reads,
+        pinned_gene_record_rule,
     ):
         agent.instructions(stable.section(fn))
     agent.instructions(machine_guarantees_pin(agent.toolsets))

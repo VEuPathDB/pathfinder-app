@@ -11,7 +11,10 @@
   tool, the escape hatch and the step-id descriptions name no sub-agent tool, and FRAME's
   phyletic readings name no builder, which a site without the OrthoMCL taxonomy does not offer.
   An approval card is kept in the conversation so far in words ("approve adopt separating
-  strategy"), since the sub-agents read the same exchanges and hold none of the Lead's cards. Strategist takes
+  strategy"), since the sub-agents read the same exchanges and hold none of the Lead's cards.
+  FRAME's `set_criterion` description names no phyletic builder, and the Lead, Explore and VERIFY
+  are told about `read_gene_record` in a pin that only a site with gene records renders. Layer 2
+  now follows pinned sections, model fields, durable bodies and the graph nodes that write state. Strategist takes
   veupathdb-py 0.9.0b15 (a phyletic refusal names no host tool) and veupathdb-mcp 0.9.0b20 (no
   catalog text or EDA guidance names a tool). `test_tool_surface_agreement.py` drops its token
   list.

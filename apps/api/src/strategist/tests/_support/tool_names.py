@@ -28,7 +28,7 @@ RETIRED_TOOLS: frozenset[str] = frozenset(
 
 ALLOWED: tuple[tuple[str, str, str, str], ...] = (
     (
-        "_model_reading",
+        "message-reading",
         "remember",
         "`remember`: the message asks to keep",
         "an intent the message reader returns, not a tool it is told to call",
@@ -45,8 +45,12 @@ ALLOWED: tuple[tuple[str, str, str, str], ...] = (
 )
 
 
-def allowed_in(text: str) -> frozenset[str]:
-    return frozenset(tool for _, tool, sentence, _ in ALLOWED if sentence in text)
+def allowed_in(text: str, role: str | None) -> frozenset[str]:
+    return frozenset(
+        tool
+        for agent, tool, sentence, _ in ALLOWED
+        if agent == role and sentence in text
+    )
 
 
 def served_tool_names() -> set[str]:

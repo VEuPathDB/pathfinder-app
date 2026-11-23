@@ -246,6 +246,9 @@ async def test_a_keyed_lead_toolset_charges_the_refused_id_once(
     assert deps.refusal_book.ledger.used(missing) == 1
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds one Lead tool without its listing tool"
+)
 @pytest.mark.asyncio
 async def test_an_invariant_failure_stays_loud(
     monkeypatch: pytest.MonkeyPatch,
@@ -258,6 +261,9 @@ async def test_an_invariant_failure_stays_loud(
         await agent.run("import my controls", deps=_deps())
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds one Lead tool without its listing tool"
+)
 @pytest.mark.asyncio
 async def test_a_turn_whose_tool_carries_a_defect_fails(
     monkeypatch: pytest.MonkeyPatch,
