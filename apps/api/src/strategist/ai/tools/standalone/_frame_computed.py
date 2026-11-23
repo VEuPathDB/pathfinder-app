@@ -8,18 +8,15 @@ from veupathdb_mcp.wdk import IdListDataset, IdListStepCountError, counted_id_li
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.intent import REQUEST_INTENTS
-from strategist.ai.tools.standalone._frame_eda import waiting_problems
 from strategist.ai.tools.standalone._frame_result import (
     ComputedGroupsBinding,
     SetCriterionResult,
 )
-from strategist.ai.tools.standalone._frame_roles import (
-    saved_input_problems,
-)
+from strategist.ai.tools.standalone._frame_stages import input_stage
 from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
-from strategist.platform.refusals import refusal_of, refuse_problems
+from strategist.platform.refusals import refusal_of
 
 GROUPS_DISPLAY_NAME = "Groups"
 
@@ -79,11 +76,7 @@ async def set_computed_criterion(
     ctx: RunContext[AgentDeps], stated: Criterion, handle: str, early: Problems
 ) -> ToolReturn[SetCriterionResult]:
     state = ctx.deps.agent_state
-    refuse_problems(
-        early.plus(waiting_problems(state, stated.id))
-        .plus(saved_input_problems(stated.id, stated.role, "computed comparison"))
-        .under(criterion=stated.id, search="")
-    )
+    input_stage(state, stated, "computed comparison", early)
     held = _held(ctx, handle)
     _refuse_an_unasked_save(ctx, held.handle)
     site_id = ctx.deps.site_id

@@ -5,12 +5,13 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any
 
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import AgentDepsT, RunContext
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from strategist.ai.graph.runtime import AgentDeps
+from strategist.domain.refusal import Problems, RefusalKey
+from strategist.platform.refusals import refusal_of
 
 EnumOverrides = dict[tuple[str, str], list[Any]]
 EnumOverrideBuilder = Callable[[RunContext[AgentDepsT]], EnumOverrides]
@@ -104,12 +105,14 @@ class ValidatingEnumToolset(WrapperToolset[AgentDepsT]):
             # An empty string states no value, which the tool itself answers.
             if isinstance(value, str) and value and value not in allowed:
                 explained = self.explain(ctx, value) if self.explain else None
-                retry_message = explained or (
+                said = explained or (
                     f"{arg}={value!r} is not a known value for {name}. "
                     f"Choose one of: {', '.join(sorted(allowed))}. "
                     "Copy it verbatim - do not paraphrase or invent."
                 )
-                raise ModelRetry(retry_message)
+                raise refusal_of(
+                    Problems.one(RefusalKey(check=name, parameter=arg), said)
+                )
         return await self.wrapped.call_tool(name, tool_args, ctx, tool)
 
 

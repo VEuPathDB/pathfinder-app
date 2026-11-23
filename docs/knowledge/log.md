@@ -19,10 +19,15 @@
   refusal, and the redecide marks clear only when none is; the binding stage names a kept reason
   the values outran, every pick its vocabulary gives no label and a reading whose values the call
   leaves out; and a count of nothing names every obsolete pick. A transform that carries the genes
-  to an organism the bind leaves out is named for that organism alone. The refusals that stand
-  alone (a bound analysis, an unserved or missing search, an unresolved gene set, a computed
-  comparison, a strategy library with no user, and drop_criterion's) are one keyed problem
-  through the same builder. A later stage runs only
+  to an organism the bind leaves out is named for that organism alone. An expression handle no
+  expression stands for joins the sheet stage, and one rule decides when a call states a new
+  why (a criterion not held on the search, or one the controls chose), checked there. A waiting
+  criterion refuses alone, with only the requirement numbers; the requirement numbers also join
+  a missing or unserved search. An unresolved saved-strategy reference is recorded as an open
+  slot and answered as one (`next_step`), never refused. The refusals that stand alone (a bound
+  analysis, an unserved or missing search, an unresolved gene set, a computed comparison, a
+  strategy library with no user, drop_criterion's and a search name the enum guard does not
+  know) are one keyed problem through the same builder. A later stage runs only
   once the stages before it pass, and nothing is refused after the criterion is recorded. WDK's verdict on the
   binding names each of its rows. The edit path keeps its validation payload until the strategy
   tools move to problems.

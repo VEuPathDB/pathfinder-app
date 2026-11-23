@@ -78,27 +78,42 @@ class ChosenWhy:
 _WHY = RefusalKey(check="why")
 
 
-def _held_rationale(state: AgentToolState, call: CriterionCall) -> bool:
-    return any(
-        c.id == call.criterion_id and c.search_name == call.search_name
-        for c in state.operational_spec_draft.criteria
+class UncheckedWhyError(Exception):
+    """A why the sheet stage did not check reached the record."""
+
+
+def _needs_a_new_why(state: AgentToolState, call: CriterionCall) -> bool:
+    """A criterion not held on this search, or held with a reason the controls
+    chose, states a new why; a kept search reason is judged by its values."""
+    held = next(
+        (c for c in state.operational_spec_draft.criteria if c.id == call.criterion_id),
+        None,
     )
+    if held is None or held.search_name != call.search_name:
+        return True
+    return held.rationale is not None and held.rationale.kind != "search"
 
 
 def why_problems(
     ctx: RunContext[AgentDeps], call: CriterionCall, why: SearchChoice | None
 ) -> Problems:
-    """What a new binding's why lacks before any value is read: a catalog read
-    that answered the search, a why, and sources a read of this turn returned."""
+    """What the call's why lacks before any value is read: a catalog read that
+    answered the search and a why, when the call needs a new one, and sources
+    a read of this turn returned, whenever it cites any."""
     state = ctx.deps.agent_state
-    if _held_rationale(state, call):
-        return Problems()
+    cited = (
+        Problems()
+        if why is None
+        else sources_retrieved(ctx, call.criterion_id, why.sources)[1]
+    )
+    if not _needs_a_new_why(state, call):
+        return cited
     read = state.last_read_answering(call.search_name)
     if read is None or read.hit(call.search_name) is None:
         return Problems.one(_WHY, _unread(call.criterion_id, call.search_name))
     if why is None:
         return Problems.one(_WHY, _no_why(call.criterion_id, call.search_name, read))
-    return sources_retrieved(ctx, call.criterion_id, why.sources)[1]
+    return cited
 
 
 def rationale_for(
@@ -156,12 +171,10 @@ def _new_why(
 ) -> ChosenWhy:
     criterion_id, search_name = call.criterion_id, call.search_name
     bound = None if read is None else read.hit(search_name)
-    if read is None or bound is None:
-        return ChosenWhy(None, Problems.one(_WHY, _unread(criterion_id, search_name)))
-    if why is None:
-        said = _no_why(criterion_id, search_name, read)
-        return ChosenWhy(None, Problems.one(_WHY, said))
-    sources, absent = sources_retrieved(ctx, criterion_id, why.sources)
+    if read is None or bound is None or why is None:
+        msg = f"{criterion_id}: the why of {search_name} reached the record unchecked"
+        raise UncheckedWhyError(msg)
+    sources = sources_retrieved(ctx, criterion_id, why.sources)[0]
     others = [h for h in read.hits if h.name != search_name] if read.ranked else []
     rationale = SearchRationale(
         search_name=search_name,
@@ -180,7 +193,7 @@ def _new_why(
         sources=sources,
         derived_from=stated_values(values),
     )
-    return ChosenWhy(rationale, absent)
+    return ChosenWhy(rationale)
 
 
 def _shown_term(why: SearchChoice, infos: Sequence[ParameterInfo]) -> str:

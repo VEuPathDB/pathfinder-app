@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import replace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai.messages import ToolCallPart, ToolReturn
+from pydantic_ai.tool_manager import ToolManager
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from strategist.ai.agents.state import AgentToolState
@@ -216,18 +217,23 @@ class TestACriterionStartsFromASavedStrategy:
 
 class TestAnUnknownReferenceStopsTheBuild:
     @pytest.mark.asyncio
-    async def test_it_retries_naming_the_listing(
+    async def test_it_answers_the_open_slot_naming_the_listing(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _serve_library(monkeypatch, _listing())
-        with pytest.raises(ModelRetry, match=re.escape(_SAVED_NAME)):
+        result = returned(
             await set_criterion(
                 _ctx(AgentToolState()),
                 criterion_id="c_saved",
                 text="start from my saved strategy 'Nope'",
                 role="seed",
                 saved_strategy="Nope",
-            )
+            ),
+            SetCriterionResult,
+        )
+
+        assert _SAVED_NAME in result.next_step
+        assert [slot.param_name for slot in result.open_slots] == ["saved_strategy"]
 
     @pytest.mark.asyncio
     async def test_it_leaves_the_criterion_open_so_the_frame_needs_the_user(
@@ -235,14 +241,13 @@ class TestAnUnknownReferenceStopsTheBuild:
     ) -> None:
         _serve_library(monkeypatch, _listing())
         state = AgentToolState()
-        with pytest.raises(ModelRetry):
-            await set_criterion(
-                _ctx(state),
-                criterion_id="c_saved",
-                text="start from my saved strategy 'Nope'",
-                role="seed",
-                saved_strategy="Nope",
-            )
+        await set_criterion(
+            _ctx(state),
+            criterion_id="c_saved",
+            text="start from my saved strategy 'Nope'",
+            role="seed",
+            saved_strategy="Nope",
+        )
         criterion = state.operational_spec_draft.criteria[0]
         assert criterion.bound is False
         assert [slot.param_name for slot in criterion.open_params] == ["saved_strategy"]
@@ -254,14 +259,18 @@ class TestAnUnknownReferenceStopsTheBuild:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _serve_library(monkeypatch, [])
-        with pytest.raises(ModelRetry, match="no saved strategies"):
+        result = returned(
             await set_criterion(
                 _ctx(AgentToolState()),
                 criterion_id="c_saved",
                 text="start from my saved strategy 'Nope'",
                 role="seed",
                 saved_strategy="Nope",
-            )
+            ),
+            SetCriterionResult,
+        )
+
+        assert "no saved strategies" in result.next_step
 
     @pytest.mark.asyncio
     async def test_the_open_criterion_cannot_be_dropped(
@@ -269,14 +278,13 @@ class TestAnUnknownReferenceStopsTheBuild:
     ) -> None:
         _serve_library(monkeypatch, _listing())
         state = AgentToolState()
-        with pytest.raises(ModelRetry):
-            await set_criterion(
-                _ctx(state),
-                criterion_id="c_saved",
-                text="start from my saved strategy 'Nope'",
-                role="seed",
-                saved_strategy="Nope",
-            )
+        await set_criterion(
+            _ctx(state),
+            criterion_id="c_saved",
+            text="start from my saved strategy 'Nope'",
+            role="seed",
+            saved_strategy="Nope",
+        )
         with pytest.raises(ModelRetry, match="Ask the user which one"):
             drop_criterion(
                 _ctx(state), criterion_id="c_saved", reason="cannot resolve it"
@@ -356,3 +364,35 @@ class TestTheWorkspaceNamesTheSavedStrategy:
         assert _SAVED_NAME in workspace
         assert "227 results, 3 steps" in workspace
         assert "UNBOUND" not in workspace
+
+
+def _open_slots(answer: object) -> list[str]:
+    match answer:
+        case ToolReturn(return_value=SetCriterionResult(open_slots=slots)):
+            return [slot.param_name for slot in slots]
+        case _:
+            return []
+
+
+@pytest.mark.asyncio
+async def test_an_unresolved_reference_is_charged_nothing_and_runs_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve_library(monkeypatch, _listing())
+    state = AgentToolState()
+    ctx = _ctx(state)
+    manager = await ToolManager(toolset=build_toolset()).for_run_step(ctx)
+    args = {
+        "criterion_id": "c_saved",
+        "text": "start from my saved strategy 'Nope'",
+        "role": "seed",
+        "saved_strategy": "Nope",
+    }
+
+    answers = [
+        await manager.handle_call(ToolCallPart("set_criterion", args, f"call_{n}"))
+        for n in range(2)
+    ]
+
+    assert [_open_slots(answer) for answer in answers] == [["saved_strategy"]] * 2
+    assert ctx.deps.refusal_book.ledger.uses == ()

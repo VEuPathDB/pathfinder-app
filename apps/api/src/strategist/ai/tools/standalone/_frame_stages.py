@@ -7,6 +7,7 @@ from pydantic_ai import RunContext
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
 
+from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._frame_answers import answers_the_sheet_lacks
 from strategist.ai.tools.standalone._frame_call_checks import (
@@ -21,7 +22,10 @@ from strategist.ai.tools.standalone._frame_proposals import (
     radio_overrides,
 )
 from strategist.ai.tools.standalone._frame_reading import reading_label_problems
-from strategist.ai.tools.standalone._frame_roles import role_problems
+from strategist.ai.tools.standalone._frame_roles import (
+    role_problems,
+    saved_input_problems,
+)
 from strategist.ai.tools.standalone._frame_stated import word_problems
 from strategist.domain.refusal import Problems
 from strategist.domain.strategy.operational_spec import Criterion
@@ -32,6 +36,24 @@ def _refused(problems: Problems, criterion_id: str, search_name: str) -> None:
     refuse_problems(problems.under(criterion=criterion_id, search=search_name))
 
 
+def waiting_stage(
+    state: AgentToolState, stated: Criterion, search_name: str, early: Problems
+) -> None:
+    waiting = waiting_problems(state, stated.id)
+    if not waiting.empty:
+        _refused(early.plus(waiting), stated.id, search_name)
+
+
+def input_stage(
+    state: AgentToolState, stated: Criterion, saved: str, early: Problems
+) -> None:
+    waiting_stage(state, stated, "", early)
+    found = early.plus(answers_the_sheet_lacks(stated.answers, [])).plus(
+        saved_input_problems(stated.id, stated.role, saved)
+    )
+    _refused(found, stated.id, "")
+
+
 async def search_stage(
     ctx: RunContext[AgentDeps],
     stated: Criterion,
@@ -39,9 +61,8 @@ async def search_stage(
     record_type: str,
     early: Problems,
 ) -> None:
-    found = early.plus(waiting_problems(ctx.deps.agent_state, stated.id)).plus(
-        await role_problems(ctx, record_type, definition, stated.role)
-    )
+    waiting_stage(ctx.deps.agent_state, stated, definition.url_segment, early)
+    found = early.plus(await role_problems(ctx, record_type, definition, stated.role))
     _refused(found, stated.id, definition.url_segment)
 
 
@@ -60,7 +81,6 @@ async def sheet_stage(
     found = (
         early.plus(answers_the_sheet_lacks(stated.answers, infos))
         .plus(reading_label_problems(state, stated.id, reading))
-        .plus(waiting_problems(state, stated.id))
         .plus(await role_problems(ctx, record_type, definition, stated.role))
         .plus(unknown_names(call, infos))
         .plus(undecided(call, infos))

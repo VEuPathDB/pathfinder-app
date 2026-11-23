@@ -114,7 +114,7 @@ async def test_a_name_no_site_showed_gets_the_known_values(
     assert str(refused.value) == (
         "search_name='GenesByImaginary' is not a known value for set_criterion. "
         "Choose one of: GenesByRNASeqpfal3D7_Su_strand_specific_RSRC, GenesByText. "
-        "Copy it verbatim - do not paraphrase or invent."
+        "Copy it verbatim - do not paraphrase or invent. Nothing was recorded."
     )
 
 
@@ -131,5 +131,5 @@ async def test_a_search_this_site_also_publishes_gets_the_known_values(
     assert str(refused.value) == (
         f"search_name='{_SHARED_SEARCH}' is not a known value for set_criterion. "
         "Choose one of: GenesByRNASeqpfal3D7_Su_strand_specific_RSRC, GenesByText. "
-        "Copy it verbatim - do not paraphrase or invent."
+        "Copy it verbatim - do not paraphrase or invent. Nothing was recorded."
     )

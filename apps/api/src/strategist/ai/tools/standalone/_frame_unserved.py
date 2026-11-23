@@ -24,27 +24,30 @@ _NO_SEARCH = (
 
 
 async def listed_record_type(
-    ctx: RunContext[AgentDeps], criterion_id: str, search_name: str
+    ctx: RunContext[AgentDeps], criterion_id: str, search_name: str, early: Problems
 ) -> str:
     if not search_name:
-        raise refusal_of(
-            Problems.one(RefusalKey(check="search", criterion=criterion_id), _NO_SEARCH)
-        )
+        found = Problems.one(RefusalKey(check="search"), _NO_SEARCH)
+        raise refusal_of(early.plus(found).under(criterion=criterion_id, search=""))
     unserved = ctx.deps.agent_state.unserved_searches
     if search_name in unserved:
-        raise _refusal(ctx, criterion_id, search_name)
+        raise _refusal(ctx, criterion_id, search_name, early)
     listed = await search_record_types(ctx.deps.site_id, [search_name])
     if search_name not in listed:
         unserved[search_name] = UnservedSearch(
             where=_ANY_RECORD_TYPE, said="the site's catalog lists it under none"
         )
-        raise _refusal(ctx, criterion_id, search_name)
+        raise _refusal(ctx, criterion_id, search_name, early)
     return listed[search_name]
 
 
 @contextmanager
 def an_unserved_search_refused(
-    ctx: RunContext[AgentDeps], criterion_id: str, search_name: str, record_type: str
+    ctx: RunContext[AgentDeps],
+    criterion_id: str,
+    search_name: str,
+    record_type: str,
+    early: Problems,
 ) -> Iterator[None]:
     try:
         yield
@@ -61,7 +64,7 @@ def an_unserved_search_refused(
         state.unserved_searches[search_name] = UnservedSearch(
             where=record_type, said=said
         )
-        raise _refusal(ctx, criterion_id, search_name) from exc
+        raise _refusal(ctx, criterion_id, search_name, early) from exc
 
 
 def _not_found_in(error: BaseException | None) -> WDKError | None:
@@ -75,7 +78,7 @@ def _not_found_in(error: BaseException | None) -> WDKError | None:
 
 
 def _refusal(
-    ctx: RunContext[AgentDeps], criterion_id: str, search_name: str
+    ctx: RunContext[AgentDeps], criterion_id: str, search_name: str, early: Problems
 ) -> ProblemsRefusal:
     unserved = ctx.deps.agent_state.unserved_searches
     held = unserved[search_name]
@@ -89,21 +92,18 @@ def _refusal(
         )
         raise SearchNotServedError(msg)
     key = RefusalKey(check="unserved", criterion=criterion_id, search=search_name)
+    placed = early.under(criterion=criterion_id, search=search_name)
     if held.where == _ANY_RECORD_TYPE:
-        return refusal_of(
-            Problems.one(
-                key,
-                f"{sentence} {criterion_id} is not bound. Bind a search that "
-                "list_searches or search_for_searches answered with; a requirement "
-                "no search on this site answers is site_has_no_search.",
-            )
+        said = (
+            f"{sentence} {criterion_id} is not bound. Bind a search that "
+            "list_searches or search_for_searches answered with; a requirement "
+            "no search on this site answers is site_has_no_search."
         )
-    return refusal_of(
-        Problems.one(
-            key,
+    else:
+        said = (
             f"{sentence} {criterion_id} is not bound, and this pass binds "
             f"{search_name} no more. Bind another search for this requirement; a "
             f"requirement only {search_name} answers is site_refused_the_search, "
-            f"with {search_name} named.",
+            f"with {search_name} named."
         )
-    )
+    return refusal_of(placed.plus(Problems.one(key, said)))

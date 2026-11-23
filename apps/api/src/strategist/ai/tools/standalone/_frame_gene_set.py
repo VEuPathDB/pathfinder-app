@@ -8,18 +8,15 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.wdk import get_site
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone._frame_eda import waiting_problems
 from strategist.ai.tools.standalone._frame_result import (
     GeneSetBinding,
     SetCriterionResult,
 )
-from strategist.ai.tools.standalone._frame_roles import (
-    saved_input_problems,
-)
+from strategist.ai.tools.standalone._frame_stages import input_stage
 from strategist.ai.tools.standalone.gene_set_models import LISTING_PAGE
 from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion
-from strategist.platform.refusals import refusal_of, refuse_problems
+from strategist.platform.refusals import refusal_of
 from strategist.services.evidence.gene_sets import list_stored_gene_sets
 from strategist.services.gene_sets.homes import ID_LIST_SEARCHES, site_kind
 from strategist.services.gene_sets.types import GeneSet
@@ -31,11 +28,7 @@ async def set_gene_set_criterion(
     ctx: RunContext[AgentDeps], stated: Criterion, reference: str, early: Problems
 ) -> ToolReturn[SetCriterionResult]:
     """Record a criterion whose input is the genes a saved set holds on this site."""
-    refuse_problems(
-        early.plus(waiting_problems(ctx.deps.agent_state, stated.id))
-        .plus(saved_input_problems(stated.id, stated.role, "saved gene set"))
-        .under(criterion=stated.id, search="")
-    )
+    input_stage(ctx.deps.agent_state, stated, "saved gene set", early)
     binding, search_name = await _bind(ctx, stated, reference)
     return with_summary(
         SetCriterionResult(

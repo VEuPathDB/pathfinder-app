@@ -107,7 +107,7 @@ def another_sites_entry(ctx: RunContext[AgentDeps], value: str) -> str | None:
         f"An experiment on another site informs a criterion and is never bound: take "
         f"its condition or stage into search_for_searches on {site_id}, cite it in "
         f"why.sources, or carry its genes by orthology on the VEuPathDB portal, where "
-        f"one strategy holds both organisms. Nothing was recorded."
+        f"one strategy holds both organisms."
     )
 
 

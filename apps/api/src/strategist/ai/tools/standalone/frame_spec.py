@@ -24,7 +24,6 @@ from strategist.ai.tools.standalone._expression_handles import (
 )
 from strategist.ai.tools.standalone._frame_answers import (
     AnsweredRequirement,
-    answers_the_sheet_lacks,
     linked_requirements,
 )
 from strategist.ai.tools.standalone._frame_canonical import canonical_binding
@@ -75,6 +74,7 @@ from strategist.ai.tools.standalone._frame_stages import (
     binding_stage,
     sheet_stage,
     value_stage,
+    waiting_stage,
 )
 from strategist.ai.tools.standalone._frame_unserved import (
     an_unserved_search_refused,
@@ -234,15 +234,13 @@ async def set_criterion(
         answers=links,
         weight=held_weight(state, criterion_id, weight),
     )
-    if gene_set or computed_groups or saved_strategy:
-        early = early.plus(answers_the_sheet_lacks(stated.answers, []))
     if gene_set:
         return await set_gene_set_criterion(ctx, stated, gene_set, early)
     if computed_groups:
         return await set_computed_criterion(ctx, stated, computed_groups, early)
     if saved_strategy:
         return await set_saved_criterion(ctx, stated, saved_strategy, early)
-    record_type = await listed_record_type(ctx, criterion_id, search_name)
+    record_type = await listed_record_type(ctx, criterion_id, search_name, early)
     if params is None:
         return await open_the_sheet(ctx, stated, search_name, record_type, early)
     return await _bind_the_search(
@@ -272,7 +270,7 @@ async def _bind_the_search(
     criterion_id, text, role = stated.id, stated.text, stated.role
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
-    with an_unserved_search_refused(ctx, criterion_id, search_name, record_type):
+    with an_unserved_search_refused(ctx, criterion_id, search_name, record_type, early):
         definition = await catalog_search_definition(
             ctx.deps.site_id, record_type, search_name
         )
@@ -286,20 +284,16 @@ async def _bind_the_search(
         return wait_for_the_analysis(
             ctx, stated, described, definition, record_type, params, early=early
         )
-    call, fixed = left_to_the_site(
-        with_stored_expressions(
-            state,
-            CriterionCall(
-                criterion_id=criterion_id,
-                search_name=search_name,
-                text=text,
-                params=params,
-            ),
+    stored, handles = with_stored_expressions(
+        state,
+        CriterionCall(
+            criterion_id=criterion_id, search_name=search_name, text=text, params=params
         ),
-        infos,
     )
+    call, fixed = left_to_the_site(stored, infos)
     held = held_binding(state, call, infos)
     call = with_held(call, held)
+    waiting_stage(state, stated, search_name, early)
     await sheet_stage(
         ctx,
         stated,
@@ -307,7 +301,7 @@ async def _bind_the_search(
         infos,
         definition,
         record_type,
-        early=early.plus(why_problems(ctx, call, why)),
+        early=early.plus(handles).plus(why_problems(ctx, call, why)),
         reading=reading,
     )
     call, typed = await saved_id_lists(ctx.deps.site_id, state, call, infos)

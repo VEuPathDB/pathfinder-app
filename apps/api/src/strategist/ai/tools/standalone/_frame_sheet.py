@@ -142,7 +142,7 @@ async def open_the_sheet(
     record_type: str,
     early: Problems,
 ) -> ToolReturn[SetCriterionResult]:
-    with an_unserved_search_refused(ctx, stated.id, search_name, record_type):
+    with an_unserved_search_refused(ctx, stated.id, search_name, record_type, early):
         definition = await read_search_definition(
             ctx.deps.site_id, record_type, search_name
         )

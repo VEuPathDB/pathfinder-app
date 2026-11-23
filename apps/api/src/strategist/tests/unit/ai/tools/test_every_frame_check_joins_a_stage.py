@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from pydantic import JsonValue
-from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, VocabOption
+from veupathdb.domain.parameters import (
+    PHYLETIC_EXPRESSION_PARAM,
+    MultiPickValue,
+    SinglePickValue,
+    VocabOption,
+)
 from veupathdb.errors import joined_refusal
 from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import (
@@ -14,7 +21,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone import _frame_proposals
+from strategist.ai.tools.standalone import _frame_proposals, _frame_unserved
 from strategist.ai.tools.standalone._frame_answers import AnsweredRequirement
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.ai.tools.standalone._frame_sheet import reconcile_dependents
@@ -26,7 +33,9 @@ from strategist.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
+from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.orthology_request import OrthologyRequest
+from strategist.domain.strategy.step_rationale import ControlsRationale
 from strategist.platform.refusals import ProblemsRefusal
 from strategist.tests._support.catalog_reads import listing
 from strategist.tests._support.param_infos import sheet_of
@@ -86,6 +95,10 @@ async def test_every_refused_dependent_is_named_and_the_marks_stay() -> None:
         return declarations(_children(bound=True))
 
     state = AgentToolState()
+    state.pin_sheet("c1", "GenesByRNASeq", [], what_runs="RNA-Seq").redecide = [
+        "agg_a",
+        "agg_b",
+    ]
     for name in ("agg_a", "agg_b"):
         state.mark_redecided("c1", "GenesByRNASeq", name)
     call = CriterionCall(
@@ -105,7 +118,7 @@ async def test_every_refused_dependent_is_named_and_the_marks_stay() -> None:
 
     assert [key.parameter for key in _keys(refused.value)] == ["agg_a", "agg_b"]
     assert str(refused.value).endswith("Nothing was recorded.")
-    assert state.was_redecided("c1", "GenesByRNASeq", "agg_a")
+    assert state.open_sheets["c1"].redecide == ["agg_a", "agg_b"]
 
 
 async def test_an_unknown_requirement_joins_the_sheet_stage(
@@ -276,3 +289,114 @@ async def test_an_input_path_names_its_answers_and_its_role_once() -> None:
 
     assert {key.check for key in _keys(refused.value)} == {"requirements", "role"}
     assert state.operational_spec_draft.criteria == []
+
+
+def _text_state() -> AgentToolState:
+    state = AgentToolState()
+    state.record_catalog_read(listing(["GenesByText"]))
+    state.request_messages = ["kinases"]
+    return state
+
+
+async def _text_call(
+    state: AgentToolState, params: dict[str, JsonValue], **extra: Any
+) -> ProblemsRefusal:
+    with pytest.raises(ProblemsRefusal) as refused:
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="c1",
+            text="kinases",
+            search_name="GenesByText",
+            params=params,
+            **extra,
+        )
+    return refused.value
+
+
+async def test_an_unknown_handle_joins_the_sheet_stage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, genes_by_text)
+    params = {
+        **_TEXT_CALL,
+        "organsim": None,
+        PHYLETIC_EXPRESSION_PARAM: "expr:0123456789ab",
+    }
+
+    refused = await _text_call(
+        _text_state(), params, why=default_why("GenesByText", params)
+    )
+
+    assert {key.check for key in _keys(refused)} == {"expression", "unknown_names"}
+
+
+async def test_a_criterion_the_controls_chose_states_its_why_in_the_sheet_stage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, genes_by_text)
+    state = _text_state()
+    state.frame_set_criterion(
+        Criterion(
+            id="c1",
+            text="kinases",
+            search_name="GenesByText",
+            rationale=ControlsRationale(
+                task_id="0c6100d2-0000-4000-8000-000000000001",
+                search_name="GenesByText",
+                source="catalog",
+                basis="the site's catalog",
+                informs="recovering",
+                recovered=20,
+                positives=80,
+                admitted=0,
+                negatives=40,
+                result_size=191,
+            ),
+        )
+    )
+
+    refused = await _text_call(state, {**_TEXT_CALL, "organsim": None}, why=None)
+
+    assert {key.check for key in _keys(refused)} == {"why", "unknown_names"}
+
+
+async def test_a_waiting_criterion_refuses_with_its_requirements_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, genes_by_text)
+    state = _text_state()
+    state.frame_set_criterion(
+        Criterion(id="c1", text="kinases", needs_analysis_on="DS_70dd50fed7")
+    )
+
+    refused = await _text_call(
+        state,
+        {**_TEXT_CALL, "organsim": None},
+        why=None,
+        reading="broad",
+        answers=[AnsweredRequirement(requirement="R9")],
+    )
+
+    assert {key.check for key in _keys(refused)} == {"requirements", "waiting"}
+
+
+async def test_an_unknown_requirement_joins_the_unserved_search_refusal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _listed(_site_id: str, _names: list[str]) -> dict[str, str]:
+        return {}
+
+    serve_search(monkeypatch, genes_by_text)
+    monkeypatch.setattr(_frame_unserved, "search_record_types", _listed)
+    state = _text_state()
+    with pytest.raises(ProblemsRefusal) as raised:
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="c1",
+            text="kinases",
+            search_name="GenesByNoSuchThing",
+            params=_TEXT_CALL,
+            answers=[AnsweredRequirement(requirement="R9")],
+        )
+
+    assert {key.check for key in _keys(raised.value)} == {"requirements", "unserved"}

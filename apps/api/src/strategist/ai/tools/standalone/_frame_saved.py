@@ -2,23 +2,22 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from assistant_core.graph.tool_summary import with_summary
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone._frame_eda import waiting_problems
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
-from strategist.ai.tools.standalone._frame_roles import (
-    saved_input_problems,
-)
+from strategist.ai.tools.standalone._frame_stages import input_stage
 from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
 )
 from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
-from strategist.platform.refusals import refusal_of, refuse_problems
+from strategist.platform.refusals import refusal_of
 from strategist.services.strategies.insert_saved import clone_saved_strategy
 from strategist.services.strategies.saved_library import (
     SavedStrategyListing,
@@ -45,33 +44,34 @@ async def saved_strategy_listing(
     )
 
 
+@dataclass(frozen=True)
+class UnresolvedSaved:
+    slot: OpenSlot
+    next_step: str
+
+
 async def bind_saved_criterion(
     ctx: RunContext[AgentDeps], stated: Criterion, *, reference: str
-) -> SavedStrategyListing:
+) -> SavedStrategyListing | UnresolvedSaved:
     """Record a criterion whose input is a saved strategy.
 
-    An unresolved reference is recorded as an open slot before the retry, so a
-    frame that never resolves it stays unbuildable instead of building the
-    remaining criteria alone.
+    An unresolved reference is recorded as an open slot and answered as one,
+    so a frame that never resolves it stays unbuildable instead of building
+    the remaining criteria alone.
     """
     listing = await saved_strategy_listing(ctx)
     match = match_saved_reference(listing, reference)
     if match is None:
-        ctx.deps.agent_state.frame_set_criterion(
-            stated.model_copy(
-                update={
-                    "open_params": [
-                        OpenSlot(
-                            criterion_id=stated.id,
-                            param_name=SAVED_STRATEGY_SLOT,
-                            question=_which_one(listing),
-                            options=[entry.name for entry in listing],
-                        )
-                    ]
-                }
-            )
+        slot = OpenSlot(
+            criterion_id=stated.id,
+            param_name=SAVED_STRATEGY_SLOT,
+            question=_which_one(listing),
+            options=[entry.name for entry in listing],
         )
-        raise ModelRetry(_unresolved_message(reference, listing))
+        ctx.deps.agent_state.frame_set_criterion(
+            stated.model_copy(update={"open_params": [slot]})
+        )
+        return UnresolvedSaved(slot, _unresolved_message(reference, listing))
     cloned = await clone_saved_strategy(ctx.deps.site_id, match.wdk_strategy_id)
     ctx.deps.agent_state.frame_set_criterion(
         stated.model_copy(
@@ -94,19 +94,28 @@ async def bind_saved_criterion(
 async def set_saved_criterion(
     ctx: RunContext[AgentDeps], stated: Criterion, reference: str, early: Problems
 ) -> ToolReturn[SetCriterionResult]:
-    refuse_problems(
-        early.plus(waiting_problems(ctx.deps.agent_state, stated.id))
-        .plus(saved_input_problems(stated.id, stated.role, "saved strategy"))
-        .under(criterion=stated.id, search="")
-    )
-    match = await bind_saved_criterion(ctx, stated, reference=reference)
-    return with_summary(
-        SetCriterionResult(
-            criterion_id=stated.id, search_name="", saved_strategy=match
-        ),
-        f"{stated.id} starts from {match.name}",
-        ctx=ctx,
-    )
+    input_stage(ctx.deps.agent_state, stated, "saved strategy", early)
+    match await bind_saved_criterion(ctx, stated, reference=reference):
+        case UnresolvedSaved(slot=slot, next_step=next_step):
+            return with_summary(
+                SetCriterionResult(
+                    criterion_id=stated.id,
+                    search_name="",
+                    open_slots=[slot],
+                    next_step=next_step,
+                ),
+                f"{stated.id}: which saved strategy it starts from is open",
+                ctx=ctx,
+                status="warn",
+            )
+        case matched:
+            return with_summary(
+                SetCriterionResult(
+                    criterion_id=stated.id, search_name="", saved_strategy=matched
+                ),
+                f"{stated.id} starts from {matched.name}",
+                ctx=ctx,
+            )
 
 
 def holds_open_saved_slot(criterion: Criterion) -> bool:

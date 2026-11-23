@@ -135,7 +135,7 @@ async def test_an_unknown_handle_is_refused_by_name() -> None:
         "phyletic_expression names expr:0123456789ab, and no expression of this "
         "conversation is held under that handle: neither build_phyletic_expression "
         "nor a bound criterion wrote it. Call build_phyletic_expression and bind "
-        "the handle it returns; nothing was recorded."
+        "the handle it returns. Nothing was recorded."
     )
     assert state.operational_spec_draft.criteria == []
 
