@@ -11,13 +11,16 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     EDA_DATASET_ID_PARAM,
     EdaBackedSearch,
+    format_param_info_typed,
 )
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
+from strategist.ai.tools.standalone._frame_answers import params_the_sheet_lacks
 from strategist.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     criterion_return,
+    wait_instruction,
 )
 from strategist.ai.tools.standalone._frame_roles import (
     refuse_a_role_the_search_cannot_take,
@@ -135,6 +138,10 @@ def eda_wait_problems(
 ) -> Problems:
     search_name = definition.url_segment
     found = _held_problems(state, criterion.id, search_name, dataset)
+    sheet = format_param_info_typed(definition.parameters or [], organism=None)
+    lacked = params_the_sheet_lacks(criterion.answers, sheet)
+    if lacked is not None:
+        found.append(lacked)
     if dataset is None:
         found.append(
             f"{search_name} is EDA-backed and names no dataset, so "
@@ -178,6 +185,7 @@ def wait_for_the_analysis(
             criterion_id=stated.id,
             search_name=described.search_name,
             waits_for_analysis_on=dataset,
+            next_step=wait_instruction(described.search_name, stated.id, dataset),
         ),
         record_type,
         definition,

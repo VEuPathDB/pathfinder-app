@@ -92,6 +92,8 @@ class SetCriterionResult(CamelModel):
     # The dataset whose analysis workflow realizes the criterion, when the
     # search is EDA-backed. The criterion waits for it and binds no search.
     waits_for_analysis_on: str | None = None
+    # What FRAME does next with a criterion that waits for its analysis.
+    next_step: str = Field(default="", exclude_if=lambda said: not said)
 
 
 def wait_instruction(search_name: str, criterion_id: str, dataset: str) -> str:
@@ -127,10 +129,8 @@ def _summary_line(
     result: SetCriterionResult, record_type: str
 ) -> tuple[str, ToolSummaryStatus]:
     """The line the call's result writes, before the searches it left out."""
-    if result.waits_for_analysis_on is not None:
-        return wait_instruction(
-            result.search_name, result.criterion_id, result.waits_for_analysis_on
-        ), "ok"
+    if result.next_step:
+        return result.next_step, "ok"
     if result.sheet_pinned:
         return (
             f"{result.criterion_id}: sheet pinned, "

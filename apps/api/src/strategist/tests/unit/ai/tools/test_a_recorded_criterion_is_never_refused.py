@@ -3,25 +3,48 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tool_manager import ToolManager
 from veupathdb.domain.parameters import StringValue
 from veupathdb_mcp.catalog import EDA_DATASET_ID_PARAM
 
 from strategist.ai.agents.state import AgentToolState
+from strategist.ai.tools.standalone._frame_answers import AnsweredRequirement
+from strategist.ai.tools.standalone._frame_result import (
+    SetCriterionResult,
+    wait_instruction,
+)
+from strategist.ai.tools.standalone.frame_spec import set_criterion
 from strategist.ai.tools.toolsets.frame import build_toolset
 from strategist.domain.refusal import RefusalKey
+from strategist.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.platform.refusals import ProblemsRefusal
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.catalog_reads import listing
-from strategist.tests.unit.ai.tools.test_frame_spec import bind, frame_ctx
+from strategist.tests._support.tool_returns import returned
+from strategist.tests.unit.ai.tools.test_frame_spec import (
+    bind,
+    default_why,
+    frame_ctx,
+)
 from strategist.tests.unit.ai.tools.test_frame_spec_eda import (
     _DATASET_ID,
     _MUTAGENESIS_SEARCH,
     _serve_the_eda_search,
 )
 
+_ESSENTIAL = Constraint(
+    kind=ConstraintKind.PROPERTY,
+    requested_value="essential in blood stages",
+    label="essential",
+    source=ConstraintSource.USER_EXPLICIT,
+)
 _CUT_TRY_STEPS = (
     ("c_essential_tg_litic",),
     (
@@ -135,3 +158,66 @@ async def test_an_id_bound_to_another_search_is_refused_and_kept() -> None:
 
     assert "Name a new criterion id" in str(refused.value)
     assert state.operational_spec_draft.criteria == [held]
+
+
+@pytest.mark.usefixtures("_eda_search")
+async def test_the_waiting_result_tells_the_model_what_to_do_next() -> None:
+    result = await bind(
+        AgentToolState(),
+        _MUTAGENESIS_SEARCH,
+        {EDA_DATASET_ID_PARAM: _DATASET_ID},
+        criterion_id="c_essential",
+    )
+
+    read = result.model_dump(mode="json", by_alias=True)
+    assert read["nextStep"] == wait_instruction(
+        _MUTAGENESIS_SEARCH, "c_essential", _DATASET_ID
+    )
+    assert read["waitsForAnalysisOn"] == _DATASET_ID
+
+
+async def _answering(
+    state: AgentToolState, params: dict[str, JsonValue]
+) -> SetCriterionResult:
+    state.stated_requirements = [_ESSENTIAL]
+    state.record_catalog_read(listing([_MUTAGENESIS_SEARCH]))
+    state.request_messages = ["genes essential in blood stages"]
+    return returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="c_essential",
+            text="essential in blood stages",
+            search_name=_MUTAGENESIS_SEARCH,
+            params=params,
+            answers=[AnsweredRequirement(requirement="R1", param="phenotype_score")],
+            why=default_why(_MUTAGENESIS_SEARCH, params),
+        ),
+        SetCriterionResult,
+    )
+
+
+@pytest.mark.usefixtures("_eda_search")
+async def test_an_answer_naming_a_parameter_the_sheet_lacks_is_refused() -> None:
+    state = AgentToolState()
+
+    with pytest.raises(ProblemsRefusal) as refused:
+        await _answering(state, {EDA_DATASET_ID_PARAM: _DATASET_ID})
+
+    assert "['phenotype_score'], which the sheet does not hold" in str(refused.value)
+    assert state.operational_spec_draft.criteria == []
+
+
+async def test_a_lacked_parameter_and_a_missing_dataset_are_named_together(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve_the_eda_search(monkeypatch, default=None)
+    state = AgentToolState()
+
+    with pytest.raises(ProblemsRefusal) as refused:
+        await _answering(state, {})
+
+    said = str(refused.value)
+    assert said.startswith("2 problems:")
+    assert "which the sheet does not hold" in said
+    assert "names no dataset" in said
+    assert state.operational_spec_draft.criteria == []

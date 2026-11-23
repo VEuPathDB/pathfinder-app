@@ -123,11 +123,13 @@ out a bound or a waiting analysis criterion.
 
 **A comparison FRAME cannot realize waits under its own id.** When
 `set_criterion` meets an EDA-backed search, the criterion enters the draft with
-`needs_analysis_on=<dataset>`, the call returns `waits_for_analysis_on` as its
-result, not as a refusal, and FRAME places its id in the structure. A
+`needs_analysis_on=<dataset>`, the call returns `waits_for_analysis_on` and the
+`next_step` FRAME takes as its result, not as a refusal, and FRAME places its id
+in the structure. A
 search that names no dataset asks FRAME for one first, and a search on
 another dataset than the one a waiting criterion names is refused: the
-criterion keeps the dataset its analysis workflow opened. Those refusals are
+criterion keeps the dataset its analysis workflow opened. An answer naming a
+parameter the search's sheet lacks is refused too. Those refusals are
 gathered into one (`_frame_eda.py::eda_wait_problems`), so a recorded criterion
 is never refused afterwards. `set_criterion` that
 binds a waiting id to any other search or to a saved strategy is refused:
