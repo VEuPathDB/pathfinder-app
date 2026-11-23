@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import assert_never
 
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, Field
@@ -57,7 +56,6 @@ from strategist.services.strategies.step_push_planner import (
     PatchAction,
     RecreateAction,
     SkipAction,
-    StepActionT,
     StepPushPlan,
     plan_step_pushes,
 )
@@ -139,7 +137,7 @@ class _Commit:
         for entry in plan:
             step = self.steps[entry.step_id]
             record_type = step_class_of(self.steps, step.id) or ""
-            if not _writes_parameters(entry.action):
+            if not entry.action.writes_parameters:
                 continue
             if not names_a_wdk_question(step) or not record_type:
                 self._draft_unless_ready(step)
@@ -425,15 +423,3 @@ async def drop_the_tree(
     api = get_strategy_api(site_id)
     await reconcile_sync_state_with_wdk(sync_state, api)
     await delete_what_the_tree_dropped(api, steps, sync_state)
-
-
-def _writes_parameters(action: StepActionT) -> bool:
-    match action:
-        case SkipAction():
-            return False
-        case PatchAction():
-            return action.search_config
-        case CreateAction() | RecreateAction():
-            return True
-        case _:
-            assert_never(action)

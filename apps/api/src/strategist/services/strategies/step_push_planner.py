@@ -15,10 +15,18 @@ class SkipAction(BaseModel):
     model_config = ConfigDict(frozen=True)
     kind: Literal["skip"] = "skip"
 
+    @property
+    def writes_parameters(self) -> bool:
+        return False
+
 
 class CreateAction(BaseModel):
     model_config = ConfigDict(frozen=True)
     kind: Literal["create"] = "create"
+
+    @property
+    def writes_parameters(self) -> bool:
+        return True
 
 
 class PatchAction(BaseModel):
@@ -33,6 +41,10 @@ class PatchAction(BaseModel):
     search_config: bool
     name: bool
 
+    @property
+    def writes_parameters(self) -> bool:
+        return self.search_config
+
     @model_validator(mode="after")
     def _writes_something(self) -> PatchAction:
         if not (self.search_config or self.name):
@@ -44,6 +56,10 @@ class PatchAction(BaseModel):
 class RecreateAction(BaseModel):
     model_config = ConfigDict(frozen=True)
     kind: Literal["recreate"] = "recreate"
+
+    @property
+    def writes_parameters(self) -> bool:
+        return True
 
 
 StepActionT = Annotated[
