@@ -112,11 +112,13 @@ live in `components/ui/` (shadcn, the `components.json` target). Per-site themin
 
 **Real API + test-only mock LLM for E2E**: Playwright tests call live VEuPathDB APIs for gene
 searches, strategy builds and catalog browsing. Only the LLM chat call is mocked, and only through the
-dedicated test profile (`STRATEGIST_CHAT_PROVIDER=mock`). Worker isolation uses
-`/dev/login?user_id=worker-{N}` so parallel workers do not interfere. VEuPathDB refuses guest
-service calls, so every worker also carries the registered account's token in its
-`Authorization` cookie: the shell exports `WDK_TEST_TOKEN`, or exports `WDK_TEST_EMAIL` and
-`WDK_TEST_PASSWORD` and global setup signs in once to obtain it (CI passes those two as secrets).
+dedicated test profile (`STRATEGIST_CHAT_PROVIDER=mock`). VEuPathDB refuses guest service
+calls, so every worker carries the registered account's token in its `Authorization` cookie:
+the shell exports `WDK_TEST_TOKEN`, or exports `WDK_TEST_EMAIL` and `WDK_TEST_PASSWORD` and
+global setup signs in once to obtain it (CI passes those two as secrets). That login names the
+account's own Strategist user, so parallel workers share one user: global setup clears the
+account once, each test deletes only what it created (`e2e/fixtures/owned-data.ts`), and a test
+tagged `@whole-account` runs while no other test holds the account (`e2e/fixtures/account-lock.ts`).
 
 **SSE over WebSocket**: chat streaming uses Server-Sent Events (unidirectional server to client)
 rather than WebSockets. Messages are sent via POST; responses stream via SSE. Next.js has

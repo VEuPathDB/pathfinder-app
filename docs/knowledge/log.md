@@ -14,6 +14,12 @@
 * **A model reading a settled decision cuts short is still metered.** `read_message`
   waits for the cancelled model reading to end, so the spend of a run that reached the
   model is recorded before the turn absorbs the meter.
+* **Parallel browser test workers no longer delete each other's rows.** Every worker acts
+  as the account's one Strategist user, so global setup clears the account once, each test
+  deletes only the conversations and gene sets its own requests created, and a test tagged
+  `@whole-account` runs while no other test holds the account. The e2e stack allows a turn
+  per worker, and the suite runs at 1680 px, where the rail docks. The backlog item
+  "Parallel browser test workers act as one user" left.
 
 ## 2026-11-22
 
