@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { serializeStrategyAst } from "./serialize";
+import { z } from "zod/v4";
+import { stepResponseSchema } from "@strategist/shared/generated/zod/stepResponseSchema";
+import { strategyStepNodeSchema } from "@strategist/shared/generated/zod/strategyStepNodeSchema";
+import { CARRIED_SETTINGS, STRUCTURAL_KEYS, serializeStrategyAst } from "./serialize";
 import type { Step, Strategy } from "@strategist/shared";
 import undoPlan from "./__fixtures__/undo-plan.json";
 import weightedPlan from "./__fixtures__/weighted-plan.json";
@@ -227,19 +230,34 @@ describe("core/strategyGraph/serialize", () => {
     expect(res).toEqual(null);
   });
 
-  it("keeps every setting of every step, so an undo replays the whole plan", () => {
-    const steps: Step[] = weightedPlan as Step[];
-    const res = serializeStrategyAst(Object.fromEntries(steps.map((s) => [s.id, s])), {
-      id: "s",
-      name: "Kinases near membrane genes",
-      siteId: "plasmodb",
-      recordType: "transcript",
-      steps,
-      rootStepId: "step_root",
-      isSaved: false,
-      createdAt: "t",
-      updatedAt: "t",
-    });
-    expect(res?.plan).toEqual(undoPlan);
+  it.each(Object.keys(weightedPlan))(
+    "keeps every setting of every step of the %s plan, so an undo replays it",
+    (state) => {
+      const steps: Step[] = weightedPlan[state as keyof typeof weightedPlan] as Step[];
+      expect(
+        serializeStrategyAst(Object.fromEntries(steps.map((s) => [s.id, s])), {
+          id: "s",
+          name: "Kinases near membrane genes",
+          siteId: "plasmodb",
+          recordType: "transcript",
+          steps,
+          rootStepId: "step_root",
+          isSaved: false,
+          createdAt: "t",
+          updatedAt: "t",
+        })?.plan,
+      ).toEqual(undoPlan[state as keyof typeof undoPlan]);
+    },
+  );
+
+  it("carries every key a step view and a plan node share", () => {
+    const keysOf = (schema: z.ZodType): string[] =>
+      Object.keys(z.toJSONSchema(schema, { unrepresentable: "any" }).properties ?? {});
+    const viewKeys = new Set(keysOf(stepResponseSchema));
+    const shared = keysOf(strategyStepNodeSchema).filter((key) => viewKeys.has(key));
+
+    expect(new Set(shared)).toEqual(
+      new Set([...STRUCTURAL_KEYS, ...Object.keys(CARRIED_SETTINGS)]),
+    );
   });
 });
