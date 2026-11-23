@@ -56,9 +56,10 @@ def _not_a_value(name: str, value: str, why: str) -> ValidationError:
 
 
 def _option_value(name: str, kind: ParamKind, value: str) -> ParamValue:
-    """The option's value in the parameter's kind; a pick option names one term."""
+    """The option's value in the parameter's kind; a pick option names one term,
+    or a list of terms in the wire's form."""
     try:
-        if kind == "multi-pick-vocabulary":
+        if kind == "multi-pick-vocabulary" and not value.startswith("["):
             return MultiPickValue(values=[value])
         return from_wire(kind, value)
     except (ValueError, TypeError) as unread:

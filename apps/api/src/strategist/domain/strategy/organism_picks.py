@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 
 from pydantic import ConfigDict, Field
+from veupathdb.domain.parameters import MultiPickValue, ParamValue, to_wire
 from veupathdb.model import CamelModel
 
 from strategist.domain.strategy.constraints import (
@@ -10,12 +12,15 @@ from strategist.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
+from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.question_options import (
     SetOrganism,
+    SetValues,
     TypedOption,
     option_id,
 )
 from strategist.domain.strategy.questions import OpenQuestion
+from strategist.domain.strategy.words import words_of
 
 _OFFERED = 5
 
@@ -84,10 +89,46 @@ def asks_an_organism(questions: Sequence[OpenQuestion]) -> bool:
     return any(_names_an_organism(o) for q in questions for o in q.options)
 
 
+def _restated(
+    held: ParamValue, named: set[tuple[str, ...]], organism: str
+) -> str | None:
+    match held:
+        case MultiPickValue(values=values):
+            picked = [organism if tuple(words_of(v)) in named else v for v in values]
+            kept = list(dict.fromkeys(picked))
+            if kept == values:
+                return None
+            return kept[0] if len(kept) == 1 else json.dumps(kept)
+        case _:
+            return organism if tuple(words_of(to_wire(held))) in named else None
+
+
+def organism_restatements(
+    spec: OperationalSpec, asked: Sequence[Constraint], organism: str
+) -> list[SetValues]:
+    named = {
+        tuple(words_of(text))
+        for requirement in asked
+        for text in (requirement.requested_value, requirement.quote)
+        if text
+    }
+    restated = [
+        (c.id, name, _restated(c.param_values[name], named, organism))
+        for c in spec.criteria
+        if (name := c.organism_param) is not None and name in c.param_values
+    ]
+    return [
+        SetValues(criterion_id=criterion_id, params={name: wire})
+        for criterion_id, name, wire in restated
+        if wire is not None
+    ]
+
+
 __all__ = [
     "OrganismPick",
     "asked_organisms",
     "asks_an_organism",
     "organism_questions",
+    "organism_restatements",
     "unnamed_organisms",
 ]
