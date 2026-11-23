@@ -41,6 +41,7 @@ services:
       # The suite drives only the sites this file lists; warming the other
       # catalogs would only slow the boot.
       VEUPATHDB_SITES_CONFIG: /app/e2e-sites.yaml
+      MAX_TURNS_IN_FLIGHT_PER_USER: "8"
     volumes:
       - ./e2e-sites.yaml:/app/e2e-sites.yaml:ro
     healthcheck:
