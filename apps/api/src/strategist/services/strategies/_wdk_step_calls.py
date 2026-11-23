@@ -4,6 +4,7 @@ from collections.abc import Collection, Mapping
 from typing import assert_never
 
 from assistant_core.platform.logging import get_logger
+from pydantic import BaseModel, ConfigDict
 from veupathdb.domain.parameters import ParamValue, wire_map
 from veupathdb.domain.strategy import (
     CombineOp,
@@ -227,11 +228,12 @@ async def _put_search_config(
     sync_state: WDKSyncState,
     step: StrategyStep,
     record_type: str,
+    parameters: Mapping[str, ParamValue],
     before: StepSettings,
 ) -> None:
     """Write the step's parameters and weight, and its filters when they moved."""
     refuse_a_set_operation(step.id, wdk_search_name(step))
-    str_params = wire_map(step.parameters)
+    str_params = wire_map(dict(parameters))
     _refuse_an_empty_eda_analysis(str_params)
     wdk_id = sync_state.wdk_step_ids[step.id]
     stated = settings_of(step)
@@ -379,31 +381,38 @@ async def finished_step(
     return None
 
 
+class StepWrite(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    record_type: str
+    parameters: dict[str, ParamValue]
+    before: StepSettings
+
+
 async def written_step(
     api: StrategyAPI,
     sync_state: WDKSyncState,
     step: StrategyStep,
     action: CreateAction | PatchAction | RecreateAction,
-    *,
-    record_type: str,
-    before: StepSettings,
+    write: StepWrite,
 ) -> tuple[StepPushFailure | None, int | None]:
+    record_type, parameters = write.record_type, write.parameters
     match action:
         case CreateAction():
             return await pushed_step(
-                api, sync_state, step, record_type, step.parameters
+                api, sync_state, step, record_type, parameters
             ), None
         case RecreateAction():
             replaced = sync_state.wdk_step_ids.get(step.id)
-            failure = await pushed_step(
-                api, sync_state, step, record_type, step.parameters
-            )
+            failure = await pushed_step(api, sync_state, step, record_type, parameters)
             moved = sync_state.wdk_step_ids.get(step.id) != replaced
             return failure, (replaced if moved else None)
         case PatchAction():
             try:
                 if action.search_config:
-                    await _put_search_config(api, sync_state, step, record_type, before)
+                    await _put_search_config(
+                        api, sync_state, step, record_type, parameters, write.before
+                    )
                 if action.name:
                     await _patch_name(api, sync_state, step)
             except VEuPathDBError as exc:

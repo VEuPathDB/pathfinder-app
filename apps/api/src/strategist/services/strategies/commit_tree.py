@@ -4,6 +4,7 @@ from typing import assert_never
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     StepSettings,
     StrategyAst,
@@ -34,6 +35,7 @@ from strategist.services.strategies._tree_write import (
     undo_the_tree,
 )
 from strategist.services.strategies._wdk_step_calls import (
+    StepWrite,
     _sort_a_ranking,
     finished_step,
     written_step,
@@ -107,6 +109,7 @@ class _Commit:
     failures: list[StepPushFailure] = field(default_factory=list)
     drafts: dict[str, str] = field(default_factory=dict)
     skipped: list[str] = field(default_factory=list)
+    sent: dict[str, dict[str, ParamValue]] = field(default_factory=dict)
 
     @property
     def blocked(self) -> set[str]:
@@ -161,7 +164,8 @@ class _Commit:
             except ValidationError as exc:
                 self._refused(step, exc)
                 continue
-            step.parameters = {**step.parameters, **context, **validated.params}
+            self.sent[step.id] = {**step.parameters, **context, **validated.params}
+            step.parameters = {**step.parameters, **validated.params}
             if validated.record_class:
                 step.record_class = validated.record_class
 
@@ -252,8 +256,11 @@ class _Commit:
             self.sync_state,
             step,
             action,
-            record_type=record_type,
-            before=self.before.get(step.id, StepSettings()),
+            StepWrite(
+                record_type=record_type,
+                parameters=self.sent.get(step.id, step.parameters),
+                before=self.before.get(step.id, StepSettings()),
+            ),
         )
         if replaced is not None:
             self.sync_state.replaced_wdk_step_ids.append(replaced)

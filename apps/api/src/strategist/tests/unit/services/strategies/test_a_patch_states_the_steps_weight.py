@@ -36,6 +36,7 @@ async def _patch(
         WDKSyncState(wdk_step_ids={"step_a": 7}),
         step,
         "transcript",
+        step.parameters,
         StepSettings(),
     )
     return sent[0]

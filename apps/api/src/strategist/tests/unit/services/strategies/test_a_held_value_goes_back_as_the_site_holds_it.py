@@ -105,6 +105,7 @@ async def _put(monkeypatch: pytest.MonkeyPatch, step: StrategyStep) -> dict[str,
         WDKSyncState(wdk_step_ids={step.id: 10}),
         step,
         "transcript",
+        step.parameters,
         StepSettings(),
     )
     return dict(sent[0].parameters)
