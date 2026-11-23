@@ -76,7 +76,11 @@ The site read takes all of a site's edit or none of it. When the site's tree doe
 parse (`build_snapshot_from_wdk` refuses it), it takes no value, setting or shape.
 
 Measured before the commit path, on the stateful fake: 27 of 84 matrix cells were red
-(a weight, a filter, a sort, an expansion or a validation that a writer dropped).
+(a weight, a filter, a sort, an expansion or a validation that a writer dropped), and the
+canvas undo dropped a step's weight, filters, analyses and expansion. Measured after, on
+the same fake: 0 of 84 red, and the undo carries all five. On the QA sites, the last
+strategy of each of 10 built eval and ranking threads held every search, operator and
+weight its plan shows (16 steps, 5 combines), and the weighted root was sorted by weight.
 
 # Rejected
 

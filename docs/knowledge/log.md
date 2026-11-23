@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **One commit path, measured after.** On the stateful fake of the before measurement, 0 of
+  84 path and field cells are red (27 before), and the canvas undo keeps a step's weight,
+  filters, analyses and expansion. WDK-MAP-011 states that every step and tree write goes
+  through `commit_tree`, held by the test that lists each caller of a WDK write.
+
 * **Strategist takes veupathdb-py 0.9.0b17 and veupathdb-mcp 0.9.0b22.** They carry the one
   step settings model, filters on the step write, the strategy read of weight, filters and
   colocation, and a strategy read that states no saved-strategy id; with them come

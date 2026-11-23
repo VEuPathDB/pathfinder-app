@@ -1,7 +1,7 @@
 ---
 type: Rules
 title: Strategist mapping rules
-description: The ten invariants that keep Strategist's types and layers aligned with WDK - which test holds each one, which live in this repository's suite and which in the client library's, and which half of a rule nothing holds.
+description: The eleven invariants that keep Strategist's types and layers aligned with WDK - which test holds each one, which live in this repository's suite and which in the client library's, and which half of a rule nothing holds.
 tags: [wdk-alignment, rules, layering, types, import-linter]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
@@ -15,9 +15,9 @@ invariants Strategist holds so that its own types keep meaning what WDK's mean.
 The `upstream` field names the WDK definition each one is a mapping *of*, so the
 rule is falsified when that definition changes.
 
-This is the one family where enforcement is often real: all ten name a test
-that fails when the rule is broken, seven in this repository's suite and three in
-the client library's own. Nine are `ENFORCED`; one, WDK-MAP-006, is `PARTIAL`,
+This is the one family where enforcement is often real: all eleven name a test
+that fails when the rule is broken, eight in this repository's suite and three in
+the client library's own. Ten are `ENFORCED`; one, WDK-MAP-006, is `PARTIAL`,
 where the test covers only part of the rule and the body names the part it does
 not cover. No
 rule is held by an import contract. The six `forbidden` contracts under
@@ -412,3 +412,21 @@ of a MINUS is an `exclude` criterion, and the tree is the spec's structure, so
 The live check `apps/api/src/strategist/tests/live/test_a_strategy_from_controls.py`
 builds an offered spec on the account and reads its root back with a control test
 of its own: the same ids in each cell, and the site's size equal to the offer's.
+
+### WDK-MAP-011 - Every step and tree write to WDK goes through `commit_tree`
+
+- class: CONTRACT
+- upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StepService.java#L314-L363
+- anchor: apps/api/src/strategist/services/strategies/commit_tree.py:commit_tree
+- status: ENFORCED by apps/api/src/strategist/tests/unit/services/strategies/test_only_the_commit_path_writes_to_wdk.py::test_only_the_commit_path_and_the_listed_writers_call_a_wdk_write
+
+WDK replaces a step's answer spec whole on a search-config PUT, so a writer that
+leaves out a weight, a filter or a colocation value removes it from the step. One
+writer carries every step setting: `commit_tree` reads what WDK holds, plans each step
+against it, writes the steps with their settings, puts the tree and reads it back
+([one-commit-path-writes-a-strategy](../../../decisions/one-commit-path-writes-a-strategy.md)).
+
+The named test reads every module of `strategist` and `strategist_scripted` and finds
+each call of a WDK step or strategy write. Only the commit path's three modules may call
+one. The other callers are listed with the reason each one is not a tree write: a
+rename, the saved mark, and the delete of a whole strategy. A new caller fails the test.
