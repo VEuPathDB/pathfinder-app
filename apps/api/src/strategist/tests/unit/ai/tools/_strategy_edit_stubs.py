@@ -191,6 +191,12 @@ class StubAPI:
             search_config=WDKSearchConfig(parameters={}),
         )
 
+    async def set_saved(
+        self, strategy_id: int, *, is_saved: bool, user_id: str | None = None
+    ) -> None:
+        del user_id
+        self._record("set_saved", strategy_id=strategy_id, is_saved=is_saved)
+
     async def create_strategy(
         self,
         step_tree: WDKStepTree,

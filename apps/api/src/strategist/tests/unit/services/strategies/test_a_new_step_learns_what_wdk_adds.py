@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.strategy import CombineOp, StepFilter, flatten_tree
+from veupathdb.domain.strategy import CombineOp, StepFilter, StrategyAst, flatten_tree
 from veupathdb.wdk import tag_internal_wdk_strategy_name
 
 from strategist.domain.strategy.operations import (
@@ -9,7 +9,11 @@ from strategist.domain.strategy.operations import (
     UpdateCombineOperatorOp,
 )
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
+from strategist.services.strategies.commit_tree import (
+    CommitTarget,
+    CommittedTree,
+    commit_tree,
+)
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from strategist.tests.unit.services.strategies._holding_strategy_api import (
@@ -32,6 +36,19 @@ _UNION_DEFAULT = StepFilter(
 _INTERSECT_DEFAULT = StepFilter(
     name="gene_boolean_filter_array", value={"values": ["YY"]}
 )
+
+
+async def _commit_thread(
+    graph: StrategyGraph, sync_state: WDKSyncState, old: StrategyAst | None
+) -> CommittedTree:
+    return await commit_tree(
+        site_id="plasmodb",
+        steps=graph.steps,
+        root_id="step_root",
+        old=old,
+        sync_state=sync_state,
+        target=CommitTarget(name="Kinases", description=""),
+    )
 
 
 def _added(deps: StrategyMutationContext) -> dict[str, list[StepFilter] | None]:
@@ -161,3 +178,22 @@ async def test_an_imported_step_learns_what_wdk_added_from_the_read_back(
 
     assert ensure_sync_state(deps.strategy_session).wdk_push_errors == {}
     assert graph.steps["step_a"].filters_wdk_added == [_DEFAULT]
+
+
+async def test_a_default_wdk_puts_back_on_an_imported_step_is_recorded_not_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    Env(monkeypatch)
+    sync_state = WDKSyncState()
+    graph = StrategyGraph(graph_id="g1", name="Kinases", site_id="plasmodb")
+    graph.steps = flatten_tree(plan_root(a_filter=("Y",)))
+    graph.recompute_roots()
+    await _commit_thread(graph, sync_state, None)
+    graph.steps["step_a"].filters_wdk_added = None
+    before = graph.to_strategy_ast()
+    graph.steps["step_a"].filters = []
+
+    out = await _commit_thread(graph, sync_state, before)
+
+    recorded = {sid: s.filters_wdk_added for sid, s in graph.steps.items()}
+    assert (out.failures, recorded["step_a"]) == ([], [_DEFAULT])

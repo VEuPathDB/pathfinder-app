@@ -27,13 +27,11 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import organism_parameter, resolve_search_record_type
 from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.jobs.auth_context import attach_wdk_auth
 from strategist.platform.config import get_settings
 from strategist.services.experiment.controls_search import controls_search
 from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
-from strategist.services.strategies.record_classes import (
-    refuse_a_tree_the_site_cannot_run,
-)
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.services.wdk_build import site_build
 from strategist_scripted.seeds.catalog import (
@@ -62,7 +60,6 @@ async def measure_seed(
     root = seed.step_node()
     sync_state = WDKSyncState()
     try:
-        await refuse_a_tree_the_site_cannot_run(seed.site_id, root)
         committed = await commit_tree(
             site_id=seed.site_id,
             steps=flatten_tree(root),
@@ -83,13 +80,11 @@ async def measure_seed(
             negative_controls=controls.negative_ids,
             controls=controls_search(seed.record_type),
         )
-    except VEuPathDBError as exc:
+    except (VEuPathDBError, ApplyError) as exc:
         return SeedMeasurement.model_validate({**stamp, "refusal": str(exc)})
     finally:
         if sync_state.wdk_strategy_id is not None:
             await api.delete_strategy(sync_state.wdk_strategy_id)
-        else:
-            await api.delete_orphaned_steps(list(sync_state.wdk_step_ids.values()))
     return SeedMeasurement.model_validate(
         {
             **stamp,

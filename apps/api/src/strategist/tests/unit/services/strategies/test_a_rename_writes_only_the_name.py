@@ -83,6 +83,7 @@ def _plan_of(old: StrategyStepNode, new: StrategyStepNode) -> StepPushPlan:
         old_ast=StrategyAst(record_type="transcript", root=old),
         new_ast=StrategyAst(record_type="transcript", root=new),
         existing_wdk_ids={_LEAF: _WDK_LEAF},
+        held={},
     )
     return entry
 
@@ -119,6 +120,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=_combine(name="A and B"),
             new_ast=_combine(name="A with B"),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
+            held={},
         )
 
         assert {entry.step_id: entry.action for entry in plan}["step_join"] == (
@@ -131,6 +133,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=_combine(),
             new_ast=_combine(weight=5),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
+            held={},
         )
 
         by_id = {entry.step_id: entry for entry in plan}
@@ -159,6 +162,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=ortholog(a, 10),
             new_ast=ortholog(b, 12),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_t": 3},
+            held={},
         )
 
         by_id = {entry.step_id: entry for entry in plan}

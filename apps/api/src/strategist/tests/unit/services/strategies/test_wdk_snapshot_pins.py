@@ -7,6 +7,7 @@ transform, plus a combine WDK marks as an expanded saved sub-strategy.
 from __future__ import annotations
 
 import pytest
+from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStep,
@@ -22,7 +23,7 @@ _BOOLEAN = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 
 
 class _FakeAPI:
-    """Answers one strategy read."""
+    """Answers one strategy read; every step outside its tree is gone."""
 
     def __init__(self, details: WDKStrategyDetails) -> None:
         self._details = details
@@ -30,6 +31,10 @@ class _FakeAPI:
     async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
         del strategy_id
         return self._details
+
+    async def find_step(self, step_id: int) -> WDKStep:
+        msg = f"step {step_id} is gone"
+        raise WDKError(msg, status=404)
 
 
 def _step(

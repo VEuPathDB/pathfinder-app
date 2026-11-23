@@ -8,7 +8,7 @@ from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import ValidatedParams
 
-from strategist.services.strategies import commit_tree
+from strategist.services.strategies import commit_tree, spec_build
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.tests.unit.services.strategies.test_one_commit_path_writes_a_strategy import (
@@ -132,3 +132,25 @@ async def test_a_refused_leaf_fails_its_build_and_its_sibling_still_lands(
     assert (outcome.pushed_step_ids, outcome.skipped_step_ids) == (["c_b"], ["j1"])
     assert env.wdk.written("POST", "/strategies") == []
     assert outcome.wdk_strategy_id is None
+
+
+async def test_a_rebuild_in_place_reports_the_strategy_its_zeros_and_refreshes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env = Env(monkeypatch)
+    refreshes: list[object] = []
+
+    async def _refresh(deps: object) -> None:
+        refreshes.append(deps)
+
+    monkeypatch.setattr(spec_build, "defer_the_gene_set_refresh", _refresh)
+    deps = new_thread()
+    first = await build_strategy_from_spec(deps=deps, root=_tree("rhoptry"))
+    env.wdk.answer_size = 0
+
+    second = await build_strategy_from_spec(deps=deps, root=_tree("exported"))
+
+    assert second.wdk_strategy_id == first.wdk_strategy_id
+    assert first.wdk_strategy_id is not None
+    assert sorted(second.zero_step_ids) == ["c_a", "c_b", "c_c", "j1", "j2"]
+    assert len(refreshes) == 2

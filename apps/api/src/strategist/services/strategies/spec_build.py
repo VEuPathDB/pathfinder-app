@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import NamedTuple
 
 from veupathdb.domain.strategy import (
@@ -24,6 +25,7 @@ from strategist.domain.strategy.build_outcome import (
 from strategist.domain.strategy.combine_naming import name_the_combines
 from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.orthology import OrganismChange, organism_change
+from strategist.domain.strategy.revision import answer_revision
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import (
     contradicted_joins,
@@ -41,21 +43,59 @@ from strategist.services.strategies.commit_tree import (
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
+from strategist.services.strategies.graph_rollback import (
+    GraphLabels,
+    graph_labels,
+    restore_graph,
+)
 from strategist.services.strategies.naming import name_for_the_push
 from strategist.services.strategies.organism_params import tree_organism_parameters
 from strategist.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
-from strategist.services.strategies.record_classes import (
-    tree_record_class_refusal,
-)
 from strategist.services.strategies.stated_sides import (
     CanonicalSides,
     canonical_sides,
     canonicalize_stated_leaves,
 )
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+
+
+def outcome_of(
+    committed: CommittedTree,
+    steps: Mapping[str, StrategyStep],
+    sync_state: WDKSyncState,
+    *,
+    nodes: list[StrategyStep],
+    change: OrganismChange | None,
+) -> BuildOutcome:
+    drafts = [
+        StepPushFailure(
+            step_id=step_id, search_name=wdk_search_name(steps[step_id]), error=text
+        )
+        for step_id, text in committed.drafts.items()
+    ]
+    outcome = BuildOutcome(
+        pushed_step_ids=list(committed.pushed),
+        failed_steps=[*committed.failures, *drafts],
+        skipped_step_ids=list(committed.skipped),
+        wdk_strategy_id=_the_strategy_put(committed, sync_state),
+        zero_step_ids=sorted(
+            sid
+            for sid, count in sync_state.step_counts.items()
+            if committed.put and count == 0
+        ),
+        organism_change=change,
+    )
+    outcome.node_results = node_results(nodes, sync_state, outcome)
+    return outcome
+
+
+def _the_strategy_put(committed: CommittedTree, sync_state: WDKSyncState) -> int | None:
+    if committed.sync is not None:
+        return committed.sync.wdk_strategy_id
+    return sync_state.wdk_strategy_id if committed.put else None
 
 
 def node_results(
@@ -135,6 +175,12 @@ def _a_build_the_spec_refuses(
     )
 
 
+class _Entry(NamedTuple):
+    labels: GraphLabels
+    history: int
+    counts: dict[str, int | None]
+
+
 class _CanonicalBuild(NamedTuple):
     """The tree this build writes, and the sides the guard measures it against."""
 
@@ -186,9 +232,6 @@ async def build_strategy_from_spec(
         msg = "no active strategy graph for the current conversation"
         raise RuntimeError(msg)
 
-    refusal = await tree_record_class_refusal(deps.site_id, root, {})
-    if refusal is not None:
-        raise ApplyError(refusal)
     built = await _canonical_build(deps, graph, root)
     root = built.root
     refusal = _a_build_the_spec_refuses(deps, graph, root, built.sides)
@@ -198,6 +241,9 @@ async def build_strategy_from_spec(
     sync_state = ensure_sync_state(session)
     before = graph.to_strategy_ast(sync_state=sync_state)
     old = None if before is None else before.model_copy(deep=True)
+    entry = _Entry(
+        graph_labels(graph), len(graph.history), dict(sync_state.step_counts)
+    )
     _replace_graph_contents(
         graph,
         root,
@@ -225,48 +271,45 @@ async def build_strategy_from_spec(
     )
 
     marks = await tree_organism_parameters(deps.site_id, root)
-    committed = await commit_tree(
-        site_id=deps.site_id,
-        steps=graph.steps,
-        root_id=root.id,
-        old=old,
-        sync_state=sync_state,
-        target=CommitTarget(
-            name=name_for_the_push(graph, deps.user_prompt),
-            description=strategy_description(graph, root.id),
-        ),
-    )
+    try:
+        committed = await commit_tree(
+            site_id=deps.site_id,
+            steps=graph.steps,
+            root_id=root.id,
+            old=old,
+            sync_state=sync_state,
+            target=CommitTarget(
+                name=name_for_the_push(graph, deps.user_prompt),
+                description=strategy_description(graph, root.id),
+            ),
+        )
+    except ApplyError:
+        restore_graph(graph, old, entry.labels)
+        del graph.history[entry.history :]
+        sync_state.step_counts = entry.counts
+        await persist_strategy_ast_to_conversation(
+            deps=deps, graph=graph, sync_result=None
+        )
+        raise
     if committed.record_type is not None:
         graph.record_type = committed.record_type
-    outcome = _outcome_of(committed, graph, organism_change(root, marks))
-    outcome.node_results = node_results(nodes, sync_state, outcome)
+    outcome = outcome_of(
+        committed,
+        graph.steps,
+        sync_state,
+        nodes=nodes,
+        change=organism_change(root, marks),
+    )
     await persist_strategy_ast_to_conversation(
         deps=deps,
         graph=graph,
         sync_result=committed.sync,
     )
-    if committed.sync is not None and not committed.failures:
+    after = graph.to_strategy_ast(sync_state=sync_state)
+    if (
+        committed.put
+        and not committed.failures
+        and answer_revision(after) != answer_revision(before)
+    ):
         await defer_the_gene_set_refresh(deps)
     return outcome
-
-
-def _outcome_of(
-    committed: CommittedTree, graph: StrategyGraph, change: OrganismChange | None
-) -> BuildOutcome:
-    drafts = [
-        StepPushFailure(
-            step_id=step_id,
-            search_name=wdk_search_name(graph.steps[step_id]),
-            error=text,
-        )
-        for step_id, text in committed.drafts.items()
-    ]
-    sync = committed.sync
-    return BuildOutcome(
-        pushed_step_ids=list(committed.pushed),
-        failed_steps=[*committed.failures, *drafts],
-        skipped_step_ids=list(committed.skipped),
-        wdk_strategy_id=None if sync is None else sync.wdk_strategy_id,
-        zero_step_ids=[] if sync is None else list(sync.zero_step_ids),
-        organism_change=change,
-    )

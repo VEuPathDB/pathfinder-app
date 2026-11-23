@@ -94,6 +94,12 @@ class HoldingWDK(httpx.AsyncBaseTransport):
             self.writes.append(Write(request.method, path, copy.deepcopy(body)))
         if request.method == "PATCH" and self.refuses_patches:
             return httpx.Response(422, json={"message": "refused"})
+        if (
+            request.method == "GET"
+            and (m := _STEP.fullmatch(path))
+            and int(m[1]) not in self.steps
+        ):
+            return httpx.Response(404, json={"message": "no such step"})
         kind = _kind_of(request.method, path)
         if kind in self.refuses_once:
             self.refuses_once.discard(kind)
@@ -221,7 +227,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
 
     def strategy_of(self, step_id: int) -> int | None:
         for strategy_id, strategy in self.strategies.items():
-            if step_id in _tree_ids(strategy["stepTree"]):
+            if step_id in tree_ids(strategy["stepTree"]):
                 return strategy_id
         return None
 
@@ -250,7 +256,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
             "rootStepId": tree["stepId"],
             "stepTree": copy.deepcopy(tree),
             "steps": {
-                str(i): self._step_json(i) for i in _tree_ids(tree) if i in self.steps
+                str(i): self._step_json(i) for i in tree_ids(tree) if i in self.steps
             },
         }
 
@@ -260,16 +266,18 @@ def _kind_of(method: str, path: str) -> str:
         return "step read"
     if method == "PUT" and _STEP_CONFIG.fullmatch(path):
         return "search-config put"
+    if method == "POST" and path.endswith("/steps"):
+        return "step create"
     return ""
 
 
-def _tree_ids(tree: dict[str, Any] | None) -> list[int]:
+def tree_ids(tree: dict[str, Any] | None) -> list[int]:
     if tree is None:
         return []
     return [
         tree["stepId"],
-        *_tree_ids(tree.get("primaryInput")),
-        *_tree_ids(tree.get("secondaryInput")),
+        *tree_ids(tree.get("primaryInput")),
+        *tree_ids(tree.get("secondaryInput")),
     ]
 
 

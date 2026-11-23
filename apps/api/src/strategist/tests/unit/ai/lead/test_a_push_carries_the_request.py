@@ -67,6 +67,7 @@ async def test_a_recovery_resync_carries_the_request(
             sync=None,
             record_type=None,
             held={},
+            put=True,
         )
 
     monkeypatch.setattr(sub_agent_dispatch, "commit_tree", _commit)

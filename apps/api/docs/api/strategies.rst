@@ -61,9 +61,10 @@ strategies. Results are cached by plan hash.
 Commit
 ------
 
-**Purpose:** The one path that writes steps and a strategy to WDK: plan the
-calls each step needs, validate once, push, put the tree and read back what
-WDK holds.
+**Purpose:** The one path that writes steps and a strategy to WDK: refuse a
+tree the site cannot run, plan the calls each step needs against what WDK
+holds, validate once, push, put the tree and read back what WDK holds. A saved
+or internal strategy is kept whole or deleted.
 
 .. automodule:: strategist.services.strategies.commit_tree
    :members:

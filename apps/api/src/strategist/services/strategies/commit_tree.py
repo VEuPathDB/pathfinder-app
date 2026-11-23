@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import assert_never
 
 from assistant_core.platform.logging import get_logger
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain import SearchContext
 from veupathdb.domain.strategy import (
     StepSettings,
@@ -20,12 +20,12 @@ from veupathdb.wdk import StrategyAPI, get_site, get_strategy_api
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
 from strategist.domain.strategy.build_outcome import StepPushFailure
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.step_status import step_status
 from strategist.services.strategies._tree_write import (
     StrategyRole,
     delete_what_the_tree_dropped,
-    held_by_id,
     put_the_tree,
     read_the_strategy,
     sync_result,
@@ -35,8 +35,13 @@ from strategist.services.strategies._wdk_step_calls import (
     finished_step,
     written_step,
 )
+from strategist.services.strategies.reconcile import (
+    held_before_the_commit,
+    held_by_id,
+)
 from strategist.services.strategies.record_classes import (
     fill_record_classes,
+    tree_record_class_refusal,
     unclassed_step_failure,
 )
 from strategist.services.strategies.stated_sides import unmoved
@@ -66,6 +71,7 @@ class CommitTarget(CamelModel):
     name: str
     description: str
     role: StrategyRole = "thread"
+    copies: dict[str, StepSettings] = Field(default_factory=dict)
 
 
 class CommittedTree(BaseModel):
@@ -78,6 +84,7 @@ class CommittedTree(BaseModel):
     sync: SyncResult | None
     record_type: str | None
     held: dict[str, StepSettings]
+    put: bool
 
     @property
     def refused(self) -> dict[str, str]:
@@ -105,6 +112,8 @@ class _Commit:
         sync: SyncResult | None = None,
         record_type: str | None = None,
         held: dict[str, StepSettings] | None = None,
+        *,
+        put: bool = False,
     ) -> CommittedTree:
         return CommittedTree(
             pushed=self.pushed,
@@ -114,6 +123,7 @@ class _Commit:
             sync=sync,
             record_type=record_type,
             held=held or {},
+            put=put,
         )
 
     async def validate(self, plan: list[StepPushPlan]) -> None:
@@ -175,6 +185,18 @@ class _Commit:
     def _fail(self, failure: StepPushFailure) -> None:
         self.sync_state.wdk_push_errors[failure.step_id] = failure.error
         self.failures.append(failure)
+
+    async def everything(
+        self, plan: list[StepPushPlan], root: StrategyStepNode, target: CommitTarget
+    ) -> CommittedTree:
+        await self.validate(plan)
+        for entry in plan:
+            await self.push(entry)
+        written = [*self.pushed, *(f.step_id for f in self.failures)]
+        invalidate_counts_for(self.sync_state, written, steps=self.steps)
+        if self.failures or self.drafts:
+            return self.committed()
+        return await self.put(root, target)
 
     async def push(self, entry: StepPushPlan) -> None:
         step = self.steps[entry.step_id]
@@ -276,6 +298,7 @@ class _Commit:
         await delete_what_the_tree_dropped(self.api, self.steps, self.sync_state)
         live = await read_the_strategy(self.api, self.sync_state)
         held = held_by_id(live, self.sync_state)
+        self.sync_state.wdk_held = held
         for node in walk(root):
             self._record_what_wdk_added(node, held.get(node.id))
             self._departed(node, held.get(node.id))
@@ -284,7 +307,7 @@ class _Commit:
             if written is None
             else sync_result(self.site_id, root, self.sync_state, written)
         )
-        return self.committed(sync=sync, record_type=record_type, held=held)
+        return self.committed(sync=sync, record_type=record_type, held=held, put=True)
 
     async def _sort(self, root_id: str, moved: list[str]) -> None:
         try:
@@ -302,9 +325,7 @@ class _Commit:
         step = self.steps[node.id]
         if holds is None or step.filters_wdk_added is not None:
             return
-        before = holds.filters_wdk_added(self.before.get(node.id, StepSettings()))
-        after = holds.filters_wdk_added(settings_of(node))
-        step.filters_wdk_added = [f for f in before if f in after]
+        step.filters_wdk_added = holds.filters_wdk_added(settings_of(node))
 
     def _departed(self, node: StrategyStepNode, holds: StepSettings | None) -> None:
         if holds is None:
@@ -342,45 +363,50 @@ async def commit_tree(
     ):
         msg = f"a {target.role} strategy is committed from a fresh sync state"
         raise ValueError(msg)
+    classes = {sid: s.record_class for sid, s in steps.items() if s.record_class}
+    refusal = await tree_record_class_refusal(
+        site_id, rebuild_tree(root_id, steps), classes
+    )
+    if refusal is not None:
+        raise ApplyError(refusal)
     await fill_record_classes(site_id, steps)
     root = rebuild_tree(root_id, steps)
+    before = {**target.copies, **held_before_the_commit(old, root, steps, sync_state)}
     plan = plan_step_pushes(
         old_ast=old,
         new_ast=StrategyAst(record_type="", root=root),
         existing_wdk_ids=sync_state.wdk_step_ids,
+        held=before,
     )
-    held_before = _held_before(old, steps, sync_state)
-    run = _Commit(get_strategy_api(site_id), site_id, steps, sync_state, held_before)
-    await run.validate(plan)
-    for entry in plan:
-        await run.push(entry)
-    written = [*run.pushed, *(f.step_id for f in run.failures)]
-    invalidate_counts_for(sync_state, written, steps=steps)
-    if run.failures or run.drafts:
-        return run.committed()
-    return await run.put(root, target)
+    run = _Commit(get_strategy_api(site_id), site_id, steps, sync_state, before)
+    if target.role == "thread":
+        return await run.everything(plan, root, target)
+    try:
+        committed = await run.everything(plan, root, target)
+    except VEuPathDBError:
+        await _undo(run.api, sync_state)
+        raise
+    if committed.refused or committed.sync is None:
+        await _undo(run.api, sync_state)
+    elif target.role == "saved":
+        await run.api.set_saved(committed.sync.wdk_strategy_id, is_saved=True)
+    return committed
+
+
+async def _undo(api: StrategyAPI, sync_state: WDKSyncState) -> None:
+    if sync_state.wdk_strategy_id is not None:
+        await api.delete_strategy(sync_state.wdk_strategy_id)
+    else:
+        await api.delete_orphaned_steps(list(sync_state.wdk_step_ids.values()))
+    sync_state.wdk_strategy_id = None
+    sync_state.wdk_step_tree = None
+    sync_state.wdk_step_ids = {}
 
 
 async def drop_the_tree(
     *, site_id: str, steps: dict[str, StrategyStep], sync_state: WDKSyncState
 ) -> None:
     await delete_what_the_tree_dropped(get_strategy_api(site_id), steps, sync_state)
-
-
-def _held_before(
-    old: StrategyAst | None,
-    steps: dict[str, StrategyStep],
-    sync_state: WDKSyncState,
-) -> dict[str, StepSettings]:
-    if old is None:
-        return {}
-    nodes = [*walk(old.root), *(n for r in old.detached_roots for n in walk(r))]
-    held = [n for n in nodes if n.id in sync_state.wdk_step_ids]
-    for node in held:
-        step = steps.get(node.id)
-        if step is not None and step.filters_wdk_added is None:
-            step.filters_wdk_added = node.filters_wdk_added
-    return {node.id: settings_of(node) for node in held}
 
 
 def _writes_parameters(action: StepActionT) -> bool:

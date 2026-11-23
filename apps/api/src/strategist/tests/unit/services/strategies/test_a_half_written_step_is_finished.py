@@ -10,15 +10,17 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.lead import sub_agent_dispatch
 from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.domain.strategy.operations import ReplaceSubtreeOp, UpdateStrategyMetaOp
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
-from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -26,10 +28,15 @@ from strategist.tests.unit.ai.lead.conftest import (
 )
 from strategist.tests.unit.services.strategies._holding_strategy_api import (
     LEAF_DEFAULT,
+    tree_ids,
 )
 from strategist.tests.unit.services.strategies.test_one_commit_path_writes_a_strategy import (
     Env,
+    commit_ops,
+    new_thread,
+    node_of,
     plan_root,
+    replace_with,
 )
 
 _PLAN_N = {"name": "matched_transcript_filter_array", "value": {"values": ["N"]}}
@@ -153,3 +160,45 @@ async def test_a_resync_states_every_value_of_a_step_the_site_lacks(
     )
 
     assert stated == [words]
+
+
+async def test_a_resync_that_leaves_a_draft_reports_it_and_no_strategy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    Env(monkeypatch)
+
+    async def _refused(*_args: object, **_kwargs: object) -> ValidatedParams:
+        raise ValidationError(title="text_expression is required")
+
+    monkeypatch.setattr(commit_tree, "validate_parameters", _refused)
+    session = session_with_one_step()
+    ensure_sync_state(session).wdk_strategy_id = 41
+    deps = lead_deps(pipeline_state(user_prompt="kinases"), strategy_session=session)
+
+    outcome = await sub_agent_dispatch._resync_outcome(
+        agent_deps_for(deps, call_id="call_test"), BuildOutcome()
+    )
+
+    assert [f.step_id for f in outcome.failed_steps] == ["step_a"]
+    assert outcome.wdk_strategy_id is None
+
+
+async def test_a_step_a_stopped_commit_made_is_kept_by_the_next_edit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env = Env(monkeypatch)
+    deps = new_thread()
+    await commit_ops(deps, replace_with(plan_root()))
+    sync_state = ensure_sync_state(deps.strategy_session)
+    researched = node_of(plan_root(), "step_a").model_copy(
+        update={"search_name": "GenesByOtherText"}
+    )
+    env.wdk.refuses_once = {"step read"}
+
+    await commit_ops(deps, ReplaceSubtreeOp(step_id="step_a", subtree=researched))
+    made = sync_state.wdk_step_ids["step_a"]
+    await commit_ops(deps, UpdateStrategyMetaOp(description="Kinases again"))
+
+    (strategy,) = env.wdk.strategies.values()
+    assert sync_state.wdk_step_ids["step_a"] == made
+    assert set(env.wdk.steps) == set(tree_ids(strategy["stepTree"]))

@@ -112,6 +112,7 @@ def test_a_new_group_name_is_a_name_write() -> None:
             root=_tree(signal="SignalP", named="Union: PEXEL motif, SignalP"),
         ),
         existing_wdk_ids=dict(_WDK_IDS),
+        held={},
     )
 
     assert {entry.step_id: entry.action for entry in plan}["root"] == PatchAction(

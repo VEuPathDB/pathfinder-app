@@ -88,7 +88,7 @@ from strategist.services.strategies.data_marks import read_data_marks
 from strategist.services.strategies.naming import name_for_the_push
 from strategist.services.strategies.spec_build import (
     build_strategy_from_spec,
-    node_results,
+    outcome_of,
 )
 from strategist.services.strategies.sync_state import ensure_sync_state
 
@@ -365,14 +365,15 @@ async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOu
         return prior
     if committed.record_type is not None:
         graph.record_type = committed.record_type
-    fresh = BuildOutcome(
-        pushed_step_ids=list(prior.pushed_step_ids),
-        failed_steps=list(committed.failures),
-        wdk_strategy_id=sync_state.wdk_strategy_id,
-        zero_step_ids=sorted(
-            sid for sid, count in sync_state.step_counts.items() if count == 0
-        ),
-        organism_change=_records_organism(graph, sync_state),
+    fresh = outcome_of(
+        committed,
+        graph.steps,
+        sync_state,
+        nodes=list(graph.steps.values()),
+        change=_records_organism(graph, sync_state),
     )
-    fresh.node_results = node_results(list(graph.steps.values()), sync_state, fresh)
+    fresh.pushed_step_ids = [
+        *prior.pushed_step_ids,
+        *(sid for sid in fresh.pushed_step_ids if sid not in prior.pushed_step_ids),
+    ]
     return fresh

@@ -54,7 +54,6 @@ from strategist.services.strategies.persist import (
 from strategist.services.strategies.reconcile import (
     reconcile_sync_state_with_wdk,
 )
-from strategist.services.strategies.record_classes import tree_record_class_refusal
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -150,18 +149,21 @@ async def _refuse_a_tree_the_site_cannot_run(
     *,
     rollback: tuple[StrategyAst | None, GraphLabels],
 ) -> None:
-    """Refuse the batch before any push when the tree it leaves joins two record
-    types, feeds a transform a type it does not take, or intersects two known
-    and disjoint organism scopes."""
+    """Refuse the batch before any push when the tree it leaves intersects two
+    known and disjoint organism scopes."""
     if wdk_ast is None:
         return
-    held = {sid: s.record_class for sid, s in graph.steps.items() if s.record_class}
-    refusal = await tree_record_class_refusal(
-        deps.site_id, wdk_ast.root, held
-    ) or await tree_cross_organism_refusal(deps.site_id, wdk_ast.root)
+    refusal = await tree_cross_organism_refusal(deps.site_id, wdk_ast.root)
     if refusal is not None:
         restore_graph(graph, *rollback)
         raise ApplyError(refusal)
+
+
+def _saved_history(graph: StrategyGraph, description: str) -> int:
+    held = len(graph.history)
+    if graph.steps:
+        graph.save_history(description)
+    return held
 
 
 def _replaces_a_subtree(op: GraphOperation) -> bool:
@@ -245,8 +247,7 @@ async def apply_operations_and_commit(
     await _refuse_a_tree_the_site_cannot_run(
         deps, graph, wdk_ast, rollback=(old_ast, entry_labels)
     )
-    if graph.steps:
-        graph.save_history(result.description)
+    history = _saved_history(graph, result.description)
 
     try:
         committed = await _commit_the_tree(
@@ -256,10 +257,11 @@ async def apply_operations_and_commit(
             wdk_ast=wdk_ast,
             sync_state=sync_state,
         )
-    except VEuPathDBError:
+    except VEuPathDBError, ApplyError:
         # The push raises for a step VEuPathDB already holds, so the batch is
         # rolled back rather than left ahead of the strategy it edits.
         restore_graph(graph, old_ast, entry_labels)
+        del graph.history[history:]
         raise
 
     sync_result = None if committed is None else committed.sync

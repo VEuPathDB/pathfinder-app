@@ -151,6 +151,9 @@ class _Api:
     async def create_strategy(self, **_kwargs: Any) -> WDKIdentifier:
         return WDKIdentifier(id=7)
 
+    async def set_saved(self, strategy_id: int, *, is_saved: bool) -> None:
+        del strategy_id, is_saved
+
 
 def _serve(monkeypatch: pytest.MonkeyPatch, api: _Api) -> None:
     monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
@@ -228,7 +231,7 @@ async def test_a_failed_push_retried_sends_the_stated_canonical_values(
     assert api.created == [_wire(_LEAVES, "50"), _wire(_LEAVES, "50")]
 
 
-async def test_a_saved_subtree_states_every_value_it_copies(
+async def test_a_saved_subtree_sends_read_values_as_read_and_stated_ones_canonical(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = _Api()
@@ -242,4 +245,4 @@ async def test_a_saved_subtree_states_every_value_it_copies(
         session=session, site_id="plasmodb", source_step_id="s", name="saved"
     )
 
-    assert api.created == [_wire(_LEAVES, "60")]
+    assert api.created == [_wire(_BRANCH, "60")]

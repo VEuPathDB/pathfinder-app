@@ -88,7 +88,7 @@ def test_a_pushed_combine_whose_name_lags_plans_a_name_patch() -> None:
         )
 
     plan = plan_step_pushes(
-        old_ast=ast(None), new_ast=ast("Intersect"), existing_wdk_ids=_WDK_IDS
+        old_ast=ast(None), new_ast=ast("Intersect"), existing_wdk_ids=_WDK_IDS, held={}
     )
 
     assert {entry.step_id: entry.action for entry in plan}["step_join"] == (

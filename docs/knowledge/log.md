@@ -2,6 +2,23 @@
 
 ## 2026-11-23
 
+* **A commit plans against what WDK holds.** The sync state keeps the settings WDK held
+  at the last read-back (`wdk_held`, read by the reconcile and by each put), and the
+  planner compares the plan with them, so a refused search-config PUT or recreate POST is
+  written again by the next commit. A filter WDK still holds after a PUT that left it out
+  is WDK's own default and is recorded, not refused. A live-tree check keeps the mapping of
+  a step WDK still holds, so a step a stopped commit made is not made twice.
+  `last_pushed_ast` is gone.
+* **A saved or internal strategy is kept whole or not at all.** `commit_tree` refuses a
+  tree the site cannot run before any write, for every role. A saved subtree or a gold
+  strategy that stops, fails its strategy check or departs after the put is deleted with
+  every step it made; a saved subtree is put unsaved and marked saved once it reads back.
+  A saved subtree reads each copied value as the source holds it. A build and a recovery
+  resync read their outcome through one mapping (`outcome_of`), which keeps every draft
+  and names the strategy only when the tree was put; a rebuild that left the tree in place
+  still names it and its zero steps and refreshes the gene set. A gold thread is named
+  without the internal tag.
+
 * **A saved subtree, a gold strategy and a seed measurement go through the one commit
   path.** Each commits its tree with no prior tree and a fresh sync state: a saved subtree
   as a saved strategy, a gold strategy and a seed as internal ones. Every value is stated,

@@ -123,6 +123,7 @@ async def test_a_resync_after_recovery_reads_the_organism_of_the_tree_it_left(
             sync=None,
             record_type="transcript",
             held={},
+            put=True,
         )
 
     monkeypatch.setattr(sub_agent_dispatch, "commit_tree", _commit)

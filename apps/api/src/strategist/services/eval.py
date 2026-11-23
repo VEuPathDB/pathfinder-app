@@ -25,6 +25,7 @@ from veupathdb.wdk import (
     get_strategy_api,
 )
 
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.gene_sets.step_genes import (
@@ -32,9 +33,6 @@ from strategist.services.gene_sets.step_genes import (
     fetch_all_gene_ids,
 )
 from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
-from strategist.services.strategies.record_classes import (
-    refuse_a_tree_the_site_cannot_run,
-)
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.services.strategies.wdk_sync import ChatOwner, sync_to_chat
 
@@ -98,36 +96,36 @@ async def build_gold_strategy(
 ) -> GoldStrategyResult:
     """Materialize a gold strategy AST on WDK and fetch all result gene IDs.
 
-    1. Reads each step's record type, and refuses a tree the site cannot run.
-    2. Provisions any user-specific datasets (gene ID lists).
-    3. Commits the tree through the one commit path as an internal strategy.
-    4. Fetches all gene IDs from the root step via standard report.
-    5. Returns the gene IDs plus WDK IDs.
+    1. Provisions any user-specific datasets (gene ID lists).
+    2. Commits the tree through the one commit path as an internal strategy,
+       which refuses a tree the site cannot run and keeps nothing it refused.
+    3. Fetches all gene IDs from the root step via standard report.
+    4. Returns the gene IDs plus WDK IDs.
     """
     api = get_strategy_api(site_id)
     tree_node = StrategyStepNode.model_validate(step_tree)
-    await refuse_a_tree_the_site_cannot_run(site_id, tree_node)
 
     await _provision_datasets(api, tree_node, dataset_gene_ids)
 
     sync_state = WDKSyncState()
-    committed = await commit_tree(
-        site_id=site_id,
-        steps=flatten_tree(tree_node),
-        root_id=tree_node.id,
-        old=None,
-        sync_state=sync_state,
-        target=CommitTarget(
-            name=f"gold:{gold_id}",
-            description=f"Gold strategy: {gold_id}",
-            role="internal",
-        ),
-    )
-    if committed.sync is None or committed.refused:
-        if committed.sync is None:
-            await api.delete_orphaned_steps(list(sync_state.wdk_step_ids.values()))
-        else:
-            await api.delete_strategy(committed.sync.wdk_strategy_id)
+    try:
+        committed = await commit_tree(
+            site_id=site_id,
+            steps=flatten_tree(tree_node),
+            root_id=tree_node.id,
+            old=None,
+            sync_state=sync_state,
+            target=CommitTarget(
+                name=f"gold:{gold_id}",
+                description=f"Gold strategy: {gold_id}",
+                role="internal",
+            ),
+        )
+    except ApplyError as exc:
+        raise ValidationError(
+            title="The site cannot run this tree", detail=str(exc)
+        ) from exc
+    if committed.sync is None or committed.refused or not committed.put:
         raise ValidationError(
             title="The site did not build the gold strategy",
             detail="; ".join(

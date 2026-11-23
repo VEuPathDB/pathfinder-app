@@ -70,7 +70,7 @@ included, is never canonicalized because a sibling was edited.
 
 A stated value is canonical from the moment it is stated, and a push sends the
 step's values as the step holds them. A curated seed or gold tree is a statement
-too, canonicalized where it becomes steps (`materialize_classed_tree`). A step
+too, canonicalized where it becomes steps (`commit_tree`). A step
 stored earlier that holds a stated branch is not migrated: it is pushed as held. The agent reads a held
 value as "kept as the site holds it", no stated schema offers the kind, and the
 editor shows its raw text and leaves it out of a patch until it is edited. A value

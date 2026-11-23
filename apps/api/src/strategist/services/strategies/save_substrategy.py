@@ -6,7 +6,8 @@ Flow:
    collide with the source graph if the user later inserts the saved
    strategy back into the same conversation).
 3. Commit the clone through the one commit path with a fresh
-   ``WDKSyncState`` as a new saved strategy: it owns its own steps.
+   ``WDKSyncState`` as a new saved strategy: it owns its own steps, and each
+   copied value is read as the source holds it.
 4. Return the saved strategy id, name, and url. The caller stores the id
    on the source conversation's ``imported_saved_strategy_ids`` once the
    user inserts the saved strategy via a combine step.
@@ -22,13 +23,16 @@ from veupathdb.domain.strategy import (
     clone_with_fresh_ids,
     flatten_tree,
     rebuild_tree,
+    settings_of,
+    walk,
 )
 from veupathdb.errors import ValidationError
 
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.session import StrategySession
 from strategist.platform.errors import ErrorCode, NotFoundError
 from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
-from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 
 logger = get_logger(__name__)
 
@@ -80,19 +84,42 @@ async def save_subtree_as_strategy(
             ),
         )
 
-    # deep_clone works on the nested shape, so project this subtree first.
-    cloned_root = clone_with_fresh_ids(rebuild_tree(source_step_id, graph.steps))
+    source = rebuild_tree(source_step_id, graph.steps)
+    cloned_root = clone_with_fresh_ids(source)
     cloned_steps = flatten_tree(cloned_root)
-    sync_state = WDKSyncState()
-    committed = await commit_tree(
-        site_id=site_id,
-        steps=cloned_steps,
-        root_id=cloned_root.id,
-        old=None,
-        sync_state=sync_state,
-        target=CommitTarget(name=name, description=description or "", role="saved"),
+    held = ensure_sync_state(session).step_validations
+    pairs = list(zip(walk(source), walk(cloned_root), strict=True))
+    sync_state = WDKSyncState(
+        step_validations={
+            clone.id: held[original.id]
+            for original, clone in pairs
+            if original.id in held
+        }
     )
-    if committed.sync is None or committed.refused or committed.record_type is None:
+    try:
+        committed = await commit_tree(
+            site_id=site_id,
+            steps=cloned_steps,
+            root_id=cloned_root.id,
+            old=None,
+            sync_state=sync_state,
+            target=CommitTarget(
+                name=name,
+                description=description or "",
+                role="saved",
+                copies={clone.id: settings_of(original) for original, clone in pairs},
+            ),
+        )
+    except ApplyError as exc:
+        raise ValidationError(
+            title="The site cannot run this tree", detail=str(exc)
+        ) from exc
+    if (
+        committed.sync is None
+        or committed.refused
+        or not committed.put
+        or committed.record_type is None
+    ):
         refused = "; ".join(
             f"step {sid!r}: {text}" for sid, text in committed.refused.items()
         )

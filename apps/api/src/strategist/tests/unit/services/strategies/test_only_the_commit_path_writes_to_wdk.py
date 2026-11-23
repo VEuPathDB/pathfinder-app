@@ -22,18 +22,28 @@ _WRITES = frozenset(
 )
 _THE_COMMIT_PATH = frozenset(
     {
+        "services/strategies/commit_tree.py",
         "services/strategies/_tree_write.py",
         "services/strategies/_wdk_step_calls.py",
     }
 )
 _OFF_THE_TREE = {
-    "services/strategies/naming.py": "renames the strategy",
-    "services/strategies/wdk_sync.py": "sets the saved mark",
-    "services/strategies/abandoned_mint.py": "deletes a whole strategy",
-    "services/conversations/service.py": "deletes a whole strategy",
-    "services/user_data.py": "deletes a whole strategy",
-    "services/eval.py": "deletes a gold strategy it could not use",
-    "devtools/seeds.py": "deletes the strategy it measured",
+    "services/strategies/naming.py": ({"update_strategy"}, "renames the strategy"),
+    "services/strategies/wdk_sync.py": ({"set_saved"}, "sets the saved mark"),
+    "services/strategies/abandoned_mint.py": (
+        {"delete_strategy"},
+        "deletes a whole strategy",
+    ),
+    "services/conversations/service.py": (
+        {"delete_strategy"},
+        "deletes a whole strategy",
+    ),
+    "services/user_data.py": ({"delete_strategy"}, "deletes a whole strategy"),
+    "services/eval.py": (
+        {"delete_strategy"},
+        "deletes a gold strategy it could not use",
+    ),
+    "devtools/seeds.py": ({"delete_strategy"}, "deletes the strategy it measured"),
 }
 
 
@@ -59,7 +69,13 @@ def _writers() -> dict[str, set[str]]:
 
 
 def test_only_the_commit_path_and_the_listed_writers_call_a_wdk_write() -> None:
-    assert sorted(set(_writers()) - _THE_COMMIT_PATH) == sorted(_OFF_THE_TREE)
+    found = {
+        path: writes
+        for path, writes in _writers().items()
+        if path not in _THE_COMMIT_PATH
+    }
+
+    assert found == {path: writes for path, (writes, _why) in _OFF_THE_TREE.items()}
 
 
 def test_a_new_caller_of_a_wdk_write_is_found() -> None:

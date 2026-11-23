@@ -3,15 +3,12 @@ from typing import Literal, Protocol
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import (
-    StepSettings,
     StrategyStep,
     StrategyStepNode,
-    settings_of,
     walk,
 )
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
-from veupathdb_mcp.wdk import build_snapshot_from_wdk
 
 from strategist.domain.strategy.validate import validate_strategy
 from strategist.platform.errors import StrategyCompilationError
@@ -131,7 +128,6 @@ async def _write_the_tree(
             step_tree,
             labels.name,
             description=labels.description,
-            is_saved=role == "saved",
             is_internal=role == "internal",
         )
         strategy_id = made.id
@@ -200,24 +196,6 @@ async def read_the_strategy(
             sync_state.step_validations[sid] = step.validation
     sync_state.step_counts = counts
     return live
-
-
-def held_by_id(
-    live: WDKStrategyDetails | None, sync_state: WDKSyncState
-) -> dict[str, StepSettings]:
-    if live is None:
-        return {}
-    try:
-        snapshot, _wire = build_snapshot_from_wdk(live)
-    except VEuPathDBError as exc:
-        logger.warning("The held strategy did not read back", error=str(exc))
-        return {}
-    local = {str(wdk): sid for sid, wdk in sync_state.wdk_step_ids.items()}
-    return {
-        local[node.id]: settings_of(node)
-        for node in walk(snapshot.root)
-        if node.id in local
-    }
 
 
 def sync_result(

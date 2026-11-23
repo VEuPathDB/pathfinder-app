@@ -75,6 +75,7 @@ def _committed() -> CommittedTree:
         sync=_sync_result(),
         record_type="transcript",
         held={},
+        put=True,
     )
 
 

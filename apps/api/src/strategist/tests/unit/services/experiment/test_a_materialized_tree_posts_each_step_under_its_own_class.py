@@ -16,11 +16,9 @@ from veupathdb.errors import ValidationError, WDKError
 from veupathdb.wdk import NewStepSpec, WDKIdentifier
 from veupathdb_mcp.catalog import ValidatedParams
 
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.services.eval import build_gold_strategy
 from strategist.services.strategies import _tree_write, commit_tree, record_classes
-from strategist.services.strategies.record_classes import (
-    refuse_a_tree_the_site_cannot_run,
-)
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
@@ -57,7 +55,6 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
 
 
 async def _commit(site_id: str, root: StrategyStepNode) -> WDKSyncState:
-    await refuse_a_tree_the_site_cannot_run(site_id, root)
     sync_state = WDKSyncState()
     await commit_tree.commit_tree(
         site_id=site_id,
@@ -96,12 +93,11 @@ async def test_a_tree_of_two_record_types_is_refused_before_any_post(
 ) -> None:
     serve_orthomcl_record_classes(monkeypatch)
     api = _serve(monkeypatch)
-    with pytest.raises(ValidationError) as refused:
+    with pytest.raises(ApplyError) as refused:
         await _commit("orthomcl", _join(_protein(), _mammals()))
 
     assert api.calls == []
-    assert refused.value.detail is not None
-    assert refused.value.detail.startswith(_MIXED)
+    assert str(refused.value).startswith(_MIXED)
 
 
 async def test_a_group_tree_posts_each_step_under_group(
@@ -217,7 +213,7 @@ def _serve_gold(monkeypatch: pytest.MonkeyPatch) -> _GoldAPI:
     return api
 
 
-async def test_a_gold_tree_the_site_cannot_run_provisions_no_dataset(
+async def test_a_gold_tree_the_site_cannot_run_posts_no_step(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_orthomcl_record_classes(monkeypatch)
@@ -234,7 +230,7 @@ async def test_a_gold_tree_the_site_cannot_run_provisions_no_dataset(
             dataset_gene_ids={"ds_gene_ids": ["PF3D7_1133400"]},
         )
 
-    assert (api.datasets, api.calls) == ([], [])
+    assert (api.posted, api.calls) == ([], [])
 
 
 async def test_a_gold_strategy_the_site_refuses_releases_its_steps(
@@ -268,7 +264,7 @@ async def test_a_gold_build_checks_its_tree_once(
         checked.append(root.id)
         return await refusal(site_id, root, held)
 
-    monkeypatch.setattr(record_classes, "tree_record_class_refusal", _counted)
+    monkeypatch.setattr(commit_tree, "tree_record_class_refusal", _counted)
     tree = _join(_protein(), StrategyStepNode(id="step_more", search_name="ByIdList"))
 
     with pytest.raises(ValidationError):

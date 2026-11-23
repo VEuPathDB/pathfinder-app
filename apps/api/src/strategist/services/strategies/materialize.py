@@ -16,6 +16,7 @@ from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
 
 from strategist.domain.strategy.combine_naming import name_the_combines
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
@@ -23,7 +24,6 @@ from strategist.domain.strategy.revision import (
 from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.persistence.models import PersistedStrategyGraph
 from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
-from strategist.services.strategies.record_classes import tree_record_class_refusal
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.sync_state import ensure_sync_state
 
@@ -124,15 +124,8 @@ async def materialize_strategy_snapshot(
         ),
     )
     graph = session.graph
-    refusal = await tree_record_class_refusal(site_id, fresh.root, {})
-    if refusal is not None:
-        logger.warning(
-            "The site cannot run the snapshot's tree; the thread keeps the plan only",
-            conversation_id=str(conversation_id),
-            refusal=refusal,
-        )
-    if graph is None or refusal is not None:
-        return _plan_only(fresh, refusal)
+    if graph is None:
+        return _plan_only(fresh)
     name_the_combines(graph.steps)
     sync_state = ensure_sync_state(session)
     try:
@@ -146,6 +139,13 @@ async def materialize_strategy_snapshot(
                 name=name, description=strategy_description(graph, fresh.root.id)
             ),
         )
+    except ApplyError as exc:
+        logger.warning(
+            "The site cannot run the snapshot's tree; the thread keeps the plan only",
+            conversation_id=str(conversation_id),
+            refusal=str(exc),
+        )
+        return _plan_only(fresh, str(exc))
     except (VEuPathDBError, ValueError) as exc:
         logger.warning(
             "snapshot materialization failed; the thread keeps the plan only",
@@ -162,11 +162,10 @@ async def materialize_strategy_snapshot(
                 [*committed.drafts, *(f.step_id for f in committed.failures)]
             ),
         )
-        return _plan_only(fresh)
     if committed.record_type is not None:
         graph.record_type = committed.record_type
-    pushed = graph.to_strategy_ast(sync_state=sync_state)
-    if pushed is None:
+    pushed = None if result is None else graph.to_strategy_ast(sync_state=sync_state)
+    if result is None or pushed is None:
         return _plan_only(fresh)
     return MaterializedStrategy(
         strategy_ast=pushed.model_dump(by_alias=True, exclude_none=True, mode="json"),
