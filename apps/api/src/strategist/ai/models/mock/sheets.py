@@ -5,10 +5,28 @@ from __future__ import annotations
 
 import re
 
-from pydantic import TypeAdapter
-from veupathdb_mcp.catalog import SheetEntry
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import ConfigDict, Field, TypeAdapter
 
-_ENTRIES = TypeAdapter(list[SheetEntry])
+
+class PinnedOption(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    value: str
+
+
+class PinnedEntry(CamelModel):
+    """The fields of a pinned sheet entry the mock reads; the pin leaves out a
+    field that holds no value."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: str
+    organism_param: bool = False
+    vocabulary: list[PinnedOption] = Field(default_factory=list)
+
+
+_ENTRIES = TypeAdapter(list[PinnedEntry])
 _WORKSPACE_HEAD = "# FRAME workspace (in-progress spec)"
 _WORKSPACE_END = "structure_set="
 _HELD = re.compile(r"^- \[(?P<cid>[^\]]+)\]")
@@ -44,7 +62,7 @@ def workspace_search(instructions: str, criterion_id: str) -> str | None:
     return next((m.group("search") for m in found if m is not None), None)
 
 
-def sheet_entries(instructions: str, criterion_id: str) -> list[SheetEntry]:
+def sheet_entries(instructions: str, criterion_id: str) -> list[PinnedEntry]:
     """The entries of the sheet pinned for one criterion, or none."""
     lines = instructions.splitlines()
     head = f"### sheet for {criterion_id} -> "
