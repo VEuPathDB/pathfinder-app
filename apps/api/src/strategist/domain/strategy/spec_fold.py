@@ -161,10 +161,9 @@ _HELD_BY_THE_CARRIER = frozenset(
 class OrganismDrop(CamelModel):
     """An INTERSECT input the organism fold removed, and what became of its text.
 
-    ``met`` is true when the criterion links only organism requirements, which
-    the carrier's organism value meets; otherwise the binding matched all
-    ``records`` genes of the organism and ``requirements`` are the requirements
-    the dropped criterion links, which stay open.
+    The binding matched all ``records`` genes of the organism, and
+    ``requirements`` are the requirements the dropped criterion links, which
+    stay open.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -172,9 +171,8 @@ class OrganismDrop(CamelModel):
     criterion_id: str
     text: str
     organisms: tuple[str, ...]
-    met: bool
     carrier_ids: tuple[str, ...]
-    records: int | None = None
+    records: int
     links: tuple[str, ...] = ()
     requirements: tuple[Constraint, ...] = ()
 
@@ -185,11 +183,6 @@ class OrganismDrop(CamelModel):
         head = f"{self.criterion_id} ('{self.text}') is dropped:"
         runs = "runs" if len(self.carrier_ids) == 1 else "run"
         carriers = f"{', '.join(self.carrier_ids)} already {runs} on"
-        if self.met:
-            return (
-                f"{head} it links only the organism {named}, which "
-                f"{carriers}, so that organism value meets it."
-            )
         dropped = (
             f"{head} it matches all {self.records:,} genes of {named}, which "
             f"{carriers}, so it narrows nothing."
@@ -216,9 +209,7 @@ class FoldedStructure(CamelModel):
         """The fold with each unmet drop holding open the requirements its
         criterion links, less those the carrier's step meets."""
         dropped = tuple(
-            drop
-            if drop.met
-            else drop.model_copy(
+            drop.model_copy(
                 update={
                     "requirements": tuple(
                         c
@@ -233,13 +224,12 @@ class FoldedStructure(CamelModel):
 
 
 class _Redundant(CamelModel):
-    """The organisms a redundant leaf holds; ``records`` is its count when the
-    count identity, not its text, makes it redundant."""
+    """The organisms a redundant leaf holds, and its count, which is theirs."""
 
     model_config = ConfigDict(frozen=True)
 
     organisms: frozenset[str]
-    records: int | None
+    records: int
 
 
 class _OrganismReading:
@@ -249,14 +239,12 @@ class _OrganismReading:
         self,
         spec: OperationalSpec,
         organisms: Collection[str],
-        requirements: Sequence[Constraint],
         universe_counts: Mapping[str, int],
         live_step_ids: Collection[str],
     ) -> None:
         self.by_id = {c.id: c for c in spec.criteria}
         self.marked = organism_params_of(spec.criteria)
         self.organisms = list(organisms)
-        self.requirements = {c.id: c for c in requirements}
         self.universe_counts = universe_counts
         self.live = frozenset(live_step_ids)
         self.dropped: list[OrganismDrop] = []
@@ -290,24 +278,15 @@ class _OrganismReading:
         criterion = self.by_id.get(node.named_criterion)
         if criterion is None or criterion.id in self.live:
             return None
-        named = self._linked_organisms(criterion)
-        if named:
-            return _Redundant(organisms=named, records=None)
         key = universe_key(criterion, self.organisms)
+        records = criterion.result_count
         if (
             key is None
-            or self.universe_counts.get(criterion.id) != criterion.result_count
+            or records is None
+            or self.universe_counts.get(criterion.id) != records
         ):
             return None
-        return _Redundant(organisms=frozenset(key), records=criterion.result_count)
-
-    def _linked_organisms(self, criterion: Criterion) -> frozenset[str]:
-        ids = [link.requirement for link in criterion.answers]
-        held = [self.requirements[i] for i in ids if i in self.requirements]
-        named = [c.organism for c in held]
-        if not ids or len(held) < len(ids) or None in named:
-            return frozenset()
-        return frozenset(entry for entry in named if entry is not None)
+        return _Redundant(organisms=frozenset(key), records=records)
 
 
 def intersected_leaves(node: StructureNode) -> frozenset[str]:
@@ -326,26 +305,18 @@ def fold_organism_universe(
     spec: OperationalSpec,
     tree: SpecStructure,
     organisms: Collection[str],
-    requirements: Sequence[Constraint],
     universe_counts: Mapping[str, int],
     *,
     live_step_ids: Collection[str],
 ) -> FoldedStructure:
     """Drop each INTERSECT input that states only the organism a sibling runs on.
 
-    Such an input is a leaf that links only organism requirements, each holding
-    a site entry, or whose ``organism_only`` binding counts exactly the
+    Such an input is a leaf whose ``organism_only`` binding counts exactly the
     genes ``universe_counts`` holds for it (keyed by criterion id, one count
     per leaf on its own record type). A leaf of unknown count stays. The tree's only leaf, a
     MINUS input, a transform input and a live step are never dropped.
     """
-    reading = _OrganismReading(
-        spec,
-        organisms,
-        requirements,
-        universe_counts,
-        live_step_ids,
-    )
+    reading = _OrganismReading(spec, organisms, universe_counts, live_step_ids)
     root = _organism_folded(tree.root, reading)
     if not reading.dropped:
         return FoldedStructure(structure=tree)
@@ -379,7 +350,6 @@ def _organism_folded(node: StructureNode, reading: _OrganismReading) -> Structur
                 criterion_id=candidate.named_criterion,
                 text=reading.by_id[candidate.named_criterion].text,
                 organisms=tuple(sorted(found.organisms)),
-                met=found.records is None,
                 carrier_ids=reading.carriers_of(carrier),
                 records=found.records,
                 links=tuple(

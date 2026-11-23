@@ -31,10 +31,6 @@ class DuplicateDrop(CamelModel):
     sibling_id: str
 
     @property
-    def met(self) -> bool:
-        return True
-
-    @property
     def requirements(self) -> tuple[Constraint, ...]:
         """The sibling meets the text, so the drop holds no requirement open."""
         return ()

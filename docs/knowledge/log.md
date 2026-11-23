@@ -136,9 +136,18 @@
   the build, a step above it is skipped, and no strategy is put. The WDK ids a recreate
   replaced are kept on the strategy row (`replaced_wdk_step_ids`) until a put deletes them.
 
+* **The organism fold drops by count only.** a2 bound `c_epitope` (GenesWithEpitopes, 882
+  genes) linked to the organism requirement alone, and `set_structure` dropped it because it
+  "links only the organism Plasmodium falciparum 3D7, which c_phylogeny already runs on", so
+  the final strategy no longer required the mapped epitopes the consult had promised.
+  `spec_fold._OrganismReading.redundancy` now finds a leaf redundant only when its count
+  equals the gene count of the organisms it binds (`universe_counts`); the link-only branch,
+  `OrganismDrop.met` and its sentence are gone, and `fold_organism_universe` no longer reads
+  the requirements. `StructureDrop.met` is true for a duplicate input only.
+
 * **A named alternative makes a choice.** e10 asked whether "an InterPro or Pfam search" finds
   more genes than a gene name search; the binding took Pfam alone and the facts showed it as
-  the site's default, so nothing said a choice was made. `value_source` now returns
+  the site's default with no word of the choice. `value_source` now returns
   `chosen` when a request message joins the value to another entry of the parameter's
   vocabulary the binding leaves out (by "or", "and", "versus", a comma or a slash), and the
   label, taxon and dataset restatements go through `stated_source` in the same module. A
