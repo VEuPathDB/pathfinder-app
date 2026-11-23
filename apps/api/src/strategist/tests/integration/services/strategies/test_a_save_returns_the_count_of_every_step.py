@@ -20,13 +20,15 @@ from strategist.domain.strategy.operations import (
 from strategist.persistence.models import User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.services.conversations.responses import derive_steps_from_strategy_ast
-from strategist.services.strategies import commit_tree
+from strategist.services.strategies import _tree_write, commit_tree
 from strategist.services.strategies._tree_write import TreeTarget, WrittenTree
 from strategist.services.strategies.commit import (
     apply_and_commit,
     apply_operations_and_commit,
 )
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.held_steps import BOOLEAN_SEARCH
+from strategist.tests._support.holding_wdk import held_definition
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.wdk_write_stubs import validate_against
 from strategist.tests.integration.services.strategies._commit_wire import (
@@ -49,6 +51,7 @@ SITE_COUNTS = {"step_a": 11, "step_b": 22, "step_c": 5, "step_d": 40}
 class SiteThatCounts:
     """A push that stores what the site answers for each step, as the real sync does."""
 
+    site: CountingAPI
     pushed: int = 0
 
     async def put(
@@ -59,11 +62,15 @@ class SiteThatCounts:
         record_type: str,
         sync_state: WDKSyncState,
         target: TreeTarget,
-    ) -> WrittenTree:
-        del api, site_id, record_type, target
+    ) -> WrittenTree | None:
         self.pushed += 1
-        sync_state.step_counts = {n.id: SITE_COUNTS.get(n.id) for n in walk(root)}
-        return WrittenTree(strategy_id=555, root_step_id=0, created=False)
+        written = await _tree_write.put_the_tree(
+            api, site_id, root, record_type, sync_state, target
+        )
+        self.site.wdk.sizes.update(
+            {sync_state.wdk_step_ids[n.id]: SITE_COUNTS.get(n.id) for n in walk(root)}
+        )
+        return written
 
 
 @pytest.fixture
@@ -86,9 +93,16 @@ async def seed_user(db_session: AsyncSession) -> User:
 
 @pytest.fixture
 def site(monkeypatch: pytest.MonkeyPatch) -> SiteThatCounts:
-    counting = SiteThatCounts()
-    patch_strategy_api(monkeypatch, CountingAPI())
-    validate_against(monkeypatch, [suite_search("search_genes_by_taxon")])
+    api = CountingAPI()
+    counting = SiteThatCounts(site=api)
+    patch_strategy_api(monkeypatch, api)
+    validate_against(
+        monkeypatch,
+        [
+            suite_search("search_genes_by_taxon"),
+            held_definition(BOOLEAN_SEARCH),
+        ],
+    )
     monkeypatch.setattr(commit_tree, "put_the_tree", counting.put)
     return counting
 

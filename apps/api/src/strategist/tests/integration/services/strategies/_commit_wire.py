@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, override
 from uuid import UUID, uuid4
 
 import pytest
@@ -18,10 +17,6 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.errors import WDKError
 from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    PatchStepSpec,
-    WDKIdentifier,
     WDKSearchConfig,
     WDKStep,
 )
@@ -29,148 +24,35 @@ from veupathdb.wdk import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import commit_tree
+from strategist.services.strategies import commit_tree, live_counts
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import (
-    NoStrategyRead,
-    keeps_every_value,
+from strategist.tests._support.recording_wdk import (
+    RecordingWDK,
+    held_by_the_site,
+    served,
 )
+from strategist.tests._support.wdk_write_stubs import keeps_every_value
 
 PROMPT = "find kinases expressed in blood stages"
 
 
-@dataclass
-class Call:
-    name: str
-    kwargs: dict[str, Any] = field(default_factory=dict)
+class CountingAPI(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__()
 
-
-@dataclass
-class CountingAPI(NoStrategyRead):
-    calls: list[Call] = field(default_factory=list)
-    next_id: int = 9000
-
-    def _alloc(self) -> int:
-        self.next_id += 1
-        return self.next_id
-
-    async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del user_id
-        self.calls.append(Call("delete_step", {"step_id": step_id}))
-
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self.calls.append(
-            Call(
-                "create_step",
-                {"search_name": spec.search_name, "record_type": record_type},
-            ),
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_combined_step(
-        self,
-        spec: CombinedStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self.calls.append(
-            Call(
-                "create_combined_step",
-                {
-                    "primary_step_id": spec.primary_step_id,
-                    "secondary_step_id": spec.secondary_step_id,
-                    "boolean_operator": spec.boolean_operator.value,
-                    "record_type": record_type,
-                },
-            ),
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_transform_step(
-        self,
-        spec: NewStepSpec,
-        input_step_id: int,
-        record_type: str = "transcript",
-        *,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self.calls.append(
-            Call(
-                "create_transform_step",
-                {
-                    "search_name": spec.search_name,
-                    "input_step_id": input_step_id,
-                    "record_type": record_type,
-                },
-            ),
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def update_step_search_config(
-        self,
-        step_id: int,
-        search_config: WDKSearchConfig,
-        record_type: str,
-        search_name: str,
-        *,
-        user_id: str | None = None,
-        held: WDKStep | None = None,
-    ) -> None:
-        del held
-        del user_id
-        self.calls.append(
-            Call(
-                "update_step_search_config",
-                {
-                    "step_id": step_id,
-                    "search_name": search_name,
-                    "record_type": record_type,
-                    "parameters": dict(search_config.parameters),
-                },
-            ),
-        )
-
-    async def update_step_properties(
-        self,
-        step_id: int,
-        spec: PatchStepSpec,
-        *,
-        user_id: str | None = None,
-    ) -> None:
-        del user_id
-        self.calls.append(
-            Call("update_step_properties", {"step_id": step_id, "spec": spec})
-        )
-
+    @override
     async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
-        """Delete every id and name the ones the site kept. This fake keeps none."""
-        self.calls.append(Call("delete_orphaned_steps", {"step_ids": list(step_ids)}))
-        for step_id in step_ids:
-            await self.delete_step(step_id)
-        return []
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByTaxon",
-            search_config=WDKSearchConfig(parameters={}),
-        )
+        self._record("delete_orphaned_steps", step_ids=list(step_ids))
+        return await super().delete_orphaned_steps(step_ids)
 
 
 def patch_strategy_api(monkeypatch: pytest.MonkeyPatch, api: CountingAPI) -> None:
     """Serve ``api`` to the commit path, and let every step count as complete."""
 
-    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setitem(served, "site", api)
+    for module in (commit_tree, live_counts):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
 
 
@@ -256,6 +138,7 @@ def build_deps(
         wdk_step_ids=dict(wdk_step_ids),
         wdk_strategy_id=555,
     )
+    held_by_the_site(session)
     return StrategyMutationContext(
         site_id="plasmodb",
         strategy_session=session,
@@ -270,6 +153,7 @@ class FailingAPI(CountingAPI):
 
     fail_search: str = "GenesByTaxon"
 
+    @override
     async def update_step_search_config(
         self,
         step_id: int,
@@ -280,7 +164,6 @@ class FailingAPI(CountingAPI):
         user_id: str | None = None,
         held: WDKStep | None = None,
     ) -> None:
-        del held
         if search_name == self.fail_search:
             msg = "WDK rejected this step"
             raise WDKError(msg, 422)
@@ -290,4 +173,5 @@ class FailingAPI(CountingAPI):
             record_type,
             search_name,
             user_id=user_id,
+            held=held,
         )

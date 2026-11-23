@@ -4,19 +4,22 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, override
 from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
-from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+    flatten_tree,
+    walk,
+)
 from veupathdb.wdk import (
     CombinedStepSpec,
-    NewStepSpec,
-    PatchStepSpec,
     WDKIdentifier,
     WDKSearchConfig,
     WDKStep,
@@ -34,11 +37,14 @@ from strategist.services.conversations import strategy_ops
 from strategist.services.strategies import (
     commit_tree,
     insert_saved,
+    live_counts,
     stated_sides,
 )
 from strategist.services.strategies.insert_saved import ClonedSavedStrategy
+from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support import wdk_write_stubs
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.recording_wdk import RecordingWDK
 
 # A strategy write defers the gene-set refresh onto the job queue.
 pytestmark = pytest.mark.usefixtures("open_job_queue")
@@ -53,61 +59,36 @@ _PARAM_PUSH = "update_step_search_config"
 _COMBINE_PUSH = "create_combined_step"
 
 
-@dataclass
-class _SlowAPI(wdk_write_stubs.NoStrategyRead):
-    """WDK stub where one named push takes a measurable amount of time."""
+class _SlowAPI(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__()
+        self.slow_call = ""
+        self.entered_slow_call = asyncio.Event()
+        self.holds(
+            flatten_tree(_seed_root("kinase")),
+            WDKSyncState(
+                wdk_step_ids={"step_text": 100, "step_go": 200, "step_combine": 300},
+                wdk_strategy_id=555,
+            ),
+            root_id="step_combine",
+            name="Kinase strategy",
+        )
 
-    slow_call: str = ""
-    entered_slow_call: asyncio.Event = field(default_factory=asyncio.Event)
-    next_id: int = 9000
+    @override
+    def _record(self, name: str, /, **kwargs: Any) -> None:
+        super()._record(name, **kwargs)
+        if name == self.slow_call:
+            self.entered_slow_call.set()
 
-    def _alloc(self) -> int:
-        self.next_id += 1
-        return self.next_id
-
-    async def _maybe_slow(self, name: str) -> None:
-        if name != self.slow_call:
-            return
-        self.entered_slow_call.set()
-        await asyncio.sleep(_SLOW_PUSH_SECONDS)
-
-    async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del step_id, user_id
-
-    async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
-        del step_ids
-        return []
-
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del spec, record_type, user_id
-        return WDKIdentifier(id=self._alloc())
-
+    @override
     async def create_combined_step(
-        self,
-        spec: CombinedStepSpec,
-        record_type: str,
-        user_id: str | None = None,
+        self, spec: CombinedStepSpec, record_type: str, user_id: str | None = None
     ) -> WDKIdentifier:
-        del spec, record_type, user_id
-        await self._maybe_slow(_COMBINE_PUSH)
-        return WDKIdentifier(id=self._alloc())
+        made = await super().create_combined_step(spec, record_type, user_id)
+        await self._slow(_COMBINE_PUSH)
+        return made
 
-    async def create_transform_step(
-        self,
-        spec: NewStepSpec,
-        input_step_id: int,
-        record_type: str = "transcript",
-        *,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del spec, input_step_id, record_type, user_id
-        return WDKIdentifier(id=self._alloc())
-
+    @override
     async def update_step_search_config(
         self,
         step_id: int,
@@ -118,37 +99,23 @@ class _SlowAPI(wdk_write_stubs.NoStrategyRead):
         user_id: str | None = None,
         held: WDKStep | None = None,
     ) -> None:
-        del held
-        del step_id, search_config, record_type, search_name, user_id
-        await self._maybe_slow(_PARAM_PUSH)
-
-    async def update_step_properties(
-        self,
-        step_id: int,
-        spec: PatchStepSpec,
-        *,
-        user_id: str | None = None,
-    ) -> None:
-        del step_id, spec, user_id
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByText",
-            search_config=WDKSearchConfig(parameters={}),
+        await super().update_step_search_config(
+            step_id, search_config, record_type, search_name, user_id=user_id, held=held
         )
+        await self._slow(_PARAM_PUSH)
+
+    async def _slow(self, name: str) -> None:
+        if name == self.slow_call:
+            await asyncio.sleep(_SLOW_PUSH_SECONDS)
 
 
 @pytest.fixture
 def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     api = _SlowAPI()
-    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    for module in (commit_tree, live_counts):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(
         commit_tree, "validate_parameters", wdk_write_stubs.keeps_every_value
-    )
-    monkeypatch.setattr(
-        commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put
     )
     monkeypatch.setattr(
         stated_sides, "validate_parameters", wdk_write_stubs.accepts_every_value
@@ -353,9 +320,6 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
         return ValidatedParams(params=dict(stated), record_class="transcript")
 
     monkeypatch.setattr(commit_tree, "validate_parameters", _passthrough_validation)
-    monkeypatch.setattr(
-        commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put
-    )
     return entered
 
 

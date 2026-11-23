@@ -58,6 +58,7 @@ from strategist.tests._support.read_saves_back import (
     BEFORE_THE_DELETE,
     GO,
     INNER,
+    OUTER,
     TEXT,
     ReadSavesBack,
     strategy_api_on,
@@ -386,12 +387,13 @@ async def test_the_job_reads_the_strategy_after_the_tree_write_ends(
             )
         )
         await site.put_started.wait()
+        read_before_the_write = len(site.reads)
         refresh = asyncio.create_task(run_refresh_job(thread))
         async with asyncio.timeout(10):
             await strategy_line.a_request_waits.wait()
         for _ in range(20):
             await asyncio.sleep(0)
-        read_during_the_write = list(site.reads)
+        read_during_the_write = site.reads[read_before_the_write:]
 
         site.release_the_put.set()
         await asyncio.gather(save, refresh)
@@ -399,6 +401,6 @@ async def test_the_job_reads_the_strategy_after_the_tree_write_ends(
         veupathdb_auth_token_ctx.reset(reset)
 
     assert read_during_the_write == []
-    assert site.reads == [INNER, INNER, INNER]
+    assert site.reads == [OUTER, INNER, INNER, INNER]
     assert site.held == AFTER_THE_DELETE
     assert (await _stored()).gene_ids == _INTERSECT

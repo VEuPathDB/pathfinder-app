@@ -12,7 +12,13 @@ import httpx
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy import StrategyStep
-from veupathdb.wdk import StrategyAPI, VEuPathDBClient, WDKStepTree
+from veupathdb.wdk import (
+    StrategyAPI,
+    VEuPathDBClient,
+    WDKSearch,
+    WDKSearchResponse,
+    WDKStepTree,
+)
 
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.held_steps import (
@@ -358,6 +364,10 @@ def _search_details(search_name: str) -> dict[str, Any]:
         },
         "validation": {"level": "NONE", "isValid": False},
     }
+
+
+def held_definition(search_name: str) -> WDKSearch:
+    return WDKSearchResponse.model_validate(_search_details(search_name)).search_data
 
 
 def holding_strategy_api(wdk: HoldingWDK) -> StrategyAPI:
