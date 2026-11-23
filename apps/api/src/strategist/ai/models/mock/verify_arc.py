@@ -10,13 +10,11 @@ import re
 from assistant_core.models.scripted import (
     called_tool_parts,
     current_scope_id,
-    retried_returns,
     scripted_call,
     terminal_call,
-    tool_return_parts,
 )
 from pydantic import Field, JsonValue, TypeAdapter
-from pydantic_ai.messages import ERROR_OUTCOMES, ModelMessage, ToolCallPart
+from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from strategist.ai.models.mock.arc import Script
 from strategist.ai.models.mock.graph_pin import pinned_root_organism
@@ -28,6 +26,7 @@ from strategist.ai.models.mock.reads import (
     gene_records,
     instructions_of,
     last_answer,
+    refused_returns,
     returns_of,
     root_wdk_step_id,
 )
@@ -61,8 +60,7 @@ class _RecordCall(ToolAnswer):
 
 def _refused_reads(messages: list[ModelMessage]) -> set[str]:
     """The genes whose record read the tool refused, a control among them."""
-    returns = [*tool_return_parts(messages), *retried_returns(messages)]
-    refused = {p.tool_call_id for p in returns if p.outcome in ERROR_OUTCOMES}
+    refused = {p.tool_call_id for p in refused_returns(messages)}
     return {
         _RecordCall.model_validate(call.args_as_dict()).gene_id
         for call in called_tool_parts(messages)

@@ -68,7 +68,7 @@ def _refused(tool: str, content: str, call_id: str) -> list[ModelMessage]:
                     content=content,
                     tool_name=tool,
                     tool_call_id=call_id,
-                    outcome="retried",
+                    outcome="failed",
                 )
             ]
         ),

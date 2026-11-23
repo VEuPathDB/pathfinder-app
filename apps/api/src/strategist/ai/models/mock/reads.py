@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from assistant_core.capabilities.stable_instructions import briefing_now
 from assistant_core.models.scripted import (
     current_turn,
-    retried_returns,
     tool_return_parts,
 )
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import AliasChoices, ConfigDict, Field
-from pydantic_ai.messages import ModelMessage, ModelRequest
+from pydantic_ai.messages import (
+    ERROR_OUTCOMES,
+    ModelMessage,
+    ModelRequest,
+    ModelRequestPart,
+    ToolReturnPart,
+)
 
 
 class ToolAnswer(CamelModel):
@@ -28,6 +35,14 @@ def _compacted(content: object) -> bool:
             return False
 
 
+def answered_returns(messages: list[ModelMessage]) -> list[ToolReturnPart]:
+    return [
+        part
+        for part in tool_return_parts(messages)
+        if part.outcome not in ERROR_OUTCOMES
+    ]
+
+
 def returns_of[T: ToolAnswer](
     messages: list[ModelMessage], tool: str, shape: type[T]
 ) -> list[T]:
@@ -35,7 +50,7 @@ def returns_of[T: ToolAnswer](
     another shape fails."""
     return [
         shape.model_validate(part.content)
-        for part in tool_return_parts(messages)
+        for part in answered_returns(messages)
         if part.tool_name == tool and not _compacted(part.content)
     ]
 
@@ -44,7 +59,7 @@ def last_answer(messages: list[ModelMessage], tool: str) -> object | None:
     """The newest answer ``tool`` gave that is not compacted text."""
     answers = [
         part.content
-        for part in tool_return_parts(messages)
+        for part in answered_returns(messages)
         if part.tool_name == tool and not _compacted(part.content)
     ]
     return answers[-1] if answers else None
@@ -57,10 +72,35 @@ def last_return[T: ToolAnswer](
     return found[-1] if found else None
 
 
+def _request_parts(message: ModelMessage) -> Sequence[ModelRequestPart]:
+    match message:
+        case ModelRequest(parts=parts):
+            return parts
+        case _:
+            return []
+
+
+def _refusal(part: ModelRequestPart) -> ToolReturnPart | None:
+    match part:
+        case ToolReturnPart(outcome=outcome) if outcome in ERROR_OUTCOMES:
+            return part
+        case _:
+            return None
+
+
+def refused_returns(messages: list[ModelMessage]) -> list[ToolReturnPart]:
+    return [
+        refused
+        for message in messages
+        for part in _request_parts(message)
+        if (refused := _refusal(part)) is not None
+    ]
+
+
 def refusal_of(messages: list[ModelMessage], tool: str) -> str | None:
     """The newest refusal ``tool`` sent back this turn, as the model reads it."""
     refused = [
-        p for p in retried_returns(current_turn(messages)) if p.tool_name == tool
+        p for p in refused_returns(current_turn(messages)) if p.tool_name == tool
     ]
     return refused[-1].model_response_str(wrap_if_error=False) if refused else None
 
@@ -319,5 +359,5 @@ def note_id(messages: list[ModelMessage]) -> str | None:
 
 def text_return(messages: list[ModelMessage], tool: str) -> str | None:
     """The newest answer of a tool that answers in text."""
-    found = [str(p.content) for p in tool_return_parts(messages) if p.tool_name == tool]
+    found = [str(p.content) for p in answered_returns(messages) if p.tool_name == tool]
     return found[-1] if found else None

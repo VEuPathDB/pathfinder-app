@@ -7,12 +7,12 @@ from collections.abc import Callable
 from assistant_core.models.scripted import (
     called_tool_parts,
     scripted_call,
-    tool_return_parts,
 )
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from strategist.ai.models.mock.arc import history_free
+from strategist.ai.models.mock.reads import answered_returns
 from strategist.domain.evidence import VerificationReview
 
 CRITERION = "set_criterion"
@@ -93,7 +93,7 @@ def repeat_control_test(messages: list[ModelMessage]) -> CallFault:
     """Once the arc's control test answered and the arc moved on, the same step
     again on the same saved set."""
     answered = any(
-        part.tool_name == CONTROL_TEST for part in tool_return_parts(messages)
+        part.tool_name == CONTROL_TEST for part in answered_returns(messages)
     )
     tested = next(
         (

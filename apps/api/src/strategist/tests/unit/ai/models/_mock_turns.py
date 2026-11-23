@@ -344,6 +344,15 @@ class Scene:
         return None
 
 
+def refused_reply(call: ToolCallPart, refusal: str) -> ToolReturnPart:
+    return ToolReturnPart(
+        content=refusal,
+        tool_name=call.tool_name,
+        tool_call_id=call.tool_call_id,
+        outcome="retried" if call.tool_name == "final_result" else "failed",
+    )
+
+
 def seen_by_the_model(messages: list[ModelMessage]) -> list[ModelMessage]:
     """The history every agent's processors hand the model."""
     for processor in HISTORY_PROCESSORS:
@@ -381,12 +390,7 @@ def play(
                 break
             messages.append(ModelResponse(parts=[call]))
             reply: ToolReturnPart = (
-                ToolReturnPart(
-                    content=refusal,
-                    tool_name=call.tool_name,
-                    tool_call_id=call.tool_call_id,
-                    outcome="retried",
-                )
+                refused_reply(call, refusal)
                 if refusal is not None
                 else ToolReturnPart(
                     tool_name=call.tool_name,

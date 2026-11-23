@@ -2,6 +2,18 @@
 
 ## 2026-11-23
 
+* **The scripted model reads a refusal in both shapes.** Since a refusal is counted per key,
+  every refusal a tool body raises reaches the model as a `failed` result (`CallRefused`), and
+  only a schema refusal stays `retried`. The scripted model read refusals as `retried` alone, so
+  it took a refused call for an answer, or never saw the refusal and sent the call again: seven
+  e2e flows failed (FND-12 drew 20 corrected "Choose a search" rows where one is right, the
+  five-node journey built 0 nodes). `ai/models/mock/reads.py` now holds `refused_returns` (either
+  error outcome) and `answered_returns` (neither), and every arc reads through them; the unit
+  harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
+  test read only what they made, and C6, which reads the whole account, holds it alone, because
+  every e2e worker acts as one user. A fresh database can fail the api's startup; it is a
+  backlog item.
+
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new
   budget; a test refuses a production key that names its check in free text. A key a call builds

@@ -9,7 +9,6 @@ from dataclasses import dataclass, replace
 from assistant_core.models.scripted import (
     called_tool_parts,
     current_turn,
-    retried_returns,
 )
 from pydantic_ai.messages import (
     ModelMessage,
@@ -22,6 +21,7 @@ from pydantic_ai.messages import (
 from strategist.ai.lead.intent import UserIntent
 from strategist.ai.models.mock import fault_calls, reply_faults
 from strategist.ai.models.mock.arc import Role
+from strategist.ai.models.mock.reads import refused_returns
 
 
 @dataclass(frozen=True)
@@ -82,7 +82,7 @@ def _answered(messages: list[ModelMessage], wrong: ToolCallPart, times: int) -> 
     ``times`` times. A call is counted once, however often the run carries it."""
     turn = current_turn(messages)
     refused = {
-        p.tool_call_id for p in retried_returns(turn) if p.tool_name == wrong.tool_name
+        p.tool_call_id for p in refused_returns(turn) if p.tool_name == wrong.tool_name
     }
     made = {
         p.tool_call_id

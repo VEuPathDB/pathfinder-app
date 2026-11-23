@@ -17,6 +17,7 @@ from assistant_core.models.scripted import (
 )
 from pydantic import Field
 from pydantic_ai.messages import (
+    ERROR_OUTCOMES,
     ModelMessage,
     ModelRequest,
     ToolCallPart,
@@ -286,7 +287,7 @@ def _answers_the_card(message: ModelMessage) -> bool:
 def _returns_the_card(part: object) -> bool:
     match part:
         case ToolReturnPart(tool_name=name, outcome=outcome):
-            return name == CONSULT and outcome != "retried"
+            return name == CONSULT and outcome not in ERROR_OUTCOMES
         case _:
             return False
 

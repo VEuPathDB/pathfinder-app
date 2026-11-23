@@ -44,7 +44,7 @@ from strategist.tests._support.recorded_searches import (
     serve_recorded,
     suite_search,
 )
-from strategist.tests.unit.ai.models._mock_turns import seen_by_the_model
+from strategist.tests.unit.ai.models._mock_turns import refused_reply, seen_by_the_model
 from strategist.tests.unit.ai.tools._rationale_catalog import SITE, match
 from strategist.tests.unit.ai.tools.conftest import (
     agent_run_context,
@@ -167,12 +167,7 @@ async def _played(state: AgentToolState) -> _Pass:
             )
         except ModelRetry as refused:
             played.refusals.append(refused.message)
-            reply = ToolReturnPart(
-                content=refused.message,
-                tool_name=call.tool_name,
-                tool_call_id=call.tool_call_id,
-                outcome="retried",
-            )
+            reply = refused_reply(call, refused.message)
         parts = [reply]
     return played
 
