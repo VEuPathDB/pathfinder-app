@@ -62,7 +62,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool
 from testcontainers.community.postgres import PostgresContainer
 from veupathdb.eda import close_all_eda_clients
 from veupathdb.wdk import forget_signing_keys, get_site_router
@@ -151,9 +150,9 @@ async def db_engine(
 ) -> AsyncGenerator[AsyncEngine]:
     del postgres_container
     database_url = _get_test_database_url()
-    # An asyncpg connection belongs to the event loop that created it, and
-    # tests run on different loops. NullPool prevents reuse across loops.
-    engine = create_async_engine(database_url, poolclass=NullPool)
+    engine = create_async_engine(
+        database_url, pool_size=5, max_overflow=5, pool_pre_ping=True
+    )
 
     async with engine.begin() as conn:
         await conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
