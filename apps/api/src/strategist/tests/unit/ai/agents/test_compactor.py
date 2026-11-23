@@ -4,23 +4,23 @@ import pytest
 from assistant_core.scratchpad.compactor import CompactionResult, CompactorDeps
 from assistant_core.scratchpad.models import NoteCreate
 from pydantic import ValidationError
+from pydantic_ai import NativeOutput
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.messages import (
     ModelMessage,
-    ModelRequest,
     ModelResponse,
-    ToolCallPart,
-    ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from strategist.ai.agents.compactor import build_compactor_agent
 from strategist.ai.capabilities.metering import SpendMeter
+from strategist.tests._support.native_answers import answered, feedback
 
 
 def test_build_returns_agent_with_output_type() -> None:
     agent = build_compactor_agent(meter=SpendMeter(), model_id=None)
-    assert agent.output_type is CompactionResult
+    assert isinstance(agent.output_type, NativeOutput)
+    assert agent.output_type.outputs is CompactionResult
 
 
 def test_compactor_deps_is_dataclass() -> None:
@@ -64,19 +64,10 @@ class _Answers:
         self.instructions.append(info.instructions)
         body = self._bodies[min(len(self.requests), len(self._bodies)) - 1]
         note = {"title": "signal peptide union", "summary": "merged", "body": body}
-        return ModelResponse(
-            parts=[ToolCallPart(info.output_tools[0].name, {"notes": [note]})]
-        )
+        return ModelResponse(parts=[answered({"notes": [note]})])
 
     def retry_prompts(self) -> list[str]:
-        return [
-            str(part.content)
-            for messages in self.requests
-            for message in messages[-1:]
-            if isinstance(message, ModelRequest)
-            for part in message.parts
-            if isinstance(part, ToolReturnPart) and part.outcome == "retried"
-        ]
+        return [told for messages in self.requests for told in feedback(messages[-1:])]
 
 
 async def _compact(answers: _Answers, notes: str = _INPUT_NOTES) -> CompactionResult:
@@ -104,13 +95,12 @@ async def test_a_compaction_that_drops_a_gene_id_is_retried_naming_it() -> None:
 
     assert [note.body for note in output.notes] == [_EVERY_FACT]
     assert len(answers.requests) == 2
-    assert answers.retry_prompts() == [
-        (
-            "The compacted notes dropped 1 identifier the input notes carry. Every "
-            "gene id, step id, strategy id, search name and count in the input must "
-            "appear verbatim in the output. Missing: PF3D7_0101300"
-        )
-    ]
+    [told] = answers.retry_prompts()
+    assert (
+        "The compacted notes dropped 1 identifier the input notes carry. Every "
+        "gene id, step id, strategy id, search name and count in the input must "
+        "appear verbatim in the output. Missing: PF3D7_0101300"
+    ) in told
 
 
 async def test_a_compaction_that_keeps_dropping_fails_after_three_attempts() -> None:
@@ -120,19 +110,6 @@ async def test_a_compaction_that_keeps_dropping_fails_after_three_attempts() -> 
         await _compact(answers)
 
     assert len(answers.requests) == 3
-
-
-async def test_the_retry_lists_twenty_missing_identifiers_then_a_count() -> None:
-    genes = [f"PF3D7_01{index:05d}" for index in range(25)]
-    answers = _Answers("nothing kept", " ".join(genes))
-
-    await _compact(
-        answers, notes=f"### [n-a] genes\nsummary: list\n\n{' '.join(genes)}"
-    )
-
-    (prompt,) = answers.retry_prompts()
-    assert prompt.startswith("The compacted notes dropped 25 identifiers")
-    assert prompt.endswith(f"Missing: {', '.join(sorted(genes)[:20])} and 5 more")
 
 
 async def test_the_instructions_state_that_every_identifier_is_kept() -> None:

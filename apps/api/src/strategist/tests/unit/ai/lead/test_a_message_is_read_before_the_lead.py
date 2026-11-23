@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from typing import get_args
 
@@ -10,7 +11,7 @@ from pydantic_ai.messages import (
     BinaryContent,
     ModelMessage,
     ModelResponse,
-    ToolCallPart,
+    TextPart,
     UserPromptPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
@@ -105,16 +106,13 @@ class _Model:
         parts = [content] if isinstance(content, str) else list(content)
         prompt = "\n\n".join(c for c in parts if isinstance(c, str))
         self.files.append([c for c in parts if isinstance(c, BinaryContent)])
-        output = info.output_tools[0]
-        if "effect" in output.parameters_json_schema["properties"]:
+        if "effect" in str(info.model_request_parameters.output_object):
             self.read_prompts.append(prompt)
             args = self.readings.pop(0) if self.readings else _UNREAD
         else:
             self.prompts.append(prompt)
             args = self.stated.pop(0)
-        return ModelResponse(
-            parts=[ToolCallPart(tool_name=output.name, args=dict(args))]
-        )
+        return ModelResponse(parts=[TextPart(json.dumps(dict(args)))])
 
 
 def _request_model(*outputs: Mapping[str, object]) -> tuple[FunctionModel, _Model]:

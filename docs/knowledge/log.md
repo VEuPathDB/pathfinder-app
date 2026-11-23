@@ -2,6 +2,15 @@
 
 ## 2026-11-23
 
+* **Readers answer in strict output, and the compactor names every identifier.** The message
+  reader's two agents (`_ModelReading`, `StatedRequest`), the note compactor (`CompactionResult`)
+  and the audit synthesis (`SynthesisDraft`) ask for `NativeOutput(..., strict=True)`, so a
+  provider with strict structured output constrains the answer to the schema; Anthropic's refusal
+  of a grammar too large still falls back to prompted JSON (`platform/model_keys.py::_prompted_after`).
+  A reader failure is never replaced by an empty `StatedRequest`. The compactor's refusal names
+  every identifier the rewrite dropped, not the first 20. The audit agents keep their per-tool
+  budget. The synthesis mock answers in text.
+
 * **An answer check charges a ledger per key.** FRAME's twelve checks run as one output validator
   (`ai/agents/frame_answer.py::hold_the_frame_answer`); each returns every problem it finds as a
   `HeldAnswer` (`ai/agents/held_answer.py`), keyed by the check and the requirement, criterion or

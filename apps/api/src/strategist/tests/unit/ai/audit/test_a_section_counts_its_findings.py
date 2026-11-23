@@ -4,8 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from assistant_core.models.scripted import retried_returns, terminal_call
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
+from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.usage import RunUsage
 
@@ -23,6 +22,7 @@ from strategist.domain.audit.verdicts import (
 )
 from strategist.services.audit.verdicts import VerdictView
 from strategist.services.audit.views import AuditRunSummary, AuditRunView
+from strategist.tests._support.native_answers import answered, feedback
 
 _NOW = datetime(2026, 10, 25, tzinfo=UTC)
 _RUN = UUID("00000000-0000-4000-8000-000000000003")
@@ -132,13 +132,13 @@ def _draft(
     return {"sections": [section], "headline": _INTACT, "summary": summary}
 
 
-def _first_then(wrong: dict[str, Any], retries: list[ToolReturnPart]) -> FunctionModel:
+def _first_then(wrong: dict[str, Any], retries: list[str]) -> FunctionModel:
     right = _draft("The genome encodes the whole reference coding sequence.")
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retried_returns(messages))
-        return ModelResponse(parts=[terminal_call(right if retries else wrong)])
+        retries[:] = feedback(messages)
+        return ModelResponse(parts=[answered(right if retries else wrong)])
 
     return FunctionModel(answer)
 
@@ -163,7 +163,7 @@ def test_a_section_counts_the_findings_it_lists() -> None:
 
 
 async def test_a_section_cause_that_states_a_count_is_kept_as_written() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
 
     sections = await _synthesized(_first_then(_draft(_COUNTED_CAUSE), retries))
 
@@ -171,7 +171,7 @@ async def test_a_section_cause_that_states_a_count_is_kept_as_written() -> None:
 
 
 async def test_a_section_that_cites_and_measures_is_kept_as_written() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     written = _draft(_TRUNCATED_CAUSE, _CITES)
 
     sections = await _synthesized(_first_then(written, retries))

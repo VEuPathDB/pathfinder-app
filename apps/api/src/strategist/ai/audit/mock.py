@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from uuid import UUID
 
@@ -322,12 +323,14 @@ def _synthesis_part(messages: list[ModelMessage], info: AgentInfo) -> ModelRespo
             "findings first."
         ),
     }
-    return ModelResponse(parts=[terminal_call(draft)])
+    return ModelResponse(parts=[scripted_text(json.dumps(draft))])
 
 
 def build_synthesis_mock() -> FunctionModel:
     return FunctionModel(
         _synthesis_part,
         model_name=MOCK_SYNTHESIS_MODEL_ID,
-        profile=ModelProfile(supports_inline_system_prompts=True),
+        profile=ModelProfile(
+            supports_inline_system_prompts=True, supports_json_schema_output=True
+        ),
     )

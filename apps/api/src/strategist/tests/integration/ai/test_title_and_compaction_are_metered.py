@@ -114,7 +114,7 @@ async def test_a_title_writes_its_usage_on_the_deployments_row(
 
 
 def _compaction_answer(model: str, body: str) -> dict[str, Any]:
-    """One finished Responses answer that calls the compactor's output tool."""
+    """One finished Responses answer that states the compacted notes as JSON text."""
     notes = {"notes": [{"title": "kinases", "summary": "merged", "body": body}]}
     return Response.model_validate(
         {
@@ -128,12 +128,17 @@ def _compaction_answer(model: str, body: str) -> dict[str, Any]:
             "tools": [],
             "output": [
                 {
-                    "id": "fc_compaction",
-                    "type": "function_call",
-                    "call_id": "call_compaction",
-                    "name": "final_result",
-                    "arguments": json.dumps(notes),
+                    "id": "msg_compaction",
+                    "type": "message",
+                    "role": "assistant",
                     "status": "completed",
+                    "content": [
+                        {
+                            "type": "output_text",
+                            "text": json.dumps(notes),
+                            "annotations": [],
+                        }
+                    ],
                 }
             ],
             "usage": {

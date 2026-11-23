@@ -11,6 +11,10 @@ from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.models import Model
 
+from strategist.ai.capabilities.metering import SpendMeter
+from strategist.ai.lead import message_reader
+from strategist.ai.lead.message_reader import ReaderInput
+from strategist.domain.message_reading import StatedRequest
 from strategist.domain.provider_keys import ProviderKeyring
 from strategist.platform.config import get_settings
 from strategist.platform.model_keys import attach_keyring, keyed_model
@@ -108,3 +112,23 @@ async def test_another_rejection_is_not_asked_again() -> None:
             await _agent(model).run("hi")
 
     assert len(wire.requests) == 1
+
+
+async def test_a_refused_strict_request_reading_is_asked_again_as_prompted_json() -> (
+    None
+):
+    wire = ProviderWire(answers=[_TOO_LARGE], anthropic_text='{"goal": "kinases"}')
+
+    with attach_keyring(ProviderKeyring(), build=wire.build):
+        model = keyed_model(_HAIKU)
+        assert isinstance(model, Model)
+        stated = await message_reader._stated_request(
+            ReaderInput(conversation="", strategy="", message="kinases"),
+            [],
+            model,
+            SpendMeter(),
+            _HAIKU,
+        )
+
+    assert stated == StatedRequest(goal="kinases")
+    assert _formats(wire) == [True, False]

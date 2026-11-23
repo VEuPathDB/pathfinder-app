@@ -41,7 +41,7 @@ async def test_the_model_reading_starts_before_the_decision_answers() -> None:
     script = _Model(STATED, {"effect": "add", "wants": "nothing"})
 
     def _recorded(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        if "effect" in info.output_tools[0].parameters_json_schema["properties"]:
+        if "effect" in str(info.model_request_parameters.output_object):
             order.append("modeled")
             modeled.set()
         return script(messages, info)
@@ -74,7 +74,7 @@ async def test_a_reading_the_decision_settles_first_is_metered_before_the_return
     async def _unanswered(
         messages: list[ModelMessage], info: AgentInfo
     ) -> ModelResponse:
-        if "effect" in info.output_tools[0].parameters_json_schema["properties"]:
+        if "effect" in str(info.model_request_parameters.output_object):
             modeled.set()
             await asyncio.Event().wait()
         return script(messages, info)

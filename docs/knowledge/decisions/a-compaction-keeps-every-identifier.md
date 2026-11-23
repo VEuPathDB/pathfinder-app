@@ -11,8 +11,9 @@ status: stable
 `ai/agents/compactor.py::build_compactor_agent` registers an output validator.
 It reads the identifiers of the input notes and of the returned notes with
 `domain/scratchpad_facts.py::hard_facts`, and raises `ModelRetry` when an input
-identifier is absent from the output, listing at most 20 of them and a count of
-the rest. The agent's `retries=2` gives three attempts. A third refusal ends the
+identifier is absent from the output, naming every one, so one retry can restore them
+all. The output is asked for as strict native JSON (`NativeOutput(CompactionResult,
+strict=True)`). The agent's `retries=2` gives three attempts. A third refusal ends the
 run with `UnexpectedModelBehavior`; `assistant_core.scratchpad.compactor.compact_scratchpad`
 lets it reach `ai/graph/nodes.py::_compact_the_notes`, which logs it, charges
 the spend of all three attempts to the payer and leaves the notes uncompacted.

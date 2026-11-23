@@ -8,7 +8,7 @@ from typing import get_args
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
-from pydantic_ai import Agent
+from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import UserContent
 from pydantic_ai.models import Model
@@ -259,7 +259,7 @@ async def _model_reading(
     agent: Agent[None, _ModelReading] = Agent(
         model,
         deps_type=type(None),
-        output_type=_ModelReading,
+        output_type=NativeOutput(_ModelReading, strict=True),
         instructions=load_reading_guide(),
         capabilities=_capabilities(meter, model_id),
     )
@@ -286,7 +286,7 @@ async def _stated_request(
     agent: Agent[None, StatedRequest] = Agent(
         model,
         deps_type=type(None),
-        output_type=StatedRequest,
+        output_type=NativeOutput(StatedRequest, strict=True),
         instructions=load_request_guide(),
         capabilities=_capabilities(meter, model_id),
     )

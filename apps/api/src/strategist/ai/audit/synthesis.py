@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
-from pydantic_ai import Agent, ModelRetry, RunContext
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.models import Model
 from pydantic_ai.settings import ModelSettings
@@ -138,7 +138,7 @@ def _synthesizable(
 
 def build_synthesis_agent() -> Agent[SynthesisDeps, SynthesisDraft]:
     agent = Agent(
-        output_type=SynthesisDraft,
+        output_type=NativeOutput(SynthesisDraft, strict=True),
         deps_type=SynthesisDeps,
         instructions=SYNTHESIS_INSTRUCTIONS,
         capabilities=agent_capabilities([]),

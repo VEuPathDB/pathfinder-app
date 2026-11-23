@@ -7,7 +7,7 @@ from assistant_core.scratchpad.compactor import (
     CompactorDeps,
 )
 from assistant_core.scratchpad.models import NoteCreate
-from pydantic_ai import Agent, ModelRetry, RunContext
+from pydantic_ai import Agent, ModelRetry, NativeOutput, RunContext
 
 from strategist.ai.agents._model_resolution import (
     resolve_orchestrator_model_entry,
@@ -36,8 +36,6 @@ says "using GenesByRNASeq with params X").
 - Tags: preserve informative tags; drop housekeeping tags.
 """
 
-_LISTED_MISSING = 20
-
 
 def _note_text(note: NoteCreate) -> str:
     return "\n".join((note.title, note.summary, " ".join(note.tags), note.body))
@@ -45,14 +43,11 @@ def _note_text(note: NoteCreate) -> str:
 
 def _missing_facts_message(missing: frozenset[str]) -> str:
     listed = sorted(missing)
-    named = ", ".join(listed[:_LISTED_MISSING])
-    rest = len(listed) - _LISTED_MISSING
     noun = "identifier" if len(listed) == 1 else "identifiers"
     return (
         f"The compacted notes dropped {len(listed)} {noun} the input notes carry. "
         "Every gene id, step id, strategy id, search name and count in the input "
-        f"must appear verbatim in the output. Missing: {named}"
-        + (f" and {rest} more" if rest > 0 else "")
+        f"must appear verbatim in the output. Missing: {', '.join(listed)}"
     )
 
 
@@ -66,7 +61,7 @@ def build_compactor_agent(
     agent: Agent[CompactorDeps, CompactionResult] = Agent(
         keyed_model(entry.id),
         deps_type=CompactorDeps,
-        output_type=CompactionResult,
+        output_type=NativeOutput(CompactionResult, strict=True),
         instructions=_COMPACTOR_INSTRUCTIONS,
         model_settings=build_model_settings(entry.id),
         retries=2,

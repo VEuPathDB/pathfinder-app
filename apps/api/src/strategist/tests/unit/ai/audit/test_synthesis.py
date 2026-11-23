@@ -5,8 +5,11 @@ from typing import Any
 from uuid import UUID
 
 import pytest
-from assistant_core.models.scripted import retried_returns, terminal_call, user_texts
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
+from assistant_core.models.scripted import user_texts
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+)
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.usage import RunUsage
 
@@ -35,6 +38,7 @@ from strategist.domain.audit.verdicts import (
 )
 from strategist.services.audit.verdicts import VerdictView
 from strategist.services.audit.views import AuditRunSummary, AuditRunView
+from strategist.tests._support.native_answers import answered, feedback
 
 _GENOME = "Examplea alpha A"
 _OTHER = "Examplea beta B"
@@ -146,13 +150,13 @@ _RIGHT = _draft([_section(_TRUNCATED, 1, 2)], [1, 2])
 
 def _first_then(
     wrong: dict[str, Any],
-    retries: list[ToolReturnPart],
+    retries: list[str],
     right: dict[str, Any] = _RIGHT,
 ) -> FunctionModel:
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retried_returns(messages))
-        return ModelResponse(parts=[terminal_call(right if retries else wrong)])
+        retries[:] = feedback(messages)
+        return ModelResponse(parts=[answered(right if retries else wrong)])
 
     return FunctionModel(answer)
 
@@ -196,59 +200,59 @@ def test_a_kept_finding_with_no_stored_impact_row_fails() -> None:
 
 
 async def test_a_section_naming_a_rejected_finding_is_retried() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     reviews = [_stored(1), _stored(2), _stored(3, "no_error")]
     wrong = _draft([_section(_TRUNCATED, 1, 2, 3)], [1])
 
     found = await _synthesized(reviews, _first_then(wrong, retries))
 
-    assert retries[0].content == (
+    assert (
         "These findings have no review that keeps them as an error: 3. "
         "Name only the kept findings: 1, 2."
-    )
+    ) in retries[0]
     assert found.sections[0].finding_ids == (1, 2)
 
 
 async def test_a_section_of_another_error_type_is_retried() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     reviews = [_stored(1), _stored(2, error_type=_SPLIT)]
     wrong = _draft([_section(_TRUNCATED, 1, 2)], [1, 2])
     right = _draft([_section(_TRUNCATED, 1), _section(_SPLIT, 2)], [1, 2])
 
     found = await _synthesized(reviews, _first_then(wrong, retries, right))
 
-    assert retries[0].content == (
+    assert (
         "The section truncated_model holds findings whose reviews name another "
         "error type: 2 (split_model)."
-    )
+    ) in retries[0]
     assert [s.error_type for s in found.sections] == [_TRUNCATED, _SPLIT]
 
 
 async def test_a_headline_out_of_impact_order_is_retried() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     reviews = [_stored(1), _stored(2), _stored(3)]
     wrong = _draft([_section(_TRUNCATED, 1, 2, 3)], [2, 1, 3])
     right = _draft([_section(_TRUNCATED, 1, 2, 3)], [1, 3, 2])
 
     found = await _synthesized(reviews, _first_then(wrong, retries, right))
 
-    assert retries[0].content == (
+    assert (
         "The headline is not in descending order of impact. Order it so: 1, 3, 2."
-    )
+    ) in retries[0]
     assert found.headline == (1, 3, 2)
 
 
 async def test_the_headline_orders_by_the_reviews_impact_and_none_last() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     reviews = [_stored(1, impact=0.1), _stored(2), _stored(5)]
     wrong = _draft([_section(_TRUNCATED, 1, 2, 5)], [1, 5, 2])
     right = _draft([_section(_TRUNCATED, 1, 2, 5)], [2, 1, 5])
 
     found = await _synthesized(reviews, _first_then(wrong, retries, right))
 
-    assert retries[0].content == (
+    assert (
         "The headline is not in descending order of impact. Order it so: 2, 1, 5."
-    )
+    ) in retries[0]
     assert found.headline == (2, 1, 5)
 
 
@@ -256,7 +260,7 @@ async def test_the_headline_orders_by_the_reviews_impact_and_none_last() -> None
 async def test_a_headline_of_equal_impacts_is_accepted_in_either_order(
     headline: list[int],
 ) -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     reviews = [_stored(1, impact=0.5), _stored(2)]
     right = _draft([_section(_TRUNCATED, 1, 2)], headline)
 
@@ -266,7 +270,7 @@ async def test_a_headline_of_equal_impacts_is_accepted_in_either_order(
 
 
 async def test_a_summary_in_words_is_stored_as_written() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     summary = (
         "The kept errors lie in one genome, and the independent reviews agreed "
         "on most of the sampled findings."
@@ -279,7 +283,7 @@ async def test_a_summary_in_words_is_stored_as_written() -> None:
 
 
 async def test_the_agreement_is_computed_from_the_reviews() -> None:
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     reviews = [
         _stored(1, second="error"),
         _stored(2, second="no_error"),
@@ -303,7 +307,7 @@ async def test_the_model_reads_the_kept_findings_and_the_counts() -> None:
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
         seen.extend(user_texts(messages))
-        return ModelResponse(parts=[terminal_call(_RIGHT)])
+        return ModelResponse(parts=[answered(_RIGHT)])
 
     reviews = [_stored(1), _stored(2), _stored(3, "no_error"), _stored(4, "undecided")]
     await _synthesized(reviews, FunctionModel(answer))
@@ -342,7 +346,7 @@ async def test_no_kept_finding_makes_no_model_call() -> None:
 async def test_a_synthesis_whose_retries_are_spent_stops_with_its_usage() -> None:
     def always_wrong(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del messages, info
-        return ModelResponse(parts=[terminal_call(_draft([_section(_SPLIT, 1)], [1]))])
+        return ModelResponse(parts=[answered(_draft([_section(_SPLIT, 1)], [1]))])
 
     usage = RunUsage()
     with pytest.raises(SynthesisStoppedError):

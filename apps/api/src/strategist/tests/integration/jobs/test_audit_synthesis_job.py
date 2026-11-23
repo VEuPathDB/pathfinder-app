@@ -7,13 +7,12 @@ from uuid import UUID
 
 import pytest
 from assistant_core import quota
-from assistant_core.models.scripted import retried_returns, terminal_call
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import PaidBy
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic_ai.exceptions import ModelHTTPError
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolReturnPart
+from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from sqlalchemy import update
 
@@ -36,6 +35,7 @@ from strategist.services.audit.reviews import (
     store_review,
 )
 from strategist.services.audit.runs import RunOwner, owned_run
+from strategist.tests._support.native_answers import answered, feedback
 from strategist.tests._support.provider_keys import sealed_provider_keys
 from strategist.tests.integration.http.conftest import client_for
 from strategist.tests.integration.jobs._audit_jobs import TOKEN, holding, registered
@@ -137,7 +137,7 @@ def _refusing(called: list[int]) -> FunctionModel:
     def refuse(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del messages, info
         called.append(1)
-        return ModelResponse(parts=[terminal_call({})])
+        return ModelResponse(parts=[answered({})])
 
     return FunctionModel(refuse)
 
@@ -192,13 +192,13 @@ async def test_the_synthesis_carries_the_review_agreement(
         stored,
         {1: ("error", "error"), 2: ("error", "error"), 3: ("error", "no_error")},
     )
-    retries: list[ToolReturnPart] = []
+    retries: list[str] = []
     ids = list(stored.values())
     written = "80% of the findings were kept"
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retried_returns(messages))
+        retries.extend(feedback(messages))
         summary = written
         section = {
             "errorType": "truncated_model",
@@ -207,7 +207,7 @@ async def test_the_synthesis_carries_the_review_agreement(
             "findingIds": ids,
         }
         draft = {"sections": [section], "headline": ids, "summary": summary}
-        return ModelResponse(parts=[terminal_call(draft)])
+        return ModelResponse(parts=[answered(draft)])
 
     monkeypatch.setattr(
         review, "synthesis_model", lambda model_id: FunctionModel(answer)
@@ -332,7 +332,7 @@ async def test_a_provider_error_after_paid_requests_is_charged_once(
         asked.append(1)
         if len(asked) == 2:
             raise ModelHTTPError(status_code=503, model_name="test:synthesis")
-        return ModelResponse(parts=[terminal_call({})])
+        return ModelResponse(parts=[answered({})])
 
     monkeypatch.setattr(
         review, "synthesis_model", lambda model_id: FunctionModel(fail_second)
