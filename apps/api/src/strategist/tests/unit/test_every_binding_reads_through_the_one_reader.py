@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Iterator
 from dataclasses import dataclass
-from functools import cache
+from functools import cache, cached_property
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -71,6 +71,7 @@ class Module:
     path: str
     tree: ast.Module
 
+    @cached_property
     def imported(self) -> dict[str, str]:
         names: dict[str, str] = {}
         for node in ast.walk(self.tree):
@@ -102,7 +103,7 @@ class Module:
         return walk(self.tree, "")
 
     def called(self, node: ast.AST) -> set[str]:
-        imported = self.imported()
+        imported = self.imported
         found: set[str] = set()
         for call in ast.walk(node):
             match call:
@@ -115,7 +116,7 @@ class Module:
         return found
 
     def referenced(self) -> set[str]:
-        imported = self.imported()
+        imported = self.imported
         found = set(imported.values())
         for node in ast.walk(self.tree):
             match node:
@@ -130,7 +131,7 @@ class Module:
     def dynamic_reads(self) -> list[int]:
         modules = {
             local
-            for local, qualified in self.imported().items()
+            for local, qualified in self.imported.items()
             if qualified.split(".")[0] in {"veupathdb_mcp", "veupathdb", "strategist"}
         }
         return [

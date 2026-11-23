@@ -2,6 +2,13 @@
 
 ## 2026-11-23
 
+* **A commit checks the staged files; a push runs the whole-project gates in parallel.**
+  `.pre-commit-config.yaml` sets `default_stages: [pre-commit]`, so a push no longer
+  repeats the commit hooks; every whole-project hook is `stages: [manual]`, and
+  `scripts/pre-push.mjs` runs them at push, `shared-ts-openapi` first and the rest together.
+  `next build` and `pip-audit` left the hooks: CI's new `build-web` job builds with a
+  `.next/cache` cache, and the API integration tier runs on every push. See
+  [verification gates](conventions/verification-gates.md).
 * **CI runs recorded tests only.** No CI job reaches a live site or a model, and nothing
   runs on a schedule: `ci.yml` lost its nightly trigger, and a hand-started run refreshes
   the recorded API test durations. `wdk-nightly.yml` and `mcp-nightly.yml` are deleted;

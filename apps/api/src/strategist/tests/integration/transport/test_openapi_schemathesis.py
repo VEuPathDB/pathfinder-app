@@ -127,7 +127,7 @@ def local_oauth_server() -> Iterator[None]:
     get_settings.cache_clear()
 
 
-_SHARDS = 4
+_SHARDS = 16
 
 
 def _in_shard(label: str, shard: int) -> bool:
@@ -332,9 +332,9 @@ def test_the_shards_fuzz_every_operation_once(
 ) -> None:
     app, _ = patched_app
 
-    sharded = [label for shard in range(_SHARDS) for label in _fuzzed_in(app, shard)]
+    shards = [_fuzzed_in(app, shard) for shard in range(_SHARDS)]
 
-    assert sorted(sharded) == sorted(
+    assert sorted(label for shard in shards for label in shard) == sorted(
         op.label for op in _parsed_operations(api_schema.schema)
     )
-    assert min(len(_fuzzed_in(app, shard)) for shard in range(_SHARDS)) > 0
+    assert min(len(shard) for shard in shards) > 0

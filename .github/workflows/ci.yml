@@ -7,8 +7,8 @@ on:
   pull_request:
     branches: [main]
   # Every job reads recorded or replayed responses; none reaches a live site
-  # or a model. A hand-started run adds the integration tier and refreshes the
-  # recorded test durations; nothing runs on a schedule.
+  # or a model. A hand-started run also refreshes the recorded test durations;
+  # nothing runs on a schedule.
   workflow_dispatch:
 
 concurrency:
@@ -236,8 +236,7 @@ jobs:
         working-directory: apps/api
         run: uv run sphinx-build -b html docs docs/_build/html
 
-  # A push to main runs the unit tier; a pull request and a hand-started run
-  # add the integration tier, split by recorded duration.
+  # Both tiers run on every push, split by recorded duration.
   test-api:
     name: Test API (unit ${{ matrix.group }}/3)
     runs-on: ubuntu-latest
@@ -262,6 +261,7 @@ jobs:
         run: >-
           uv run pytest src/strategist/tests/unit -m "not live_model and not live_wdk"
           --splits 3 --group "$GROUP" --durations-path .test_durations
+          --splitting-algorithm least_duration
           -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
 
       - name: Upload the coverage data
@@ -285,7 +285,7 @@ jobs:
     name: Test API (integration ${{ matrix.group }}/8)
     runs-on: ubuntu-latest
     needs: changes
-    if: ${{ needs.changes.outputs.api == 'true' && github.event_name != 'push' }}
+    if: ${{ needs.changes.outputs.api == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -320,6 +320,7 @@ jobs:
         run: >-
           uv run pytest src/strategist/tests/integration -m "not live_model and not live_wdk"
           --splits 8 --group "$GROUP" --durations-path .test_durations
+          --splitting-algorithm least_duration
           -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
 
       - name: Upload the coverage data
@@ -351,7 +352,6 @@ jobs:
       - name: Check every test is in exactly one group
         working-directory: apps/api
         env:
-          EVENT: ${{ github.event_name }}
         run: |
           set -o pipefail
           export LC_ALL=C
@@ -365,7 +365,7 @@ jobs:
             pids=()
             collect "$tier" "$dir/whole.txt" & pids+=($!)
             for g in $(seq 1 "$groups"); do
-              collect "$tier" "$dir/group-$g.txt" --splits "$groups" --group "$g" --durations-path .test_durations & pids+=($!)
+              collect "$tier" "$dir/group-$g.txt" --splits "$groups" --group "$g" --durations-path .test_durations --splitting-algorithm least_duration & pids+=($!)
             done
             for p in "${pids[@]}"; do wait "$p"; done
             sort "$dir"/group-*.txt > "$dir/grouped.txt"
@@ -379,7 +379,7 @@ jobs:
             echo "$total $tier tests, each in exactly one of $groups groups"
           }
           check unit 3
-          if [ "$EVENT" != "push" ]; then check integration 8; fi
+          check integration 8
 
   test-api-durations:
     name: Refresh the API test durations
