@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import assert_never
 
@@ -19,8 +20,9 @@ from veupathdb.model import CamelModel
 from veupathdb.wdk import StrategyAPI, get_site, get_strategy_api
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import StepPushFailure
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.step_status import step_status
 from strategist.services.strategies._tree_write import (
@@ -363,12 +365,9 @@ async def commit_tree(
     ):
         msg = f"a {target.role} strategy is committed from a fresh sync state"
         raise ValueError(msg)
-    classes = {sid: s.record_class for sid, s in steps.items() if s.record_class}
-    refusal = await tree_record_class_refusal(
-        site_id, rebuild_tree(root_id, steps), classes
-    )
-    if refusal is not None:
-        raise ApplyError(refusal)
+    refused = await what_the_site_cannot_run(site_id, steps, root_id)
+    if not refused.empty:
+        raise PlanDeparturesError(refused)
     await fill_record_classes(site_id, steps)
     root = rebuild_tree(root_id, steps)
     before = {**target.copies, **held_before_the_commit(old, root, steps, sync_state)}
@@ -391,6 +390,18 @@ async def commit_tree(
     elif target.role == "saved":
         await run.api.set_saved(committed.sync.wdk_strategy_id, is_saved=True)
     return committed
+
+
+async def what_the_site_cannot_run(
+    site_id: str, steps: Mapping[str, StrategyStep], root_id: str
+) -> Problems:
+    classes = {sid: s.record_class for sid, s in steps.items() if s.record_class}
+    root = rebuild_tree(root_id, dict(steps))
+    refusal = await tree_record_class_refusal(site_id, root, classes)
+    if refusal is None:
+        return Problems()
+    key = RefusalKey(check=Check.THE_TREE_TO_ITS_RECORD_CLASSES)
+    return Problems.one(key, refusal).under(criterion=root.id, search=root.search_name)
 
 
 async def _undo(api: StrategyAPI, sync_state: WDKSyncState) -> None:

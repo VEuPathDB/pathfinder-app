@@ -2,6 +2,16 @@
 
 ## 2026-11-23
 
+* **A write that departs from the plan names every departure at once.** A build or a batch
+  measures the record classes, the organism scopes, the joins and the stated values of the
+  tree it would leave and raises one `PlanDeparturesError` carrying `Problems`; the tool
+  raises them as one `ProblemsRefusal` ("Nothing was written."). Each departure is a
+  `Problem` keyed by its own `Check` member (`the_tree_to_its_record_classes`,
+  `the_intersect_to_its_organisms`, `the_join_to_the_spec`, `the_value_to_the_spec`,
+  `the_slot_to_its_step`, `the_subtree_to_the_spec`, `the_tree_to_its_read_back`) and placed
+  with `under()` on its criterion and search. A build that sends four values the spec states
+  otherwise is refused once with four problems, and nothing is posted.
+
 * **A commit plans against what WDK holds.** The sync state keeps the settings WDK held
   at the last read-back (`wdk_held`, read by the reconcile and by each put), and the
   planner compares the plan with them, so a refused search-config PUT or recreate POST is

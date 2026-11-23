@@ -4,7 +4,7 @@ import pytest
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
 from strategist.domain.strategy.operations import ReplaceSubtreeOp
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
@@ -71,11 +71,19 @@ async def test_a_build_of_a_protein_step_and_a_group_step_posts_nothing(
 ) -> None:
     session = _empty_session()
 
-    with pytest.raises(ApplyError) as refused:
+    with pytest.raises(PlanDeparturesError) as refused:
         await _build(session, combine("step_join", _protein(), _mammals()))
 
     assert session.graph is not None
-    assert (str(refused.value), api.calls, session.graph.steps) == (_REFUSAL, [], {})
+    assert (
+        [p.sentence for p in refused.value.problems.found],
+        api.calls,
+        session.graph.steps,
+    ) == (
+        [_REFUSAL],
+        [],
+        {},
+    )
 
 
 async def test_a_build_over_the_proteins_groups_posts_every_step(
@@ -113,7 +121,7 @@ async def test_an_edit_that_joins_a_group_step_to_proteins_posts_nothing(
     session = session_with(_protein(), {"step_protein": 227284890})
     held = dict(session.graph.steps) if session.graph is not None else {}
 
-    with pytest.raises(ApplyError) as refused:
+    with pytest.raises(PlanDeparturesError) as refused:
         await apply_and_commit(
             deps=StrategyMutationContext(site_id="orthomcl", strategy_session=session),
             op=ReplaceSubtreeOp(
@@ -125,8 +133,12 @@ async def test_an_edit_that_joins_a_group_step_to_proteins_posts_nothing(
         )
 
     assert session.graph is not None
-    assert (str(refused.value), api.calls, session.graph.steps) == (
-        _REFUSAL,
+    assert (
+        [p.sentence for p in refused.value.problems.found],
+        api.calls,
+        session.graph.steps,
+    ) == (
+        [_REFUSAL],
         [],
         held,
     )

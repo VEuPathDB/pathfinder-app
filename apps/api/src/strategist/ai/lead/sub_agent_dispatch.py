@@ -44,16 +44,13 @@ from strategist.ai.lead.sub_agent_stream import (
 from strategist.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from strategist.ai.lead.unsaved_set import result_not_saved
 from strategist.ai.tools.standalone.graph_helpers import derive_strategy_name
-from strategist.ai.tools.standalone.strategy_refusals import (
-    build_departs_from_the_plan_message,
-)
 from strategist.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.computed_groups import noted_description
 from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.domain.strategy.organism_picks import asked_organisms
 from strategist.domain.strategy.orthology import (
     OrganismChange,
@@ -80,6 +77,7 @@ from strategist.domain.strategy.spec_tree import (
 from strategist.domain.strategy.step_words import added_searches, step_words
 from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.domain.strategy.types import SyncStateProtocol
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -170,8 +168,8 @@ async def build_the_minted(
             root=built.root,
             description=noted_description(described, comparisons, spec),
         )
-    except ApplyError as exc:
-        raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
+    except PlanDeparturesError as exc:
+        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
     # A criterion and the step it built become one address, so the next turn's
     # edit changes that step instead of rebuilding the strategy around it.
     # The build re-keys the criteria without changing what they state, so every
@@ -361,7 +359,7 @@ async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOu
                 description=strategy_description(graph, root_id),
             ),
         )
-    except VEuPathDBError:
+    except VEuPathDBError, ApplyError:
         return prior
     if committed.record_type is not None:
         graph.record_type = committed.record_type

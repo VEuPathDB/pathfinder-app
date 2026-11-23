@@ -28,6 +28,7 @@ from strategist.ai.lead.sub_agent_tools import (
     SubAgentDurablePark,
     SubAgentRunUsage,
 )
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.constraints import (
     organism_hints_from,
 )
@@ -42,6 +43,7 @@ from strategist.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
 from strategist.platform.model_keys import turn_paid_by
+from strategist.platform.refusals import ProblemsRefusal
 
 
 def _stated_goal(state: PipelineState) -> str:
@@ -252,6 +254,11 @@ def refuse_and_restore(deps: LeadDeps, message: str) -> NoReturn:
     """
     _restore_the_found_spec(deps)
     raise ModelRetry(message)
+
+
+def refuse_problems_and_restore(deps: LeadDeps, problems: Problems) -> NoReturn:
+    _restore_the_found_spec(deps)
+    raise ProblemsRefusal(problems, closing="Nothing was written.")
 
 
 def refuse_without_retry(deps: LeadDeps, message: str) -> NoReturn:

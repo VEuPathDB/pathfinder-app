@@ -1,10 +1,12 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import StrategyAst, pushable_root_id
 from veupathdb.errors import ValidationError, VEuPathDBError
 
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.combine_naming import name_the_combines
 from strategist.domain.strategy.operations import (
@@ -14,6 +16,7 @@ from strategist.domain.strategy.operations import (
 from strategist.domain.strategy.operations.apply import (
     ApplyError,
     ApplyResult,
+    PlanDeparturesError,
     apply_operation,
 )
 from strategist.domain.strategy.revision import answer_revision
@@ -32,6 +35,7 @@ from strategist.services.strategies.commit_tree import (
     CommittedTree,
     commit_tree,
     drop_the_tree,
+    what_the_site_cannot_run,
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
@@ -142,21 +146,55 @@ def _the_tree_wdk_is_offered(
     )
 
 
-async def _refuse_a_tree_the_site_cannot_run(
+async def _disjoint_organisms(
+    deps: StrategyMutationContext, wdk_ast: StrategyAst | None
+) -> Problems:
+    """Why the tree the batch leaves intersects two known and disjoint
+    organism scopes."""
+    if wdk_ast is None:
+        return Problems()
+    refusal = await tree_cross_organism_refusal(deps.site_id, wdk_ast.root)
+    if refusal is None:
+        return Problems()
+    key = RefusalKey(check=Check.THE_INTERSECT_TO_ITS_ORGANISMS)
+    root = wdk_ast.root
+    return Problems.one(key, refusal).under(criterion=root.id, search=root.search_name)
+
+
+class _LeftTree(NamedTuple):
+    full: StrategyAst | None
+    offered: StrategyAst | None
+
+
+async def _the_tree_without_departures(
     deps: StrategyMutationContext,
     graph: StrategyGraph,
-    wdk_ast: StrategyAst | None,
+    departures: Problems,
+    sync_state: WDKSyncState,
     *,
     rollback: tuple[StrategyAst | None, GraphLabels],
-) -> None:
-    """Refuse the batch before any push when the tree it leaves intersects two
-    known and disjoint organism scopes."""
-    if wdk_ast is None:
-        return
-    refusal = await tree_cross_organism_refusal(deps.site_id, wdk_ast.root)
-    if refusal is not None:
-        restore_graph(graph, *rollback)
-        raise ApplyError(refusal)
+) -> _LeftTree:
+    old_ast, entry_labels = rollback
+    try:
+        full = _the_tree_the_batch_leaves(graph, old_ast, sync_state, entry_labels)
+    except ApplyError as unreadable:
+        key = RefusalKey(check=Check.THE_TREE_TO_ITS_READ_BACK)
+        raise PlanDeparturesError(
+            departures.plus(Problems.one(key, str(unreadable)))
+        ) from unreadable
+    offered = _the_tree_wdk_is_offered(graph, full, sync_state)
+    problems = (await _disjoint_organisms(deps, offered)).plus(departures)
+    if not problems.empty:
+        classes = (
+            Problems()
+            if offered is None
+            else await what_the_site_cannot_run(
+                deps.site_id, graph.steps, offered.root.id
+            )
+        )
+        restore_graph(graph, old_ast, entry_labels)
+        raise PlanDeparturesError(classes.plus(problems))
+    return _LeftTree(full=full, offered=offered)
 
 
 def _saved_history(graph: StrategyGraph, description: str) -> int:
@@ -226,7 +264,7 @@ async def apply_operations_and_commit(
     name_the_combines(graph.steps)
     graph.note_words(deps.step_words)
 
-    refusal = refusal_after_the_batch(
+    departures = refusal_after_the_batch(
         deps=deps,
         graph=graph,
         entry=entry,
@@ -234,18 +272,13 @@ async def apply_operations_and_commit(
         slot_writes=slot_writes,
         replaces_a_subtree=replaces_a_subtree,
     )
-    if refusal is not None:
-        restore_graph(graph, old_ast, entry_labels)
-        raise ApplyError(refusal)
+    new_ast, wdk_ast = await _the_tree_without_departures(
+        deps, graph, departures, sync_state, rollback=(old_ast, entry_labels)
+    )
 
     result = ApplyResult(
         description="; ".join(descriptions),
         dropped_step_ids=sorted(set(dropped_step_ids)),
-    )
-    new_ast = _the_tree_the_batch_leaves(graph, old_ast, sync_state, entry_labels)
-    wdk_ast = _the_tree_wdk_is_offered(graph, new_ast, sync_state)
-    await _refuse_a_tree_the_site_cannot_run(
-        deps, graph, wdk_ast, rollback=(old_ast, entry_labels)
     )
     history = _saved_history(graph, result.description)
 

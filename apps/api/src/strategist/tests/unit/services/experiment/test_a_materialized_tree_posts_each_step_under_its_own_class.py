@@ -16,7 +16,7 @@ from veupathdb.errors import ValidationError, WDKError
 from veupathdb.wdk import NewStepSpec, WDKIdentifier
 from veupathdb_mcp.catalog import ValidatedParams
 
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.services.eval import build_gold_strategy
 from strategist.services.strategies import _tree_write, commit_tree, record_classes
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -93,11 +93,12 @@ async def test_a_tree_of_two_record_types_is_refused_before_any_post(
 ) -> None:
     serve_orthomcl_record_classes(monkeypatch)
     api = _serve(monkeypatch)
-    with pytest.raises(ApplyError) as refused:
+    with pytest.raises(PlanDeparturesError) as refused:
         await _commit("orthomcl", _join(_protein(), _mammals()))
 
     assert api.calls == []
-    assert str(refused.value).startswith(_MIXED)
+    (problem,) = refused.value.problems.found
+    assert problem.sentence.startswith(_MIXED)
 
 
 async def test_a_group_tree_posts_each_step_under_group(

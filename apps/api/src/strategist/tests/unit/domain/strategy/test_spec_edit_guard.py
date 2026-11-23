@@ -14,6 +14,7 @@ from veupathdb.domain.strategy import CombineOp
 
 from strategist.ai.agents.execution import build_execution_agent
 from strategist.ai.lead.lead_agent import build_lead_agent
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -32,8 +33,8 @@ from strategist.domain.strategy.spec_edit_guard import (
     ValueContradiction,
     contradicted_joins,
     contradicted_values,
-    new_join_contradiction,
-    new_value_contradiction,
+    new_join_contradictions,
+    new_value_contradictions,
     spec_stated_values,
     stated_values,
 )
@@ -141,12 +142,13 @@ def _graph() -> StrategyGraph:
 
 
 def _refusal_for(graph: StrategyGraph, spec: OperationalSpec) -> str | None:
-    return new_join_contradiction(
+    found = new_join_contradictions(
         structure=spec.structure,
         graph=graph,
         criteria=[c.id for c in spec.criteria],
         before={},
     )
+    return found.text() or None
 
 
 def test_a_combine_operator_the_spec_does_not_declare_is_refused() -> None:
@@ -191,13 +193,13 @@ def test_a_join_that_already_contradicted_the_spec_is_not_refused_again() -> Non
         JoinContradiction(declared=CombineOp.INTERSECT, written=CombineOp.UNION)
     ]
     assert (
-        new_join_contradiction(
+        new_join_contradictions(
             structure=spec.structure,
             graph=graph,
             criteria=[c.id for c in spec.criteria],
             before=before,
         )
-        is None
+        == Problems()
     )
 
 
@@ -209,9 +211,10 @@ def _with_value(
 
 
 def _values_refusal(graph: StrategyGraph, spec: OperationalSpec) -> str | None:
-    return new_value_contradiction(
+    found = new_value_contradictions(
         stated=spec_stated_values(spec), graph=graph, before={}, after={}
     )
+    return found.text() or None
 
 
 def _with_percentile_criterion(spec: OperationalSpec, **params: ParamValue) -> None:
@@ -329,10 +332,10 @@ def test_a_value_that_already_departed_is_not_refused_again() -> None:
         "min_expression_percentile"
     ]
     assert (
-        new_value_contradiction(
+        new_value_contradictions(
             stated=spec_stated_values(spec), graph=graph, before=before, after={}
         )
-        is None
+        == Problems()
     )
 
 

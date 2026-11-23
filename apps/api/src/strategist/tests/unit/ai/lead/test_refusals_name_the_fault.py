@@ -25,7 +25,6 @@ from strategist.ai.lead.edit_messages import (
     unsupported_edit_message,
 )
 from strategist.ai.tools.standalone.strategy_refusals import (
-    build_departs_from_the_plan_message,
     operation_refused_message,
 )
 from strategist.domain.strategy.operational_spec import (
@@ -41,10 +40,6 @@ from strategist.tests._support.bound_values import bound
 _REBUILD_WORDS = ("rebuild", "replace", "from scratch", "start over")
 _THE_GRAPH_SAID = "leaf 'step_1a2b3c4d' not found"
 _THE_SHAPE_SAID = "the tree states a step the strategy does not hold"
-_THE_PLAN_SAID = (
-    "the spec joins ['c_mass_spec', 'c_text'] at INTERSECT, and this write "
-    "joins them at UNION, so the strategy would answer a different question."
-)
 _THE_TREE_SAID = "a combine names no operator"
 
 
@@ -147,22 +142,6 @@ class TestABuildTheTreeCannotHold:
         assert _THE_TREE_SAID in message
         assert "Nothing was built" in message
         assert "Run frame_problem with that reason" in message
-
-
-class TestABuildThatDepartsFromThePlan:
-    def test_it_names_the_plan_and_spares_the_site(self) -> None:
-        message = build_departs_from_the_plan_message(_THE_PLAN_SAID)
-
-        assert _THE_PLAN_SAID in message
-        assert "VEuPathDB was not asked" in message
-
-    def test_it_says_nothing_was_built(self) -> None:
-        assert "Nothing was built" in build_departs_from_the_plan_message(
-            _THE_PLAN_SAID
-        )
-
-    def test_it_does_not_read_as_an_external_rejection(self) -> None:
-        assert "REJECTED" not in build_departs_from_the_plan_message(_THE_PLAN_SAID)
 
 
 class TestABatchTheGraphRefused:

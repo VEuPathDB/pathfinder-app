@@ -15,6 +15,7 @@ from veupathdb.domain.strategy import (
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import make_validation_callbacks
 
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
@@ -23,15 +24,15 @@ from strategist.domain.strategy.build_outcome import (
     node_status,
 )
 from strategist.domain.strategy.combine_naming import name_the_combines
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.orthology import OrganismChange, organism_change
 from strategist.domain.strategy.revision import answer_revision
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import (
     contradicted_joins,
     contradicted_values,
-    new_join_contradiction,
-    new_value_contradiction,
+    new_join_contradictions,
+    new_value_contradictions,
 )
 from strategist.domain.strategy.step_words import StepWords
 from strategist.domain.strategy.strategy_description import strategy_description
@@ -40,6 +41,7 @@ from strategist.services.strategies.commit_tree import (
     CommitTarget,
     CommittedTree,
     commit_tree,
+    what_the_site_cannot_run,
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
@@ -149,8 +151,8 @@ def _a_build_the_spec_refuses(
     graph: StrategyGraph,
     root: StrategyStepNode,
     sides: CanonicalSides,
-) -> str | None:
-    """Why the tree this build would leave behind departs from the spec.
+) -> Problems:
+    """Every way the tree this build would leave behind departs from the spec.
 
     A build writes a whole tree, so its leaves carry values and its combines
     carry operators. Both are measured here, the way the commit layer measures
@@ -159,19 +161,19 @@ def _a_build_the_spec_refuses(
     candidate = StrategyGraph(graph.id, graph.name, graph.site_id)
     candidate.steps = flatten_tree(root)
     candidate.recompute_roots()
-    join = new_join_contradiction(
+    joins = new_join_contradictions(
         structure=deps.stated_structure,
         graph=candidate,
         criteria=deps.stated_criteria,
         before=contradicted_joins(deps.stated_structure, graph, deps.stated_criteria),
     )
-    if join is not None:
-        return join
-    return new_value_contradiction(
-        stated=sides.stated,
-        graph=candidate,
-        before=contradicted_values(sides.stated, graph, sides.entry),
-        after=sides.written,
+    return joins.plus(
+        new_value_contradictions(
+            stated=sides.stated,
+            graph=candidate,
+            before=contradicted_values(sides.stated, graph, sides.entry),
+            after=sides.written,
+        )
     )
 
 
@@ -234,9 +236,11 @@ async def build_strategy_from_spec(
 
     built = await _canonical_build(deps, graph, root)
     root = built.root
-    refusal = _a_build_the_spec_refuses(deps, graph, root, built.sides)
-    if refusal is not None:
-        raise ApplyError(refusal)
+    problems = _a_build_the_spec_refuses(deps, graph, root, built.sides)
+    if not problems.empty:
+        steps = flatten_tree(root)
+        classes = await what_the_site_cannot_run(deps.site_id, steps, root.id)
+        raise PlanDeparturesError(classes.plus(problems))
 
     sync_state = ensure_sync_state(session)
     before = graph.to_strategy_ast(sync_state=sync_state)
@@ -283,7 +287,7 @@ async def build_strategy_from_spec(
                 description=strategy_description(graph, root.id),
             ),
         )
-    except ApplyError:
+    except PlanDeparturesError:
         restore_graph(graph, old, entry.labels)
         del graph.history[entry.history :]
         sync_state.step_counts = entry.counts

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
@@ -58,11 +58,13 @@ from strategist.domain.eda_thread import EdaExport
 from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations import GraphOperation
+from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_edit_guard import spec_stated_values
 from strategist.domain.strategy.spec_hydration import criteria_listed_under
 from strategist.domain.strategy.step_words import StampedKind, StepWords, step_words
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.eda.binding import read_analysis
 from strategist.services.eda.direction import selection_sentence
 from strategist.services.eda.steps import (
@@ -346,16 +348,11 @@ async def create_eda_step(
         else spec_after_the_replacement(ctx, graph, node, replace_step_id, plan.binding)
     )
 
-    try:
-        result = await apply_operations_and_commit(
-            deps=_strategy_context(ctx, stated, {node.id: plan.stamped}),
-            ops=write.ops,
-        )
-    except ValidationError as exc:
-        raise validation_model_retry(exc, searchName=node.search_name) from exc
-    except ApplyError as exc:
-        msg = operation_refused_message(str(exc), wrote="export")
-        raise ModelRetry(msg) from exc
+    result = await _commit_the_export(
+        _strategy_context(ctx, stated, {node.id: plan.stamped}),
+        write.ops,
+        search_name=node.search_name,
+    )
     if replace_step_id is None:
         _state_the_export(ctx, graph, plan, waiting)
     else:
@@ -423,3 +420,17 @@ async def create_eda_step(
         )
     landed = _landed(node.id, replace_step_id, write.join)
     return with_summary(created, landed, ctx=ctx, extra=metadata)
+
+
+async def _commit_the_export(
+    deps: StrategyMutationContext, ops: Sequence[GraphOperation], *, search_name: str
+) -> CommitResult:
+    try:
+        return await apply_operations_and_commit(deps=deps, ops=ops)
+    except ValidationError as exc:
+        raise validation_model_retry(exc, searchName=search_name) from exc
+    except PlanDeparturesError as exc:
+        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
+    except ApplyError as exc:
+        msg = operation_refused_message(str(exc), wrote="export")
+        raise ModelRetry(msg) from exc

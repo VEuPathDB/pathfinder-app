@@ -16,6 +16,7 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import CombineOp, StepKind
 
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.combination_check import meeting_operator
 from strategist.domain.strategy.constraint_grounding import ground_against_spec
 from strategist.domain.strategy.constraints import ConstraintKind, ConstraintSource
@@ -33,8 +34,8 @@ __all__ = [
     "ValueContradiction",
     "contradicted_joins",
     "contradicted_values",
-    "new_join_contradiction",
-    "new_value_contradiction",
+    "new_join_contradictions",
+    "new_value_contradictions",
     "spec_stated_values",
     "stated_values",
 ]
@@ -110,29 +111,32 @@ def contradicted_joins(
     return found
 
 
-def new_join_contradiction(
+def new_join_contradictions(
     *,
     structure: SpecStructure | None,
     graph: StrategyGraph,
     criteria: Collection[str],
     before: Mapping[frozenset[str], JoinContradiction],
-) -> str | None:
-    """Why this write joins the spec's criteria against the spec, or None.
+) -> Problems:
+    """Why this write joins the spec's criteria against the spec, one per join.
 
     Only a join the write introduces is refused. A tree that already
     contradicted the spec keeps its answer until something restates one of them.
     """
+    found = Problems()
     for joined, join in contradicted_joins(structure, graph, criteria).items():
         if before.get(joined) == join:
             continue
-        return (
+        text = (
             f"the spec joins {sorted(joined)} at {join.declared.value}, and this "
             f"write joins them at {join.written.value}, so the strategy would "
             f"answer a different question. A structure the spec states changes "
             f"in the spec first, in a framing pass. "
             f"{_THROUGH_THE_SPEC}"
         )
-    return None
+        one = Problems.one(RefusalKey(check=Check.THE_JOIN_TO_THE_SPEC), text)
+        found = found.plus(one.under(criterion=" + ".join(sorted(joined)), search=""))
+    return found
 
 
 def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]:
@@ -238,28 +242,37 @@ def contradicted_values(
     return found
 
 
-def new_value_contradiction(
+def new_value_contradictions(
     *,
     stated: Mapping[str, StatedCriterion],
     graph: StrategyGraph,
     before: Mapping[tuple[str, str], ValueContradiction],
     after: Mapping[str, Mapping[str, ParamValue]],
-) -> str | None:
-    """Why this write restates a value the spec states, or None.
+) -> Problems:
+    """Why this write restates a value the spec states, one per value.
 
     Only a value the write introduces is refused. A value that already
     departed keeps its answer until something restates the criterion. A step
     ``after`` names is measured on what the catalog makes of it, so a value
     the catalog moves under a stated one is judged too.
     """
-    for pair, found in contradicted_values(stated, graph, after).items():
-        if found.repeats(before.get(pair)):
+    problems = Problems()
+    for (criterion_id, name), found in contradicted_values(
+        stated, graph, after
+    ).items():
+        if found.repeats(before.get((criterion_id, name))):
             continue
-        return (
+        text = (
             f"the criterion {found.criterion_text!r} states "
             f"{found.parameter} = {to_wire(found.stated)!r}, and this write sends "
             f"{to_wire(found.written)!r}, so the strategy would answer a different "
             f"question. A value the spec states changes in the spec first, "
             f"in a framing pass. {_THROUGH_THE_SPEC}"
         )
-    return None
+        key = RefusalKey(check=Check.THE_VALUE_TO_THE_SPEC, parameter=name)
+        step = graph.get_step(criterion_id)
+        search = "" if step is None else step.search_name or ""
+        problems = problems.plus(
+            Problems.one(key, text).under(criterion=criterion_id, search=search)
+        )
+    return problems

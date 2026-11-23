@@ -19,11 +19,13 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.tools.standalone.strategy import apply_operations
 from strategist.ai.tools.toolsets.execution import build_toolset
+from strategist.domain.refusal import Check, RefusalKey
 from strategist.domain.strategy.operations import AddLeafOp
 from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.operations.types import AttachNewRoot
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import StrategyGraph
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies import commit
 from strategist.services.strategies.commit import apply_operations_and_commit
 
@@ -125,13 +127,14 @@ async def test_the_graph_is_what_it_was_before_the_batch(
     graph = _graph(deps)
     before = sorted(graph.steps)
 
-    with pytest.raises(ModelRetry) as caught:
+    with pytest.raises(ProblemsRefusal) as caught:
         await _sent(deps, payload)
 
-    assert "cannot be read back" in str(caught.value)
-    assert reason in str(caught.value)
-    assert "Nothing was applied" in str(caught.value)
-    assert "VEuPathDB was not asked" in str(caught.value)
+    (problem,) = caught.value.problems.found
+    assert problem.key == RefusalKey(check=Check.THE_TREE_TO_ITS_READ_BACK)
+    assert "cannot be read back" in problem.sentence
+    assert reason in problem.sentence
+    assert caught.value.closing == "Nothing was written."
     assert sorted(graph.steps) == before
     assert before == ["step_c1", "step_c2", "step_k1", "step_k2", "step_k3"]
     assert stub_api.calls == []

@@ -16,7 +16,7 @@ from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
 
 from strategist.domain.strategy.combine_naming import name_the_combines
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
@@ -139,13 +139,14 @@ async def materialize_strategy_snapshot(
                 name=name, description=strategy_description(graph, fresh.root.id)
             ),
         )
-    except ApplyError as exc:
+    except PlanDeparturesError as exc:
+        refusal = exc.problems.text()
         logger.warning(
             "The site cannot run the snapshot's tree; the thread keeps the plan only",
             conversation_id=str(conversation_id),
-            refusal=str(exc),
+            refusal=refusal,
         )
-        return _plan_only(fresh, str(exc))
+        return _plan_only(fresh, refusal)
     except (VEuPathDBError, ValueError) as exc:
         logger.warning(
             "snapshot materialization failed; the thread keeps the plan only",
