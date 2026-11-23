@@ -20,6 +20,7 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.ai.tools.toolsets import verification
 from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests._support.sub_agents import pinned_sub_agent
 from strategist.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -98,7 +99,7 @@ class _LeadJourney:
             self.called.append(part.tool_name)
             return ModelResponse(parts=[part])
 
-        return FunctionModel(_fn, model_name="scripted")
+        return streamed(_fn, model_name="scripted")
 
     def _next(self) -> ToolCallPart:
         if "verify_strategy" in self.called:

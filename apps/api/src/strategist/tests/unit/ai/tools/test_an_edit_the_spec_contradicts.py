@@ -43,7 +43,7 @@ class TestAnEditTheSpecContradictsIsRefused:
         with pytest.raises(ModelRetry) as excinfo:
             await update_combine_operator(ctx(deps), PROFILE_JOIN, CombineOp.UNION)
 
-        assert "set_structure" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[PROFILE_JOIN].operator == CombineOp.INTERSECT
@@ -60,7 +60,7 @@ class TestAnEditTheSpecContradictsIsRefused:
                 ctx(deps), PROFILE_JOIN, stated_tree(union_of_the_same_three())
             )
 
-        assert "set_structure" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[PROFILE_JOIN].operator == CombineOp.INTERSECT
@@ -119,6 +119,6 @@ async def test_a_value_a_stated_requirement_grounds_onto_is_refused(
     with pytest.raises(ModelRetry) as excinfo:
         await update_leaf_params(ctx(deps), MIC2, {"min_expression_percentile": 80})
 
-    assert "set_criterion" in str(excinfo.value)
+    assert "framing pass" in str(excinfo.value)
     assert "'90'" in str(excinfo.value)
     assert stub_api.calls == []

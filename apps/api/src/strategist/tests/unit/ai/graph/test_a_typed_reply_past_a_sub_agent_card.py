@@ -23,6 +23,9 @@ from strategist.tests.unit.ai.graph._approval_turn import (
 __all__ = ["deleted_step_ids", "stub_execution_toolset", "writer"]
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_a_typed_denial_denies_the_tool_and_reaches_the_lead(
     writer: Collector,
@@ -65,6 +68,9 @@ async def test_a_typed_denial_denies_the_tool_and_reaches_the_lead(
     assert writer.tool_chunks_for("call_delete_step") == []
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_a_typed_approval_runs_the_tool_and_delivers_no_prompt(
     writer: Collector,
@@ -104,6 +110,9 @@ async def test_a_typed_approval_runs_the_tool_and_delivers_no_prompt(
     assert writer.tool_chunks_for("call_delete_step") == []
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset")
 async def test_a_click_after_a_typed_reply_delivers_no_stale_text(
     writer: Collector,

@@ -7,7 +7,6 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.prepared import PreparedToolset
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone.conversation import rename_strategy
 from strategist.ai.tools.standalone.escape_hatch import (
     request_search_inspection,
 )
@@ -108,7 +107,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             Tool(replace_subtree, requires_approval=True, max_retries=3),
             insert_saved_strategy,
             add_step_filter,
-            rename_strategy,
             get_strategy,
             request_search_inspection,
             think,

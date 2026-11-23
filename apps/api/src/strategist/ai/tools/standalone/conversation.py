@@ -1,9 +1,4 @@
-"""Standalone conversation tools for pydantic-ai agents.
-
-Provides:
-- ``rename_strategy`` -- rename the current strategy
-- ``clear_strategy`` -- clear the current strategy and start fresh
-"""
+"""The tool that clears the conversation's strategy."""
 
 from __future__ import annotations
 
@@ -14,90 +9,12 @@ from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._validation_helpers import get_graph
-from strategist.ai.tools.standalone.conversation_models import (
-    ClearStrategyResult,
-    RenameStrategyResult,
-    _has_strategy,
-)
-from strategist.ai.tools.standalone.stream_parts import (
-    graph_cleared_chunk,
-    strategy_meta_chunk,
-)
-from strategist.services.strategies.naming import rename_strategy_everywhere
+from strategist.ai.tools.standalone.conversation_models import ClearStrategyResult
+from strategist.ai.tools.standalone.stream_parts import graph_cleared_chunk
 from strategist.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
-
-NOT_STORED = (
-    "The rename found no stored conversation, so nothing was renamed. Say so, "
-    "and do not call the rename again."
-)
-
-
-async def _rename_the_thread(deps: AgentDeps, name: str) -> str:
-    """The name the thread stored, or ``name`` when the turn names no thread.
-
-    A thread the store does not hold refuses the rename.
-    """
-    if deps.conversation_id is None or deps.db_session_factory is None:
-        return name
-    stored = await rename_strategy_everywhere(
-        deps.conversation_id, name, session_factory=deps.db_session_factory
-    )
-    if stored is None:
-        raise ModelRetry(NOT_STORED)
-    return stored
-
-
-async def rename_strategy(
-    ctx: RunContext[AgentDeps],
-    new_name: str,
-    description: str,
-    graph_id: str | None = None,
-) -> ToolReturn[RenameStrategyResult]:
-    """Rename the current strategy.
-
-    Args:
-        new_name: New name for the strategy.
-        description: Strategy description.
-        graph_id: Graph ID to rename.
-    """
-    session = ctx.deps.strategy_session
-    graph = get_graph(session, graph_id)
-    if not graph:
-        msg = (
-            f"NOT_FOUND: No strategy has that id (graph_id={graph_id!r}). "
-            "Pass the graph id, the VEuPathDB strategy id, or nothing at all "
-            "for the active strategy."
-        )
-        raise ModelRetry(msg)
-    if not _has_strategy(graph, session):
-        msg = (
-            "INVALID_STRATEGY: No strategy to rename. "
-            "Build at least one step before calling rename_strategy."
-        )
-        raise ModelRetry(msg)
-
-    old_name = graph.name
-    graph.name = await _rename_the_thread(ctx.deps, new_name)
-    graph.description = description
-    graph.save_history(f"Renamed from '{old_name}' to '{graph.name}'")
-
-    return with_summary(
-        RenameStrategyResult(
-            graph_id=graph.id,
-            old_name=old_name,
-            new_name=graph.name,
-            name=graph.name,
-            record_type=graph.record_type or "",
-            description=graph.description,
-            plan=graph.to_strategy_ast(sync_state=session.sync_state),
-        ),
-        f"Renamed to {graph.name}",
-        ctx=ctx,
-        extra=[strategy_meta_chunk(session, graph)],
-    )
 
 
 async def clear_strategy(

@@ -8,13 +8,12 @@ from uuid import uuid4
 import pytest
 from assistant_core.tasks.declaration import durable_impl
 from pydantic import ValidationError
-from pydantic_ai.exceptions import CallDeferred, ModelRetry
+from pydantic_ai.exceptions import CallDeferred
 from pydantic_ai.tools import RunContext
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_compute
 from strategist.ai.tools.standalone.eda_compute import EdaVariableSpecIn
-from strategist.ai.tools.toolsets.eda import build_toolset
 from strategist.jobs.impls import register_all_tools
 from strategist.jobs.impls.eda_compute_impl import run_eda_compute_impl
 from strategist.tests._support.durable_dispatch import (
@@ -22,7 +21,6 @@ from strategist.tests._support.durable_dispatch import (
     capture_durable_dispatch,
 )
 from strategist.tests._support.run_context import lead_run_context
-from strategist.tests.unit.ai.tools.conftest import unwrap_function_toolset
 
 
 @pytest.fixture
@@ -167,33 +165,6 @@ def test_the_tool_is_registered_in_the_worker_registry() -> None:
     assert [inspect.unwrap(body) for body in (registered,) if body is not None] == [
         run_eda_compute_impl
     ]
-
-
-async def test_groups_that_share_a_label_are_refused_before_the_job(
-    compute_ctx: RunContext[LeadDeps],
-) -> None:
-    with pytest.raises(ModelRetry) as refused:
-        await eda_compute.refuse_shared_labels(
-            compute_ctx,
-            identifier_variable=EdaVariableSpecIn(
-                entity_id="E", variable_id="VEUPATHDB_GENE_ID"
-            ),
-            value_variable=EdaVariableSpecIn(
-                entity_id="E", variable_id="SEQUENCE_READ_COUNT"
-            ),
-            comparator_variable=EdaVariableSpecIn(entity_id="P", variable_id="C"),
-            group_a_labels=["24h pbm", "18h pbm"],
-            group_b_labels=["18h pbm", "36h pbm"],
-        )
-
-    assert "18h pbm" in str(refused.value)
-    assert "both groups" in str(refused.value)
-
-
-def test_the_toolset_checks_the_groups_before_it_defers() -> None:
-    tools = unwrap_function_toolset(build_toolset()).tools
-
-    assert tools["run_eda_compute"].args_validator is eda_compute.refuse_shared_labels
 
 
 def test_a_resumed_result_must_name_its_groups() -> None:

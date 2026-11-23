@@ -185,8 +185,8 @@ class TestTheInventedSpecNeverReachesCreateStep:
         assert len(outcome.failed_steps) == 1
         failure = outcome.failed_steps[0]
         assert failure.search_name == _DESEQ_SEARCH
-        assert "open_eda_analysis" in failure.error
-        assert "create_eda_step" in failure.error
+        assert "an analysis is opened on it" in failure.error
+        assert "The step is built from the open analysis." in failure.error
 
     @pytest.mark.asyncio
     async def test_an_authored_spec_still_pushes(

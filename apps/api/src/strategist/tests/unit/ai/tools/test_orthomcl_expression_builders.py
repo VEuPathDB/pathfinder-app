@@ -10,7 +10,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 from veupathdb import JSONObject
 from veupathdb.domain.parameters import PhyleticExpression
 from veupathdb.wdk import get_site
@@ -36,6 +36,7 @@ from strategist.tests._support.orthomcl_counts import (
     SITE,
     replayed_counts,
 )
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context, summary_of
@@ -243,7 +244,7 @@ async def test_frame_reads_the_built_expression_as_its_tool_result() -> None:
     agent = build_frame_agent()
     with (
         replayed_counts(CLADE_ONLY) as replay,
-        agent.override(model=FunctionModel(_frame, model_name="scripted")),
+        agent.override(model=streamed(_frame, model_name="scripted")),
     ):
         run = await agent.run(
             "FRAME work order: frame it", deps=agent_run_context(site_id=SITE).deps

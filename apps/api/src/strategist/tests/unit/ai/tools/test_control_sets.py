@@ -24,14 +24,17 @@ from strategist.ai.tools.standalone.saved_control_sets import ControlSetSummary
 from strategist.domain.evidence import NamedControlSet
 from strategist.services.control_sets import ControlSetResponse, NewControlSet
 from strategist.services.evidence.control_sets import SavedControls
-from strategist.services.experiment.control_sourcing import ResolvedControls
+from strategist.services.experiment.control_sourcing import (
+    ResolvedControls,
+    StrategyControls,
+)
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.conftest import (
     agent_run_context,
     detached_lead_context,
 )
 
-_WDK_STRATEGY_ID = "330531493"
+_SAVED_SET = "3f9c2b10-5a4e-4d8e-9b1a-2c7d6e5f4a31"
 _SAVES_NOTHING = "This saves nothing. Call build_control_set to save a control set."
 
 
@@ -141,13 +144,22 @@ async def test_build_control_set_records_what_the_turn_wrote(
     assert [(c.id, c.name) for c in recorded] == [("cs_123", "my controls")]
 
 
-async def test_a_turn_that_only_read_ids_records_no_control_set() -> None:
+async def test_a_turn_that_only_read_ids_records_no_control_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Reading ids is the source step; only the write is the control set."""
+
+    async def _ids(
+        _session: AsyncSession, _strategy_id: UUID, _site_id: str, _user_id: UUID
+    ) -> StrategyControls:
+        return StrategyControls(gene_ids=["PF3D7_1222600"])
+
+    monkeypatch.setattr(control_sets, "control_ids_from_strategy", _ids)
     ctx = detached_lead_context()
 
-    with pytest.raises(ModelRetry):
-        await read_gene_ids_from_strategy(ctx, _WDK_STRATEGY_ID)
+    read = await read_gene_ids_from_strategy(ctx, UUID(_SAVED_SET))
 
+    assert read.return_value == ["PF3D7_1222600"]
     assert ctx.deps.state.turn_markers.created_control_sets == []
 
 
@@ -253,40 +265,6 @@ async def test_the_check_lists_the_attached_sets_the_user_saved_on_the_site(
     assert asked == [("toxodb", ctx.deps.user_id)]
 
 
-class TestAWdkStrategyIdIsARetry:
-    """The import tool takes a Strategist UUID while the conversation is full
-    of WDK numeric ids; ``UUID()`` on one raises ValueError, which ends the
-    turn with a message the user cannot act on."""
-
-    async def test_it_does_not_raise_value_error(self) -> None:
-        with pytest.raises(ModelRetry):
-            await read_gene_ids_from_strategy(
-                detached_lead_context(),
-                _WDK_STRATEGY_ID,
-            )
-
-    async def test_the_message_names_the_value_it_got(self) -> None:
-        with pytest.raises(ModelRetry) as err:
-            await read_gene_ids_from_strategy(
-                detached_lead_context(),
-                _WDK_STRATEGY_ID,
-            )
-
-        assert _WDK_STRATEGY_ID in str(err.value)
-
-    async def test_the_message_says_which_id_is_wanted(self) -> None:
-        with pytest.raises(ModelRetry) as err:
-            await read_gene_ids_from_strategy(
-                detached_lead_context(),
-                _WDK_STRATEGY_ID,
-            )
-
-        assert "conversation" in str(err.value).lower()
-
-
-_SAVED_SET = "3f9c2b10-5a4e-4d8e-9b1a-2c7d6e5f4a31"
-
-
 async def test_read_control_set_returns_both_lists_of_the_saved_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -307,7 +285,7 @@ async def test_read_control_set_returns_both_lists_of_the_saved_set(
     monkeypatch.setattr(control_sets, "get_control_set", _get)
 
     out = returned(
-        await read_control_set(detached_lead_context(), _SAVED_SET), ControlSetIds
+        await read_control_set(detached_lead_context(), UUID(_SAVED_SET)), ControlSetIds
     )
 
     assert (out.control_set_id, out.name) == (
@@ -315,10 +293,3 @@ async def test_read_control_set_returns_both_lists_of_the_saved_set(
         "PF3D7 signal peptide controls",
     )
     assert (out.positive_ids, out.negative_ids) == (positives, negatives)
-
-
-async def test_read_control_set_refuses_an_id_that_is_not_a_control_set() -> None:
-    with pytest.raises(ModelRetry) as raised:
-        await read_control_set(detached_lead_context(), _WDK_STRATEGY_ID)
-
-    assert "control_set_id must be a Strategist control set id" in str(raised.value)

@@ -13,7 +13,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 from veupathdb.domain.parameters import ParamValue, PhyleticExpression
 from veupathdb_mcp.catalog import ValidatedParams
 
@@ -35,6 +35,7 @@ from strategist.domain.strategy.requirement_reports import (
 )
 from strategist.platform.refusals import ANSWER_REFUSALS_PER_KEY
 from strategist.services.strategies import reading_check
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _GPI = Constraint(
@@ -77,7 +78,7 @@ async def test_a_number_the_list_lacks_is_corrected_before_the_caller_reads_it()
     deps.agent_state.stated_requirements = [_GPI]
     agent = build_frame_agent()
 
-    with agent.override(model=FunctionModel(_frame, model_name="scripted")):
+    with agent.override(model=streamed(_frame, model_name="scripted")):
         run = await agent.run("FRAME work order: frame it", deps=deps)
 
     assert isinstance(run.output, FrameResult)
@@ -214,7 +215,7 @@ async def _run(
         ],
     )
     agent = build_frame_agent()
-    with agent.override(model=FunctionModel(_frame, model_name="scripted")):
+    with agent.override(model=streamed(_frame, model_name="scripted")):
         run = await agent.run("FRAME work order: frame it", deps=deps)
     assert isinstance(run.output, FrameResult)
     return run.output, told

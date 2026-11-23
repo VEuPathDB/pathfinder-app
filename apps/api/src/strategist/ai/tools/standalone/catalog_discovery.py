@@ -73,8 +73,8 @@ async def get_search_overview(
                 message=(
                     f"You already inspected '{search_name}'; this is that read. "
                     "A criterion that already runs it re-binds with no other "
-                    "read; a new criterion binds it from a search_for_searches "
-                    "answer that names it."
+                    "read; a new criterion binds it from a catalog search answer "
+                    "that names it."
                 ),
                 search_name=search_name,
             ),

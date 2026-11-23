@@ -19,19 +19,24 @@ from strategist.ai.tools.standalone import (
     strategy_edits,
 )
 from strategist.ai.tools.standalone.conversation_models import ClearStrategyResult
-from strategist.ai.tools.standalone.export_models import ExportResultResponse
+from strategist.ai.tools.standalone.export_models import (
+    ExportResultResponse,
+    GeneSetFormat,
+)
 from strategist.ai.tools.standalone.gene_set_models import (
     GeneSetCreatedResponse,
     GeneSetListResponse,
+    GeneSetName,
+    PastedGeneIds,
 )
 from strategist.services.strategies.graph_outcome import live_outcome
 
 
 async def save_gene_set(
     ctx: RunContext[LeadDeps],
-    name: str,
+    name: GeneSetName,
     step_id: str | None = None,
-    gene_ids: list[str] | None = None,
+    gene_ids: PastedGeneIds | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
     """Save a gene set the user can export and publish.
 
@@ -72,7 +77,7 @@ async def list_gene_sets(
 async def export_gene_set(
     ctx: RunContext[LeadDeps],
     gene_set_id: str,
-    output_format: str = "csv",
+    output_format: GeneSetFormat = "csv",
 ) -> ToolReturn[ExportResultResponse]:
     """Export a saved gene set as a downloadable CSV or TXT file.
 

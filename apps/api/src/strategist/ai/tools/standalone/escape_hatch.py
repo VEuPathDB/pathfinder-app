@@ -53,8 +53,8 @@ async def request_search_inspection(
             verifier needs that the existing discovered set can't
             provide. The call's trace keeps it, so a post-mortem can
             identify the gap in discovery's instructions.
-        record_type: Optional record type override (auto-resolved when
-            omitted, same as ``get_search_overview``).
+        record_type: Optional record type override, read from the search
+            when omitted.
     """
     logger.warning(
         "constraint deviation: phase requested out-of-band search inspection",

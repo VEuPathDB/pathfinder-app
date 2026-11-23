@@ -12,7 +12,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.parameters import ParamKind, ParamValue, from_wire
 from veupathdb.wdk import WDKStringParam
@@ -43,6 +43,7 @@ from strategist.domain.strategy.readings import Reading
 from strategist.services.strategies import reading_check
 from strategist.tests._support.held_answers import let_through, said
 from strategist.tests._support.param_infos import sheet_of
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _EXPRESSION = "phyletic_expression"
@@ -421,7 +422,7 @@ async def test_frame_retries_inside_its_own_run() -> None:
     ctx = _context(_criterion("filter"))
     agent = build_frame_agent()
 
-    with agent.override(model=FunctionModel(_frame, model_name="scripted")):
+    with agent.override(model=streamed(_frame, model_name="scripted")):
         run = await agent.run("FRAME work order: frame it", deps=ctx.deps)
 
     assert isinstance(run.output, FrameResult)

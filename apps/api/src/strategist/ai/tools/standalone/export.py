@@ -6,7 +6,6 @@ Provides:
 
 from __future__ import annotations
 
-from typing import Literal
 from uuid import UUID
 
 from assistant_core.graph.tool_summary import with_summary
@@ -19,6 +18,7 @@ from pydantic_ai.ui.vercel_ai.response_types import FileChunk
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone.export_models import (
     ExportResultResponse,
+    GeneSetFormat,
     GeneSetSummaryItem,
 )
 from strategist.services.evidence.gene_sets import get_gene_set, list_stored_gene_sets
@@ -42,7 +42,7 @@ async def _available_gene_sets(
 async def export_gene_set(
     ctx: RunContext[AgentDeps],
     gene_set_id: str,
-    output_format: str = "csv",
+    output_format: GeneSetFormat = "csv",
 ) -> ToolReturn[ExportResultResponse]:
     """Export a gene set as a downloadable CSV or TXT file.
 
@@ -53,10 +53,6 @@ async def export_gene_set(
         gene_set_id: Strategist gene set ID.
         output_format: Export format: csv or txt.
     """
-    if output_format not in ("csv", "txt"):
-        msg = f"VALIDATION_ERROR: format must be 'csv' or 'txt', got {output_format!r}."
-        raise ModelRetry(msg)
-
     deps = ctx.deps
     gs = await get_gene_set(gene_set_id, user_id=deps.user_id)
     if gs is None:
@@ -68,8 +64,7 @@ async def export_gene_set(
         raise ModelRetry(msg)
 
     svc = get_export_service()
-    fmt: Literal["csv", "txt"] = "txt" if output_format == "txt" else "csv"
-    result = await svc.export_gene_set(gs, fmt)
+    result = await svc.export_gene_set(gs, output_format)
     media_type = "text/csv" if output_format == "csv" else "text/plain"
     return with_summary(
         ExportResultResponse(

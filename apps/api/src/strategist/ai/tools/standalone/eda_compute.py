@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from assistant_core.graph.tool_summary import summary_chunks
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
-from pydantic import ConfigDict
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationInfo
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
@@ -73,27 +72,25 @@ EDA_COMPUTE = declare_durable_tool(
 )
 
 
-async def refuse_shared_labels(
-    ctx: RunContext[LeadDeps],
-    *,
-    identifier_variable: EdaVariableSpecIn,
-    value_variable: EdaVariableSpecIn,
-    comparator_variable: EdaVariableSpecIn,
-    group_a_labels: list[str],
-    group_b_labels: list[str],
-    method: Literal["DESeq", "limma"] = "DESeq",
-    caption: str = "",
-) -> None:
-    """Refuse two groups that share a label before any job is deferred."""
-    del ctx, identifier_variable, value_variable, comparator_variable, method, caption
-    shared = [label for label in group_a_labels if label in group_b_labels]
+class _GroupA(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    group_a_labels: list[str] = Field(default_factory=list)
+
+
+def _none_in_group_a(labels: list[str], info: ValidationInfo) -> list[str]:
+    group_a = _GroupA.model_validate(info.data).group_a_labels
+    shared = [label for label in group_a if label in labels]
     if shared:
         msg = (
             f"Labels named in both groups: {', '.join(shared)}. A sample cannot "
-            f"be its own control, so put each label in one group only. Nothing "
-            f"started."
+            f"be its own control, so put each label in one group only."
         )
-        raise ModelRetry(msg)
+        raise ValueError(msg)
+    return labels
+
+
+GroupBLabels = Annotated[list[str], AfterValidator(_none_in_group_a)]
 
 
 @durable_agent_tool(EDA_COMPUTE)
@@ -104,7 +101,7 @@ async def run_eda_compute(
     value_variable: EdaVariableSpecIn,
     comparator_variable: EdaVariableSpecIn,
     group_a_labels: list[str],
-    group_b_labels: list[str],
+    group_b_labels: GroupBLabels,
     method: Literal["DESeq", "limma"] = "DESeq",
     caption: str = "",
 ) -> dict[str, Any]:
@@ -139,8 +136,8 @@ async def run_eda_compute(
     many pass the default thresholds of effect size 1 and p-value 0.05, split
     into the genes higher in each group. ``comparison`` holds both groups'
     labels and ``signRule`` states the sign in them. Tell the researcher those
-    numbers by group label, never as "up" or "down", then use create_eda_step
-    to export the ones that pass.
+    numbers by group label, never as "up" or "down". The genes that pass are
+    exported as a strategy step, which Build writes.
 
     Always write ``caption``. It is the one sentence printed under the plot,
     so it says what the comparison SHOWS in the researcher's terms - "Genes

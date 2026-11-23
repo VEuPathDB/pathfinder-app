@@ -12,7 +12,7 @@ from pydantic_ai.capabilities import HandleDeferredToolCalls
 from pydantic_ai.models import Model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.tools import DeferredToolResults, Tool
-from pydantic_ai.toolsets import AbstractToolset
+from pydantic_ai.toolsets import AbstractToolset, AgentToolset
 from pydantic_ai.usage import UsageLimits
 
 from strategist.ai.audit.budget_stop import StopAtTheBudget
@@ -81,6 +81,11 @@ async def ask_about_the_audits_handler(
 
 def build_auditor_agent() -> AuditorAgent:
     model, settings = _model()
+    toolsets: list[AgentToolset[AuditDeps]] = [
+        build_run_toolset(),
+        build_check_toolset(),
+        turn_tool_sources,
+    ]
     return Agent(
         model,
         model_settings=settings,
@@ -88,7 +93,7 @@ def build_auditor_agent() -> AuditorAgent:
         deps_type=AuditDeps,
         instructions=AUDITOR_INSTRUCTIONS,
         tools=[Tool(record_gene_model_verdicts, max_retries=3)],
-        toolsets=[build_run_toolset(), build_check_toolset(), turn_tool_sources],
+        toolsets=toolsets,
         capabilities=agent_capabilities(
             [
                 SiteReadFailures[AuditDeps](reads=CHECK_TOOL_NAMES | READ_TOOL_NAMES),
@@ -96,7 +101,8 @@ def build_auditor_agent() -> AuditorAgent:
                     handler=ask_about_the_audits_handler
                 ),
                 StopAtTheBudget(),
-            ]
+            ],
+            toolsets=toolsets,
         ),
         retries=3,
         name=AUDITOR_ROLE,

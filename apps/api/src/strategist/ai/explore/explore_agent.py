@@ -7,13 +7,14 @@ from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.capabilities import ProcessHistory
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import ToolDefinition
-from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
+from pydantic_ai.toolsets import AbstractToolset, AgentToolset, FunctionToolset
 
 from strategist.ai.agents._instructions import pinned_run_budget, pinned_user_memories
 from strategist.ai.agents.research_reads import research_reads, research_served
 from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.explore._explore_instructions import (
+    EXPLORE_GENE_RECORD_RULE,
     EXPLORE_INSTRUCTIONS,
     EXPLORE_OFF_TOPIC_REDIRECT,
     EXPLORE_RESEARCH_READS,
@@ -36,6 +37,7 @@ from strategist.ai.lead.lead_consult import consult_user
 from strategist.ai.lead.lead_memory_tools import remember, search_memory
 from strategist.ai.lead.lead_pins import (
     pinned_conversation,
+    pinned_eda_sheet,
     pinned_memory_index,
     pinned_user_prompt,
 )
@@ -50,6 +52,7 @@ from strategist.ai.lead.turn_contract import (
     off_topic_essay,
 )
 from strategist.ai.tools.standalone.gene_record import (
+    genes_are_held,
     offered_where_genes_are_held,
     read_gene_record,
 )
@@ -127,6 +130,10 @@ def pinned_research_reads(ctx: RunContext[LeadDeps]) -> str:
     )
 
 
+async def pinned_gene_record_rule(ctx: RunContext[LeadDeps]) -> str | None:
+    return EXPLORE_GENE_RECORD_RULE if await genes_are_held(ctx.deps.site_id) else None
+
+
 def hold_the_redirect_short(
     ctx: RunContext[LeadDeps], output: str | DeferredToolRequests
 ) -> str | DeferredToolRequests:
@@ -145,22 +152,24 @@ def hold_the_redirect_short(
 
 
 def build_explore_agent() -> ExploreAgent:
+    toolsets: list[AgentToolset[LeadDeps]] = [
+        build_explore_toolset(),
+        eda.build_toolset().filtered(_explore_may_call),
+        build_sweep_toolset().filtered(_explore_may_call),
+        turn_tool_sources,
+    ]
     agent: ExploreAgent = Agent(
         EXPLORE_MODEL,
         output_type=[str, DeferredToolRequests],
         deps_type=LeadDeps,
         instructions=EXPLORE_INSTRUCTIONS,
-        toolsets=[
-            build_explore_toolset(),
-            eda.build_toolset().filtered(_explore_may_call),
-            build_sweep_toolset().filtered(_explore_may_call),
-            turn_tool_sources,
-        ],
+        toolsets=toolsets,
         capabilities=agent_capabilities(
             [
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         name="explore",
@@ -173,7 +182,9 @@ def build_explore_agent() -> ExploreAgent:
         pinned_user_prompt,
         pinned_linked_pages,
         pinned_run_budget,
+        pinned_eda_sheet,
         pinned_research_reads,
+        pinned_gene_record_rule,
         pinned_off_topic_redirect,
     ):
         agent.instructions(fn)

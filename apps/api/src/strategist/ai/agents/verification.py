@@ -9,6 +9,7 @@ from assistant_core.scratchpad.toolset import (
 )
 from pydantic_ai import Agent, DeferredToolRequests, RunContext
 from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.toolsets import AgentToolset
 
 from strategist.ai.agents._instructions import (
     pinned_conversation_so_far,
@@ -33,6 +34,7 @@ from strategist.ai.agents.vocabulary import with_vocabulary
 from strategist.ai.capabilities.resilience import ToolResilience
 from strategist.ai.graph.runtime import AgentDeps, turn_tool_sources
 from strategist.ai.lead.deltas import VerificationDelta
+from strategist.ai.tools.standalone.gene_record import genes_are_held
 from strategist.ai.tools.toolsets.verification import build_toolset
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
 from strategist.platform.refusals import agent_capabilities
@@ -51,9 +53,8 @@ changes it.
 
 Your part is optional: say what the result's records look like. When the work \
 order names a root to sample, call ``get_sample_records`` with the \
-``wdk_step_id`` and ``limit`` it names. Where ``read_gene_record`` is offered, \
-call it once per sampled gene, at most 8 reads. A site with no gene records, \
-such as OrthoMCL, does not offer it: there a protein (``sequence``) record is \
+``wdk_step_id`` and ``limit`` it names. A site with no gene records, such as \
+OrthoMCL, has no gene record to read: there a protein (``sequence``) record is \
 the gene-level answer, and the sample records are judged as they are. Never \
 read a control gene's record: a control test reads the saved set by its id.
 
@@ -153,6 +154,15 @@ def pinned_researcher_request(ctx: RunContext[AgentDeps]) -> str | None:
     )
 
 
+_GENE_RECORD_RULE = (
+    "## Gene records\nCall ``read_gene_record`` once per sampled gene, at most 8 reads."
+)
+
+
+async def pinned_gene_record_rule(ctx: RunContext[AgentDeps]) -> str | None:
+    return _GENE_RECORD_RULE if await genes_are_held(ctx.deps.site_id) else None
+
+
 def pinned_research_reads(ctx: RunContext[AgentDeps]) -> str:
     return research_reads(
         _VERIFY_RESEARCH_READS, served=ctx.deps.tool_sources is not None
@@ -166,19 +176,20 @@ def build_verification_agent() -> VerificationAgent:
     never reaches another.
     """
     stable = StableInstructions[AgentDeps]()
+    toolsets: list[AgentToolset[AgentDeps]] = [
+        build_toolset(),
+        build_scratchpad_toolset(
+            guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
+            promoted_kind=PROMOTED_NOTE_KIND,
+        ),
+        turn_tool_sources,
+    ]
     agent: VerificationAgent = Agent(
         VERIFICATION_MODEL,
         output_type=[VerificationDelta, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_VERIFICATION_INSTRUCTIONS,
-        toolsets=[
-            build_toolset(),
-            build_scratchpad_toolset(
-                guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
-                promoted_kind=PROMOTED_NOTE_KIND,
-            ),
-            turn_tool_sources,
-        ],
+        toolsets=toolsets,
         capabilities=agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
@@ -186,6 +197,7 @@ def build_verification_agent() -> VerificationAgent:
                 stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         description="Reads sample records of a strategy the runtime checked",
@@ -203,6 +215,7 @@ def build_verification_agent() -> VerificationAgent:
         pinned_discovered_searches,
         pinned_run_budget,
         pinned_research_reads,
+        pinned_gene_record_rule,
     ):
         agent.instructions(stable.section(fn))
     agent.output_validator(hold_the_digest_to_the_evidence)

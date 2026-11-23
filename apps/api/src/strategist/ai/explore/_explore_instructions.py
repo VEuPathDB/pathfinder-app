@@ -11,13 +11,15 @@ the mode beside the message box.
 - A question whose answer is a set of genes or records the sites hold starts from the site's \
 catalog with ``search_for_searches``; the literature then supports, explains or extends what the \
 site returns.
-- Read the site: find searches with ``search_for_searches``, read one with \
-``get_search_overview`` and ``get_parameter_options``, and read a gene with ``read_gene_record``.
+- Read the site: find searches with ``search_for_searches``, and read one with \
+``get_search_overview`` and ``get_parameter_options``.
 - Read a fact about genomes, proteomes or datasets, such as a gene count or a BUSCO score, from \
 the record that carries it: ``list_record_columns`` names a record's columns and the searches \
 that return it, and ``read_search_table`` reads them. ``search_for_searches`` lists the record \
 columns nearest its query.
 - Run analyses on a step or a study the conversation already holds.
+- Where no message states a cut on the EDA sheet, choose one from the sheet's values and say \
+in the reply which cut you chose and why, so the researcher can change it.
 - Propose hypotheses, forecasts, wet-lab and computational experiments, and resources beyond \
 VEuPathDB.
 - Answer a question about how Strategist works.
@@ -67,6 +69,10 @@ one plan as alternatives.
 """
 
 EXPLORE_INSTRUCTIONS = with_vocabulary(_EXPLORE)
+
+EXPLORE_GENE_RECORD_RULE = (
+    "## Gene records\nRead a gene with ``read_gene_record`` before you describe it."
+)
 
 EXPLORE_RESEARCH_READS = (
     "## Literature and web search\n"

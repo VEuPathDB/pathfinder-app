@@ -10,10 +10,13 @@ from assistant_core.platform.types import PaidBy
 from pydantic_ai.exceptions import ToolRetryError, UnexpectedModelBehavior
 from pydantic_ai.messages import (
     ModelMessage,
+    ModelResponse,
     RetryFeedbackPart,
     RetryInfo,
+    TextPart,
     ToolCallPart,
 )
+from pydantic_ai.models.function import AgentInfo
 
 from strategist.ai.capabilities.metering import SpendMeter
 from strategist.ai.explore import explore_model
@@ -31,14 +34,16 @@ from strategist.tests._support.explore_turns import (
     run_explore,
 )
 from strategist.tests._support.scripted_reading import read_as
-from strategist.tests.unit.ai.graph._approval_turn import Collector, scripted_model
-from strategist.tests.unit.ai.graph.test_lead_turn_budget import _deps, _framed_state
-from strategist.tests.unit.ai.lead.conftest import called_tool_names
-
-_TOOL_STOP = (
-    "I stopped this turn when list_record_columns refused every attempt: "
-    "record_type: Input should be a valid string."
+from strategist.tests._support.streamed_model import streamed
+from strategist.tests.unit.ai.graph._approval_turn import (
+    LEAD_FINAL,
+    Collector,
+    scripted_model,
+    tool_calls,
 )
+from strategist.tests.unit.ai.graph.test_lead_turn_budget import _deps, _framed_state
+
+_ANSWERED = "The columns are listed by record type."
 _READER_REFUSAL = "goal: String should have at most 500 characters"
 _READER_STOP = (
     "I could not read your message into its requirements: "
@@ -49,18 +54,43 @@ _SPENT = "Exceeded maximum output retries (1)"
 _EMPTY = "Received empty model response"
 
 
-def _mistyped(messages: list[ModelMessage]) -> ToolCallPart:
-    made = len(called_tool_names(messages))
+_MISTYPED_CALLS = 4
+
+
+def _mistyped_then_answered(messages: list[ModelMessage]) -> ToolCallPart:
+    made = len(tool_calls(messages))
+    if made < _MISTYPED_CALLS:
+        return ToolCallPart(
+            tool_name="list_record_columns",
+            args={"record_type": 5},
+            tool_call_id=f"call_columns_{made}",
+        )
     return ToolCallPart(
-        tool_name="list_record_columns",
-        args={"record_type": 5},
-        tool_call_id=f"call_columns_{made}",
+        tool_name="final_result", args=LEAD_FINAL, tool_call_id="call_final"
     )
+
+
+def _explored(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+    del info
+    made = len(tool_calls(messages))
+    if made < _MISTYPED_CALLS:
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="list_record_columns",
+                    args={"record_type": 5},
+                    tool_call_id=f"call_columns_{made}",
+                )
+            ]
+        )
+    return ModelResponse(parts=[TextPart(_ANSWERED)])
 
 
 def _lead_reply(monkeypatch: pytest.MonkeyPatch) -> str:
     monkeypatch.setattr(
-        _lead_model, "get_mock_model", lambda: scripted_model(_mistyped)
+        _lead_model,
+        "get_mock_model",
+        lambda: scripted_model(_mistyped_then_answered),
     )
     writer: Any = Collector()
     state = _framed_state()
@@ -83,29 +113,25 @@ def _lead_reply(monkeypatch: pytest.MonkeyPatch) -> str:
     return reply.prose
 
 
-def test_a_lead_tool_refused_every_attempt_ends_on_a_stop_naming_it(
+def test_a_lead_tool_mistyped_on_every_call_never_stops_the_turn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     read_as(monkeypatch, "extend_strategy")
 
     prose = _lead_reply(monkeypatch)
 
-    assert prose.startswith(_TOOL_STOP)
-    assert "could not recover" not in prose
+    assert prose == LEAD_FINAL["prose"]
 
 
-async def test_an_explore_tool_refused_every_attempt_ends_on_a_stop_naming_it(
+async def test_an_explore_tool_mistyped_on_every_call_never_stops_the_turn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     doubles = install_explore_doubles(monkeypatch)
-    monkeypatch.setattr(
-        explore_model, "get_mock_model", lambda: scripted_model(_mistyped)
-    )
+    monkeypatch.setattr(explore_model, "get_mock_model", lambda: streamed(_explored))
 
     await run_explore(explore_state(EXPLORE_PROMPT))
 
-    [reply] = doubles.replies()
-    assert reply.startswith(_TOOL_STOP)
+    assert doubles.replies() == [_ANSWERED]
 
 
 def _reader_spends_then_fails(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -198,7 +198,7 @@ class TestABatchTheSpecContradicts:
                 ],
             )
 
-        assert "set_structure" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         assert graph.steps["step_u1"].operator == CombineOp.UNION
         assert stub_api.calls == []
 

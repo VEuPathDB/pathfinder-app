@@ -72,6 +72,9 @@ def _lead(calls: list[str]) -> FunctionModel:
     return FunctionModel(_fn, model_name="scripted")
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds edit_strategy without frame_problem"
+)
 async def test_the_fourth_refused_pass_ends_the_edit_with_its_reason(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -103,6 +106,9 @@ async def test_the_fourth_refused_pass_ends_the_edit_with_its_reason(
     assert [facts["refusal"] for facts in writer.data_of("data-facts")] == [_UNBOUND]
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds edit_strategy without frame_problem"
+)
 async def test_a_refused_pass_before_the_last_attempt_is_retried(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -243,6 +243,9 @@ async def _statuses(conversation_id: UUID) -> list[tuple[str, str]]:
         return [(str(task.tool_call_id), str(task.status)) for task in found]
 
 
+@pytest.mark.foreign_tool_names(
+    "the second assistant holds the control test without its listing tools"
+)
 async def test_the_step_defers_two_jobs_and_parks_both_calls(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -265,6 +268,9 @@ async def test_the_step_defers_two_jobs_and_parks_both_calls(
     ]
 
 
+@pytest.mark.foreign_tool_names(
+    "the second assistant holds the control test without its listing tools"
+)
 async def test_the_first_task_to_finish_opens_no_completion_turn(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -291,6 +297,9 @@ async def test_the_first_task_to_finish_opens_no_completion_turn(
     ]
 
 
+@pytest.mark.foreign_tool_names(
+    "the second assistant holds the control test without its listing tools"
+)
 async def test_the_last_task_resumes_the_run_with_every_answer(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -332,6 +341,9 @@ async def test_the_last_task_resumes_the_run_with_every_answer(
     ]
 
 
+@pytest.mark.foreign_tool_names(
+    "the second assistant holds the control test without its listing tools"
+)
 @pytest.mark.usefixtures("failing_second_step")
 async def test_a_failed_task_still_answers_its_call_beside_the_one_that_worked(
     app: FastAPI,

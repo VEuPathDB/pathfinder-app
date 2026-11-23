@@ -21,6 +21,7 @@ from strategist.ai.lead.lead_agent import build_lead_agent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.domain.eda_thread import OpenEdaAnalysis
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead.conftest import (
     OfferedTools,
     lead_deps,
@@ -81,7 +82,7 @@ def _scripted(
 
 
 def _model(seen: OfferedTools) -> FunctionModel:
-    return FunctionModel(_scripted(seen), model_name="scripted")
+    return streamed(_scripted(seen), model_name="scripted")
 
 
 def _run(prompt: str, classification: IntentClassification | None) -> OfferedTools:
@@ -230,7 +231,7 @@ def test_the_pinned_instructions_stay_the_same_on_every_step() -> None:
         build_lead_agent().run(
             prompt,
             deps=_deps(prompt, IntentClassification.EXTEND_STRATEGY),
-            model=FunctionModel(_fn, model_name="scripted"),
+            model=streamed(_fn, model_name="scripted"),
         ),
     )
 

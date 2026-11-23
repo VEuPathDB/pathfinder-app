@@ -9,11 +9,14 @@ from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.lead.live_state import read_live_state
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone.conversation import NOT_STORED
 from strategist.ai.tools.standalone.graph_helpers import counted_records
 from strategist.ai.tools.standalone.stream_parts import strategy_meta_chunk
 from strategist.services.strategies.naming import rename_strategy_everywhere
 
+NOT_STORED = (
+    "The rename found no stored conversation, so nothing was renamed. Say so, "
+    "and do not call the rename again."
+)
 NO_STRATEGY = (
     "This conversation holds no strategy to rename. Say so, and offer to "
     "build one first."

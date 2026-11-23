@@ -364,8 +364,8 @@ async def consult_user(
     refusals = {
         **{
             label: (
-                f"{label!r} binds nothing: {why}. Run frame_problem again so it "
-                "offers values this parameter takes, or asks in free text"
+                f"{label!r} binds nothing: {why}. Frame the request again so the "
+                "card offers values this parameter takes, or asks in free text"
             )
             for label, why in no_values.items()
         },

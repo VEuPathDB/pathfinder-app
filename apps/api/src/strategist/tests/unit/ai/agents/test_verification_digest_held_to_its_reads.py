@@ -15,7 +15,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
@@ -26,6 +26,7 @@ from strategist.ai.lead.deltas import VerificationDelta
 from strategist.domain.evidence import WithheldEvidence
 from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _READ_GENE = "PF3D7_1133400"
@@ -234,7 +235,7 @@ async def test_verify_answering_the_unread_gene_every_time_ends_on_its_review() 
 
     deps = _context().deps
     agent = build_verification_agent()
-    with agent.override(model=FunctionModel(_verify, model_name="scripted")):
+    with agent.override(model=streamed(_verify, model_name="scripted")):
         run = await agent.run("VERIFY work order: check it", deps=deps)
 
     assert isinstance(run.output, VerificationDelta)

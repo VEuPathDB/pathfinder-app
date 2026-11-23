@@ -81,6 +81,7 @@ from strategist.platform.model_catalog import install_catalog_prices
 from strategist.platform.security import create_user_token, limiter
 from strategist.services import wdk_identity
 from strategist.services.eda import catalog
+from strategist.tests._support.boundary_guard import guard_the_model_boundary
 from strategist.tests._support.database import create_checkpoint_tables
 
 pytest_plugins = [
@@ -197,6 +198,19 @@ def patch_app_db_engine(
     )
     procrastinate_app.connector = test_connector
     procrastinate_app.job_manager.connector = test_connector
+
+
+@pytest.fixture(autouse=True)
+def _messages_name_only_offered_tools(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> Generator[None]:
+    if request.node.get_closest_marker("foreign_tool_names") is not None:
+        yield
+        return
+    refused = guard_the_model_boundary(monkeypatch)
+    yield
+    if refused:
+        pytest.fail("\n".join(refused))
 
 
 @pytest.fixture(autouse=True)

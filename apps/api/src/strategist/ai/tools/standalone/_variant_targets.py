@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from difflib import get_close_matches
+from typing import Annotated
 
-from pydantic import JsonValue
+from pydantic import Field, JsonValue
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import (
     PHYLETIC_LIST_PARAMS,
@@ -34,11 +35,8 @@ from strategist.ai.tools.standalone._stated_values import typed_values
 from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.session import StrategySession
-from strategist.platform.refusals import (
-    ProblemsRefusal,
-    library_problems,
-    refuse_problems,
-)
+from strategist.platform.library_refusals import library_problems
+from strategist.platform.refusals import ProblemsRefusal, refuse_problems
 from strategist.services.evidence.comparisons import (
     variant_phyletic_values,
     variant_search_parameters,
@@ -65,6 +63,9 @@ _EVERY_ENTRY_WORDS = frozenset(
 )
 
 
+ComparedVariants = Annotated[list[VariantInput], Field(min_length=2)]
+
+
 def reject_combine_variants(variants: list[VariantInput]) -> None:
     """Raises ModelRetry when a variant names a combine step."""
     named = [v for v in variants if v.search_name in _COMBINE_NAMES]
@@ -73,8 +74,8 @@ def reject_combine_variants(variants: list[VariantInput]) -> None:
     offending = "; ".join(f"{v.label} ({v.search_name})" for v in named)
     msg = (
         f"These variants name a combine step rather than a WDK search - "
-        f"{offending}. A combine step has no search to run. To test a combine "
-        "step, call run_control_tests_on_step with its wdk_step_id. To compare "
+        f"{offending}. A combine step has no search to run. A combine step is "
+        "tested by a control test on that step, by its wdk_step_id. To compare "
         "variants, name the leaf search each one varies."
     )
     raise ModelRetry(msg)

@@ -25,6 +25,8 @@ from strategist.ai.tools.standalone.gene_set_models import (
     GeneSetCreatedSummary,
     GeneSetListItem,
     GeneSetListResponse,
+    GeneSetName,
+    PastedGeneIds,
     UploadedGeneList,
     WdkProvenance,
 )
@@ -63,11 +65,6 @@ _NO_WDK_STEP = (
 _NO_STEP_TO_SAVE_FROM = (
     "This conversation has no pushed strategy step to save from. Pass "
     "gene_ids to save a list of genes instead."
-)
-
-_A_LIST_AND_A_STEP = (
-    "A pasted list of gene ids carries no strategy step. Leave step_id out to save "
-    "these ids as a list, or leave gene_ids out to save the genes of that step."
 )
 
 _STEP_HOLDS_NO_GENES = (
@@ -150,13 +147,8 @@ async def _genes_of_step(
 
 
 async def _genes_of_list(
-    deps: AgentDeps, step_id: str | None, gene_ids: list[str], record_type: str
+    deps: AgentDeps, gene_ids: list[str], record_type: str
 ) -> StepGenes:
-    if step_id is not None:
-        raise ModelRetry(_A_LIST_AND_A_STEP)
-    if not gene_ids:
-        msg = "VALIDATION_ERROR: gene_ids must contain at least one gene ID."
-        raise ModelRetry(msg)
     return StepGenes(
         gene_ids=gene_ids,
         homes=await gene_homes(deps.site_id, gene_ids, record_type=record_type),
@@ -173,7 +165,7 @@ async def _genes_to_save(
     try:
         if gene_ids is None:
             return await _genes_of_step(deps, step_id)
-        genes = await _genes_of_list(deps, step_id, gene_ids, record_type)
+        genes = await _genes_of_list(deps, gene_ids, record_type)
     except (IncompleteAnswerError, TooManyGenesError) as exc:
         raise ModelRetry(str(exc.detail)) from exc
     return genes, WdkProvenance()
@@ -181,16 +173,16 @@ async def _genes_to_save(
 
 async def save_gene_set(
     ctx: RunContext[AgentDeps],
-    name: str,
+    name: GeneSetName,
     step_id: str | None = None,
-    gene_ids: list[str] | None = None,
+    gene_ids: PastedGeneIds | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
     """Save a gene set the user can export and publish.
 
     This is the save the user asks for when they say "save these genes as a
     gene set": the set appears in the conversation, and it returns the id the export
-    tools take. ``remember`` stores a note and creates nothing. Controls are
-    saved with ``build_control_set``, never as a gene set. A save is never a
+    tools take. A stored note creates no gene set. Controls are saved as a
+    control set, never as a gene set. A save is never a
     read: ``read_step_ids`` answers which genes a step holds.
 
     Args:
@@ -204,9 +196,6 @@ async def save_gene_set(
             saves that list alone, so leave it out whenever the genes are a
             step's.
     """
-    if not name or not name.strip():
-        msg = "VALIDATION_ERROR: Gene set name must be a non-empty string."
-        raise ModelRetry(msg)
     deps = ctx.deps
     genes, src = await _genes_to_save(
         deps, step_id, gene_ids, gene_record_class(site_kind(deps.site_id))

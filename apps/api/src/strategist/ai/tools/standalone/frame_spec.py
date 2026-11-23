@@ -147,8 +147,8 @@ async def set_criterion(
     through the site's gene id search; there are no parameters to decide.
 
     Pass ``computed_groups`` INSTEAD of ``search_name`` when the criterion is
-    the groups of a computed comparison: give the ``groups:`` handle
-    ``build_phyletic_expression`` returned. The groups are uploaded to the
+    the groups of a computed comparison: give that comparison's ``groups:``
+    handle. The groups are uploaded to the
     researcher's account as an id list, so it binds only on a turn that asks
     for a strategy or answers the card that offered the save.
 

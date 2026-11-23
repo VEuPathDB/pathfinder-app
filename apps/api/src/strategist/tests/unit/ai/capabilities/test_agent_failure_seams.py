@@ -37,6 +37,7 @@ from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.errors import NotFoundError
 from strategist.platform.refusals import KeyedRefusalToolset, ServiceRefusalRetry
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests._support.sub_agents import agent_tool_names
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -139,7 +140,7 @@ def _calls_then_answers(
             ]
         )
 
-    return FunctionModel(_respond, model_name="scripted")
+    return streamed(_respond, model_name="scripted")
 
 
 def _retry_messages(messages: list[ModelMessage]) -> list[str]:
@@ -209,6 +210,9 @@ def test_every_toolset_that_holds_refusals_counts_them_per_key() -> None:
     assert [name for name, layers in held if not _keyed_above_memory(layers)] == []
 
 
+@pytest.mark.foreign_tool_names(
+    "the test replaces the agent's toolsets with one stub tool"
+)
 async def test_a_defect_in_a_frame_tool_ends_the_run() -> None:
     """A TypeError is no call the model can correct, so it reaches the alert."""
     agent = build_frame_agent()
@@ -219,6 +223,9 @@ async def test_a_defect_in_a_frame_tool_ends_the_run() -> None:
         await agent.run("frame it", deps=_agent_deps())
 
 
+@pytest.mark.foreign_tool_names(
+    "the test replaces the agent's toolsets with one stub tool"
+)
 async def test_a_missing_id_in_a_verification_tool_names_the_listing_tool() -> None:
     """The refusal the model can correct comes back as a retry, not a directive."""
     agent = build_verification_agent()

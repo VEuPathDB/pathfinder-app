@@ -14,10 +14,7 @@ from strategist.ai.tools.standalone.eda_catalog import (
     describe_eda_study,
     search_eda_studies,
 )
-from strategist.ai.tools.standalone.eda_compute import (
-    refuse_shared_labels,
-    run_eda_compute,
-)
+from strategist.ai.tools.standalone.eda_compute import run_eda_compute
 from strategist.ai.tools.standalone.eda_cut import ask_eda_cut
 from strategist.ai.tools.standalone.eda_statistics import (
     read_eda_statistics,
@@ -43,12 +40,7 @@ def build_toolset() -> AbstractToolset[LeadDeps]:
             open_eda_analysis,
             set_eda_filters,
             preview_eda_subset,
-            Tool(
-                run_eda_compute,
-                sequential=True,
-                max_retries=3,
-                args_validator=refuse_shared_labels,
-            ),
+            Tool(run_eda_compute, sequential=True, max_retries=3),
             Tool(run_eda_dimensionality_reduction, sequential=True, max_retries=3),
             read_eda_statistics,
             create_eda_step,

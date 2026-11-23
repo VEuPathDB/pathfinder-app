@@ -81,7 +81,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         with pytest.raises(ModelRetry) as excinfo:
             await update_leaf_params(ctx(deps), MIC2, stated(dict(DEPARTED_PERCENTILE)))
 
-        assert "set_criterion" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         assert "min_expression_percentile = '90'" in str(excinfo.value)
         graph = deps.strategy_session.graph
         assert graph is not None
@@ -112,7 +112,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         with pytest.raises(ModelRetry) as excinfo:
             await update_leaf_params(ctx(deps), MIC2, {PERCENTILE: 70})
 
-        assert "set_criterion" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         assert "min_expression_percentile = '90'" in str(excinfo.value)
         graph = deps.strategy_session.graph
         assert graph is not None
@@ -140,7 +140,7 @@ class TestACanonicalizerAndTheStatedValueGuard:
         with pytest.raises(ModelRetry) as excinfo:
             await update_leaf_params(ctx(deps), MIC2, stated(dict(_SIZE)))
 
-        assert "set_criterion" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         assert "80" in str(excinfo.value)
         graph = deps.strategy_session.graph
         assert graph is not None
@@ -247,7 +247,7 @@ class TestABuildOverADepartedValue:
                 base_revision=strategy_revision(graph.to_strategy_ast()),
             )
 
-        assert "set_criterion" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         assert graph.steps[MIC2].parameters == STATED_PERCENTILE
         assert stub_api.calls == []
 
@@ -311,6 +311,6 @@ class TestABatchOverADepartedValue:
                 ],
             )
 
-        assert "set_criterion" in str(excinfo.value)
+        assert "framing pass" in str(excinfo.value)
         assert graph.steps[MIC2].parameters == STATED_PERCENTILE
         assert stub_api.calls == []

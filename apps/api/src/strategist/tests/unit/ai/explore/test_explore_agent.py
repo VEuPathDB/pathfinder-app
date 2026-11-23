@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from collections.abc import Callable
 from typing import Any
 
@@ -21,7 +20,6 @@ from strategist.ai.lead import lead_agent
 from strategist.ai.lead.lead_agent import build_lead_toolset
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.models.mock import _ROLES
-from strategist.ai.tools.standalone import catalog_discovery
 from strategist.ai.tools.toolsets import eda
 from strategist.domain.provider_keys import ProviderKeyring
 from strategist.platform.config import get_settings
@@ -58,6 +56,8 @@ def test_explore_holds_no_tool_that_writes_the_strategy() -> None:
         "search_for_searches",
         "get_search_overview",
         "get_parameter_options",
+        "get_record_types",
+        "read_experiment",
         "list_record_columns",
         "read_search_table",
         "read_gene_record",
@@ -117,35 +117,6 @@ def test_the_readings_card_and_the_account_ask_need_the_researchers_yes() -> Non
         "ask_to_read_the_account",
         "consult_user",
     ]
-
-
-def test_a_catalog_read_keeps_the_description_of_the_tool_it_wraps() -> None:
-    tools = _explore_tools().tools
-    described = tools["get_search_overview"].description or ""
-
-    assert described.startswith(
-        "Get a high-level overview of a search: description, parameters"
-    )
-    assert "search_name: WDK search name" in described
-
-
-def test_a_catalog_read_describes_only_the_arguments_it_takes() -> None:
-    tool: Tool[Any] = _explore_tools().tools["get_parameter_options"]
-    described = tool.description or ""
-    original = inspect.getdoc(catalog_discovery.get_parameter_options) or ""
-
-    assert "requirement:" in original
-    assert "ctx:" in original
-    assert "requirement" not in described
-    assert "ctx:" not in described
-    assert "context_values: Current values of the parent parameters" in described
-    assert set(tool.function_schema.json_schema["properties"]) == {
-        "search_name",
-        "parameter_id",
-        "record_type",
-        "context_values",
-        "query",
-    }
 
 
 def test_the_mock_reads_explore_as_its_own_role() -> None:

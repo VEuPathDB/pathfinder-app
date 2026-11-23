@@ -2,6 +2,76 @@
 
 ## 2026-11-23
 
+* **One rename tool and one definition of obsolete.** The building pass held a second
+  `rename_strategy` (`ai/tools/standalone/conversation.py`) that took a required description,
+  wrote it as the strategy's stated description (sent to WDK at the next push in place of the
+  sentence read off the root), renamed a strategy with no step and renamed only the graph when
+  the turn named no thread. It is deleted: the Lead's `strategy_rename.rename_strategy` is the
+  one rename, its WDK write stays `naming.put_the_name_on_wdk`, and
+  `test_one_rename_serves_every_agent.py` holds one definition. A term is obsolete when the
+  first word of the term name in its site label is "obsolete"
+  (`obsolete_terms.says_obsolete`); the lookup check of `_frame_lookups` and the count path
+  read it, and `test_obsolete_has_one_definition.py` holds the word to that module. The count
+  path once took the word anywhere in the label; on the 5,991 recorded GO entries both rules
+  agree.
+* **A tool argument's shape is in its schema.** The checks a tool body made on the shape of its own
+  arguments moved onto the argument types, so the model reads the rule in the tool schema and
+  pydantic-ai refuses another shape before the body runs: a download's `output_format` is
+  `csv`/`tab`/`json` and a gene set export's `csv`/`txt` (`Literal`), a WDK step id is above 0
+  (`WdkStepId`), a control set id and a conversation id are UUIDs whose description says a WDK id
+  is another id (`ControlSetId`, `ConversationId`), a comparison takes at least two variants
+  (`ComparedVariants`), a gene set name is not blank and a pasted list holds a gene and names no
+  step (`GeneSetName`, `PastedGeneIds`), a count filter is one `only` object with a column and its
+  values (`TallyOnly`), and the two groups of `run_eda_compute` share no label (`GroupBLabels`,
+  which replaces the `refuse_shared_labels` argument validator). The refusal guidance reads an id
+  argument held as a UUID.
+
+* **A shape error is charged to the refusal ledger, never to the tool's retries.** Before, an
+  argument the schema refused was a pydantic-ai validation retry: it charged no key, and a fourth
+  shape error in a row on one tool ended the run (`Tool 'download' exceeded max retries count of
+  3`). Now `ChargedArgumentRefusals` (`platform/refusals.py`) answers every argument validation
+  failure of a tool `KeyedRefusalToolset` holds (the toolset marks each tool definition's
+  `metadata`; a tool outside it keeps pydantic-ai's retries, as its body refusals do) in
+  `on_tool_validate_error`: a schema error is one problem per invalid field, keyed by
+  check `arguments`, the arguments that parsed and `<tool>.<field>` (`refusal_keys.py::
+  argument_problems`), and a validator's `ModelRetry` is keyed as a body refusal is. Both are
+  charged through the one rule a body refusal takes (`answered`) and raised as `CallRefused` or
+  `CallSpent`, a `ToolFailed`, which pydantic-ai answers without spending a retry. The capability
+  marks the refused result corrected in the event stream, since a validation failure runs no
+  execute hook. A call of the tool that runs clears its shape keys, as pydantic-ai resets a
+  tool's count. `agent_capabilities(carried, toolsets=...)` gives an agent the capability whenever
+  its toolsets hold a `KeyedRefusalToolset` at any depth, so no builder pairs the two by hand, and a
+  test reads every production `Agent(` and refuses one whose capabilities are not built from its
+  own toolsets. The event stream wrapper makes a run stream its nodes; every keyed agent already
+  runs through `run_stream_events`.
+* **A message names only its agent's tools, and a test holds it.** Layer 1 reads each agent's
+  static texts, layer 2 scans every literal an agent can reach across Strategist and the three
+  libraries, and layer 3 fails a test whose model request names a tool it does not offer
+  (`decisions/a-message-names-only-its-agents-tools.md`). The rows it found are neutral now: the
+  build and edit refusals say to frame the request again, a column read says to read a sample of
+  the records, a combine variant is tested by a control test, the verification card rule names no
+  tool, the escape hatch and the step-id descriptions name no sub-agent tool, and FRAME's
+  phyletic readings name no builder, which a site without the OrthoMCL taxonomy does not offer.
+  An approval card is kept in the conversation so far in words ("approve adopt separating
+  strategy"), since the sub-agents read the same exchanges and hold none of the Lead's cards.
+  FRAME's `set_criterion` description names no phyletic builder, and the Lead, Explore and VERIFY
+  are told about `read_gene_record` in a pin that only a site with gene records renders. Layer 2
+  now follows pinned sections, model fields, durable bodies and the graph nodes that write state. Strategist takes
+  veupathdb-py 0.9.0b15 (a phyletic refusal names no host tool) and veupathdb-mcp 0.9.0b20 (no
+  catalog text or EDA guidance names a tool). `test_tool_surface_agreement.py` drops its token
+  list.
+
+* **Every agent is told only its own tools.** Explore gains `read_experiment` (another site's
+  experiment its own search showed this turn) and `get_record_types`, its catalog reads carry
+  descriptions of their own, and it is pinned the open EDA filter sheet; it holds no
+  `ask_eda_cut` and states the cut it chose. A text two agents share states the fact or the
+  action and names no tool: the EDA descriptions and the compute result say the export into a
+  strategy step is Build's, the sweep refusal and descriptions name no control set tool, a STALE
+  ledger line says to read the live strategy (the Lead's instructions name
+  `get_live_strategy_state`), and the edit and contradiction refusals name the framing pass.
+  The WDK 404 and 422 directives name no tool by default (`NEUTRAL_NEXT_ACTIONS`); FRAME passes
+  its own (`FRAME_NEXT_ACTIONS`) and carries the catalog retry lines that left `safety.md`.
+
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new
   budget; a test refuses a production key that names its check in free text. A key a call builds

@@ -9,6 +9,7 @@ from assistant_core.scratchpad.toolset import (
 )
 from pydantic_ai import Agent, DeferredToolRequests
 from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.toolsets import AgentToolset
 
 from strategist.ai.agents._instructions import (
     pinned_run_budget,
@@ -72,7 +73,6 @@ declarative tree.
 graph empty.
 - ``insert_saved_strategy(target_step_id, saved_wdk_strategy_id, operator)`` \
 - Pull a saved WDK strategy in as a combine input.
-- ``rename_strategy(new_name, description)`` - Rename the current strategy.
 
 ### Read-only inspection
 - ``get_strategy(summary_only?)`` - Inspect the current strategy. \
@@ -160,8 +160,6 @@ If a step fails to push, or you need to refine the strategy:
   combine slots in where ``target_step_id`` was; the saved strategy renders \
   as a collapsed pill in the UI.
 
-There is NO ``create_leaf_step``, ``combine_steps``, polymorphic \
-``update_step``, or ``undo_last_change``. Those imperative tools are gone. \
 Build the whole tree at once; refine with the kind-discriminated edit \
 tools.
 
@@ -179,7 +177,6 @@ tools.
   re-discover them.
 - After ``build_strategy`` returns, the pinned graph state shows the live \
   step ids - use those for any subsequent edit calls.
-- Use ``rename_strategy`` to set the strategy name if the spec specifies one.
 - Do NOT explore the catalog or re-frame - those phases are complete.
 
 ## Output - the RecoveryDelta contract
@@ -209,18 +206,19 @@ def build_execution_agent() -> ExecutionAgent:
     never reaches another.
     """
     stable = StableInstructions[AgentDeps]()
+    toolsets: list[AgentToolset[AgentDeps]] = [
+        build_toolset(),
+        build_scratchpad_toolset(
+            guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
+            promoted_kind=PROMOTED_NOTE_KIND,
+        ),
+    ]
     agent: ExecutionAgent = Agent(
         EXECUTION_MODEL,
         output_type=[RecoveryDelta, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_EXECUTION_INSTRUCTIONS,
-        toolsets=[
-            build_toolset(),
-            build_scratchpad_toolset(
-                guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
-                promoted_kind=PROMOTED_NOTE_KIND,
-            ),
-        ],
+        toolsets=toolsets,
         capabilities=agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
@@ -228,6 +226,7 @@ def build_execution_agent() -> ExecutionAgent:
                 stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         description=(

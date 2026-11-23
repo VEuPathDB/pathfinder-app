@@ -7,8 +7,7 @@ from strategist.services.eda.gene_subset import GeneCount, GeneSubset
 
 SHEET_GUIDANCE = (
     "The sheet is pinned under 'Open EDA filter sheet' in your instructions. "
-    "Send the whole filters array back, then call preview_eda_subset. "
-    "For a cut no message states, call ask_eda_cut first; write no cut question."
+    "Send the whole filters array back, then call preview_eda_subset."
 )
 
 APPLIED_GUIDANCE = (
@@ -88,9 +87,9 @@ def no_gene_subset_sentence(preview: SubsetPreview, *, subset: GeneSubset) -> st
         f"{preview.count:,} of {preview.unfiltered_count:,} "
         f"{preview.entity_display_name_plural} "
         f"selected; this subset does not filter genes, because it holds "
-        f"{subset.filters_clause()}. A step exports genes, so run run_eda_compute "
-        f"or filter the gene entity {subset.gene_entity_clause()} before "
-        f"create_eda_step."
+        f"{subset.filters_clause()}. A strategy step exports genes, so run "
+        f"run_eda_compute or filter the gene entity {subset.gene_entity_clause()} "
+        f"before a step exports them."
     )
 
 

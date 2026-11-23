@@ -277,6 +277,9 @@ def _answered(parked: Any, first_task: UUID) -> PipelineState:
     return resumed
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the control test without its listing tools"
+)
 @pytest.mark.usefixtures("scripted")
 async def test_the_park_records_every_durable_call_of_the_run(
     writer: ChunkCollector,
@@ -297,6 +300,9 @@ async def test_the_park_records_every_durable_call_of_the_run(
     assert [c["taskId"] for c in started] == [str(_TASK_A), str(_TASK_B)]
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the control test without its listing tools"
+)
 @pytest.mark.usefixtures("scripted", "deferred")
 async def test_one_result_of_two_leaves_the_run_parked(
     writer: ChunkCollector,
@@ -323,6 +329,9 @@ def _fully_answered(parked: Any) -> PipelineState:
     return resumed
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the control test without its listing tools"
+)
 @pytest.mark.usefixtures("scripted", "deferred")
 async def test_the_last_result_resumes_the_run_with_every_answer(
     writer: ChunkCollector,
@@ -366,6 +375,9 @@ async def test_the_last_result_resumes_the_run_with_every_answer(
     )
 
 
+@pytest.mark.foreign_tool_names(
+    "the test agent holds the control test without its listing tools"
+)
 @pytest.mark.usefixtures("scripted")
 async def test_the_completion_turn_replays_nothing_the_parked_step_settled(
     writer: ChunkCollector,

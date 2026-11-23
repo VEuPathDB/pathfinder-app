@@ -50,13 +50,12 @@ from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.genome_group_steps import criterion_as_stated
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
-from strategist.platform.refusals import (
+from strategist.platform.library_refusals import (
     FaultRow,
-    ProblemsRefusal,
     library_problems,
     library_rows,
-    refuse_problems,
 )
+from strategist.platform.refusals import ProblemsRefusal, refuse_problems
 
 
 @dataclass(frozen=True)

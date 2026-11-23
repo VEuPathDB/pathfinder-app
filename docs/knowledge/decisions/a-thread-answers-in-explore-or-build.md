@@ -67,11 +67,19 @@ A researcher who wants Build then picks Build. A database error on that read fai
 exchanges, the stated words, the memory store and the site with the Lead. None of its tools
 writes the strategy. Its own toolset holds the catalog reads, gene records, the live strategy
 state, the gene set listing, the memories, `propose_readings` (counts readings without a step)
-and `consult_user`. From the EDA and sweep toolsets it takes only the names in an allowlist
+and `consult_user`. The catalog reads are `search_for_searches`, `get_search_overview`,
+`get_parameter_options`, `get_record_types` and `read_experiment`, each with a description
+written for Explore (`ai/explore/explore_tools.py`), never FRAME's. `read_experiment` reads only
+another site's experiment that one of Explore's own searches showed this turn
+(`LeadDeps.shown_experiments`). Every text Explore receives names only tools Explore holds, so
+no text points it at a tool that writes the strategy. Explore is pinned the open EDA filter
+sheet (`pinned_eda_sheet`, the Lead's pin) so it writes filters from the values it can see; it
+holds no `ask_eda_cut`, and where no message states a cut it chooses one and says which in the
+reply. From the EDA and sweep toolsets it takes only the names in an allowlist
 (`_SHARED_TOOLS`): the EDA reads and analyses and the parameter sweep, so a tool added to
 either toolset later does not reach Explore. The research tool source (literature and web
 search, with no tool that writes) is admitted whole.
-`test_explore_holds_no_tool_that_writes_the_strategy` pins the 19 static tool names; the
+`test_explore_holds_no_tool_that_writes_the_strategy` pins the 28 static tool names; the
 research source's tools are served at run time and are not in that set. An Explore turn runs
 under the Lead's per-turn limits, `lead_usage_limits()` (requests, tool calls and tokens), and
 reuses the Lead's stop replies and its model usage part.

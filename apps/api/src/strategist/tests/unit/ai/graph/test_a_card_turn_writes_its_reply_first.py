@@ -103,10 +103,10 @@ async def test_an_empty_reply_is_refused_before_any_card(
         for message in seen[1]
         if isinstance(message, ModelRequest)
         for part in message.parts
-        if isinstance(part, ToolReturnPart) and part.outcome == "retried"
+        if isinstance(part, ToolReturnPart) and part.outcome == "failed"
     ]
     assert len(refusals) == 1
-    assert "reply" in refusals[0]
+    assert refusals[0].startswith("reply")
     assert [c["toolCallId"] for c in writer.chunks_of("tool-approval-request")] == [
         "call_card_1"
     ]

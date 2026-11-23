@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field, replace
 
 import pytest
@@ -11,7 +10,7 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.toolsets import FunctionToolset
 
 from strategist.ai.agents.research_reads import RESEARCH_UNAVAILABLE
@@ -21,21 +20,13 @@ from strategist.ai.lead.contract_messages import off_topic_essay_message
 from strategist.ai.lead.intent import IntentClassification
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import OFF_TOPIC_REPLY_MAX_CHARS
-from strategist.tests._support.offered_tools import (
-    offered_tool_names,
-    served_tool_names,
-)
+from strategist.tests._support.streamed_model import streamed
+from strategist.tests._support.tool_names import named_tools, served_tool_names
 from strategist.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
     REDIRECT,
     off_topic_deps,
 )
-
-_NAMED = re.compile(r"``([a-z_][a-z0-9_]*)``")
-
-
-def _named_tools(instructions: str | None) -> set[str]:
-    return set(_NAMED.findall(instructions or "")) & offered_tool_names()
 
 
 def _paper(query: str) -> str:
@@ -75,7 +66,7 @@ async def _run(deps: LeadDeps, *answers: str) -> _Run:
         return ModelResponse(parts=[TextPart(answers[len(run.seen) - 1])])
 
     agent = build_explore_agent()
-    with agent.override(model=FunctionModel(answer)):
+    with agent.override(model=streamed(answer)):
         result = await agent.run(deps.state.user_prompt, deps=deps)
     assert isinstance(result.output, str)
     run.output = result.output
@@ -83,17 +74,14 @@ async def _run(deps: LeadDeps, *answers: str) -> _Run:
 
 
 @pytest.mark.parametrize("served", [True, False])
-async def test_an_off_topic_turn_offers_every_tool_its_instructions_name(
+async def test_an_off_topic_turn_keeps_its_catalog_read_and_the_redirect(
     served: bool,
 ) -> None:
     deps = _with_research(off_topic_deps()) if served else off_topic_deps()
 
     [info] = (await _run(deps, REDIRECT)).seen
 
-    named = _named_tools(info.instructions)
-    offered = {t.name for t in info.function_tools}
-    assert "search_for_searches" in named
-    assert sorted(named - offered) == []
+    assert "search_for_searches" in named_tools(info.instructions or "")
     assert EXPLORE_OFF_TOPIC_REDIRECT in (info.instructions or "")
 
 
@@ -102,7 +90,7 @@ async def test_a_turn_names_the_research_reads_when_the_source_resolved() -> Non
 
     [info] = (await _run(deps, REDIRECT)).seen
 
-    assert served_tool_names() <= _named_tools(info.instructions)
+    assert served_tool_names() <= named_tools(info.instructions or "")
     assert RESEARCH_UNAVAILABLE not in (info.instructions or "")
     assert EXPLORE_OFF_TOPIC_REDIRECT not in (info.instructions or "")
 
@@ -113,7 +101,7 @@ async def test_a_turn_without_the_research_source_says_it_is_unavailable() -> No
     ).seen
 
     assert RESEARCH_UNAVAILABLE in (info.instructions or "")
-    assert served_tool_names() & _named_tools(info.instructions) == set()
+    assert served_tool_names() & named_tools(info.instructions or "") == set()
 
 
 async def test_an_off_topic_reply_longer_than_a_redirect_is_corrected_once() -> None:

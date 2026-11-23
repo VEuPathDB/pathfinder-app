@@ -6,6 +6,7 @@ import re
 
 from strategist.ai.agents.frame import _FRAME_INSTRUCTIONS
 from strategist.ai.lead._lead_instructions import (
+    LEAD_GENE_RECORD_RULE,
     LEAD_INSTRUCTIONS,
     LEAD_RESEARCH_READS,
 )
@@ -231,7 +232,7 @@ def test_the_only_reference_the_instructions_teach_is_a_record() -> None:
 
 
 def test_a_fact_about_a_gene_is_read_from_its_record() -> None:
-    instructions = _flat(LEAD_INSTRUCTIONS)
+    instructions = _flat(LEAD_GENE_RECORD_RULE)
 
     assert "A fact about a gene is read from its record" in instructions
     assert "``read_gene_record``" in instructions

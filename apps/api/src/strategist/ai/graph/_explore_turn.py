@@ -23,7 +23,7 @@ from strategist.ai.graph._lead_exchange import answer_words
 from strategist.ai.graph._lead_turn import pending_approval
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.domain.exchanges import Exchange
+from strategist.domain.exchanges import Exchange, approval_card
 from strategist.domain.modes import EXPLORE_PHASE, READINGS_PHASE
 from strategist.domain.strategy.chosen_reading import ChosenReading
 
@@ -113,7 +113,7 @@ def _card_words(parked: ParkedCall | None, counts: Mapping[str, int | None]) -> 
         return ""
     if hands_over(parked):
         return _offered(parked, counts)
-    return f"approve {parked.tool_name}"
+    return approval_card(parked.tool_name)
 
 
 def explore_exchange(

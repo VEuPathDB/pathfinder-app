@@ -93,7 +93,7 @@ class TestAnOperationTheEditWrites:
     def test_it_names_the_way_forward_and_forbids_a_rebuild(self) -> None:
         message = edit_operation_refused_message(_THE_GRAPH_SAID)
 
-        assert "set_criterion" in message
+        assert "state that criterion under a step id the strategy holds" in message
         assert "Do not offer to rebuild the strategy from scratch" in message
 
 
@@ -146,7 +146,7 @@ class TestABuildTheTreeCannotHold:
 
         assert _THE_TREE_SAID in message
         assert "Nothing was built" in message
-        assert "set_structure" in message
+        assert "Run frame_problem with that reason" in message
 
 
 class TestABuildThatDepartsFromThePlan:

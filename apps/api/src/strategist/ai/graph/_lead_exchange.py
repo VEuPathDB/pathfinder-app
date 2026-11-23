@@ -9,7 +9,7 @@ from pydantic import ConfigDict, Field
 
 from strategist.ai.graph._lead_capture import LeadRunCapture
 from strategist.ai.graph.state import PipelineState
-from strategist.domain.exchanges import Exchange
+from strategist.domain.exchanges import Exchange, approval_card
 from strategist.domain.reply_note import render_note
 
 
@@ -43,7 +43,7 @@ class _CardWords(CamelModel):
         asked = [q.words() for q in self.questions if q.prompt]
         if self.question:
             asked.append(self.question)
-        return " ".join(asked) or f"approve {tool_name}"
+        return " ".join(asked) or approval_card(tool_name)
 
 
 def answer_words(state: PipelineState, card: ParkedCall) -> str:

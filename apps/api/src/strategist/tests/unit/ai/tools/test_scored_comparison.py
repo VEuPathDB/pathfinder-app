@@ -34,8 +34,6 @@ from strategist.tests.unit.ai.tools.conftest import (
 )
 from strategist.tests.unit.ai.tools.test_frame_spec import param_info
 
-_WDK_STRATEGY_ID = "330531493"
-
 
 @pytest.fixture(autouse=True)
 def _every_parameter_is_taken(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -130,7 +128,7 @@ async def test_it_emits_the_scored_card_and_the_summary(
     )
 
     result = await compare_variants_scored(
-        _attached_to(held), _variants(), control_set_id=held.id, objective="mcc"
+        _attached_to(held), _variants(), control_set_id=UUID(held.id), objective="mcc"
     )
 
     assert returned(result, ScoredComparison).winner_label == "b"
@@ -159,7 +157,7 @@ async def test_each_scored_variant_names_the_saved_set_it_ran(
     )
     ctx = _attached_to(held)
 
-    await compare_variants_scored(ctx, _variants(), control_set_id=held.id)
+    await compare_variants_scored(ctx, _variants(), control_set_id=UUID(held.id))
 
     runs = ctx.deps.state.turn_markers.control_tests
     assert [run.evidence.tested_label for run in runs] == ["a", "b"]
@@ -185,24 +183,13 @@ async def test_a_parameter_no_search_takes_is_refused_before_the_run(
 
     with pytest.raises(ModelRetry) as refused:
         await compare_variants_scored(
-            _attached_to(held), variants, control_set_id=held.id
+            _attached_to(held), variants, control_set_id=UUID(held.id)
         )
 
     assert str(refused.value).startswith(
         "2 problems:\n"
         "1. SA takes no parameter input (a, b). The parameters it takes: fold_change."
     )
-
-
-async def test_it_refuses_a_single_variant(monkeypatch: pytest.MonkeyPatch) -> None:
-    _pin_control_set(monkeypatch, positive_ids=["g1"], negative_ids=[])
-
-    with pytest.raises(ModelRetry, match="at least 2"):
-        await compare_variants_scored(
-            detached_lead_context(),
-            [VariantInput(label="a", search_name="SA", parameters={})],
-            control_set_id=str(uuid4()),
-        )
 
 
 class TestTheLeadCanReachControlScoring:
@@ -256,7 +243,7 @@ class TestAFailedScoringIsReportedAsOne:
         held = _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=[])
         _pin_comparison(monkeypatch, self._COMPARISON)
         result = await compare_variants_scored(
-            _attached_to(held), _variants(), control_set_id=held.id
+            _attached_to(held), _variants(), control_set_id=UUID(held.id)
         )
         return returned(result, ScoredComparison)
 
@@ -279,22 +266,6 @@ class TestAFailedScoringIsReportedAsOne:
         assert [v.control_hits for v in scored.variants] == [["g1"], []]
 
 
-class TestAControlSetIdIsARetry:
-    async def test_a_non_uuid_control_set_is_a_retry(self) -> None:
-        with pytest.raises(ModelRetry) as err:
-            await compare_variants_scored(
-                detached_lead_context(), _variants(), _WDK_STRATEGY_ID
-            )
-
-        assert "control" in str(err.value).lower()
-
-    async def test_a_name_instead_of_an_id_is_a_retry(self) -> None:
-        with pytest.raises(ModelRetry):
-            await compare_variants_scored(
-                detached_lead_context(), _variants(), "my controls"
-            )
-
-
 class TestACombineStepIsNotAVariant:
     """The live strategy renders a combine step as "Combine", so that word
     reaches the variant tools as a search name. WDK refuses it server-side,
@@ -308,23 +279,23 @@ class TestACombineStepIsNotAVariant:
     ) -> None:
         with pytest.raises(ModelRetry) as err:
             await compare_variants_scored(
-                detached_lead_context(), _variants(combine_name), str(uuid4())
+                detached_lead_context(), _variants(combine_name), uuid4()
             )
 
         assert combine_name in str(err.value)
 
-    async def test_the_message_names_the_tool_that_takes_a_step(self) -> None:
+    async def test_the_message_says_a_step_takes_a_control_test(self) -> None:
         with pytest.raises(ModelRetry) as err:
             await compare_variants_scored(
-                detached_lead_context(), _variants("Combine"), str(uuid4())
+                detached_lead_context(), _variants("Combine"), uuid4()
             )
 
-        assert "run_control_tests_on_step" in str(err.value)
+        assert "a control test on that step" in str(err.value)
 
     async def test_the_offending_label_is_named(self) -> None:
         with pytest.raises(ModelRetry) as err:
             await compare_variants_scored(
-                detached_lead_context(), _variants("Combine"), str(uuid4())
+                detached_lead_context(), _variants("Combine"), uuid4()
             )
 
         assert "a" in str(err.value)
@@ -333,7 +304,7 @@ class TestACombineStepIsNotAVariant:
         with pytest.raises(ModelRetry) as err:
             await compare_search_variants(detached_lead_context(), _variants("Combine"))
 
-        assert "run_control_tests_on_step" in str(err.value)
+        assert "a control test on that step" in str(err.value)
 
     @pytest.mark.parametrize(
         "search_name",

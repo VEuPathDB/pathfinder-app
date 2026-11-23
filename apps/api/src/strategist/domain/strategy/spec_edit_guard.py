@@ -129,7 +129,7 @@ def new_join_contradiction(
             f"the spec joins {sorted(joined)} at {join.declared.value}, and this "
             f"write joins them at {join.written.value}, so the strategy would "
             f"answer a different question. A structure the spec states changes "
-            f"in the spec first (set_structure, in the framing pass). "
+            f"in the spec first, in a framing pass. "
             f"{_THROUGH_THE_SPEC}"
         )
     return None
@@ -259,7 +259,7 @@ def new_value_contradiction(
             f"the criterion {found.criterion_text!r} states "
             f"{found.parameter} = {to_wire(found.stated)!r}, and this write sends "
             f"{to_wire(found.written)!r}, so the strategy would answer a different "
-            f"question. A value the spec states changes in the spec first "
-            f"(set_criterion, in the framing pass). {_THROUGH_THE_SPEC}"
+            f"question. A value the spec states changes in the spec first, "
+            f"in a framing pass. {_THROUGH_THE_SPEC}"
         )
     return None

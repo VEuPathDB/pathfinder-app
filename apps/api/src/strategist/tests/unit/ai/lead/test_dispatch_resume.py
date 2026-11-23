@@ -225,6 +225,9 @@ async def test_execution_approval_reaches_the_client(
     )
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("scripted_delete", "collector")
 async def test_a_resumed_dispatch_runs_on_a_freshly_built_agent(
     monkeypatch: pytest.MonkeyPatch,
@@ -266,6 +269,9 @@ async def test_a_resumed_dispatch_runs_on_a_freshly_built_agent(
     assert built[0] is not built[1]
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset", "scripted_delete")
 async def test_approval_runs_the_inner_tool_and_returns_the_delta(
     collector: ChunkCollector,
@@ -298,6 +304,9 @@ async def test_approval_runs_the_inner_tool_and_returns_the_delta(
     assert all(u.usage.total_tokens > 0 for u in usage_log)
 
 
+@pytest.mark.foreign_tool_names(
+    "a stub execution toolset receives the production work order"
+)
 @pytest.mark.usefixtures("stub_execution_toolset", "scripted_delete")
 async def test_denial_finishes_the_sub_agent_without_running_the_tool(
     collector: ChunkCollector,

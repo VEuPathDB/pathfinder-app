@@ -83,9 +83,7 @@ async def test_spec_ready_over_an_empty_draft_is_a_retry(
         )
 
     message = str(excinfo.value)
-    assert "set_criterion" in message
-    assert "set_structure" in message
-    assert "drop_criterion" in message
+    assert "record its work in the spec" in message
 
 
 async def test_the_questions_frame_cannot_answer_are_recorded(
