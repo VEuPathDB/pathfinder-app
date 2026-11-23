@@ -32,6 +32,7 @@ from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.agents.verification import build_verification_agent
 from strategist.ai.capabilities.metering import SpendMeter
 from strategist.ai.capabilities.resilience import ToolResilience
+from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
@@ -152,15 +153,15 @@ def _retry_messages(messages: list[ModelMessage]) -> list[str]:
     ]
 
 
-def _seams(agent: Agent[Any, Any]) -> int:
-    """How many refusal seams the agent carries.
+def _seams(agent: Agent[Any, Any], seam: type[AbstractCapability[Any]]) -> int:
+    """How many of one seam the agent carries.
 
     ``_root_capability`` is the only route to the assembled list: the Agent
     publishes no accessor for it.
     """
     leaves: list[AbstractCapability[Any]] = []
     agent._root_capability.apply(leaves.append)
-    return len([leaf for leaf in leaves if isinstance(leaf, ServiceRefusalRetry)])
+    return len([leaf for leaf in leaves if isinstance(leaf, seam)])
 
 
 def test_the_walk_finds_every_agent_the_deployment_is_known_to_run() -> None:
@@ -173,10 +174,24 @@ def test_every_agent_that_carries_tools_carries_the_refusal_seam() -> None:
     built = {name: _built(factory) for name, factory in agent_factories().items()}
     with_tools = {name: a for name, a in built.items() if agent_tool_names(a)}
 
-    unseamed = sorted(name for name, a in with_tools.items() if _seams(a) != 1)
+    unseamed = sorted(
+        name for name, a in with_tools.items() if _seams(a, ServiceRefusalRetry) != 1
+    )
 
     assert unseamed == []
     assert set(with_tools) >= NAMED_FACTORIES
+
+
+def test_every_agent_that_carries_tools_fails_an_unparsed_site_reply() -> None:
+    built = {name: _built(factory) for name, factory in agent_factories().items()}
+
+    unseamed = sorted(
+        name
+        for name, a in built.items()
+        if agent_tool_names(a) and _seams(a, SiteReadFailures) != 1
+    )
+
+    assert unseamed == []
 
 
 def _layers(toolset: AbstractToolset[Any]) -> list[AbstractToolset[Any]]:

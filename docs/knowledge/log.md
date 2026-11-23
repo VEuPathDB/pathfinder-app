@@ -16,6 +16,13 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **A WDK reply that does not parse fails the call.** A tool body that validated a site
+  reply missing a required field raised a pydantic `ValidationError`, which pydantic-ai
+  turned into a corrective retry labelled "Sent with arguments the tool does not accept".
+  `SiteReadFailures` now fails such a call on every tool, naming the reply model, and
+  FRAME, BUILD and VERIFY carry it beside the Lead, Explore and the auditor. A model built
+  from the call's arguments keeps its retry.
+
 * **A mark that was not read is not a negative.** b1 framed a Pexel list and an 80th
   percentile on the Newbold blood-stage RNA-Seq search, and FRAME's card asked "No search on
   this site states 'RNA-Seq evidence'. Drop it from the request?" because the marks were last

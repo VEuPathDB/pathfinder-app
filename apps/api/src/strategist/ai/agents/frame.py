@@ -34,6 +34,7 @@ from strategist.ai.agents.strategy_instructions import (
 from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.agents.vocabulary import with_vocabulary
 from strategist.ai.capabilities.resilience import ToolResilience, WdkNextActions
+from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.graph.runtime import AgentDeps, turn_tool_sources
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.tools.toolsets.frame import build_toolset
@@ -346,6 +347,7 @@ def build_frame_agent() -> FrameAgent:
         toolsets=toolsets,
         capabilities=agent_capabilities(
             [
+                SiteReadFailures[AgentDeps](),
                 ToolResilience(
                     search_lookup_tools=SEARCH_LOOKUP_TOOLS,
                     next_actions=FRAME_NEXT_ACTIONS,

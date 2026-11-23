@@ -5,16 +5,19 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable
 from dataclasses import dataclass
+from functools import cache
 from typing import Any
 
 import httpx
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
 from pydantic_ai import ToolFailed
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
-from veupathdb.errors import ExternalServiceError, WDKError
+from veupathdb.errors import DataParsingError, ExternalServiceError, WDKError
 from veupathdb.jbrowse import JBrowseError
+from veupathdb.wdk.wdk_base import WDKModel
 
 from strategist.services.site_errors import site_status, unreached
 
@@ -57,6 +60,36 @@ def site_data_failure(tool_name: str, said: str) -> ToolFailed:
         "for this read could not be used, and answer from what the turn already "
         "holds."
     )
+
+
+def site_reply_failure(tool_name: str, model: str) -> ToolFailed:
+    return ToolFailed(
+        f"{tool_name} got a reply from the site that did not parse ({model}). "
+        "Nothing was read and the strategy is unchanged. Say that the site's reply "
+        "to this read did not parse, and answer from what the turn already holds."
+    )
+
+
+@cache
+def _reply_models() -> frozenset[str]:
+    found: set[str] = set()
+    pending: list[type[WDKModel]] = [WDKModel]
+    while pending:
+        model = pending.pop()
+        found.add(model.__name__)
+        pending.extend(model.__subclasses__())
+    return frozenset(found)
+
+
+def unparsed_site_reply(error: BaseException) -> str | None:
+    """The reply model a site reply did not parse into, or None for any other error."""
+    match error:
+        case DataParsingError(__cause__=ValidationError() as cause):
+            return unparsed_site_reply(cause)
+        case ValidationError(title=title) if title in _reply_models():
+            return title
+        case _:
+            return None
 
 
 def _judged_read(tool_name: str, error: BaseException, said: str) -> ToolFailed:
@@ -113,10 +146,11 @@ async def read_in_time[T](
 
 @dataclass
 class SiteReadFailures(AbstractCapability[AgentDepsT]):
-    """Fail a listed read that the site broke off or refused, so it is not held as answered.
-    Every other error propagates to the turn's error path or the refusal seam."""
+    """Fail a listed read that the site broke off or refused, and any call whose
+    site reply did not parse, so it is not held as answered. Every other error
+    propagates to the turn's error path or the refusal seam."""
 
-    reads: frozenset[str]
+    reads: frozenset[str] = frozenset()
 
     async def on_tool_execute_error(
         self,
@@ -128,6 +162,8 @@ class SiteReadFailures(AbstractCapability[AgentDepsT]):
         error: Exception,
     ) -> Any:
         del ctx, call, args
+        if (model := unparsed_site_reply(error)) is not None:
+            raise site_reply_failure(tool_def.name, model) from error
         if tool_def.name not in self.reads:
             raise error
         match error:
