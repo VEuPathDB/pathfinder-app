@@ -82,10 +82,14 @@ def _refusals(
         criterion.search_name, question.param_name
     ):
         return []
+    unheld = set(
+        unheld_handles(question, held_expressions(state.built_expressions, spec))
+    )
     return [
         why
         for wire in question.wires_offered(criterion)
-        if (
+        if wire.strip() not in unheld
+        and (
             why := option_refusal(
                 spec,
                 SetValues(
