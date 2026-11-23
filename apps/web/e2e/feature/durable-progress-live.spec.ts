@@ -1,5 +1,4 @@
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext, Page } from "@playwright/test";
 
@@ -112,10 +111,10 @@ async function sendPrompt(page: Page, prompt: string): Promise<void> {
 
 test.describe("Durable task live progress", () => {
   test("the card's bar advances from the thread's own tail, not a per-task stream", async ({
+    siteId,
     page,
     context,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     const tailCalls = await routeSuspendedTurn(
@@ -158,10 +157,10 @@ test.describe("Durable task live progress", () => {
   });
 
   test("a task with no progress yet reads Queued, not 0%", async ({
+    siteId,
     page,
     context,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     await routeSuspendedTurn(
@@ -183,10 +182,10 @@ test.describe("Durable task live progress", () => {
   });
 
   test("the outcome and the continuation arrive on that same connection", async ({
+    siteId,
     page,
     context,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     await routeSuspendedTurn(

@@ -7,6 +7,14 @@ from veupathdb.wdk import get_site, get_site_router
 from strategist.services.site_pages import strategist_page_url
 
 
+def new_conversation_url(target_id: str) -> str:
+    return f"{strategist_page_url(get_site(target_id))}/conversation"
+
+
+def portal_site_id() -> str:
+    return next(site.id for site in get_site_router().list_sites() if site.is_portal)
+
+
 def site_route_sentence(
     site_id: str, target_id: str, why: str = "whose searches answer it"
 ) -> str:
@@ -17,7 +25,7 @@ def site_route_sentence(
     here = get_site(site_id).name
     return (
         f"This needs {name}, {why}. [Open a new conversation there]"
-        f"({strategist_page_url(target)}/conversation); "
+        f"({new_conversation_url(target_id)}); "
         f"this conversation stays on {here}. Save the result there as a gene set, "
         f"and a conversation on {here} can start from its {here} genes."
     )
@@ -25,7 +33,6 @@ def site_route_sentence(
 
 def portal_route_sentence(site_id: str) -> str:
     """What the researcher does when only the portal holds both organisms."""
-    portal = next(site for site in get_site_router().list_sites() if site.is_portal)
     return site_route_sentence(
-        site_id, portal.id, "where one strategy holds both organisms"
+        site_id, portal_site_id(), "where one strategy holds both organisms"
     )

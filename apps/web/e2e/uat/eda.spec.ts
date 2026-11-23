@@ -159,6 +159,18 @@ async function showStudies(page: Page) {
   await expect(page.getByTestId("rail-eda-panel")).toBeVisible();
 }
 
+/** The rail offers Strategy and Review and no Study while the thread holds no study. */
+async function expectNoStudyButton(page: Page) {
+  await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
+  const panels = page.getByLabel("Side panels").getByRole("button");
+  await expect(panels).toHaveCount(2);
+  for (const name of ["Strategy", "Review"]) {
+    await expect(
+      panels.and(page.getByLabel(new RegExp(`^(Open|Close) ${name}$`))),
+    ).toHaveCount(1);
+  }
+}
+
 async function backToThread(page: Page, chatPage: ChatPage) {
   await page.getByRole("link", { name: "Back to conversation" }).click();
   await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
@@ -225,12 +237,7 @@ test.describe("Studies", () => {
     await chatPage.sendTurn("Which studies can I explore here?", /\[mock\]/);
     const id = conversationOf(chatPage);
 
-    await showStudies(page);
-    const rail = page.getByTestId("rail-eda-panel");
-    await expect(rail).toContainText("No study is open");
-    await expect(rail).toContainText(
-      "Ask the assistant to explore a study, and the subset and its plots appear here.",
-    );
+    await expectNoStudyButton(page);
 
     await page.goto(`conversation/${id}/eda`);
     const tab = page.getByTestId("eda-workbench");
@@ -283,8 +290,7 @@ test.describe("Studies", () => {
     await expect(tab.getByTestId("eda-study-picker")).toBeVisible({ timeout: 30_000 });
     expect(await readAnalysis(apiClient, id)).toBeNull();
     await backToThread(page, chatPage);
-    await showStudies(page);
-    await expect(page.getByTestId("rail-eda-panel")).toContainText("No study is open");
+    await expectNoStudyButton(page);
   });
 
   test.describe("The assistant's comparison", { tag: "@turn" }, () => {

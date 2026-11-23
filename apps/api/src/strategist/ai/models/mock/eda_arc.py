@@ -119,6 +119,15 @@ def _search() -> ToolCallPart:
     return scripted_call("search_eda_studies", {"query": message()})
 
 
+def _sheet_json(instructions: str) -> str | None:
+    """The entries line of the newest sheet block: its last line before a blank one."""
+    _, head, block = instructions.rpartition(_SHEET_HEAD)
+    if not head:
+        return None
+    lines = block.split("\n\n", 1)[0].splitlines()
+    return lines[-1] if len(lines) > 1 else None
+
+
 type GroupChooser = Callable[
     [list[ModelMessage], list[str]], EdaFilterSheetEntry | None
 ]
@@ -128,13 +137,12 @@ def group_variables(
     messages: list[ModelMessage], samples: list[str]
 ) -> list[EdaFilterSheetEntry]:
     """The single-valued string variables of a sample entity with two values or more."""
-    lines = instructions_of(messages).splitlines()
-    heads = [i for i, line in enumerate(lines) if line.startswith(_SHEET_HEAD)]
-    if not heads or heads[-1] + 1 >= len(lines):
+    sheet = _sheet_json(instructions_of(messages))
+    if sheet is None:
         return []
     return [
         e
-        for e in _SHEET.validate_json(lines[heads[-1] + 1])
+        for e in _SHEET.validate_json(sheet)
         if e.entity_id in samples
         and e.filter_type == "stringSet"
         and not e.is_multi_valued

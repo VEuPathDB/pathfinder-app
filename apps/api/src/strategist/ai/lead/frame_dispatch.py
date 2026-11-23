@@ -39,7 +39,11 @@ from strategist.ai.lead.operator_reader import read_the_operators
 from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from strategist.ai.lead.readings import count_readings
 from strategist.ai.lead.recorded_cards import card_questions
-from strategist.ai.lead.site_routes import site_route_sentence
+from strategist.ai.lead.site_routes import (
+    new_conversation_url,
+    portal_site_id,
+    site_route_sentence,
+)
 from strategist.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -307,6 +311,7 @@ def _another_site_route(deps: LeadDeps, delta: FrameResult) -> str:
     ]
     if not routed:
         return ""
+    deps.state.turn_markers.record_route_link(new_conversation_url(routed[0].site))
     stated = numbered_requirements(deps.state.domain.requirements).get(
         routed[0].requirement
     )
@@ -326,6 +331,10 @@ async def _accepted(
     from the wire values, or a refusal. A pass sent to another site carries
     that site's sentence, alone when the pass changed nothing."""
     draft = state.operational_spec_draft
+    if state.portal_route:
+        deps.state.turn_markers.record_route_link(
+            new_conversation_url(portal_site_id())
+        )
     route = state.portal_route or _another_site_route(deps, delta)
     found = deps.state.domain.spec_before_dispatch
     if route and draft == (found or OperationalSpec(goal=draft.goal)):

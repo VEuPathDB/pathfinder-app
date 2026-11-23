@@ -6,6 +6,8 @@ from __future__ import annotations
 import pytest
 
 from strategist.ai.agents.frame import _FRAME_INSTRUCTIONS
+from strategist.ai.conversation._turn_helpers import _extract_chunk
+from strategist.ai.graph._lead_facts import show_the_links
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead import frame_dispatch
 from strategist.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
@@ -15,6 +17,7 @@ from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.strategy.constraints import ConstraintKind
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.questions import SlotQuestion
+from strategist.domain.turn_facts import TurnFacts
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 
@@ -130,3 +133,23 @@ async def test_a_pass_that_bound_more_carries_the_sentence_ahead_of_its_summary(
     assert result == FrameResult(
         disposition="spec_ready", summary=f"{_ROUTE} c_tm bound."
     )
+
+
+async def test_the_reply_vouches_for_the_portal_link(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _portal_only_pass(monkeypatch, question=False)
+    deps = _seeded()
+    await run_frame(
+        deps=deps,
+        parent_tool_call_id="call_frame_1",
+        work_order="carry the genes to Toxoplasma gondii ME49",
+    )
+    written: list[object] = []
+
+    show_the_links(written.append, deps, TurnFacts())
+
+    chunks = [c for p in written if (c := _extract_chunk(p)) is not None]
+    assert [chunk["data"] for chunk in chunks] == [
+        {"links": ["https://qa.veupathdb.org/veupathdb.qa/app/strategist/conversation"]}
+    ]

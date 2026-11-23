@@ -153,3 +153,35 @@ def test_the_digest_reviews_the_genes_it_read() -> None:
         ("PF3D7_0100200", "yes"),
     ]
     assert review.checks == []
+
+
+def test_a_control_whose_read_is_refused_is_not_asked_again() -> None:
+    refused = [
+        *_sampled(),
+        ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="read_gene_record",
+                    args={"gene_id": _SAMPLED[0]},
+                    tool_call_id="call_read_1",
+                )
+            ]
+        ),
+        ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="read_gene_record",
+                    content=f"{_SAMPLED[0]} is a control.",
+                    tool_call_id="call_read_1",
+                    outcome="failed",
+                )
+            ]
+        ),
+    ]
+
+    call = _call(refused)
+
+    assert (call.tool_name, call.args_as_dict()) == (
+        "read_gene_record",
+        {"gene_id": _SAMPLED[1]},
+    )

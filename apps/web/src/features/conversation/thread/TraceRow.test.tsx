@@ -157,6 +157,24 @@ describe("TraceRow", () => {
     expect(screen.getByTestId("trace-row-status")).not.toHaveClass("text-destructive");
   });
 
+  it("reads a retry's validation errors as a sentence, not as JSON", () => {
+    render(
+      <TraceRow
+        row={row({
+          status: "corrected",
+          summary: null,
+          errorText:
+            '[{"type":"string_too_short","loc":["reply"],"msg":"String should have at least 20 characters","input":"[mock] Two"}]',
+        })}
+        showRaw={false}
+        nameFor={label}
+      />,
+    );
+    expect(screen.getByTestId("trace-row-summary")).toHaveTextContent(
+      "1 validation error: reply: String should have at least 20 characters",
+    );
+  });
+
   it("clips a long error to a word boundary and ends it in three periods", () => {
     const long = "alpha ".repeat(40).trim();
     render(

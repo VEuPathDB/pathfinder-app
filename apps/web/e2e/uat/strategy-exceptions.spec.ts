@@ -185,7 +185,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     const carousel = chatPage.dockedCard.getByTestId("consult-carousel");
     await expect(carousel).toBeVisible({ timeout: 240_000 });
     await expect(carousel).toContainText("A few questions before I build the plan");
-    await expect(carousel).toContainText("1 / 1");
+    await expect(carousel.getByTestId("consult-place")).toHaveText("1 of 1");
     const slide = carousel.getByTestId("consult-slide");
     await expect(slide).toContainText(OPEN_ORGANISM_QUESTION);
     const options = slide.locator('[data-testid^="consult-option-"]');
@@ -634,7 +634,9 @@ test.describe("Another site's experiment", { tag: "@named-site" }, () => {
     await openTrace(reply);
     await expect(
       traceRows(reply, "Find searches").getByTestId("trace-row-summary"),
-    ).toContainText([/^\d+ searches(, experiments on .+)?$/]);
+    ).toContainText([
+      /^\d+ searches on ToxoDB(; related experiments on \d+ other sites? \(for reference\))?$/,
+    ]);
     // The arc binds the site's own top hit, so the layout is read, not named.
     // weak-ok(nonempty): the site's own top hit decides the layout; a stored step is the behavior.
     await expect

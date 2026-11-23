@@ -66,10 +66,14 @@ function escaped(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** The ids of every site the api serves. */
-async function servedSites(api: ApiClient): Promise<string[]> {
-  const rows = await listBody<{ id: string }>(await api.get("api/v1/sites"), "sites");
-  return rows.map((row) => row.id);
+interface ServedSite {
+  id: string;
+  name: string;
+}
+
+/** Every site the api serves. */
+async function servedSites(api: ApiClient): Promise<ServedSite[]> {
+  return listBody<ServedSite>(await api.get("api/v1/sites"), "sites");
 }
 
 async function geneSetsOn(api: ApiClient, siteId: string): Promise<GeneSet[]> {
@@ -118,19 +122,27 @@ async function expectOwnSearches(api: ApiClient, siteId: string, id: string) {
 }
 
 /**
- * The `Find searches` rows count the site's own searches, and label another
- * site's experiments by that site's id, never by this one.
+ * The `Find searches` rows count the searches on this site, named by its own
+ * name, and count the other sites whose experiments follow for reference.
  */
-async function expectFindSearches(reply: Locator, siteId: string, served: string[]) {
+async function expectFindSearches(
+  reply: Locator,
+  siteId: string,
+  served: ServedSite[],
+) {
+  const own = served.find((site) => site.id === siteId);
+  if (own === undefined) throw new Error(`the api serves no ${siteId}`);
   await openTrace(reply);
   const summaries = traceRows(reply, "Find searches").getByTestId("trace-row-summary");
   await expect(summaries).not.toHaveCount(0);
   for (const summary of await summaries.allTextContents()) {
-    const match = /^[\d,]+ searches(?:, experiments on (.+))?$/.exec(summary.trim());
+    const match =
+      /^[\d,]+ searches on (.+?)(?:; related experiments on (\d+) other sites? \(for reference\))?$/.exec(
+        summary.trim(),
+      );
     expect(match, `Find searches reads "${summary}"`).not.toBe(null);
-    const named = (match?.[1] ?? "").split(/, | and /).filter((name) => name !== "");
-    expect(named).not.toContain(siteId);
-    for (const other of named) expect(served).toContain(other);
+    expect(match?.[1]).toBe(own.name);
+    expect(Number(match?.[2] ?? "0")).toBeLessThan(served.length);
   }
 }
 
@@ -258,7 +270,8 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     page,
   }) => {
     const served = await servedSites(apiClient);
-    const sites = ["vectorbase", "toxodb"].filter((site) => served.includes(site));
+    const ids = served.map((site) => site.id);
+    const sites = ["vectorbase", "toxodb"].filter((site) => ids.includes(site));
     expect(sites).toContain("vectorbase");
     for (const siteId of sites) {
       const { id } = await buildS2(chatPage, apiClient, page, siteId);

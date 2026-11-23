@@ -253,8 +253,7 @@ test.describe("First run and navigation", () => {
 
     const signedOut = page.getByTestId("signed-out-notice");
     await expect(signedOut).toBeVisible({ timeout: 30_000 });
-    await expect(signedOut).toContainText("Strategist");
-    await expect(signedOut).toContainText("VEuPathDB Strategy Builder");
+    await expect(signedOut).toContainText("VEuPathDB Strategist");
     await expect(signedOut).toContainText(
       "Sign in to VEuPathDB to build and manage search strategies.",
     );
@@ -811,7 +810,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       .toEqual(["complete"]);
     const reopened = await context.newPage();
     const chat = new ChatPage(reopened);
-    await reopened.goto(`conversation/${id}`);
+    await gotoOnSite(reopened, siteId, `conversation/${id}`);
     await expect(chat.composer).toBeVisible({ timeout: 60_000 });
     const done = reopened.getByTestId("task-row").filter({ hasText: CONTROL_TESTS });
     await expect(done).toHaveCount(1, { timeout: 60_000 });

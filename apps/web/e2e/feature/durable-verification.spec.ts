@@ -20,7 +20,6 @@
  */
 
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
 
@@ -52,10 +51,10 @@ test.describe("Durable verification TaskCard", () => {
   test.describe.configure({ mode: "serial" });
 
   test("TaskCard renders from data-background-task-started and tracks progress to success", async ({
+    siteId,
     page,
     context,
   }) => {
-    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     // Background-task progress is rendered from chunks delivered on the chat
