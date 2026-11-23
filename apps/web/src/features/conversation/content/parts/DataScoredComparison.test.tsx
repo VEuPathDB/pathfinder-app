@@ -216,6 +216,35 @@ describe("DataScoredComparison", () => {
     expect(screen.getByText("contains none of the control genes")).toBeInTheDocument();
   });
 
+  it("says a membership the site did not read was not read", () => {
+    inThread(
+      <DataScoredComparison
+        data={{
+          objective: "mcc",
+          winnerLabel: null,
+          variants: [
+            {
+              label: "top 5%",
+              searchName: "SB",
+              mcc: null,
+              f1: null,
+              precision: null,
+              sensitivity: null,
+              balancedAccuracy: null,
+              experimentId: null,
+              error: "scoring blew up",
+              controlHits: { reason: "HTTP 502: VEuPathDB service error" },
+            },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByText("membership not read: HTTP 502: VEuPathDB service error"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("contains none of the control genes")).toBeNull();
+  });
+
   it("shows a failed variant's error and no metrics", () => {
     inThread(
       <DataScoredComparison

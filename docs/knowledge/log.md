@@ -16,6 +16,18 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **Unread is said, never defaulted (the sweep's rows outside A+B).** A sweep with no
+  negative controls scored false positives as 0 and precision as 1.0; it now measures neither,
+  ranks by recall, and its summary says "no negative controls: false positives not measured"
+  (`SweepResult.ranked_by`). A scored comparison's objective is a `Literal` of the metrics it
+  ranks by, and its summary quotes that metric. A refused tunable-parameter read, a failed
+  membership re-read, the researcher's datasets VDI did not list, and an expression summary
+  the site did not answer are each an `Unread` with its reason, said where the read is shown;
+  a site that serves no expression report still holds no summary. `search_example_plans`
+  no longer swallows a site failure. An index outage says "other sites not read" and "record
+  columns not read". A memory timeout adds one line to the turn briefing. An unread result
+  count is `None`, never 0.
+
 * **The runtime checks a changed strategy, then the Lead answers once.** The "nothing
   verified the result" refusal fired in 25 of 58 recorded turns, and e2's second answer
   passed with a made-up `unverifiedReason` while `verify_strategy` was offered. When the

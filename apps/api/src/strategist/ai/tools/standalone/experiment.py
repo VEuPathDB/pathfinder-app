@@ -40,6 +40,7 @@ from strategist.ai.tools.standalone.saved_control_sets import unattached_set
 from strategist.domain.evidence import (
     NamedControlSet,
 )
+from strategist.domain.unread import Unread
 from strategist.platform.durable_worker import durable_agent_tool
 from strategist.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from strategist.services.evidence.control_sets import (
@@ -82,11 +83,13 @@ def _control_scores(counts: ControlCounts) -> str:
 
 def controls_summary(counts: ControlCounts) -> str:
     """What the test recovered, how well it scored, and what a sweep could vary."""
-    knobs = (
-        f"tunable parameters: {', '.join(counts.tunable_parameters)}"
-        if counts.tunable_parameters
-        else "no tunable parameters"
-    )
+    match counts.tunable_parameters:
+        case Unread(reason=reason):
+            knobs = f"tunable parameters not read: {reason}"
+        case [*names] if names:
+            knobs = f"tunable parameters: {', '.join(names)}"
+        case _:
+            knobs = "no tunable parameters"
     return f"{_control_scores(counts)}; {knobs}"
 
 

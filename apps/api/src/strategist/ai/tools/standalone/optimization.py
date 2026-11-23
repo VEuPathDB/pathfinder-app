@@ -9,7 +9,7 @@ from assistant_core.graph.tool_summary import summary_chunks
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
@@ -28,6 +28,7 @@ from strategist.domain.evidence import (
     ControlTestEvidence,
     NamedControlSet,
 )
+from strategist.domain.unread import Unread
 from strategist.platform.durable_worker import durable_agent_tool
 from strategist.services.evidence.optimization import tunable_parameters_of_search
 from strategist.services.experiment.metrics import metrics_from_control_result
@@ -39,36 +40,9 @@ from strategist.services.parameter_optimization.config import (
     SWEEP_BUDGET,
     SWEEP_BUDGET_MAX,
     SWEEP_BUDGET_MIN,
+    SweepResult,
     SweepVariantResult,
 )
-
-
-class _SweepBest(CamelModel):
-    """The winning trial's score, as the sweep reports it."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    score: float = 0.0
-
-    @field_validator("score", mode="before")
-    @classmethod
-    def _absent_is_zero(cls, value: object) -> object:
-        return 0.0 if value is None else value
-
-
-class _SweepOutcome(CamelModel):
-    """What a finished sweep says about the settings it tried."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    variants: list[dict[str, Any]] = Field(default_factory=list)
-    best: _SweepBest = Field(default_factory=_SweepBest)
-    objective: str = "score"
-
-    @field_validator("best", mode="before")
-    @classmethod
-    def _no_winner_scores_zero(cls, value: object) -> object:
-        return {} if value is None else value
 
 
 class _SweepTrials(CamelModel):
@@ -194,19 +168,23 @@ def _sweep_chunks_from_result(
     outcome = DurableOutcome.model_validate(resumed)
     if not outcome.succeeded:
         return []
-    sweep = _SweepOutcome.model_validate(outcome.result)
+    sweep = SweepResult.model_validate(outcome.result)
     table = DataChunk(
         type="data-scored-comparison",
         data=sweep_comparison(outcome.result).model_dump(by_alias=True, mode="json"),
     )
-    return [
-        table,
-        *summary_chunks(
-            tool_call_id,
-            f"{len(sweep.variants)} settings tried, "
-            f"best {sweep.objective} {sweep.best.score:.3f}",
-        ),
-    ]
+    return [table, *summary_chunks(tool_call_id, sweep_summary(sweep))]
+
+
+def sweep_summary(sweep: SweepResult) -> str:
+    tried = f"{len(sweep.variants)} settings tried"
+    best = sweep.best
+    if best is None or best.score is None:
+        return f"{tried}, none scored"
+    said = f"{tried}, best {sweep.ranked_by} {best.score:.3f}"
+    if sweep.false_positives_measured:
+        return said
+    return f"{said}; no negative controls: false positives not measured"
 
 
 NO_SET_ATTACHED: Final = (
@@ -250,9 +228,17 @@ async def sweep_can_run(
     record_class, search_name = await read_as(session, wdk_step_id)
     if search_name is None:
         return
-    tunable = await tunable_parameters_of_search(
+    match await tunable_parameters_of_search(
         ctx.deps.runtime.site_id, record_class, search_name
-    )
+    ):
+        case Unread(reason=reason):
+            msg = (
+                f"The parameters {search_name} can vary were not read ({reason}). "
+                "Nothing was started and no card was shown."
+            )
+            raise ModelRetry(msg)
+        case read:
+            tunable = read
     unknown = [name for name in parameters if name not in tunable]
     if tunable and unknown:
         msg = (

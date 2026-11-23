@@ -28,6 +28,7 @@ from strategist.domain.evidence import (
     NamedControlSet,
 )
 from strategist.domain.strategy.expression_handles import cut_stated, stated_values
+from strategist.domain.unread import Unread
 
 VALUE_CHARS = 120
 _NOTHING_NAMED: Mapping[str, object] = MappingProxyType({})
@@ -64,7 +65,7 @@ class ControlCounts(CamelModel):
     downloads: DownloadLinks | None = None
     target_label: str = ""
     parameter_labels: dict[str, str] = Field(default_factory=dict)
-    tunable_parameters: list[str] = Field(default_factory=list)
+    tunable_parameters: list[str] | Unread = Field(default_factory=list)
     control_set: NamedControlSet | None = None
 
     @computed

@@ -124,3 +124,15 @@ def test_metrics_from_control_result_end_to_end() -> None:
     assert m.confusion_matrix.false_positives == 2
     assert math.isclose(m.sensitivity, 0.8)
     assert math.isclose(m.mcc, 0.6)
+
+
+def test_an_unread_result_count_is_no_count() -> None:
+    measured = metrics_from_control_result(
+        ControlTestResult(
+            positive=PositiveControls(
+                recovered_ids=["PF3D7_1133400"], missed_ids=["PF3D7_0102600"]
+            )
+        )
+    )
+
+    assert measured.total_results is None

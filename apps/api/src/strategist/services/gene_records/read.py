@@ -31,9 +31,11 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import NamedVocabulary, ResolveContext, ordered_terms
 from veupathdb_mcp.wdk import get_gene_expression_summary, order_primary_key
 
+from strategist.domain.unread import Unread
 from strategist.platform.errors import NotFoundError
 from strategist.services.gene_sets.homes import genomics_site_of
 from strategist.services.record_pages import record_page_url
+from strategist.services.site_errors import site_words, unreached
 
 GENE_RECORD_TYPE = "gene"
 ORTHOLOGS_TABLE = "Orthologs"
@@ -136,7 +138,7 @@ class GeneRecordSummary(CamelModel):
     nearest_ortholog_organisms: list[str] = Field(default_factory=list)
     ortholog_site: str | None = None
     ortholog_group: str | None = None
-    expression: ExpressionSummary | None = None
+    expression: ExpressionSummary | Unread | None = None
 
     @computed
     def ortholog_scope(self) -> str:
@@ -184,7 +186,12 @@ class GeneRecordSummary(CamelModel):
             if len(self.orthologs) < self.ortholog_count:
                 orthologs = f"{orthologs} ({len(self.orthologs)} shown)"
             stated.append(orthologs)
-        return f"{self.gene_id}: {', '.join(stated)}"
+        line = f"{self.gene_id}: {', '.join(stated)}"
+        match self.expression:
+            case Unread():
+                return f"{line}; the expression summary was not read"
+            case _:
+                return line
 
 
 class GeneRecordType(CamelModel):
@@ -259,13 +266,17 @@ async def gene_record_type(api: StrategyAPI, site_id: str) -> GeneRecordType:
     return declared
 
 
-async def _expression_of(site_id: str, gene_id: str) -> ExpressionSummary | None:
-    """The site's expression summary for the gene, where it generated one."""
+async def _expression_of(
+    site_id: str, gene_id: str
+) -> ExpressionSummary | Unread | None:
+    """The site's expression summary for the gene, where it generated one, or
+    why the site did not answer the read."""
     try:
         found = await get_gene_expression_summary(site_id, gene_id)
-    # A site that serves no expression report holds no summary for any gene.
-    except VEuPathDBError, OSError:
-        return None
+    except (VEuPathDBError, OSError) as exc:
+        if not unreached(exc):
+            return None
+        return Unread(reason=f"the expression summary was not read: {site_words(exc)}")
     if found.summary is None:
         return None
     return ExpressionSummary(

@@ -659,6 +659,8 @@ async def test_f9_a_branch_turn_retrieves_the_memories_its_parent_would(
         runtime,
     )
 
+    assert isinstance(on_parent, list)
+    assert isinstance(on_branch, list)
     assert [stored.key for stored in on_parent]
     assert [stored.key for stored in on_branch] == [stored.key for stored in on_parent]
 

@@ -58,12 +58,13 @@ from strategist.ai.graph._lead_offers import (
 )
 from strategist.ai.graph._lead_stops import stop_response
 from strategist.ai.graph.runtime import Context
-from strategist.ai.graph.state import PipelineState
+from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.ai.lead.dispatch_resume import SubAgentOutcome, resume_sub_agent
 from strategist.ai.lead.intent_gate import bare_assent_refusal
 from strategist.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from strategist.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
 from strategist.domain.memory import MEMORY_KINDS, STANDING_MEMORY_KINDS, MemoryKind
+from strategist.domain.unread import Unread
 
 logger = get_logger(__name__)
 
@@ -82,11 +83,33 @@ def _turn_scope(site_id: str) -> RetrievalScope:
     )
 
 
+_STORE_DOWN = Unread(reason="the memory store did not answer")
+MEMORY_NOT_READ = (
+    f"Your saved preferences were not read this turn ({_STORE_DOWN.reason})."
+)
+
+
+def recalled(
+    read: list[StoredMemory] | Unread, domain: StrategyDomainState
+) -> list[StoredMemory]:
+    """The memories a turn pins; preferences the store did not answer are named
+    in the turn briefing instead."""
+    match read:
+        case Unread():
+            domain.turn_briefing = "\n\n".join(
+                block for block in (domain.turn_briefing, MEMORY_NOT_READ) if block
+            )
+            return []
+        case stored:
+            return stored
+
+
 async def retrieve_memories(
     state: PipelineState,
     runtime: Runtime[Context],
-) -> list[StoredMemory]:
-    """The standing memories a fresh turn pins, the researcher's preferences."""
+) -> list[StoredMemory] | Unread:
+    """The standing memories a fresh turn pins, the researcher's preferences, or
+    why the store did not give them."""
     if runtime.context is None or runtime.context.memory_store is None:
         return []
     if not state.user_prompt.strip():
@@ -105,7 +128,7 @@ async def retrieve_memories(
             "memory retrieval timed out; the turn runs without memories",
             seconds=exc.seconds,
         )
-        return []
+        return _STORE_DOWN
 
 
 async def memory_index(

@@ -77,6 +77,7 @@ from strategist.ai.graph._lead_stops import (
 from strategist.ai.graph._lead_turn import (
     TurnResumption,
     memory_index,
+    recalled,
     resolve_turn_resumption,
     retrieve_memories,
     turn_ends_before_the_run,
@@ -298,6 +299,7 @@ async def _run_lead_turn(
                 memory_index(state, runtime),
                 pre_turn(state, runtime.context),
             )
+        stored = recalled(stored, working_state.domain)
         memories = [s.value for s in stored]
         working_state.domain.memory_index = index
         fresh = working_state.domain.memories_to_show(stored)

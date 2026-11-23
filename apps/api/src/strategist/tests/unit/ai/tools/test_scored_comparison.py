@@ -7,7 +7,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from pydantic_ai import RunContext
+from pydantic_ai import RunContext, Tool
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.catalog import ParameterInfo
@@ -16,9 +16,13 @@ from strategist.ai.lead.lead_agent import build_lead_toolset
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import scored_comparison
 from strategist.ai.tools.standalone._variant_targets import reject_combine_variants
-from strategist.ai.tools.standalone.scored_comparison import compare_variants_scored
+from strategist.ai.tools.standalone.scored_comparison import (
+    _scored_line,
+    compare_variants_scored,
+)
 from strategist.ai.tools.standalone.variant_comparison import compare_search_variants
 from strategist.domain.evidence import NamedControlSet
+from strategist.domain.unread import Unread
 from strategist.services.control_sets import ControlSetResponse
 from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.scored_comparison import (
@@ -317,3 +321,48 @@ class TestACombineStepIsNotAVariant:
         reject_combine_variants(specs)
 
         assert [spec.search_name for spec in specs] == [search_name, "SB"]
+
+
+def test_an_objective_no_ranking_reads_is_refused_by_the_schema() -> None:
+    schema = Tool(compare_variants_scored).tool_def.parameters_json_schema
+
+    assert schema["properties"]["objective"]["$ref"] == "#/$defs/Objective"
+    assert schema["$defs"]["Objective"]["enum"] == [
+        "mcc",
+        "balanced_accuracy",
+        "f1",
+        "precision",
+        "sensitivity",
+    ]
+
+
+def test_the_summary_quotes_the_metric_it_ranked_by() -> None:
+    comparison = ScoredComparison(
+        variants=[
+            ScoredVariant(label="a", search_name="SA", mcc=0.6, f1=0.8),
+            ScoredVariant(label="b", search_name="SB", mcc=0.9, f1=0.7),
+        ],
+        winner_label="a",
+        objective="f1",
+    )
+
+    assert _scored_line(comparison, "f1") == "2 variants scored, winner a at f1 0.800"
+
+
+def test_a_failed_membership_read_is_said_as_not_read() -> None:
+    comparison = ScoredComparison(
+        variants=[
+            ScoredVariant(
+                label="a",
+                search_name="SA",
+                error="the site refused the step",
+                control_hits=Unread(reason="HTTP 502"),
+            )
+        ],
+        winner_label=None,
+        objective="mcc",
+    )
+
+    assert _scored_line(comparison, "mcc") == (
+        "scoring failed for 1 of 1 variants; membership not read for a"
+    )

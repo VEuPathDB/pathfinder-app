@@ -17,8 +17,11 @@ from veupathdb_mcp.catalog import ExperimentMatch, UnknownExperimentError
 from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 
 from strategist.ai.graph.runtime import AgentDeps
+from strategist.domain.unread import Unread
 
 logger = get_logger(__name__)
+
+INDEX_DOWN = Unread(reason="the search index did not answer")
 
 # The gene record type, and the parameter a gene search names its organism in.
 _GENES = "transcript"
@@ -41,11 +44,20 @@ class _OtherSites(CamelModel):
 
 def with_other_sites(
     own: list[JSONObject],
-    elsewhere: Sequence[ExperimentMatch],
+    elsewhere: Sequence[ExperimentMatch] | Unread,
     shown: Collection[str],
     site_id: str,
 ) -> list[JSONObject]:
-    """The own-site answer unchanged, and the unseen other-site entries after it."""
+    """The own-site answer unchanged, and the unseen other-site entries after it,
+    or the note that other sites were not read."""
+    match elsewhere:
+        case Unread(reason=reason):
+            unread = _OtherSites(
+                note=f"Other sites not read: {reason}.", experiments=[]
+            )
+            return [*own, {"otherSites": unread.model_dump(by_alias=True)}]
+        case _:
+            pass
     seen = set(shown)
     unseen: list[_OtherSiteExperiment] = []
     for match in elsewhere:
@@ -76,13 +88,13 @@ def with_other_sites(
 
 async def rank_other_sites(
     ctx: RunContext[AgentDeps], query: str
-) -> list[ExperimentMatch]:
-    """Other sites' experiments closest to the query, none when the index is down."""
+) -> list[ExperimentMatch] | Unread:
+    """Other sites' experiments closest to the query, or why they were not read."""
     try:
         return await catalog.rank_experiments_elsewhere(ctx.deps.site_id, query)
     except SemanticIndexUnavailableError as exc:
         logger.warning("Other sites' experiments were not ranked", error=str(exc))
-        return []
+        return INDEX_DOWN
 
 
 async def own_search_names(site_id: str) -> frozenset[str]:

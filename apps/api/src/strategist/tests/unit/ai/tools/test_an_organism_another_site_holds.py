@@ -150,7 +150,7 @@ async def test_an_organism_no_other_site_holds_earns_the_plain_retry(
 
 
 @pytest.mark.asyncio
-async def test_an_index_that_does_not_answer_earns_the_plain_retry(
+async def test_an_index_that_does_not_answer_says_other_sites_were_not_read(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     down = AsyncMock(side_effect=SemanticIndexUnavailableError("store down"))
@@ -159,6 +159,7 @@ async def test_an_index_that_does_not_answer_earns_the_plain_retry(
 
     assert refusal.startswith(_UNMATCHED)
     assert "portal" not in refusal
+    assert "Other sites not read: the search index did not answer." in refusal
 
 
 @pytest.mark.asyncio

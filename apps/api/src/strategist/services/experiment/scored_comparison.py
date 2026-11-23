@@ -10,6 +10,7 @@ This is the controls-based counterpart to the no-controls exploratory
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Literal
 
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
@@ -18,6 +19,7 @@ from veupathdb.errors import WDKError
 from veupathdb_mcp.controls import CONTROLS_PARAM, CONTROLS_SEARCH
 from veupathdb_mcp.wdk import extract_record_ids
 
+from strategist.domain.unread import Unread
 from strategist.services.experiment.service import run_experiment
 from strategist.services.experiment.types.experiment import (
     Experiment,
@@ -27,6 +29,7 @@ from strategist.services.experiment.variant_comparison import (
     VariantSpec,
     run_variant_search,
 )
+from strategist.services.site_errors import site_words
 
 _MAX_ERROR_CHARS = 200
 
@@ -41,8 +44,9 @@ class ScoredVariant(CamelModel):
     sensitivity: float | None = None
     precision: float | None = None
     error: str | None = None
-    control_hits: list[str] = Field(default_factory=list)
-    """The given control ids this variant's result contains, in the given order."""
+    control_hits: list[str] | Unread = Field(default_factory=list)
+    """The given control ids this variant's result contains, in the given order,
+    or why the result was not read."""
 
 
 class ScoredComparison(CamelModel):
@@ -51,7 +55,9 @@ class ScoredComparison(CamelModel):
     objective: str
 
 
-_RANK_BY: dict[str, Callable[[ScoredVariant], float | None]] = {
+type Objective = Literal["mcc", "balanced_accuracy", "f1", "precision", "sensitivity"]
+
+RANK_BY: dict[Objective, Callable[[ScoredVariant], float | None]] = {
     "mcc": lambda v: v.mcc,
     "balanced_accuracy": lambda v: v.balanced_accuracy,
     "f1": lambda v: v.f1,
@@ -83,14 +89,14 @@ def _first_field_error(exc: ValidationError) -> str:
 
 async def _hits_from_search(
     spec: VariantSpec, *, site_id: str, control_ids: list[str]
-) -> list[str]:
+) -> list[str] | Unread:
     """The control ids in this variant's result, read without scoring it."""
     if not control_ids:
         return []
     try:
         answer = await run_variant_search(site_id, spec)
-    except WDKError, httpx.HTTPError:
-        return []
+    except (WDKError, httpx.HTTPError) as exc:
+        return Unread(reason=site_words(exc))
     found = set(extract_record_ids(answer.records))
     return [gene for gene in control_ids if gene in found]
 
@@ -183,7 +189,7 @@ async def run_scored_comparison(
     *,
     positive_controls: list[str],
     negative_controls: list[str],
-    objective: str = "mcc",
+    objective: Objective = "mcc",
 ) -> ScoredComparison:
     """Run each variant as a scored experiment and rank by *objective*.
 
@@ -191,7 +197,7 @@ async def run_scored_comparison(
     variant carries one line saying why and is excluded from ranking; it still
     reports which of the control ids its result contains.
     """
-    rank_by = _RANK_BY.get(objective, _RANK_BY["mcc"])
+    rank_by = RANK_BY[objective]
     control_ids = list(dict.fromkeys([*positive_controls, *negative_controls]))
     scored = [
         await _score_one(

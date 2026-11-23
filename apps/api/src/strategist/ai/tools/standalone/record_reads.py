@@ -20,6 +20,7 @@ from veupathdb_mcp.records import (
 )
 
 from strategist.ai.graph.turn_records import TurnMarkers
+from strategist.ai.tools.standalone._catalog_elsewhere import INDEX_DOWN
 from strategist.domain.read_facts import ReadFact, ReadRow
 
 PORTAL = "veupathdb"
@@ -138,7 +139,8 @@ async def record_columns_block(site_id: str, query: str) -> JSONObject | None:
         for site in await _column_sites(site_id):
             found.extend(await records.rank_record_columns(site, query))
     except SemanticIndexUnavailableError:
-        return None
+        note = f"Record columns not read: {INDEX_DOWN.reason}."
+        return {"recordColumns": {"note": note, "columns": []}}
     if not found:
         return None
     return {

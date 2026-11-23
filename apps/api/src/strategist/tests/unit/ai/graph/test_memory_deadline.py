@@ -24,6 +24,7 @@ from strategist.ai.graph.state import (
     VerificationDigest,
 )
 from strategist.domain.strategy.session import StrategySession
+from strategist.domain.unread import Unread
 from strategist.tests._support.database import no_database
 from strategist.tests._support.logs import logged_events
 
@@ -112,7 +113,7 @@ async def test_retrieval_degrades_to_no_memories(
 
     found = await _lead_turn.retrieve_memories(_state(), runtime)
 
-    assert found == []
+    assert found == Unread(reason="the memory store did not answer")
     assert logged_events(caplog.records) == [
         "memory retrieval timed out; the turn runs without memories"
     ]

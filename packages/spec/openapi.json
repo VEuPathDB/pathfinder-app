@@ -28982,11 +28982,18 @@
             "title": "Error"
           },
           "controlHits": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Controlhits",
-            "type": "array"
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "$ref": "#/components/schemas/Unread"
+              }
+            ],
+            "title": "Controlhits"
           }
         },
         "required": [
@@ -31730,6 +31737,19 @@
           "sentence"
         ],
         "title": "UnmeasuredValueCaveat",
+        "type": "object"
+      },
+      "Unread": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "Unread",
         "type": "object"
       },
       "UnrevisableSubsetCaveat": {

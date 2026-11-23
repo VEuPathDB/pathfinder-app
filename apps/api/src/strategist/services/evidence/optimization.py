@@ -6,6 +6,7 @@ from veupathdb import get_logger
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp.catalog import organism_parameter_of
 
+from strategist.domain.unread import Unread
 from strategist.services.parameter_optimization import sweep, tunable
 from strategist.services.parameter_optimization.config import (
     OptimizationConfig,
@@ -15,6 +16,7 @@ from strategist.services.parameter_optimization.config import (
     SweepVariantResult,
     SweepVariantSpec,
 )
+from strategist.services.site_errors import site_words
 
 logger = get_logger(__name__)
 
@@ -67,8 +69,8 @@ async def tunable_parameters_of_search(
     site_id: str,
     record_type: str,
     search_name: str,
-) -> list[str]:
-    """The parameters of this search a sweep can vary. Empty when WDK refuses."""
+) -> list[str] | Unread:
+    """The parameters of this search a sweep can vary, or why they were not read."""
     try:
         published = await tunable.search_parameter_metadata(
             site_id, record_type, search_name
@@ -79,5 +81,5 @@ async def tunable_parameters_of_search(
             search_name=search_name,
             error=str(exc),
         )
-        return []
+        return Unread(reason=site_words(exc))
     return tunable.tunable_parameter_names(published)

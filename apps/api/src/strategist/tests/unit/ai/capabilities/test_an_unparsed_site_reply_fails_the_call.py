@@ -81,6 +81,7 @@ def _calls(*parts: ToolCallPart) -> FunctionModel:
 def _agent(retries_seen: list[int]) -> Agent[None, str]:
     toolsets = [_toolset(retries_seen)]
     return Agent(
+        deps_type=type(None),
         toolsets=toolsets,
         capabilities=agent_capabilities(
             [SiteReadFailures[None](reads=frozenset())], toolsets=toolsets

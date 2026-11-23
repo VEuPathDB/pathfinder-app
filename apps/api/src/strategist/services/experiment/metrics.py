@@ -46,12 +46,13 @@ def compute_confusion_matrix(
 def compute_metrics(
     cm: ConfusionMatrix,
     *,
-    total_results: int = 0,
+    total_results: int | None = None,
 ) -> ExperimentMetrics:
     """Compute all classification metrics from a confusion matrix.
 
     :param cm: Confusion matrix.
-    :param total_results: Total number of results returned by the search.
+    :param total_results: Total number of results returned by the search, or
+        None when it was not read.
     :returns: Full metrics object.
     """
     tp, fp, tn, fn = (
@@ -109,7 +110,7 @@ def metrics_from_control_result(result: ControlTestResult) -> ExperimentMetrics:
     pos_total = pos.controls_count if pos else 0
     neg_count = neg.intersection_count if neg else 0
     neg_total = neg.controls_count if neg else 0
-    total_results = result.target.estimated_size or 0
+    total_results = result.target.estimated_size
 
     cm = compute_confusion_matrix(
         positive_hits=pos_count,

@@ -203,14 +203,7 @@ async def run_trial(
         )
 
     metrics = _extract_trial_metrics(wdk_result)
-    score = _compute_score(
-        metrics.recall,
-        metrics.fpr,
-        score_cfg,
-        estimated_size=metrics.estimated_size,
-        positive_hits=metrics.positive_hits,
-        negative_hits=metrics.negative_hits,
-    )
+    score = _compute_score(metrics, score_cfg, estimated_size=metrics.estimated_size)
     result = SweepVariantResult(
         variant_id=variant.id,
         status="success",
@@ -227,7 +220,7 @@ async def run_trial(
     if progress_callback is not None:
         await progress_callback(
             1.0,
-            f"Variant {variant.id} score={score:.4f}",
+            f"Variant {variant.id} score={'none' if score is None else f'{score:.4f}'}",
             {"score": score},
         )
     return result

@@ -19,20 +19,10 @@ from veupathdb.errors import DataParsingError, ExternalServiceError, WDKError
 from veupathdb.jbrowse import JBrowseError
 from veupathdb.wdk.wdk_base import WDKModel
 
-from strategist.services.site_errors import site_status, unreached
+from strategist.services.site_errors import site_status, site_words, unreached
 
 # An account the request does not have is no outage; the error path reports it.
 _IDENTITY_STATUSES = frozenset({401, 403})
-
-
-def site_words(error: BaseException) -> str:
-    """What the site said, with its status."""
-    said = str(error).strip()
-    match error:
-        case WDKError(status=status) | ExternalServiceError(status=status):
-            return f"HTTP {status}: {said}"
-        case _:
-            return said or type(error).__name__
 
 
 def site_read_failure(tool_name: str, said: str) -> ToolFailed:

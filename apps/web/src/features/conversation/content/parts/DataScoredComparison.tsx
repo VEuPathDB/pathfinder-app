@@ -102,7 +102,9 @@ function notes(data: ScoredComparison): ExhibitNote[] {
 
 /** The control genes a variant's result set holds, ids in the code face. */
 function Membership({ variant }: { variant: ScoredVariant }): ReactElement {
-  const hits = variant.controlHits ?? [];
+  const read = variant.controlHits ?? [];
+  if (!Array.isArray(read)) return <span>{`membership not read: ${read.reason}`}</span>;
+  const hits = read;
   if (hits.length === 0) return <span>contains none of the control genes</span>;
   return (
     <span>

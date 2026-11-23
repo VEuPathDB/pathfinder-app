@@ -19341,10 +19341,12 @@ components:
           - type: 'null'
           title: Error
         controlHits:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - $ref: '#/components/schemas/Unread'
           title: Controlhits
-          type: array
       required:
       - label
       - searchName
@@ -21312,6 +21314,15 @@ components:
       - reading
       - sentence
       title: UnmeasuredValueCaveat
+      type: object
+    Unread:
+      properties:
+        reason:
+          title: Reason
+          type: string
+      required:
+      - reason
+      title: Unread
       type: object
     UnrevisableSubsetCaveat:
       properties:

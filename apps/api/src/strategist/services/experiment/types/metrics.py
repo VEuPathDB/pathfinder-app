@@ -32,7 +32,7 @@ class ExperimentMetrics(CamelModel):
     false_positive_rate: RoundedFloat = 0.0
     false_negative_rate: RoundedFloat = 0.0
     youdens_j: RoundedFloat = 0.0
-    total_results: int = 0
+    total_results: int | None = None
     total_positives: int = 0
     total_negatives: int = 0
 

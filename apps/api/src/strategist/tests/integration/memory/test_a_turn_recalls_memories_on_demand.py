@@ -66,6 +66,7 @@ async def test_a_fresh_turn_pins_only_the_standing_memories(
 ) -> None:
     recalled = await retrieve_memories(_state(), await _runtime(app_memory_store))
 
+    assert isinstance(recalled, list)
     assert [s.value.name for s in recalled] == ["Default organism"]
 
 
