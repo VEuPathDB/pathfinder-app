@@ -16,9 +16,11 @@ from strategist.services.conversations.shared_context import (
     CONVERSATION_CLEARED,
     CONVERSATION_SHOWN,
     STEP_CLEARED,
+    STEP_FILTERED,
     STEP_SHOWN,
     STUDY_CLEARED,
     STUDY_SHOWN,
+    WITHHELD_PUSH_ERROR,
     newest_study,
     viewer_strategy,
     viewer_study,
@@ -64,10 +66,52 @@ def test_every_conversation_field_is_shown_or_cleared() -> None:
 
 
 def test_every_step_field_is_shown_cleared_or_filtered() -> None:
-    assert STEP_SHOWN | set(STEP_CLEARED) | {"parameters"} == set(
-        StepResponse.model_fields
+    classes = (STEP_SHOWN, frozenset(STEP_CLEARED), STEP_FILTERED)
+
+    assert set[str]().union(*classes) == set(StepResponse.model_fields)
+    assert sum(len(c) for c in classes) == len(StepResponse.model_fields)
+
+
+def test_no_step_field_shown_to_the_viewer_holds_account_data() -> None:
+    loaded = next(s for s in DETAIL.steps if s.id == "s-list")
+
+    shown, _ = viewer_strategy(DETAIL, token="tok-1", include_account_reads=False)
+
+    assert loaded.model_fields_set == set(StepResponse.model_fields)
+    assert PRIVATE_DATASET_ID in loaded.model_dump_json()
+    assert PRIVATE_DATASET_ID not in shown.model_dump_json()
+
+
+def test_a_step_field_the_viewer_cannot_read_is_flagged() -> None:
+    shown, _ = viewer_strategy(DETAIL, token="tok-1", include_account_reads=False)
+
+    step = next(s for s in shown.steps if s.id == "s-list")
+    assert step.rationale is None
+    assert step.wdk_push_error == WITHHELD_PUSH_ERROR
+    assert (
+        step.validation is not None,
+        step.validation and step.validation.errors,
+    ) == (
+        True,
+        None,
     )
-    assert not STEP_SHOWN & set(STEP_CLEARED)
+    assert [(f.name, f.value) for f in step.filters or []] == [
+        ("gene_list_filter", None)
+    ]
+    assert [(a.analysis_type, a.parameters) for a in step.analyses or []] == [
+        ("go-enrichment", {})
+    ]
+
+
+def test_the_account_reads_box_keeps_the_step_but_not_the_sites_words() -> None:
+    shown, _ = viewer_strategy(DETAIL, token="tok-1", include_account_reads=True)
+
+    step = next(s for s in shown.steps if s.id == "s-list")
+    assert step.rationale == next(s for s in DETAIL.steps if s.id == "s-list").rationale
+    assert [f.value for f in step.filters or []] == [{"ids": PRIVATE_DATASET_ID}]
+    assert step.wdk_push_error == WITHHELD_PUSH_ERROR
+    assert step.validation is not None
+    assert step.validation.errors is None
 
 
 def test_every_study_field_is_shown_or_cleared() -> None:
@@ -128,8 +172,12 @@ def test_the_study_is_the_newest_state_of_the_bound_analysis() -> None:
 
 def test_a_study_no_turn_showed_is_not_shared() -> None:
     chunks = [{"type": "text-delta", "id": "t-1", "delta": "x"}]
+    showed = [*chunks, state_chunk("a-1", revision=4)]
 
-    assert newest_study(chunks, "a-1") is None
+    assert [newest_study(chunks, "a-1"), newest_study(showed, "a-1")] == [
+        None,
+        EdaAnalysisState.model_validate(state_chunk("a-1", revision=4)["data"]),
+    ]
 
 
 def test_the_viewer_study_opens_nothing_on_the_site() -> None:

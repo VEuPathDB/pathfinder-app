@@ -11,6 +11,7 @@ from starlette.types import ASGIApp
 from strategist.tests._support.shared_strategy import (
     PRIVATE_DATASET_ID,
     STATE,
+    UPLOAD_AST,
     UPLOADED_STUDY,
     WDK_STRATEGY_ID,
 )
@@ -248,3 +249,58 @@ async def test_the_head_names_the_strategy_revision(
 
     assert head["strategyRevision"] == owner["strategyRevision"] != ""
     assert closed["strategyRevision"] == ""
+
+
+async def test_no_step_field_carries_the_private_list(
+    app: ASGIApp,
+    authed_client: httpx.AsyncClient,
+    authed_user_id: UUID,
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    thread = await seed_thread(session_maker, authed_user_id)
+    await seed_strategy(session_maker, thread)
+    token = await _shared(authed_client, thread)
+
+    owner = await authed_client.get(f"/api/v1/conversations/{thread}")
+    async with anonymous(app) as viewer:
+        got = await viewer.get(f"/api/v1/shared/{token}/context")
+
+    step = next(s for s in got.json()["strategy"]["steps"] if s["id"] == "s-list")
+    assert PRIVATE_DATASET_ID in owner.text
+    assert PRIVATE_DATASET_ID not in got.text
+    assert (step["rationale"], step["validation"]["errors"]) == (None, None)
+    assert step["wdkPushError"] == "This step failed on the site."
+    assert [f["value"] for f in step["filters"]] == [None]
+    assert [a["parameters"] for a in step["analyses"]] == [{}]
+
+
+@pytest.mark.parametrize(
+    ("include_account_reads", "shown"), [(False, False), (True, True)]
+)
+async def test_an_analysis_on_the_owners_upload_names_it_nowhere(
+    app: ASGIApp,
+    authed_client: httpx.AsyncClient,
+    authed_user_id: UUID,
+    session_maker: async_sessionmaker[AsyncSession],
+    include_account_reads: bool,
+    shown: bool,
+) -> None:
+    thread = await seed_thread(session_maker, authed_user_id)
+    await seed_strategy(session_maker, thread, UPLOAD_AST)
+    token = await _shared(
+        authed_client, thread, includeAccountReads=include_account_reads
+    )
+
+    owner = await authed_client.get(f"/api/v1/conversations/{thread}")
+    async with anonymous(app) as viewer:
+        got = await viewer.get(f"/api/v1/shared/{token}/context")
+
+    (step,) = got.json()["strategy"]["steps"]
+    assert owner.json()["steps"][0]["rationale"]["datasetId"] == UPLOADED_STUDY
+    assert (UPLOADED_STUDY in got.text) is shown
+    assert "EDAUD_" not in got.text or shown
+    assert (step["estimatedSize"], step["displayName"]) == (
+        230,
+        "Genes up in my upload",
+    )
+    assert (step["rationale"] is not None) is shown

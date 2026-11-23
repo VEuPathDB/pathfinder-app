@@ -13,6 +13,7 @@ from assistant_core.platform import db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.types import ASGIApp
+from veupathdb.domain.strategy import StrategyAst
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.assistants.strategist_spec import STRATEGIST_CHECKPOINT_TYPES
@@ -139,16 +140,18 @@ async def seed_thread(
 
 
 async def seed_strategy(
-    session_maker: async_sessionmaker[AsyncSession], thread: UUID
+    session_maker: async_sessionmaker[AsyncSession],
+    thread: UUID,
+    ast: StrategyAst = SHARED_AST,
 ) -> None:
     async with session_maker() as session:
         session.add(
             ConversationStrategy(
                 conversation_id=thread,
-                record_type=SHARED_AST.record_type,
+                record_type=ast.record_type,
                 wdk_strategy_id=WDK_STRATEGY_ID,
                 step_count=3,
-                strategy_ast=SHARED_AST.model_dump(
+                strategy_ast=ast.model_dump(
                     by_alias=True, exclude_none=True, mode="json"
                 ),
             )

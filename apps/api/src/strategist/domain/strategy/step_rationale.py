@@ -18,6 +18,7 @@ from pydantic import (
 )
 from veupathdb.model import CamelModel
 
+from strategist.domain.private_inputs import ViewerInputs
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 
 __all__ = [
@@ -138,6 +139,19 @@ class SearchRationale(CamelModel):
             if values.get(name) != stated
         ]
 
+    def for_viewer(self, inputs: ViewerInputs) -> SearchRationale | None:
+        if any(inputs.names_account_data(text) for text in self.texts()):
+            return None
+        return self.model_copy(
+            update={
+                "derived_from": {
+                    name: value
+                    for name, value in self.derived_from.items()
+                    if name in inputs.shown
+                }
+            }
+        )
+
     def redacted(self, redact: Callable[[str], str]) -> SearchRationale:
         """This reason with every written text redacted, the label derived again."""
         return SearchRationale.model_validate(
@@ -193,6 +207,10 @@ class AnalysisRationale(CamelModel):
     def texts(self) -> list[str]:
         """Every text a model or a researcher wrote into this reason."""
         return [self.reason, self.term]
+
+    def for_viewer(self, inputs: ViewerInputs) -> AnalysisRationale | None:
+        texts = [self.dataset_id, *self.texts()]
+        return None if any(map(inputs.names_account_data, texts)) else self
 
 
 # Where a separation run found the candidate a criterion runs.
@@ -254,6 +272,9 @@ class ControlsRationale(CamelModel):
     def texts(self) -> list[str]:
         """Every text a model or a researcher wrote into this reason."""
         return [self.basis, *self.sources]
+
+    def for_viewer(self, inputs: ViewerInputs) -> ControlsRationale | None:
+        return None if any(map(inputs.names_account_data, self.texts())) else self
 
     def redacted(self, redact: Callable[[str], str]) -> ControlsRationale:
         """This reason with every written text redacted. The counts stay."""

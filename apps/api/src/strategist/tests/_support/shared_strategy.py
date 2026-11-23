@@ -5,6 +5,11 @@ from typing import Any
 from veupathdb.domain.strategy import StrategyAst
 
 from strategist.domain.eda_parts import EdaAnalysisState
+from strategist.tests.unit.domain.strategy._analysis import (
+    COMPUTE_SEARCH,
+    DATASET,
+    E2_DOCUMENT,
+)
 
 PRIVATE_DATASET_ID = "330713643"
 WDK_STRATEGY_ID = 40123
@@ -26,6 +31,15 @@ SHARED_AST = StrategyAst.model_validate(
                         "datasetId": PRIVATE_DATASET_ID,
                     }
                 },
+                "filters": [
+                    {"name": "gene_list_filter", "value": {"ids": PRIVATE_DATASET_ID}}
+                ],
+                "analyses": [
+                    {
+                        "analysisType": "go-enrichment",
+                        "parameters": {"background": PRIVATE_DATASET_ID},
+                    }
+                ],
             },
             "secondaryInput": {
                 "id": "s-text",
@@ -37,6 +51,54 @@ SHARED_AST = StrategyAst.model_validate(
         },
         "stepCounts": {"s-list": 41, "s-text": 1204, "s-both": 12},
         "wdkStepIds": {"s-list": 900117, "s-text": 900118, "s-both": 900119},
+        "stepValidations": {
+            "s-list": {
+                "level": "SEMANTIC",
+                "isValid": False,
+                "errors": {
+                    "general": [f"Dataset {PRIVATE_DATASET_ID} does not exist."],
+                    "byKey": {"ds_gene_ids": [f"'{PRIVATE_DATASET_ID}' is invalid."]},
+                },
+            }
+        },
+        "wdkPushErrors": {"s-list": f"Dataset {PRIVATE_DATASET_ID} was not found."},
+        "metadata": {
+            "rationales": {
+                "s-list": {
+                    "kind": "search",
+                    "searchName": "GeneByLocusTag",
+                    "basis": "parameter",
+                    "term": "Gene ID list",
+                    "reason": f"It reads the saved list {PRIVATE_DATASET_ID}.",
+                    "toolCallId": "c-1",
+                    "derivedFrom": {"ds_gene_ids": PRIVATE_DATASET_ID},
+                }
+            }
+        },
+    }
+)
+
+UPLOAD_AST = StrategyAst.model_validate(
+    {
+        "recordType": "transcript",
+        "root": {
+            "id": "s-upload",
+            "searchName": COMPUTE_SEARCH,
+            "displayName": "Genes up in my upload",
+            "parameters": {
+                "eda_dataset_id": {"type": "string", "value": UPLOADED_STUDY},
+                "eda_analysis_spec": {
+                    "type": "string",
+                    "value": E2_DOCUMENT.replace(DATASET, UPLOADED_STUDY),
+                },
+            },
+        },
+        "stepCounts": {"s-upload": 230},
+        "metadata": {
+            "analysisKinds": {
+                "s-upload": {"searchName": COMPUTE_SEARCH, "kind": "compute"}
+            }
+        },
     }
 )
 

@@ -49,7 +49,6 @@ STEP_SHOWN: Final[frozenset[str]] = frozenset(
         "kind",
         "display_name",
         "criterion_text",
-        "rationale",
         "search_name",
         "record_type",
         "operator",
@@ -59,10 +58,6 @@ STEP_SHOWN: Final[frozenset[str]] = frozenset(
         "estimated_size",
         "status",
         "is_filtered",
-        "wdk_push_error",
-        "validation",
-        "filters",
-        "analyses",
         "expanded_name",
     }
 )
@@ -70,6 +65,17 @@ STEP_CLEARED: Final[Mapping[str, object]] = {
     "wdk_step_id": None,
     "expanded_strategy_id": None,
 }
+STEP_FILTERED: Final[frozenset[str]] = frozenset(
+    {
+        "parameters",
+        "rationale",
+        "filters",
+        "analyses",
+        "validation",
+        "wdk_push_error",
+    }
+)
+WITHHELD_PUSH_ERROR: Final = "This step failed on the site."
 STUDY_SHOWN: Final[frozenset[str]] = frozenset(
     {
         "site_id",
@@ -129,6 +135,29 @@ def _viewer_step(
         update={
             **STEP_CLEARED,
             "parameters": None if step.parameters is None else inputs.shown,
+            "rationale": None
+            if step.rationale is None
+            else step.rationale.for_viewer(inputs),
+            "filters": None
+            if step.filters is None
+            else [
+                f.model_copy(update={"value": inputs.untyped(f.value, withheld=None)})
+                for f in step.filters
+            ],
+            "analyses": None
+            if step.analyses is None
+            else [
+                a.model_copy(
+                    update={"parameters": inputs.untyped(a.parameters, withheld={})}
+                )
+                for a in step.analyses
+            ],
+            "validation": None
+            if step.validation is None
+            else step.validation.model_copy(update={"errors": None}),
+            "wdk_push_error": None
+            if step.wdk_push_error is None
+            else WITHHELD_PUSH_ERROR,
         }
     )
     return shown, inputs.withheld

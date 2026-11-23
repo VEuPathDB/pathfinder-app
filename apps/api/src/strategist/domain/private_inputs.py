@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Final
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb.wdk import EDA_USER_DATASET_PREFIX
 
@@ -29,6 +29,16 @@ class ViewerInputs(BaseModel):
 
     shown: dict[str, ParamValue]
     withheld: list[str]
+    hidden_values: frozenset[str]
+    account_reads: bool
+
+    def names_account_data(self, text: str) -> bool:
+        return any(value in text for value in self.hidden_values) or (
+            not self.account_reads and EDA_USER_DATASET_PREFIX in text
+        )
+
+    def untyped[T: JsonValue](self, value: T, *, withheld: T) -> T:
+        return value if self.account_reads else withheld
 
 
 class _StudyInput(BaseModel):
@@ -41,6 +51,17 @@ def is_account_dataset(dataset_id: str) -> bool:
     return dataset_id.startswith(EDA_USER_DATASET_PREFIX)
 
 
+def _private_names(readable: Mapping[str, ParamValue]) -> set[str]:
+    study = _StudyInput.model_validate(
+        {name: to_wire(value) for name, value in readable.items()}
+    )
+    if is_account_dataset(study.eda_dataset_id):
+        return set(readable)
+    return {
+        name for name, value in readable.items() if value.type in PRIVATE_INPUT_KINDS
+    }
+
+
 def inputs_for_viewer(
     parameters: Mapping[str, ParamValue], *, include_account_reads: bool
 ) -> ViewerInputs:
@@ -49,21 +70,15 @@ def inputs_for_viewer(
         for name, value in parameters.items()
         if value.type not in OWNER_HANDLE_KINDS
     }
-    if include_account_reads:
-        return ViewerInputs(shown=readable, withheld=[])
-    study = _StudyInput.model_validate(
-        {name: to_wire(value) for name, value in readable.items()}
-    )
-    private = (
-        set(readable)
-        if is_account_dataset(study.eda_dataset_id)
-        else {
-            name
-            for name, value in readable.items()
-            if value.type in PRIVATE_INPUT_KINDS
-        }
-    )
+    private: set[str] = set() if include_account_reads else _private_names(readable)
     return ViewerInputs(
         shown={name: value for name, value in readable.items() if name not in private},
         withheld=sorted(private),
+        hidden_values=frozenset(
+            wire
+            for name, value in parameters.items()
+            if name not in readable or name in private
+            if (wire := to_wire(value))
+        ),
+        account_reads=include_account_reads,
     )
