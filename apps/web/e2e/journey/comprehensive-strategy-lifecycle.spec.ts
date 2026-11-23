@@ -33,8 +33,6 @@ function pickedValues(node: AstNode, name: string): string[] {
 }
 
 test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
-  test.use({ viewport: { width: 1680, height: 900 } });
-
   test("build five nodes -> edit a text and a multi-pick parameter -> flip -> delete -> variants -> count", async ({
     page,
     chatPage,

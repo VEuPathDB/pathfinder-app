@@ -93,6 +93,7 @@ export default defineConfig<SiteOption>({
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
     ...devices["Desktop Chrome"],
+    viewport: { width: 1680, height: 900 },
   },
 
   // One `turns@<site>` project per site in `E2E_SITES`, so a merged report
