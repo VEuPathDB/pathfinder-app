@@ -88,6 +88,10 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **The e2e image stage adds the scripted model.** `apps/api/Dockerfile` names its stages: `runtime`
+  (the production image), `e2e` (`runtime` plus `src/strategist_scripted`), and a last `FROM runtime`,
+  so a build with no target ships no scripted model. `docker-compose.e2e.yml` and CI's e2e build name
+  `target: e2e`; a unit test reads the three files.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new

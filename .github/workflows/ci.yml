@@ -583,6 +583,7 @@ jobs:
         with:
           context: .
           file: apps/api/Dockerfile
+          target: e2e
           tags: strategist-e2e-api:ci
           push: false
           outputs: type=docker,dest=/tmp/strategist-api.tar
