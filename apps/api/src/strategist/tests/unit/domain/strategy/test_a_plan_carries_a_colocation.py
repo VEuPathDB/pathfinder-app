@@ -81,8 +81,8 @@ def _colocated(params: ColocationParams) -> StructureNode:
     )
 
 
-def test_the_site_defaults_differ_from_the_model_defaults() -> None:
-    assert _site_defaults() != ColocationParams()
+def test_an_unstated_colocation_field_takes_the_sites_default() -> None:
+    assert _site_defaults() == ColocationParams()
 
 
 def test_a_colocated_pick_builds_on_the_sites_defaults() -> None:
@@ -155,6 +155,9 @@ async def test_a_frame_structure_states_the_colocation_it_builds(
 
     built = build_step_tree(state.operational_spec_draft)
     assert (built.operator, built.colocation_params) == (CombineOp.COLOCATE, _CONTAINS)
+    assert built.colocation_params == _site_defaults().model_copy(
+        update={"operation": "contains", "strand": "same strand"}
+    )
 
 
 def _two_leaves(

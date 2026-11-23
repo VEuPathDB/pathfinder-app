@@ -12,9 +12,10 @@
   `colocationParams`, and only a COLOCATE node does (`StructureNode`). The build, an edit that
   rebuilds or adds a combine, the stated-steps projection and the hydration of a strategy all
   carry them, so an edit from a UNION to a colocation is applied instead of rolled back. A
-  colocated pick on the operator card binds the defaults `GenesBySpanLogic` shows on the site
-  (`operator_reading.SPAN_LOGIC_DEFAULTS`, read from the recorded search: exact regions, no
-  offsets), with output on the first input because the site's output has no default.
+  colocated pick on the operator card, and a colocation FRAME or an edit states in part, take
+  the defaults `GenesBySpanLogic` shows on the site, which are `ColocationParams`'s own field
+  defaults (veupathdb-py WDK-STEP-011: exact regions, no offsets), with output on the first
+  input because the site's output has no default.
 
 * **A criterion keeps its id through a build.** `build_step_tree` returns the step tree and
   mints every leaf and transform under its criterion's id (`node_for`, now in

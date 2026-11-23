@@ -8145,7 +8145,7 @@
               "custom"
             ],
             "title": "Regiona",
-            "default": "custom"
+            "default": "exact"
           },
           "beginA": {
             "type": "string",
@@ -8163,13 +8163,13 @@
               "-"
             ],
             "title": "Begindirectiona",
-            "default": "-"
+            "default": "+"
           },
           "beginOffsetA": {
             "type": "integer",
             "minimum": 0.0,
             "title": "Beginoffseta",
-            "default": 1000
+            "default": 0
           },
           "endA": {
             "type": "string",

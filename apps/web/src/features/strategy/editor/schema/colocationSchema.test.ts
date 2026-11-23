@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { colocationSchema } from "./colocationSchema";
+import { colocationSchema, DEFAULT_COLOCATION } from "./colocationSchema";
 
 describe("colocationSchema", () => {
   const validParams = {
@@ -68,5 +68,9 @@ describe("colocationSchema", () => {
     expect(
       colocationSchema.safeParse({ ...validParams, beginDirectionA: "-" }).success,
     ).toBe(true);
+  });
+
+  it("defaults to the region the site's span form starts on", () => {
+    expect(DEFAULT_COLOCATION).toEqual(validParams);
   });
 });

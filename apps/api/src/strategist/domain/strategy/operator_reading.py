@@ -37,9 +37,6 @@ ReadChoice = Literal[
 PAIR = 2
 OPERATOR_QUESTION = "operator"
 _CHAINED = frozenset({CombineOp.INTERSECT, CombineOp.UNION})
-SPAN_LOGIC_DEFAULTS = ColocationParams(
-    region_a="exact", begin_direction_a="+", begin_offset_a=0
-)
 _CHOICE_OF: dict[CombineOp, ReadChoice] = {
     CombineOp.INTERSECT: "intersect",
     CombineOp.UNION: "union",
@@ -215,7 +212,7 @@ def with_operator(
     asked = next(
         (r for r in spec.operator_reads if frozenset(r.criteria) == wanted), None
     )
-    placed = colocation or SPAN_LOGIC_DEFAULTS
+    placed = colocation or ColocationParams()
     structure = SpecStructure(
         root=_rewritten(
             spec.structure.root,
