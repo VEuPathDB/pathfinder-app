@@ -9,7 +9,7 @@ from dataclasses import dataclass, replace
 from assistant_core.models.scripted import (
     called_tool_parts,
     current_turn,
-    retried_returns,
+    refused_returns,
 )
 from pydantic_ai.messages import (
     ModelMessage,
@@ -82,7 +82,7 @@ def _answered(messages: list[ModelMessage], wrong: ToolCallPart, times: int) -> 
     ``times`` times. A call is counted once, however often the run carries it."""
     turn = current_turn(messages)
     refused = {
-        p.tool_call_id for p in retried_returns(turn) if p.tool_name == wrong.tool_name
+        p.tool_call_id for p in refused_returns(turn) if p.tool_name == wrong.tool_name
     }
     made = {
         p.tool_call_id

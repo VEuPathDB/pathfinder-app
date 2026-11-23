@@ -4,7 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from assistant_core.models.scripted import retried_returns, terminal_call
+from assistant_core.models.scripted import refused_returns, terminal_call
 from assistant_core.models.settings import build_model_settings
 from pydantic_ai.messages import (
     ModelMessage,
@@ -151,7 +151,7 @@ def _review(**changed: Any) -> dict[str, Any]:
 def _first_then(wrong: dict[str, Any], retries: list[ToolReturnPart]) -> FunctionModel:
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retried_returns(messages))
+        retries.extend(refused_returns(messages))
         return ModelResponse(parts=[terminal_call(_review() if retries else wrong)])
 
     return FunctionModel(answer)

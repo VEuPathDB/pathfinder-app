@@ -11,7 +11,7 @@ import pytest
 from assistant_core import quota
 from assistant_core.capabilities.tool_result_screen import WITHHELD
 from assistant_core.models.scripted import (
-    retried_returns,
+    refused_returns,
     terminal_call,
     user_texts,
 )
@@ -210,7 +210,7 @@ async def test_a_review_cites_only_the_finding_and_its_stored_evidence(
 
     def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         del info
-        retries.extend(retried_returns(messages))
+        retries.extend(refused_returns(messages))
         cite = finding_cite(finding_id) if retries else "audit_gene_length:EXA_0003"
         return ModelResponse(
             parts=[

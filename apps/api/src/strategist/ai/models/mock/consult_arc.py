@@ -14,13 +14,12 @@ from assistant_core.models.scripted import (
     deferred_tool_resolved,
     next_unmade_call,
     scripted_call,
+    tool_return_parts,
 )
 from pydantic import Field
 from pydantic_ai.messages import (
     ModelMessage,
-    ModelRequest,
     ToolCallPart,
-    ToolReturnPart,
 )
 
 from strategist.ai.graph.state import PipelineState
@@ -276,19 +275,7 @@ def card_args(questions: list[CardQuestion]) -> dict[str, Any]:
 
 
 def _answers_the_card(message: ModelMessage) -> bool:
-    match message:
-        case ModelRequest(parts=parts):
-            return any(_returns_the_card(part) for part in parts)
-        case _:
-            return False
-
-
-def _returns_the_card(part: object) -> bool:
-    match part:
-        case ToolReturnPart(tool_name=name, outcome=outcome):
-            return name == CONSULT and outcome != "retried"
-        case _:
-            return False
+    return any(part.tool_name == CONSULT for part in tool_return_parts([message]))
 
 
 def since_the_answer(messages: list[ModelMessage]) -> list[ModelMessage]:

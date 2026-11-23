@@ -87,7 +87,7 @@ def test_a_refusal_the_run_carries_twice_counts_once(
         content="refused",
         tool_name="read_ledger_section",
         tool_call_id=call_id,
-        outcome="retried",
+        outcome="failed",
     )
     history: list[ModelMessage] = [
         ModelRequest(parts=[UserPromptPart(content="[[arc:recap]][[fault:twice]]")]),

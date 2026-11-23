@@ -36,7 +36,8 @@ A read the site broke off, timed out or refused (`ai/capabilities/site_reads.py`
 plain `ToolFailed` and draws the red X, and so does a turn that failed. The client reads a
 corrected call as row status `corrected` (`@veupathdb/assistant-client`), and a
 sub-agent's step as state `corrected` (`ai/lead/sub_agent_events.py`); `TraceRow` draws a
-grey retry glyph with the reason as the row's line.
+grey retry glyph with the reason as the row's line. The scripted model reads a refusal by
+either error outcome (`assistant_core.models.scripted.refused_returns`), so it answers both producers.
 
 # What would falsify this
 

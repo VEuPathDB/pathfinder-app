@@ -71,6 +71,23 @@
   `get_live_strategy_state`), and the edit and contradiction refusals name the framing pass.
   The WDK 404 and 422 directives name no tool by default (`NEUTRAL_NEXT_ACTIONS`); FRAME passes
   its own (`FRAME_NEXT_ACTIONS`) and carries the catalog retry lines that left `safety.md`.
+* **Strategist takes assistant-core 0.9.0b5.** The api started on a fresh database could exit:
+  the checkpointer's setup ran under the 30-second turn deadline while LangGraph's concurrent
+  index builds waited on the warm-up's index sync, and the cancelled build left an invalid index.
+  The runtime now runs the setup unbounded and rebuilds an invalid checkpoint index on entry. Its
+  scripted helpers read a refusal by either error outcome (`refused_returns`, `tool_return_parts`),
+  so the scripted model's own copies of the two readers are gone.
+
+* **The scripted model reads a refusal in both shapes.** Since a refusal is counted per key,
+  every refusal a tool body raises reaches the model as a `failed` result (`CallRefused`), and
+  only a schema refusal stays `retried`. The scripted model read refusals as `retried` alone, so
+  it took a refused call for an answer, or never saw the refusal and sent the call again: seven
+  e2e flows failed (FND-12 drew 20 corrected "Choose a search" rows where one is right, the
+  five-node journey built 0 nodes). Every arc now reads through the runtime's `refused_returns`
+  (either error outcome) and `tool_return_parts` (neither); the unit
+  harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
+  test read only what they made, and C6, which reads the whole account, holds it alone, because
+  every e2e worker acts as one user.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new

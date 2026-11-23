@@ -43,6 +43,7 @@ from strategist.tests._support.recorded_searches import (
     serve_recorded,
     suite_search,
 )
+from strategist.tests.unit.ai.models._mock_refusals import refused_reply
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
     no_validation,
@@ -155,12 +156,7 @@ async def _framed(
                 tool_name=call.tool_name, content=answer, tool_call_id=call.tool_call_id
             )
         except ModelRetry as refused:
-            reply = ToolReturnPart(
-                content=refused.message,
-                tool_name=call.tool_name,
-                tool_call_id=call.tool_call_id,
-                outcome="retried",
-            )
+            reply = refused_reply(call, refused.message)
         parts = [reply]
     return state, calls
 

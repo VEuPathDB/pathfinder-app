@@ -5,7 +5,7 @@ from __future__ import annotations
 from assistant_core.capabilities.stable_instructions import briefing_now
 from assistant_core.models.scripted import (
     current_turn,
-    retried_returns,
+    refused_returns,
     tool_return_parts,
 )
 from assistant_core.platform.pydantic_base import CamelModel
@@ -60,7 +60,7 @@ def last_return[T: ToolAnswer](
 def refusal_of(messages: list[ModelMessage], tool: str) -> str | None:
     """The newest refusal ``tool`` sent back this turn, as the model reads it."""
     refused = [
-        p for p in retried_returns(current_turn(messages)) if p.tool_name == tool
+        p for p in refused_returns(current_turn(messages)) if p.tool_name == tool
     ]
     return refused[-1].model_response_str(wrap_if_error=False) if refused else None
 

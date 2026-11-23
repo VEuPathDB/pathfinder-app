@@ -17,7 +17,7 @@ from assistant_core.models.scripted import (
     ScriptedModel,
     detect_role,
     next_unmade_call,
-    retried_returns,
+    refused_returns,
     scripted_call,
 )
 from pydantic import TypeAdapter
@@ -143,7 +143,7 @@ def test_the_retry_parts_are_the_ones_a_tool_refused_on() -> None:
             ]
         ),
     ]
-    parts = retried_returns(messages)
+    parts = refused_returns(messages)
 
     assert [p.tool_name for p in parts] == ["refused_tool"]
     assert "refused" in parts[0].model_response_str(wrap_if_error=False)

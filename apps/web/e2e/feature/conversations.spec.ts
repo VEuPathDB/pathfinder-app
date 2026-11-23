@@ -41,11 +41,15 @@ test.describe("Conversations", () => {
     await chatPage.expectAssistantMessage(/\[mock\]/);
 
     const siteId = await currentSiteId(page);
-    const midCount = (await listConversations(apiClient, siteId)).length;
+    const first = chatPage.lastStrategyId;
 
     await chatPage.newChat();
     await expect(chatPage.composer).toBeVisible();
+    const made = chatPage.lastStrategyId;
 
-    expect(await listConversations(apiClient, siteId)).toHaveLength(midCount + 1);
+    expect(made).not.toEqual(first);
+    expect((await listConversations(apiClient, siteId)).map((row) => row.id)).toEqual(
+      expect.arrayContaining([first, made]),
+    );
   });
 });

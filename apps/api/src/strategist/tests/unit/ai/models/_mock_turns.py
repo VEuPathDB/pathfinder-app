@@ -43,6 +43,7 @@ from strategist.domain.strategy.step_words import AddedSearch
 from strategist.tests._support.organism_reads import MARKS
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests.unit.ai.models._mock_pins import framed_pins
+from strategist.tests.unit.ai.models._mock_refusals import refused_reply
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 # Each site's organism sheet: the site organism, one of its genus, one beyond.
@@ -381,12 +382,7 @@ def play(
                 break
             messages.append(ModelResponse(parts=[call]))
             reply: ToolReturnPart = (
-                ToolReturnPart(
-                    content=refusal,
-                    tool_name=call.tool_name,
-                    tool_call_id=call.tool_call_id,
-                    outcome="retried",
-                )
+                refused_reply(call, refusal)
                 if refusal is not None
                 else ToolReturnPart(
                     tool_name=call.tool_name,

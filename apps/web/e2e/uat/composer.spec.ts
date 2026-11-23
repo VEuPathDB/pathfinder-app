@@ -9,6 +9,7 @@ import * as zlib from "node:zlib";
 import { siteShortName } from "@strategist/shared";
 
 import { test, expect } from "../fixtures/test";
+import { WHOLE_ACCOUNT_TAG } from "../fixtures/account-lock";
 import { type ArcName, arc, prompt } from "../fixtures/arcs";
 import { type ApiClient, listConversations } from "../fixtures/api-client";
 import { LAYOUTS, TRANSMEMBRANE, layoutOf } from "../fixtures/arc-layouts";
@@ -392,36 +393,35 @@ test.describe("Slash commands", () => {
     expect(downloads).toEqual([]);
   });
 
-  test("C6 - /export of the latest gene set", async ({
-    page,
-    chatPage,
-    apiClient,
-    siteId,
-  }) => {
-    await chatPage.startOn(siteId);
-    await pickExport(page, chatPage, "gene-set-csv");
-    await expect(toast(page, "No gene sets to export.")).toBeVisible();
+  test(
+    "C6 - /export of the latest gene set",
+    { tag: WHOLE_ACCOUNT_TAG },
+    async ({ page, chatPage, apiClient, siteId }) => {
+      await chatPage.startOn(siteId);
+      await pickExport(page, chatPage, "gene-set-csv");
+      await expect(toast(page, "No gene sets to export.")).toBeVisible();
 
-    await importGeneIds(
-      page,
-      chatPage,
-      "UAT export C6",
-      seedGeneIds(siteId, 3).join("\n"),
-    );
-    await expect
-      .poll(async () => (await geneSetsOf(apiClient, siteId)).map((set) => set.name))
-      .toEqual(["UAT export C6"]);
-    for (const format of ["csv", "txt"]) {
-      const file = await exportFile(page, chatPage, `gene-set-${format}`);
-      expect(file.suggestedFilename()).toMatch(new RegExp(`\\.${format}$`));
-      await expect(
-        toast(page, new RegExp(`^Downloading \\S+\\.${format}$`)),
-      ).toBeVisible();
-    }
-  });
+      await importGeneIds(
+        page,
+        chatPage,
+        "UAT export C6",
+        seedGeneIds(siteId, 3).join("\n"),
+      );
+      await expect
+        .poll(async () => (await geneSetsOf(apiClient, siteId)).map((set) => set.name))
+        .toEqual(["UAT export C6"]);
+      for (const format of ["csv", "txt"]) {
+        const file = await exportFile(page, chatPage, `gene-set-${format}`);
+        expect(file.suggestedFilename()).toMatch(new RegExp(`\\.${format}$`));
+        await expect(
+          toast(page, new RegExp(`^Downloading \\S+\\.${format}$`)),
+        ).toBeVisible();
+      }
+    },
+  );
 
   test("C7 - /import", async ({ page, chatPage, apiClient, siteId }) => {
-    const name = "UAT import C7";
+    const name = `UAT import C7 ${String(test.info().workerIndex)}`;
     const ids = seedGeneIds(siteId, 3);
     const [first = "", ...rest] = ids;
     await chatPage.startOn(siteId);
@@ -430,13 +430,13 @@ test.describe("Slash commands", () => {
     await expect(toast(page, "Name required.")).toBeVisible();
     await importGeneIds(page, chatPage, name, "");
     await expect(toast(page, "Paste at least one gene ID.")).toBeVisible();
-    expect(await geneSetsOf(apiClient, siteId)).toEqual([]);
+    const named = async () =>
+      (await geneSetsOf(apiClient, siteId)).filter((set) => set.name === name);
+    expect(await named()).toEqual([]);
 
     await importGeneIds(page, chatPage, name, `${first}\n${rest.join(", ")}`);
     await expect(toast(page, `Imported "${name}" with 3 gene IDs.`)).toBeVisible();
-    expect(
-      (await geneSetsOf(apiClient, siteId)).map((set) => [set.name, set.geneIds]),
-    ).toEqual([[name, ids]]);
+    expect((await named()).map((set) => set.geneIds)).toEqual([ids]);
   });
 });
 
