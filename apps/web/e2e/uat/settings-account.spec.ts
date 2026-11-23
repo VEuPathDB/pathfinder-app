@@ -161,8 +161,15 @@ test.describe("Settings and account", () => {
       dialog.getByRole("tab", { name: "Model", exact: true }),
     ).toHaveAttribute("aria-selected", "true");
 
-    expect(roles.map(phaseLabel)).toEqual(["Assistant", "Planning", "Checking"]);
-    await expect(dialog.locator('[data-testid^="phase-row-"]')).toHaveCount(3);
+    expect(roles.map(phaseLabel)).toEqual([
+      "Assistant",
+      "Planning",
+      "Checking",
+      "Exploring",
+    ]);
+    await expect(dialog.locator('[data-testid^="phase-row-"]')).toHaveCount(
+      roles.length,
+    );
     for (const role of roles) {
       const fallback = models.models.find((m) => m.id === models.phaseDefaults[role]);
       expect(fallback?.name, `the default model of ${role}`).not.toBe(undefined);
@@ -473,9 +480,9 @@ test.describe("Settings and account", () => {
       await expect(rows).not.toHaveCount(0);
       const toggles = reply.getByRole("button", { name: "Raw", exact: true });
       await expect(toggles).toHaveCount(await rows.count());
-      // A build turn reads the request once, so that row names one toggle.
+      // A build turn plans the searches once, so that row names one toggle.
       const buildCall = reply.getByTestId("tool-call-part").filter({
-        has: page.getByTestId("trace-row").filter({ hasText: "Read the request" }),
+        has: page.getByTestId("trace-row").filter({ hasText: "Plan the searches" }),
       });
       await expect(buildCall).toHaveCount(1);
       const toggle = buildCall.getByRole("button", { name: "Raw", exact: true });

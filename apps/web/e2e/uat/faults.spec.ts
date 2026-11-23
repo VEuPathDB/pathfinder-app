@@ -15,9 +15,11 @@ import { expectBuild, expectEvidence, openTrace } from "../fixtures/build-checks
 import {
   printed,
   readConversation,
+  readNodes,
   siteControlSets,
   siteOrganism,
 } from "../fixtures/site-reads";
+import { paramText } from "../fixtures/strategy-builds";
 import type { ChatPage } from "../pages/chat.page";
 
 type FaultName =
@@ -182,7 +184,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     const refused = correctedRows(page, "Choose a search");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      /^organism on GenesWithSignalPeptide has no entry matching \['Organismus fictus'\]\./,
+      /^organism has no entry 'Organismus fictus'\. Candidates: /,
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
   });
@@ -433,15 +435,14 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
       faulted("single", "organism-split", S1_TEXT(organism)),
     );
 
-    await openTraces(chatPage);
-    await expect(correctedRows(page, "Read the request")).toHaveCount(0);
-    const classified = page
-      .getByTestId("trace-row")
-      .filter({ hasText: "Read the request" });
-    await expect(classified.getByTestId("trace-row-summary")).toHaveText([
-      `Intent: new_strategy; organism recorded as "${organism}"`,
-    ]);
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+    const [leaf] = await readNodes(apiClient, id);
+    if (leaf === undefined) throw new Error("the build stored no step");
+    expect(paramText(leaf, "organism")).toContain(organism);
+    await expect(
+      chatPage.factsIn(chatPage.assistantMessages).getByTestId("facts-gap"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("consult-carousel")).toHaveCount(0);
   });
 
   test("An open value asked in prose is corrected to the question card", async ({

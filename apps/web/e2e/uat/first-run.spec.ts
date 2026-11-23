@@ -253,8 +253,7 @@ test.describe("First run and navigation", () => {
 
     const signedOut = page.getByTestId("signed-out-notice");
     await expect(signedOut).toBeVisible({ timeout: 30_000 });
-    await expect(signedOut).toContainText("Strategist");
-    await expect(signedOut).toContainText("VEuPathDB Strategy Builder");
+    await expect(signedOut).toContainText("VEuPathDB Strategist");
     await expect(signedOut).toContainText(
       "Sign in to VEuPathDB to build and manage search strategies.",
     );
