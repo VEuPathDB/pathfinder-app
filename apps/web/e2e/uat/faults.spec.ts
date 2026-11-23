@@ -293,7 +293,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     const refused = correctedRows(page, "Optimize parameters");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      /^1 validation error:[\s\S]*"missing"[\s\S]*"control_set_id"/,
+      "1 validation error: control_set_id: Field required",
     );
 
     await approval.getByTestId("tool-approval-deny").click();
@@ -327,7 +327,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     const refused = correctedRows(page, "Ask you");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      /^1 validation error/,
+      "1 validation error: reply: String should have at least 20 characters",
     );
     expect(await loggedRefusals(apiClient, id)).toContain(
       "String should have at least 20 characters",

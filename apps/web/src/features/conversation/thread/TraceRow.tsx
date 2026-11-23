@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils/cn";
 import { auditReportLink } from "./auditReportLink";
 import { otherSiteExperiments } from "./otherSites";
 import { RelatedExperiments } from "./RelatedExperiments";
+import { retryErrorLine } from "./retryErrors";
 import { TRACE_GLYPHS } from "./traceGlyphs";
 import type { TraceRowView } from "./traceTypes";
 
@@ -37,7 +38,7 @@ function lineOf(row: TraceRowView): string | undefined {
     row.errorText !== null &&
     (row.status === "error" || row.status === "corrected")
   ) {
-    return row.errorText;
+    return retryErrorLine(row.errorText);
   }
   return row.summary ?? undefined;
 }
