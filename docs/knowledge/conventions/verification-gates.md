@@ -15,8 +15,11 @@ gate: the lint tier, `next build`, the API unit tier and the API integration
 tier run on every push and every pull request; the full-stack Playwright tier
 runs on every pull request and on a hand-started run, never on a bare push.
 Nothing runs on a schedule. A hand-started run treats every path as changed and
-refreshes the recorded API test durations (the `test-durations` artifact), which
-both API tiers are balanced by (`--splitting-algorithm least_duration`).
+refreshes the recorded API test durations (the `test-durations` artifact).
+`strategist.devtools.split_tests` splits each API tier into groups of whole
+test files, the longest file first into the lightest group by those durations,
+so each xdist worker imports only its own group's files; the "API groups cover
+the suite" job checks that every test file is in exactly one group.
 CI makes no live call: every job reads recorded or replayed responses
 ([CI runs recorded tests only](../decisions/ci-runs-recorded-tests-only.md)).
 The full-stack tier reaches live sites, so the repository variable

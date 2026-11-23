@@ -242,7 +242,7 @@ jobs:
         working-directory: apps/api
         run: uv run sphinx-build -b html docs docs/_build/html
 
-  # Both tiers run on every push, split by recorded duration.
+  # Both tiers run on every push, split into groups of whole files by recorded duration.
   test-api:
     name: Test API (unit ${{ matrix.group }}/3)
     runs-on: ubuntu-latest
@@ -264,11 +264,11 @@ jobs:
           STRATEGIST_CHAT_PROVIDER: mock
           GROUP: ${{ matrix.group }}
           STORE: ${{ github.event_name == 'workflow_dispatch' && '--store-durations' || '' }}
-        run: >-
-          uv run pytest src/strategist/tests/unit -m "not live_model and not live_wdk"
-          --splits 3 --group "$GROUP" --durations-path .test_durations
-          --splitting-algorithm least_duration
-          -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
+        run: |
+          listed=$(uv run python -m strategist.devtools.split_tests files unit 3 "$GROUP")
+          mapfile -t files <<< "$listed"
+          uv run pytest "${files[@]}" -m "not live_model and not live_wdk" \
+            -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
@@ -323,11 +323,11 @@ jobs:
           STRATEGIST_CHAT_PROVIDER: mock
           GROUP: ${{ matrix.group }}
           STORE: ${{ github.event_name == 'workflow_dispatch' && '--store-durations' || '' }}
-        run: >-
-          uv run pytest src/strategist/tests/integration -m "not live_model and not live_wdk"
-          --splits 8 --group "$GROUP" --durations-path .test_durations
-          --splitting-algorithm least_duration
-          -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
+        run: |
+          listed=$(uv run python -m strategist.devtools.split_tests files integration 8 "$GROUP")
+          mapfile -t files <<< "$listed"
+          uv run pytest "${files[@]}" -m "not live_model and not live_wdk" \
+            -n auto --durations=25 --cov=src --cov-report= ${STORE:+"$STORE"}
 
       - name: Upload the coverage data
         uses: actions/upload-artifact@v4
@@ -346,6 +346,7 @@ jobs:
           retention-days: 1
           include-hidden-files: true
 
+  # Each group runs whole test files, so a worker imports only its own group.
   test-api-groups:
     name: API groups cover the suite
     runs-on: ubuntu-latest
@@ -353,39 +354,12 @@ jobs:
     if: ${{ needs.changes.outputs.api == 'true' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-api
 
-      - name: Check every test is in exactly one group
+      - name: Check every test file is in exactly one group
         working-directory: apps/api
         env:
-        run: |
-          set -o pipefail
-          export LC_ALL=C
-          collect() {
-            tier="$1"; out="$2"; shift 2
-            uv run pytest "src/strategist/tests/$tier" -m "not live_model and not live_wdk" --collect-only -q "$@" | grep '::' | sort > "$out"
-          }
-          check() {
-            tier="$1"; groups="$2"; dir="$RUNNER_TEMP/$tier"
-            mkdir -p "$dir"
-            pids=()
-            collect "$tier" "$dir/whole.txt" & pids+=($!)
-            for g in $(seq 1 "$groups"); do
-              collect "$tier" "$dir/group-$g.txt" --splits "$groups" --group "$g" --durations-path .test_durations --splitting-algorithm least_duration & pids+=($!)
-            done
-            for p in "${pids[@]}"; do wait "$p"; done
-            sort "$dir"/group-*.txt > "$dir/grouped.txt"
-            total=$(wc -l < "$dir/whole.txt")
-            [ "$total" -gt 0 ] || { echo "::error::pytest collected no $tier tests"; exit 1; }
-            if ! cmp -s "$dir/whole.txt" "$dir/grouped.txt"; then
-              echo "::error::The $groups $tier groups do not run every test exactly once."
-              comm -3 "$dir/whole.txt" "$dir/grouped.txt"
-              exit 1
-            fi
-            echo "$total $tier tests, each in exactly one of $groups groups"
-          }
-          check unit 3
-          check integration 8
+          PYTHONPATH: src
+        run: python3 -m strategist.devtools.split_tests check unit:3 integration:8
 
   test-api-durations:
     name: Refresh the API test durations
