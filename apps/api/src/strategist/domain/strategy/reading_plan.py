@@ -18,6 +18,7 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.step_naming import cut_on_a_word
+from strategist.domain.strategy.step_settings_text import criterion_settings
 
 
 class OfferedReading(CamelModel):
@@ -196,7 +197,7 @@ def plan_lines(spec: OperationalSpec) -> list[str]:
                     f"{name}={bound.value.to_wire()}"
                     for name, bound in c.resolved_params.items()
                 ),
-                *([] if c.weight is None else [f"weight {c.weight}"]),
+                *([settings] if (settings := criterion_settings(c)) else []),
             ]
         )
         for c in spec.criteria
