@@ -78,6 +78,23 @@ def test_an_adopted_strategy_is_tested_with_the_set_it_was_measured_on() -> None
     ]
 
 
+def test_sampled_controls_are_read_once_and_the_controls_test_runs() -> None:
+    calls = play(
+        "verification",
+        "plasmodb",
+        "[[arc:controls-test]]",
+        work_order=verify_order(12),
+        scene=Scene(refused={"read_gene_record": "This gene is a control."}),
+    )
+
+    assert names(calls) == [
+        *_REVIEW[:-1],
+        "list_control_sets",
+        "run_control_tests_on_step",
+        "final_result",
+    ]
+
+
 @pytest.mark.parametrize("site_id", SITES)
 def test_an_empty_root_is_not_sampled(site_id: str) -> None:
     calls = play(

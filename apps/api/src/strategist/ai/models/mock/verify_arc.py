@@ -8,7 +8,9 @@ from __future__ import annotations
 import re
 
 from assistant_core.models.scripted import (
+    called_tool_parts,
     current_scope_id,
+    retried_returns,
     scripted_call,
     terminal_call,
 )
@@ -52,6 +54,20 @@ class _Record(ToolAnswer):
     id: str
 
 
+class _RecordCall(ToolAnswer):
+    gene_id: str
+
+
+def _refused_reads(messages: list[ModelMessage]) -> set[str]:
+    """The genes whose record read the tool refused, a control among them."""
+    refused = {part.tool_call_id for part in retried_returns(messages)}
+    return {
+        _RecordCall.model_validate(call.args_as_dict()).gene_id
+        for call in called_tool_parts(messages)
+        if call.tool_name == _RECORD and call.tool_call_id in refused
+    }
+
+
 class _Listed(ToolAnswer):
     control_set_id: str
 
@@ -75,6 +91,7 @@ def review_call(messages: list[ModelMessage]) -> ToolCallPart | None:
         limit = min(int(root["limit"]), _READS)
         return scripted_call(_SAMPLE, {"wdk_step_id": int(root["wdk"]), "limit": limit})
     read = {record.gene_id for record in gene_records(messages)}
+    read |= _refused_reads(messages)
     sampled = [g for s in returns_of(messages, _SAMPLE, _Sample) for g in s.gene_ids()]
     unread = [gene_id for gene_id in sampled[:_READS] if gene_id not in read]
     return scripted_call(_RECORD, {"gene_id": unread[0]}) if unread else None
