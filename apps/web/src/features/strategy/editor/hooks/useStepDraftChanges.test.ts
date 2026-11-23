@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import type { Step } from "@strategist/shared";
 import { useStepDraftChanges } from "./useStepDraftChanges";
