@@ -73,8 +73,18 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["src/strategist/tests"]
-# A command line -m replaces this, so `-m live_model` selects the lane.
-addopts = ["-m", "not live_model"]
+# A command line -m replaces this, so `-m live_model` selects the lane. No test
+# reads the langsmith or logfire plugins, so they do not load.
+addopts = [
+    "-m",
+    "not live_model",
+    "-p",
+    "no:langsmith_plugin",
+    "-p",
+    "no:logfire",
+    "-p",
+    "no:pytest_logfire",
+]
 markers = [
     "live_wdk: tests that make live HTTP calls to VEuPathDB WDK endpoints (require network)",
     "live_model: tests that make live calls to the deployment's model provider (require OPENAI_API_KEY)",
