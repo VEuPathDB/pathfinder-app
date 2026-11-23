@@ -20,7 +20,8 @@ the conversation (the store may add a suffix to keep it unique, and every copy
 takes the stored name), the AST and the auto-imported set, and
 `put_the_name_on_wdk` then sends the stored name to WDK.
 `rename_strategy_everywhere` does both for a sidebar rename
-(`ConversationService.update`) and the agent's `rename_strategy`; the first
+(`ConversationService.update`) and the Lead's `rename_strategy`
+(`ai/tools/standalone/strategy_rename.py`, the one rename tool an agent holds); the first
 title (`name_conversation_if_unnamed`, from the turn and from `/begin`) does the
 same through `name_if_unnamed`. A graph edit that renames (`UpdateStrategyMetaOp`) writes the thread
 through `name_the_thread_as_the_graph`, and its push sends the name to WDK.
@@ -40,8 +41,9 @@ name back on the AST and on WDK. An import from WDK names only a thread that has
 no name, and a branch pushes its strategy under the branch thread's name.
 
 **The description is stated, or read off the root.** `graph.description` holds only a
-description someone stated: the agent's `rename_strategy`, an `UpdateStrategyMetaOp`, a
-build's `description=` or the snapshot note. `domain/strategy/strategy_description.py` is
+description someone stated: an `UpdateStrategyMetaOp`, a build's `description=` or the
+snapshot note. A rename sends the name alone, as WDK's strategy `PATCH` takes `name` and
+`description` as separate keys, so a rename keeps the description. `domain/strategy/strategy_description.py` is
 the one place the strategy's description is made: the stated one, else a sentence read off
 the root the push sends ("Find transcript results for Predicted Signal Peptide."). The
 snapshot, the strategy summary and every push read it from there. The read before every push
@@ -54,8 +56,9 @@ Writing the read-off sentence into `graph.description` was rejected: it froze th
 of the first root, and every later edit left the site and the canvas on that root.
 
 **A build does not name the strategy.** `build_strategy_from_spec` takes no name,
-so neither the spec's hydrated title nor the execution agent can give the
-strategy a name the thread does not hold. Until the title lands, a push names a
+and the building pass holds no rename tool, so neither the spec's hydrated
+title nor the execution agent can give the strategy a name the thread does not
+hold. Until the title lands, a push names a
 graph that has no name after the request the thread answers
 (`state.domain.original_request`, the text `framing_goal` starts from; the
 turn's prompt only when the thread holds none), cut by

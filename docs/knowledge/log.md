@@ -2,6 +2,19 @@
 
 ## 2026-11-23
 
+* **One rename tool and one definition of obsolete.** The building pass held a second
+  `rename_strategy` (`ai/tools/standalone/conversation.py`) that took a required description,
+  wrote it as the strategy's stated description (sent to WDK at the next push in place of the
+  sentence read off the root), renamed a strategy with no step and renamed only the graph when
+  the turn named no thread. It is deleted: the Lead's `strategy_rename.rename_strategy` is the
+  one rename, its WDK write stays `naming.put_the_name_on_wdk`, and
+  `test_one_rename_serves_every_agent.py` holds one definition. A term is obsolete when the
+  first word of the term name in its site label is "obsolete"
+  (`obsolete_terms.says_obsolete`); the lookup check of `_frame_lookups` and the count path
+  read it, and `test_obsolete_has_one_definition.py` holds the word to that module. The count
+  path once took the word anywhere in the label; on the 5,991 recorded GO entries both rules
+  agree.
+
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new
   budget; a test refuses a production key that names its check in free text. A key a call builds

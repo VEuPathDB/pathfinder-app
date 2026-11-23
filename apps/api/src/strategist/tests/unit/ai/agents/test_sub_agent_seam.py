@@ -87,7 +87,6 @@ EXECUTION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "delete_step",
     "get_strategy",
     "insert_saved_strategy",
-    "rename_strategy",
     "replace_subtree",
     "request_search_inspection",
     "search_memory",

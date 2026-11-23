@@ -14,15 +14,12 @@ from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
-from strategist.domain.strategy.value_label import label_term
-from strategist.domain.strategy.words import words_of
+from strategist.services.strategies.obsolete_terms import OBSOLETE, says_obsolete
 
 # WDK draws a vocabulary it means to be searched as a type-ahead box.
 _TYPEAHEAD = "typeAhead"
 # The vocabulary kinds a pick binds entries of.
 _PICKS = frozenset({"multi-pick-vocabulary", "single-pick-vocabulary"})
-# The first word an ontology writes in the label of a term it retired.
-_OBSOLETE = "obsolete"
 # A refusal lists at most this many of the entries the lookups matched.
 _LISTED = 20
 
@@ -120,10 +117,6 @@ def _named(value: str, labels: dict[str, str]) -> str:
     return f"{value} ({labels[value]!r})"
 
 
-def _is_obsolete(value: str, labels: dict[str, str]) -> bool:
-    return words_of(label_term(value, labels[value]))[:1] == [_OBSOLETE]
-
-
 def _an_obsolete_pick(
     state: AgentToolState,
     where: str,
@@ -133,15 +126,15 @@ def _an_obsolete_pick(
 ) -> str | None:
     """A new pick the site labels obsolete when no request message says
     obsolete, with the current entries its lookup term matched."""
-    obsolete = [v for v in new if v in labels and _is_obsolete(v, labels)]
-    if not obsolete or _written_out(_OBSOLETE, state.request_messages):
+    obsolete = [v for v in new if v in labels and says_obsolete(v, labels[v])]
+    if not obsolete or _written_out(OBSOLETE, state.request_messages):
         return None
     terms = list(dict.fromkeys(record.matched[v] for v in obsolete))
     current = [
         v
         for term in terms
         for v in record.matched_by(term)
-        if v in labels and not _is_obsolete(v, labels)
+        if v in labels and not says_obsolete(v, labels[v])
     ]
     quoted = ", ".join(repr(term) for term in terms)
     found = (

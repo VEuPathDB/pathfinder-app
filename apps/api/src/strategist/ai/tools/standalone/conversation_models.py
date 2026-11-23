@@ -1,23 +1,8 @@
-"""Conversation tool response models and helpers."""
+"""Conversation tool response models."""
 
 from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
-from veupathdb.domain.strategy import StrategyAst
-
-from strategist.domain.strategy.session import StrategyGraph, StrategySession
-
-
-class RenameStrategyResult(CamelModel):
-    """Result of renaming a strategy."""
-
-    graph_id: str
-    old_name: str
-    new_name: str
-    name: str
-    record_type: str
-    description: str
-    plan: StrategyAst | None = None
 
 
 class ClearStrategyResult(CamelModel):
@@ -25,10 +10,3 @@ class ClearStrategyResult(CamelModel):
 
     graph_id: str
     message: str
-
-
-def _has_strategy(graph: StrategyGraph, session: StrategySession) -> bool:
-    """Check whether a graph has any strategy content."""
-    sync_state = session.sync_state
-    wdk_strategy_id = sync_state.wdk_strategy_id if sync_state else None
-    return bool(graph.steps or wdk_strategy_id)
