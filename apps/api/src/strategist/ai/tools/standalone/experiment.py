@@ -63,7 +63,9 @@ def _control_scores(counts: ControlCounts) -> str:
     Precision and MCC need a negative set. A test that ran none reports
     recall alone, and a test of negatives alone counts what it returned.
     """
-    if counts.positive_controls_count is None and counts.negative_controls_count:
+    if counts.positive_controls_count is None and not counts.negative_controls_count:
+        return "no controls tested"
+    if counts.positive_controls_count is None:
         return (
             f"{counts.negative_controls_count} negative controls: "
             f"{counts.negative_intersection or 0} returned"
