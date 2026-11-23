@@ -49,6 +49,7 @@ what left.
 32. [A join under a saved-strategy branch is not measured](a-join-under-a-saved-strategy-branch-is-not-measured.md) - a combine added above a step inside an inserted saved strategy may land inside the nested strategy on the site; measure the WDK tree, then write the six headings.
 33. [Why a DESeq job with replicates failed](why-a-deseq-job-with-replicates-failed.md) - a hostdb DESeq job with 4 and 31 samples failed and the job's files hold no R message; nothing waits on this. Reproduce it from the subset, or ask the team that owns the service.
 34. [Gemini 4 Argon's price changes on 2026-12-01](gemini-4-argons-price-changes-on-2026-12-01.md) - the catalog shows Argon's introductory 2.00 / 0.10 / 10.00 per MTok; from 2026-12-01 Google charges 4.00 / 0.20 / 20.00, which the price snapshot already meters, so edit the entry and `PRICES_AS_OF` on that day.
+35. [The checkpointer is set up before the warm-up writes](the-checkpointer-is-set-up-before-the-warm-up-writes.md) - on a fresh database the api's checkpointer setup waits on the warm-up's index sync past its 30-second deadline and the api exits; a cancelled concurrent index build can stay invalid. Set the checkpointer up before any warm-up write.
 
 ## Known and accepted
 
