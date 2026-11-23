@@ -15,12 +15,13 @@ from veupathdb_mcp.catalog import (
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
+from strategist.ai.tools.standalone._frame_stated import word_problems
 from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     OrganismValue,
 )
+from strategist.platform.refusals import refuse_problems
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.site_organisms import recorded_organisms
 
@@ -59,11 +60,13 @@ async def _refusal(named: str, bound: str) -> str | None:
         value=OrganismValue(organism=named),
     )
     try:
-        refuse_what_the_words_decide(
-            _ALPHAFOLD,
-            call,
-            await _sheet(),
-            AgentToolState(stated_requirements=[requirement]),
+        refuse_problems(
+            word_problems(
+                _ALPHAFOLD,
+                call,
+                await _sheet(),
+                AgentToolState(stated_requirements=[requirement]),
+            )
         )
     except ModelRetry as refused:
         return refused.message

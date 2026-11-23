@@ -12,12 +12,13 @@ from veupathdb.wdk import WDKParameter, WDKSearch
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
+from strategist.ai.tools.standalone._frame_stated import word_problems
 from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     OrganismValue,
 )
+from strategist.platform.refusals import refuse_problems
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
@@ -101,8 +102,10 @@ def _bind_under(
         params={},
     ).with_values({"organism": MultiPickValue(values=organisms)})
     infos = sheet_of(definition.parameters or [])
-    refuse_what_the_words_decide(
-        definition, call, infos, AgentToolState(stated_requirements=requirements)
+    refuse_problems(
+        word_problems(
+            definition, call, infos, AgentToolState(stated_requirements=requirements)
+        )
     )
     return organisms
 

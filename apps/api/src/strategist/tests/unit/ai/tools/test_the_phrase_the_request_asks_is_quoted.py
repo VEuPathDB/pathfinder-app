@@ -8,7 +8,8 @@ from veupathdb.domain.parameters import MultiPickValue, StringValue
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
-from strategist.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
+from strategist.ai.tools.standalone._frame_stated import word_problems
+from strategist.platform.refusals import refuse_problems
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
@@ -33,11 +34,13 @@ def _bind(message: str, term: str) -> str:
             "text_fields": MultiPickValue(values=["product"]),
         }
     )
-    refuse_what_the_words_decide(
-        _TEXT,
-        call,
-        _INFOS,
-        AgentToolState(request_messages=["Polar tube protein.", message]),
+    refuse_problems(
+        word_problems(
+            _TEXT,
+            call,
+            _INFOS,
+            AgentToolState(request_messages=["Polar tube protein.", message]),
+        )
     )
     return term
 

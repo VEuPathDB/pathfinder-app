@@ -18,8 +18,9 @@ from strategist.ai.models.mock.strategy_specs import (
     combined_spec,
     go_spec,
 )
-from strategist.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
+from strategist.ai.tools.standalone._frame_lookups import pick_problems
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
+from strategist.platform.refusals import refuse_problems
 from strategist.tests._support.param_infos import sheet_of
 
 _PARAM = "go_typeahead"
@@ -113,11 +114,13 @@ def _refusals(values: SiteValues, request: str) -> list[str]:
             params={},
         ).with_values({_PARAM: MultiPickValue(values=picks)})
         try:
-            refuse_a_pick_no_lookup_read(
-                state,
-                WDKSearch(url_segment=GO_TERM, parameters=[param]),
-                call,
-                sheet_of([param]),
+            refuse_problems(
+                pick_problems(
+                    state,
+                    WDKSearch(url_segment=GO_TERM, parameters=[param]),
+                    call,
+                    sheet_of([param]),
+                )
             )
         except ModelRetry as refusal:
             refused.append(refusal.message)

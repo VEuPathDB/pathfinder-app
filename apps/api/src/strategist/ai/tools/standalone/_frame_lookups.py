@@ -6,12 +6,12 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
-from pydantic_ai import ModelRetry
 from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState, LookupRecord
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
 from strategist.domain.strategy.value_label import label_term
@@ -69,42 +69,51 @@ def _where(call: CriterionCall, param: WDKParameter) -> str:
     return f"{param.name} ({param.display_name}) on {call.search_name}"
 
 
-def refuse_a_pick_no_lookup_read(
+def _lookup_problem(
+    state: AgentToolState, call: CriterionCall, param: WDKParameter, new: list[str]
+) -> str | None:
+    where = _where(call, param)
+    record = state.looked_up.get((call.search_name, param.name))
+    if record is None:
+        return (
+            f"{where} holds {new}, and no lookup of it ran this pass. Read the "
+            f"options for {call.text!r} first, then bind the entries a phrase "
+            f"matched: {_lookup_call(call, param)}."
+        )
+    stray = [term for term in new if term not in record.matched]
+    if not stray:
+        return None
+    listed = sorted(record.matched)[:_LISTED]
+    return (
+        f"{where} holds {stray}, which no lookup of it matched. Bind only "
+        f"entries a lookup of {call.text!r} returned ({len(record.matched)}: "
+        f"{', '.join(listed) or 'none'}), or read the options again with "
+        f"other phrasings: {_lookup_call(call, param)}."
+    )
+
+
+def pick_problems(
     state: AgentToolState,
     definition: WDKSearch,
     call: CriterionCall,
     infos: Sequence[ParameterInfo],
-) -> None:
-    """Refuse a new typeahead multi-pick entry no lookup of its parameter matched
-    this pass, then a new pick the lookup did not mean. An entry the criterion
-    holds or the request writes out is no new pick."""
+) -> Problems:
+    """A new typeahead multi-pick entry no lookup of its parameter matched this
+    pass, for every parameter, then every new pick the lookup did not mean. An
+    entry the criterion holds or the request writes out is no new pick."""
     held = _held(state, call)
+    found: list[Problem] = []
     for param in definition.parameters or []:
         if param.type != "multi-pick-vocabulary" or param.display_type != _TYPEAHEAD:
             continue
         new = _new_picks(state, call, param.name, held)
-        if not new:
-            continue
-        where = _where(call, param)
-        record = state.looked_up.get((call.search_name, param.name))
-        if record is None:
-            msg = (
-                f"{where} holds {new}, and no lookup of it ran this pass. Read the "
-                f"options for {call.text!r} first, then bind the entries a phrase "
-                f"matched: {_lookup_call(call, param)}."
-            )
-            raise ModelRetry(msg)
-        stray = [term for term in new if term not in record.matched]
-        if stray:
-            listed = sorted(record.matched)[:_LISTED]
-            msg = (
-                f"{where} holds {stray}, which no lookup of it matched. Bind only "
-                f"entries a lookup of {call.text!r} returned ({len(record.matched)}: "
-                f"{', '.join(listed) or 'none'}), or read the options again with "
-                f"other phrasings: {_lookup_call(call, param)}."
-            )
-            raise ModelRetry(msg)
-    _refuse_a_pick_the_lookup_did_not_mean(state, definition, call, infos, held)
+        said = _lookup_problem(state, call, param, new) if new else None
+        if said is not None:
+            key = RefusalKey(check="lookup", parameter=param.name)
+            found.append(Problem(key=key, sentence=said))
+    return Problems(found=tuple(found)).plus(
+        _picks_the_lookup_did_not_mean(state, definition, call, infos, held)
+    )
 
 
 def _named(value: str, labels: dict[str, str]) -> str:
@@ -115,18 +124,18 @@ def _is_obsolete(value: str, labels: dict[str, str]) -> bool:
     return words_of(label_term(value, labels[value]))[:1] == [_OBSOLETE]
 
 
-def _refuse_an_obsolete_pick(
+def _an_obsolete_pick(
     state: AgentToolState,
     where: str,
     new: list[str],
     record: LookupRecord,
     labels: dict[str, str],
-) -> None:
-    """Refuse a new pick the site labels obsolete when no request message says
-    obsolete, and list the current entries its lookup term matched."""
+) -> str | None:
+    """A new pick the site labels obsolete when no request message says
+    obsolete, with the current entries its lookup term matched."""
     obsolete = [v for v in new if v in labels and _is_obsolete(v, labels)]
     if not obsolete or _written_out(_OBSOLETE, state.request_messages):
-        return
+        return None
     terms = list(dict.fromkeys(record.matched[v] for v in obsolete))
     current = [
         v
@@ -141,22 +150,22 @@ def _refuse_an_obsolete_pick(
         if current
         else f"The lookup of {quoted} matched no current entry."
     )
-    msg = (
+    return (
         f"{where} holds {obsolete}, which the site labels obsolete, and no request "
         f"message says obsolete. {found} Bind current entries, or ask the "
         "researcher which one they mean."
     )
-    raise ModelRetry(msg)
 
 
-def _refuse_a_pick_the_lookup_did_not_mean(
+def _picks_the_lookup_did_not_mean(
     state: AgentToolState,
     definition: WDKSearch,
     call: CriterionCall,
     infos: Sequence[ParameterInfo],
     held: dict[str, BoundValue],
-) -> None:
-    """Refuse a new typeahead pick the site labels obsolete."""
+) -> Problems:
+    """Every new typeahead pick the site labels obsolete."""
+    found: list[Problem] = []
     by_name = {info.name: info for info in infos}
     for param in definition.parameters or []:
         record = state.looked_up.get((call.search_name, param.name))
@@ -171,5 +180,8 @@ def _refuse_a_pick_the_lookup_did_not_mean(
         if not new:
             continue
         labels = {o.value: o.display for o in by_name[param.name].vocabulary()}
-        where = _where(call, param)
-        _refuse_an_obsolete_pick(state, where, new, record, labels)
+        said = _an_obsolete_pick(state, _where(call, param), new, record, labels)
+        if said is not None:
+            key = RefusalKey(check="obsolete_pick", parameter=param.name)
+            found.append(Problem(key=key, sentence=said))
+    return Problems(found=tuple(found))

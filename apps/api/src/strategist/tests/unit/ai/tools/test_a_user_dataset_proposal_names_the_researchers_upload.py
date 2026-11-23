@@ -12,10 +12,11 @@ from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import SinglePickValue
 from veupathdb.wdk import WDKSearch, WDKSearchResponse
 
+from strategist.ai.tools.standalone._frame_call_checks import upload_problems
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    refuse_an_upload_the_researcher_lacks,
 )
+from strategist.platform.refusals import refuse_problems
 from strategist.services.strategies import user_dataset_searches
 from strategist.services.strategies.user_dataset_searches import OwnedUpload
 from strategist.tests._support.param_infos import sheet_of
@@ -76,9 +77,7 @@ def account(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
 
 async def _refusal(value: str | None) -> str:
     with pytest.raises(ModelRetry) as refused:
-        await refuse_an_upload_the_researcher_lacks(
-            "plasmodb", _GENE_LIST, _call(value)
-        )
+        refuse_problems(await upload_problems("plasmodb", _GENE_LIST, _call(value)))
     return str(refused.value)
 
 
@@ -86,8 +85,8 @@ async def _refusal(value: str | None) -> str:
 async def test_the_researchers_upload_binds_though_the_cached_view_lacks_it(
     account: AsyncMock,
 ) -> None:
-    await refuse_an_upload_the_researcher_lacks(
-        "plasmodb", _GENE_LIST, _call("8c888994pI014")
+    refuse_problems(
+        await upload_problems("plasmodb", _GENE_LIST, _call("8c888994pI014"))
     )
     assert account.await_args_list == [call("plasmodb")]
 
@@ -182,8 +181,8 @@ def two_accounts(monkeypatch: pytest.MonkeyPatch) -> _AccountClient:
 async def test_each_account_binds_only_its_own_upload_in_sequence(
     two_accounts: _AccountClient,
 ) -> None:
-    await refuse_an_upload_the_researcher_lacks(
-        "plasmodb", _GENE_LIST, _call("8c888994pI014")
+    refuse_problems(
+        await upload_problems("plasmodb", _GENE_LIST, _call("8c888994pI014"))
     )
     two_accounts.account = "second"
     assert await _refusal("8c888994pI014") == (
@@ -191,8 +190,8 @@ async def test_each_account_binds_only_its_own_upload_in_sequence(
         "researcher's own uploads: 'second-account-list' (zzZ5secondAcct). Pass "
         "the value of the upload the request refers to; nothing was recorded."
     )
-    await refuse_an_upload_the_researcher_lacks(
-        "plasmodb", _GENE_LIST, _call("zzZ5secondAcct")
+    refuse_problems(
+        await upload_problems("plasmodb", _GENE_LIST, _call("zzZ5secondAcct"))
     )
     two_accounts.account = "first"
     assert await _refusal("zzZ5secondAcct") == _ONE_UPLOAD

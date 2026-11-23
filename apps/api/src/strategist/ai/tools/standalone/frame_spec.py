@@ -29,8 +29,8 @@ from strategist.ai.tools.standalone._expression_handles import (
 )
 from strategist.ai.tools.standalone._frame_answers import (
     AnsweredRequirement,
+    answers_the_sheet_lacks,
     linked_requirements,
-    refuse_a_param_the_sheet_lacks,
 )
 from strategist.ai.tools.standalone._frame_computed import set_computed_criterion
 from strategist.ai.tools.standalone._frame_datasets import (
@@ -39,11 +39,9 @@ from strategist.ai.tools.standalone._frame_datasets import (
 )
 from strategist.ai.tools.standalone._frame_eda import (
     refuse_a_bound_analysis,
-    refuse_a_search_the_criterion_cannot_use,
     wait_for_the_analysis,
 )
 from strategist.ai.tools.standalone._frame_gene_set import set_gene_set_criterion
-from strategist.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
 from strategist.ai.tools.standalone._frame_measure import (
     display_names,
     record_bound_criterion,
@@ -53,11 +51,7 @@ from strategist.ai.tools.standalone._frame_proposals import (
     held_binding,
     keeping_held,
     left_to_the_site,
-    radio_overrides,
     read_call,
-    refuse_an_upload_the_researcher_lacks,
-    refuse_undecided,
-    refuse_unknown_names,
     resolve_proposals,
     with_held,
 )
@@ -80,18 +74,23 @@ from strategist.ai.tools.standalone._frame_sources import (
     open_slots,
     pasted_params,
 )
-from strategist.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
+from strategist.ai.tools.standalone._frame_stages import sheet_stage, value_stage
 from strategist.ai.tools.standalone._frame_unserved import (
     an_unserved_search_refused,
     listed_record_type,
 )
 from strategist.ai.tools.standalone._frame_values import proposed_call, sourced_values
 from strategist.ai.tools.standalone._frame_weight import held_weight
-from strategist.ai.tools.standalone._validation_helpers import validation_model_retry
+from strategist.domain.refusal import RefusalKey
 from strategist.domain.strategy.expression_handles import stated_value
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
+)
+from strategist.platform.refusals import (
+    ProblemsRefusal,
+    library_problems,
+    refuse_problems,
 )
 from strategist.services.strategies.sheet_params import catalog_search_definition
 
@@ -128,9 +127,8 @@ async def _canonical_binding(
             about=about,
         )
     except ValidationError as exc:
-        raise validation_model_retry(
-            exc, recordType=search.record_type, searchName=search.search_name
-        ) from exc
+        key = RefusalKey(check="validation", search=search.search_name)
+        raise ProblemsRefusal(library_problems(exc, key)) from exc
     canonical = resolved.model_copy(update={"params": validated.params})
     return canonical, validated.substituted
 
@@ -260,7 +258,11 @@ async def set_criterion(
         weight=held_weight(state, criterion_id, weight),
     )
     if gene_set or computed_groups or saved_strategy:
-        refuse_a_param_the_sheet_lacks(stated.answers, [])
+        refuse_problems(
+            answers_the_sheet_lacks(stated.answers, []).under(
+                criterion=criterion_id, search=""
+            )
+        )
     if gene_set:
         return await set_gene_set_criterion(ctx, stated, reference=gene_set)
     if computed_groups:
@@ -303,8 +305,6 @@ async def _bind_the_search(
         return wait_for_the_analysis(
             ctx, stated, described, definition, record_type, params
         )
-    refuse_a_param_the_sheet_lacks(stated.answers, infos)
-    await refuse_a_search_the_criterion_cannot_use(ctx, record_type, definition, stated)
     call, fixed = left_to_the_site(
         with_stored_expressions(
             state,
@@ -319,8 +319,7 @@ async def _bind_the_search(
     )
     held = held_binding(state, call, infos)
     call = with_held(call, held)
-    refuse_unknown_names(call, infos)
-    refuse_undecided(call, infos)
+    await sheet_stage(ctx, stated, call, infos, definition, record_type)
     call, typed = await saved_id_lists(ctx.deps.site_id, state, call, infos)
     about = ctx.deps.resolving()
     read, kept = await read_call(
@@ -328,10 +327,7 @@ async def _bind_the_search(
     )
     call, corrected = proposed_call(read, infos, state, stated.answers)
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
-    radio = radio_overrides(definition, call, infos)
-    await refuse_an_upload_the_researcher_lacks(ctx.deps.site_id, definition, call)
-    refuse_what_the_words_decide(definition, call, infos, state)
-    refuse_a_pick_no_lookup_read(state, definition, call, infos)
+    radio = await value_stage(ctx, definition, call, infos)
     resolved = keeping_held(
         await resolve_proposals(search, fetch_at, call, radio, about), call, kept
     )

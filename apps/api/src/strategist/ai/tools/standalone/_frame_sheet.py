@@ -30,7 +30,6 @@ from strategist.ai.tools.standalone._catalog_models import (
     what_it_finds,
 )
 from strategist.ai.tools.standalone._frame_eda import (
-    refuse_a_search_the_criterion_cannot_use,
     wait_for_the_analysis,
 )
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
@@ -38,6 +37,7 @@ from strategist.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     criterion_return,
 )
+from strategist.ai.tools.standalone._frame_stages import search_stage
 from strategist.ai.tools.standalone._frame_unserved import an_unserved_search_refused
 from strategist.domain.strategy.operational_spec import Criterion
 
@@ -136,7 +136,7 @@ async def open_the_sheet(
         return wait_for_the_analysis(
             ctx, stated, described, definition, record_type, None
         )
-    await refuse_a_search_the_criterion_cannot_use(ctx, record_type, definition, stated)
+    await search_stage(ctx, stated, definition, record_type)
     register_search(ctx.deps.agent_state, definition, record_type)
     return criterion_return(
         ctx,

@@ -2,6 +2,18 @@
 
 ## 2026-11-23
 
+* **A criterion call names every independent problem once.** `set_criterion` runs its checks in
+  stages (`ai/tools/standalone/_frame_stages.py`), and each stage names every problem it finds in
+  one `ProblemsRefusal` keyed by check, criterion, search and parameter. The sheet stage holds the
+  answers the sheet lacks, a waiting criterion, the role, every unknown name (each with its own
+  nearest names) and the undecided required parameters; the read names every parameter the
+  library refuses, one row each, with the portal route on the row another site holds; the value
+  stage holds the radio pair, the upload, the organism and phrase words of every parameter and
+  the lookup and obsolete picks of every parameter. A later stage runs only once the stages
+  before it pass, and nothing is refused after the criterion is recorded. WDK's verdict on the
+  binding names each of its rows. The edit path keeps its validation payload until the strategy
+  tools move to problems.
+
 * **A recorded criterion is never refused.** `set_criterion` on an EDA-backed search records the
   criterion as waiting on its dataset and returns `SetCriterionResult(waits_for_analysis_on=...)`,
   with the instruction in `next_step`, which the model reads, and as its summary; it used to record the criterion and then raise the

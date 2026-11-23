@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 from assistant_core.capabilities.refused_calls import CallRefused, MarkRefusedCalls
 from assistant_core.platform.observability import ReasoningEffortOnSpan
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
 from pydantic.alias_generators import to_snake
 from pydantic_ai.capabilities import AgentCapability
 from pydantic_ai.capabilities.abstract import AbstractCapability
@@ -124,6 +124,11 @@ class ProblemsRefusal(ModelRetry):
         super().__init__(problems.text())
 
 
+def refuse_problems(problems: Problems) -> None:
+    if not problems.empty:
+        raise ProblemsRefusal(problems)
+
+
 class SpentRefusal(CamelModel):
     model_config = ConfigDict(frozen=True)
 
@@ -148,19 +153,33 @@ def problems_of_retry(retry: ModelRetry, key: RefusalKey) -> Problems:
             return Problems.one(key, retry.message)
 
 
-class _FaultRow(BaseModel):
+class FaultRow(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     param: str = ""
     detail: str = ""
+    value: str = ""
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _a_term(cls, value: object) -> object:
+        match value:
+            case str():
+                return value
+            case _:
+                return ""
 
 
-_FAULT_ROWS = TypeAdapter(list[_FaultRow])
+_FAULT_ROWS = TypeAdapter(list[FaultRow])
+
+
+def library_rows(error: VEuPathDBError[Any]) -> list[FaultRow]:
+    return _FAULT_ROWS.validate_python(error.errors or [])
 
 
 def library_problems(error: VEuPathDBError[Any], key: RefusalKey) -> Problems:
     said = error.detail or error.title
-    rows = _FAULT_ROWS.validate_python(error.errors or [])
+    rows = library_rows(error)
     if not rows:
         return Problems.one(key, said)
     return Problems(
@@ -348,6 +367,7 @@ __all__ = [
     "TOOL_REFUSALS_PER_TURN",
     "TURN_REFUSALS_PER_RULE",
     "CallerSuppliedIds",
+    "FaultRow",
     "KeepsRefusals",
     "KeyedRefusalToolset",
     "ProblemsRefusal",
@@ -358,8 +378,10 @@ __all__ = [
     "call_key",
     "last_answer",
     "library_problems",
+    "library_rows",
     "problems_of_retry",
     "refusal_retry_message",
     "refusal_text",
+    "refuse_problems",
     "the_model_can_correct",
 ]

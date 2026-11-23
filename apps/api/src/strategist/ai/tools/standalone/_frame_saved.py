@@ -7,16 +7,17 @@ from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone._frame_eda import refuse_a_waiting_criterion
+from strategist.ai.tools.standalone._frame_eda import waiting_problems
 from strategist.ai.tools.standalone._frame_result import SetCriterionResult
 from strategist.ai.tools.standalone._frame_roles import (
-    refuse_a_transform_on_a_saved_input,
+    saved_input_problems,
 )
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
 )
 from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
+from strategist.platform.refusals import refuse_problems
 from strategist.services.strategies.insert_saved import clone_saved_strategy
 from strategist.services.strategies.saved_library import (
     SavedStrategyListing,
@@ -92,8 +93,11 @@ async def bind_saved_criterion(
 async def set_saved_criterion(
     ctx: RunContext[AgentDeps], stated: Criterion, *, reference: str
 ) -> ToolReturn[SetCriterionResult]:
-    refuse_a_waiting_criterion(ctx.deps.agent_state, stated.id)
-    refuse_a_transform_on_a_saved_input(stated.id, stated.role, "saved strategy")
+    refuse_problems(
+        waiting_problems(ctx.deps.agent_state, stated.id)
+        .plus(saved_input_problems(stated.id, stated.role, "saved strategy"))
+        .under(criterion=stated.id, search="")
+    )
     match = await bind_saved_criterion(ctx, stated, reference=reference)
     return with_summary(
         SetCriterionResult(

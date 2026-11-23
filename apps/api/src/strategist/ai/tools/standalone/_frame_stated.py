@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
-from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import (
     FAKE_ALL_SENTINEL,
     SHOWN_CANDIDATES,
@@ -22,6 +21,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.organism_phrases import stated_organisms
 from strategist.domain.strategy.text_expression import unquoted_phrase_refusal
@@ -91,14 +91,14 @@ def _entries_stated(texts: Sequence[str], displays: Mapping[str, str]) -> list[s
     ]
 
 
-def _refuse_an_organism_the_request_does_not_name(
+def _an_organism_the_request_does_not_name(
     definition: WDKSearch,
     call: CriterionCall,
     info: ParameterInfo,
     requirements: Sequence[Constraint],
-) -> None:
-    """Refuse a bind that holds a sibling or an ancestor of an organism entry
-    the request names whole, in place of that entry.
+) -> str | None:
+    """A bind that holds a sibling or an ancestor of an organism entry the
+    request names whole, in place of that entry.
 
     The request names the site entries its live organism requirements hold: a
     value a later message replaced or withdrew is no longer named. A named entry is
@@ -123,22 +123,22 @@ def _refuse_an_organism_the_request_does_not_name(
         if not any(b == n or tree.above(n, b) for b in bound)
         and any(tree.siblings(n, b) or tree.above(b, n) for b in unnamed)
     ]
-    if substituted:
-        msg = (
-            f"{info.display_name} on {call.search_name} binds {proposed}, and the "
-            f"request names {substituted[0]!r}, an entry of this vocabulary. Bind "
-            "the entry the request names, or ask the researcher which one they mean."
-        )
-        raise ModelRetry(msg)
+    if not substituted:
+        return None
+    return (
+        f"{info.display_name} on {call.search_name} binds {proposed}, and the "
+        f"request names {substituted[0]!r}, an entry of this vocabulary. Bind "
+        "the entry the request names, or ask the researcher which one they mean."
+    )
 
 
-def _refuse_a_transform_to_another_organism(
+def _a_transform_to_another_organism(
     definition: WDKSearch, call: CriterionCall, info: ParameterInfo, carried_to: str
-) -> None:
-    """Refuse a transform bind that leaves out the organism entry the request
-    carries the genes to, or any value outside that entry.
+) -> str | None:
+    """A transform bind that leaves out the organism entry the request carries
+    the genes to, or any value outside that entry.
 
-    A name the vocabulary lacks is refused with the nearest entries.
+    A name the vocabulary lacks is named with the nearest entries.
     """
     options = info.vocabulary()
     proposed = call.terms(info.name)
@@ -147,51 +147,44 @@ def _refuse_a_transform_to_another_organism(
         nearest = [
             entry_name(o) for o in rank_entries(options, carried_to, SHOWN_CANDIDATES)
         ]
-        msg = (
+        return (
             f"{info.display_name} on {call.search_name} binds {proposed}, and the "
             f"request carries the genes to {carried_to!r}, which this vocabulary "
             f"lacks. Nearest entries: {nearest}. Bind the organism the request "
             "names, or ask the researcher which entry they mean."
         )
-        raise ModelRetry(msg)
     bound = [term for v in proposed if (term := match_exact_option(options, v))]
     tree = _organism_tree(definition, info.name)
-    if not bound or not all(
-        any(b == n or tree.above(n, b) for n in named) for b in bound
-    ):
-        msg = (
-            f"{info.display_name} on {call.search_name} binds {proposed}, and the "
-            f"request carries the genes to {named[0]!r}. A transform's organism is "
-            "the organism of the genes it returns: bind the entry the request names."
-        )
-        raise ModelRetry(msg)
+    if bound and all(any(b == n or tree.above(n, b) for n in named) for b in bound):
+        return None
+    return (
+        f"{info.display_name} on {call.search_name} binds {proposed}, and the "
+        f"request carries the genes to {named[0]!r}. A transform's organism is "
+        "the organism of the genes it returns: bind the entry the request names."
+    )
 
 
-def _refuse_an_unquoted_phrase(
+def _an_unquoted_phrase(
     call: CriterionCall, info: ParameterInfo, messages: Sequence[str]
-) -> None:
-    """Refuse a text term of several words sent unquoted when a request message
-    asks for the phrase."""
+) -> str | None:
+    """A text term of several words sent unquoted when a request message asks
+    for the phrase."""
     match call.values.get(info.name):
         case StringValue(value=text) if not info.is_placeholder(text):
-            refusal = unquoted_phrase_refusal(
-                info.name, call.search_name, text, messages
-            )
+            return unquoted_phrase_refusal(info.name, call.search_name, text, messages)
         case _:
-            return
-    if refusal is not None:
-        raise ModelRetry(refusal)
+            return None
 
 
-def refuse_what_the_words_decide(
+def word_problems(
     definition: WDKSearch,
     call: CriterionCall,
     infos: Sequence[ParameterInfo],
     state: AgentToolState,
-) -> None:
-    """Refuse an organism bind that leaves out the entry the request names or
-    carries the genes to, and an unquoted text term the request asks for as a
-    phrase.
+) -> Problems:
+    """An organism bind that leaves out the entry the request names or carries
+    the genes to, and an unquoted text term the request asks for as a phrase,
+    for every parameter.
 
     The live requirements decide the organism, and the request messages decide
     the phrase. A dependent organism parameter is checked once its parents are
@@ -199,14 +192,21 @@ def refuse_what_the_words_decide(
     """
     carried_to = state.carried_to(call.criterion_id)
     transform = bool(definition.allowed_primary_input_record_class_names)
+    found: list[Problem] = []
     for info in infos:
+        said: list[str | None] = []
         if info.organism_param and not info.stated_parents:
-            _refuse_an_organism_the_request_does_not_name(
-                definition, call, info, state.stated_requirements
+            said.append(
+                _an_organism_the_request_does_not_name(
+                    definition, call, info, state.stated_requirements
+                )
             )
             if transform and carried_to:
-                _refuse_a_transform_to_another_organism(
-                    definition, call, info, carried_to
+                said.append(
+                    _a_transform_to_another_organism(definition, call, info, carried_to)
                 )
         if parameter_class(info) == "string":
-            _refuse_an_unquoted_phrase(call, info, state.request_messages)
+            said.append(_an_unquoted_phrase(call, info, state.request_messages))
+        key = RefusalKey(check="words", parameter=info.name)
+        found += [Problem(key=key, sentence=s) for s in said if s is not None]
+    return Problems(found=tuple(found))

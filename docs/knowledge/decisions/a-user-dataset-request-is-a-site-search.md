@@ -25,7 +25,7 @@ status: stable
   `set_criterion` on it binds only a value that is one of the researcher's uploads; a null, the
   site's `bla` placeholder or another account's id is refused with the uploads by name and value,
   and an account with no gene-list upload is told to upload one on the site
-  (`_frame_proposals.refuse_an_upload_the_researcher_lacks`).
+  (`_frame_proposals.upload_problems`).
 - **The listing names the uploads.** `list_gene_sets` returns the offers of every search that reads
   the `genelist` type beside the saved sets, one page at a time, so a name no saved set holds is
   not read as a missing list (`user_dataset_searches.py::uploaded_gene_lists`).

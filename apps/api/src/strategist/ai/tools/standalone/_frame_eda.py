@@ -16,17 +16,11 @@ from veupathdb_mcp.catalog import (
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone._frame_answers import (
-    lacked_sentence,
-    params_the_sheet_lacks,
-)
+from strategist.ai.tools.standalone._frame_answers import answers_the_sheet_lacks
 from strategist.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     criterion_return,
     wait_instruction,
-)
-from strategist.ai.tools.standalone._frame_roles import (
-    refuse_a_role_the_search_cannot_take,
 )
 from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import Criterion
@@ -54,11 +48,11 @@ def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
     raise ModelRetry(msg)
 
 
-def refuse_a_waiting_criterion(state: AgentToolState, criterion_id: str) -> None:
+def waiting_problems(state: AgentToolState, criterion_id: str) -> Problems:
     """A criterion waiting for its analysis is bound by the export and nothing else.
 
     An EDA-backed search restates it as waiting, so only another binding
-    reaches this refusal.
+    reaches this problem.
     """
     waiting = next(
         (
@@ -69,26 +63,13 @@ def refuse_a_waiting_criterion(state: AgentToolState, criterion_id: str) -> None
         None,
     )
     if waiting is None:
-        return
-    msg = (
+        return Problems()
+    return Problems.one(
+        RefusalKey(check="waiting"),
         f"{criterion_id} waits for the analysis workflow on dataset {waiting}, and "
         f'create_eda_step(criterion_id="{criterion_id}") binds it and nothing '
         f"else does. Keep it in the structure where it stands and bind no other "
-        f"search for it; nothing was recorded."
-    )
-    raise ModelRetry(msg)
-
-
-async def refuse_a_search_the_criterion_cannot_use(
-    ctx: RunContext[AgentDeps],
-    record_type: str,
-    definition: WDKSearch,
-    criterion: Criterion,
-) -> None:
-    """Every refusal a search passes before a criterion binds to it."""
-    refuse_a_waiting_criterion(ctx.deps.agent_state, criterion.id)
-    await refuse_a_role_the_search_cannot_take(
-        ctx, record_type, definition, criterion.role
+        f"search for it; nothing was recorded.",
     )
 
 
@@ -150,19 +131,9 @@ def eda_wait_problems(
             f'id>"}} and nothing else, naming the dataset the comparison runs on.'
         )
     key = RefusalKey(check="eda_wait", criterion=criterion.id, search=search_name)
-    lacked = tuple(
-        Problem(
-            key=RefusalKey(
-                check="answers",
-                criterion=criterion.id,
-                search=search_name,
-                parameter=param,
-            ),
-            sentence=lacked_sentence([param], sheet),
-        )
-        for param in params_the_sheet_lacks(criterion.answers, sheet)
-    )
-    return Problems(found=tuple(Problem(key=key, sentence=s) for s in found) + lacked)
+    waits = Problems(found=tuple(Problem(key=key, sentence=s) for s in found))
+    lacked = answers_the_sheet_lacks(criterion.answers, sheet)
+    return waits.plus(lacked.under(criterion=criterion.id, search=search_name))
 
 
 def record_the_wait(state: AgentToolState, criterion: Criterion, dataset: str) -> None:

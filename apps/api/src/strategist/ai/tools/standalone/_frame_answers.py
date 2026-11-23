@@ -8,6 +8,7 @@ from veupathdb.model import CamelModel
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.agents.state import AgentToolState
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import RequirementLink
 from strategist.domain.strategy.requirement_reports import numbered_requirements
 
@@ -75,25 +76,21 @@ def linked_requirements(
     ]
 
 
-def params_the_sheet_lacks(
+def answers_the_sheet_lacks(
     links: Sequence[RequirementLink], infos: Sequence[ParameterInfo]
-) -> list[str]:
-    names = {info.name for info in infos}
-    return [link.param for link in links if link.param and link.param not in names]
-
-
-def lacked_sentence(unknown: Sequence[str], infos: Sequence[ParameterInfo]) -> str:
+) -> Problems:
     names = sorted(info.name for info in infos)
-    return (
-        f"answers names the parameters {list(unknown)}, which the sheet does not "
-        f"hold. The sheet holds {names or 'none'}; name one of those "
-        f"or pass a null param."
+    return Problems(
+        found=tuple(
+            Problem(
+                key=RefusalKey(check="answers", parameter=link.param),
+                sentence=(
+                    f"answers names the parameters {[link.param]}, which the sheet "
+                    f"does not hold. The sheet holds {names or 'none'}; name one of "
+                    f"those or pass a null param."
+                ),
+            )
+            for link in links
+            if link.param and link.param not in names
+        )
     )
-
-
-def refuse_a_param_the_sheet_lacks(
-    links: Sequence[RequirementLink], infos: Sequence[ParameterInfo]
-) -> None:
-    unknown = params_the_sheet_lacks(links, infos)
-    if unknown:
-        raise ModelRetry(lacked_sentence(unknown, infos))

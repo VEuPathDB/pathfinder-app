@@ -10,8 +10,9 @@ from veupathdb.domain.parameters import MultiPickValue, PhrasingMatch, VocabLook
 from veupathdb.wdk import WDKParameter, WDKSearch
 
 from strategist.ai.agents.state import AgentToolState
-from strategist.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
+from strategist.ai.tools.standalone._frame_lookups import pick_problems
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
+from strategist.platform.refusals import refuse_problems
 from strategist.tests._support.param_infos import sheet_of
 
 _GO = "GenesByGoTerm"
@@ -70,7 +71,7 @@ def _bind(state: AgentToolState, text: str, picks: list[str]) -> list[str]:
     call = CriterionCall(
         criterion_id="c_go", search_name=_GO, text=text, params={}
     ).with_values({_PARAM: MultiPickValue(values=picks)})
-    refuse_a_pick_no_lookup_read(state, _DEFINITION, call, _INFOS)
+    refuse_problems(pick_problems(state, _DEFINITION, call, _INFOS))
     return picks
 
 

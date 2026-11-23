@@ -12,9 +12,9 @@ from veupathdb.wdk import WDKSearch
 from veupathdb.wdk.vdi.client import VdiServiceError
 
 from strategist.ai.tools.standalone import _frame_gene_set, gene_sets
+from strategist.ai.tools.standalone._frame_call_checks import upload_problems
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    refuse_an_upload_the_researcher_lacks,
 )
 from strategist.ai.tools.standalone.gene_set_models import (
     LISTING_PAGE,
@@ -22,6 +22,7 @@ from strategist.ai.tools.standalone.gene_set_models import (
     UploadedGeneList,
 )
 from strategist.domain.strategy.operational_spec import Criterion
+from strategist.platform.refusals import refuse_problems
 from strategist.services.gene_sets.types import GeneSet
 from strategist.services.strategies import user_dataset_searches
 from strategist.services.strategies.user_dataset_searches import (
@@ -279,15 +280,17 @@ async def test_a_refused_upload_names_one_page_of_uploads(
     )
 
     with pytest.raises(ModelRetry) as refused:
-        await refuse_an_upload_the_researcher_lacks(
-            "plasmodb",
-            search,
-            CriterionCall(
-                criterion_id="c_list",
-                search_name="GenesByUserDatasetGeneList",
-                text="my list",
-                params={},
-            ).with_values({"geneListUserDataset": SinglePickValue(value="bla")}),
+        refuse_problems(
+            await upload_problems(
+                "plasmodb",
+                search,
+                CriterionCall(
+                    criterion_id="c_list",
+                    search_name="GenesByUserDatasetGeneList",
+                    text="my list",
+                    params={},
+                ).with_values({"geneListUserDataset": SinglePickValue(value="bla")}),
+            )
         )
 
     message = str(refused.value)

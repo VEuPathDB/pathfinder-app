@@ -10,13 +10,14 @@ from veupathdb_mcp.catalog import FilterReads, ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import _frame_proposals, frame_spec
+from strategist.ai.tools.standalone._frame_call_checks import unknown_names
 from strategist.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    refuse_unknown_names,
 )
-from strategist.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
+from strategist.ai.tools.standalone._frame_stated import word_problems
 from strategist.ai.tools.standalone.strategy_edits import update_leaf_params
 from strategist.domain.strategy.orthology_request import OrthologyRequest
+from strategist.platform.refusals import refuse_problems
 from strategist.tests._support.filter_reads import NoFilterReads
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import list_every_search_under
@@ -123,7 +124,7 @@ def test_a_misspelt_parameter_name_is_refused_with_the_nearest_name() -> None:
     )
 
     with pytest.raises(ModelRetry) as refused:
-        refuse_unknown_names(call, sheet_of(_TAXON.parameters or []))
+        refuse_problems(unknown_names(call, sheet_of(_TAXON.parameters or [])))
 
     assert "Nearest: ['organism']" in refused.value.message
 
@@ -149,7 +150,7 @@ def test_a_transform_to_an_organism_the_vocabulary_lacks_shows_the_ranked_entrie
     )
 
     with pytest.raises(ModelRetry) as refused:
-        refuse_what_the_words_decide(_VECTOR_ORTHOLOGS, call, infos, state)
+        refuse_problems(word_problems(_VECTOR_ORTHOLOGS, call, infos, state))
 
     assert (
         "Nearest entries: ['Dermacentor silvarum', 'Culex quinquefasciatus', "

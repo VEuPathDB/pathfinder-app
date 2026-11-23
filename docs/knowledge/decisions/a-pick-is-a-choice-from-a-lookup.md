@@ -10,8 +10,8 @@ status: stable
 
 WDK draws a vocabulary it means to be searched as a type-ahead box (`displayType`
 `typeAhead`). For each such `multi-pick-vocabulary` parameter,
-`ai/tools/standalone/_frame_lookups.py::refuse_a_pick_no_lookup_read`, called by
-`set_criterion`, refuses a new entry unless a `get_parameter_options(query=[...])` read
+`ai/tools/standalone/_frame_lookups.py::pick_problems`, run by `set_criterion`'s
+value stage, refuses a new entry unless a `get_parameter_options(query=[...])` read
 of that search and parameter in the same pass matched it. The read records its matches
 on `AgentToolState.looked_up`, keyed by search and parameter, as the union of the
 `VocabLookup.matches` values of every lookup of it (`record_lookup`). With no lookup the
