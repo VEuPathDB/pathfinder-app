@@ -26,6 +26,7 @@ _UNLISTED = (
     "orthomcl lists no search NoSuchSearch (the records). The catalog lookup for "
     "'No Such Search' finds no search, so orthomcl has no search of that name."
 )
+_CLOSED = " Nothing was recorded."
 _REROUTE = (
     "This conversation holds no strategy, and framing finds the searches: with "
     "the message classified new_strategy, dispatch frame_problem with the "
@@ -66,25 +67,25 @@ async def _tally_refusal(deps: LeadDeps) -> str:
 
 
 async def test_a_tally_of_a_search_the_catalog_lacks_is_sent_to_framing() -> None:
-    assert await _tally_refusal(_question_turn()) == f"{_UNLISTED} {_REROUTE}"
+    assert await _tally_refusal(_question_turn()) == f"{_UNLISTED} {_REROUTE}{_CLOSED}"
 
 
 async def test_a_conversation_with_a_step_is_not_sent_to_framing() -> None:
-    assert await _tally_refusal(_question_turn(with_a_step=True)) == _UNLISTED
+    assert await _tally_refusal(_question_turn(with_a_step=True)) == _UNLISTED + _CLOSED
 
 
 async def test_a_turn_that_framed_is_not_pointed_at_framing_again() -> None:
     deps = _question_turn()
     deps.state.turn_markers.framed = True
 
-    assert await _tally_refusal(deps) == _UNLISTED
+    assert await _tally_refusal(deps) == _UNLISTED + _CLOSED
 
 
 async def test_a_count_of_a_search_the_catalog_lacks_is_not_sent_to_framing() -> None:
     with pytest.raises(ModelRetry) as refused:
         await count_search(run_context_for(_question_turn()), _GUESSED)
 
-    assert str(refused.value) == _UNLISTED
+    assert str(refused.value) == _UNLISTED + _CLOSED
 
 
 async def test_the_first_message_reclassified_reaches_frame() -> None:

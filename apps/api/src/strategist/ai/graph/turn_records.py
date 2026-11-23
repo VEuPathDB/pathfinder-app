@@ -143,6 +143,7 @@ class RefusedCall(CamelModel):
     arguments: str
     refusal: str
     problems: Problems = Field(default_factory=Problems)
+    closing: str = ""
     # The same call came back once and failed without running.
     sent_again: bool = False
 

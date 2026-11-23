@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Annotated, Self
+from typing import Annotated
 
-from pydantic import Field, model_validator
+from pydantic import Field
 from veupathdb import strip_html_tags
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
@@ -113,21 +113,18 @@ class ProposedReading(CamelModel):
             return leaves[0]
         return StructureNode(kind="combine", operator=CombineOp.UNION, inputs=leaves)
 
-    @model_validator(mode="after")
-    def _states_a_countable_plan(self) -> Self:
+    def shape_problems(self) -> list[str]:
         names = [search.label for search in self.searches]
         if len(set(names)) < len(names):
-            msg = f"Each search of a proposal has its own label; these repeat: {names}."
-            raise ValueError(msg)
+            return [
+                f"Each search of a proposal has its own label; these repeat: {names}."
+            ]
         if self.structure is None and len(names) > 1 and not self.weights:
-            msg = (
+            return [
                 f"A proposal states how its {len(names)} searches combine in structure."
-            )
-            raise ValueError(msg)
+            ]
         refusal = reading_shape_refusal(self.root, names)
-        if refusal is not None:
-            raise ValueError(refusal)
-        return self
+        return [] if refusal is None else [refusal]
 
 
 class CountedReading(CamelModel):

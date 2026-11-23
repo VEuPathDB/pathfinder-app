@@ -55,6 +55,7 @@ def _text_search(**extra: object) -> VariantInput:
             "parameters": {
                 "text_expression": "signal peptide",
                 "text_fields": ["product"],
+                "text_search_organism": ["Plasmodium falciparum 3D7"],
                 **extra,
             },
         }

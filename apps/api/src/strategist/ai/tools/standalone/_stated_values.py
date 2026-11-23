@@ -30,6 +30,7 @@ from strategist.ai.capabilities.error_classification import (
     ErrorCategory,
     classify_error,
 )
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
@@ -44,6 +45,7 @@ from strategist.domain.strategy.operations import (
 )
 from strategist.domain.strategy.operations.types import AttachPoint
 from strategist.domain.strategy.session import StrategyGraph
+from strategist.platform.refusals import library_problems, refusal_of
 
 _NOTHING_BOUND: Mapping[str, ParamValue] = MappingProxyType({})
 
@@ -54,8 +56,14 @@ async def _retrying[T](search_name: str, done: str, read: Awaitable[T]) -> T:
     except VEuPathDBError as exc:
         if classify_error(exc) is ErrorCategory.TRANSIENT:
             raise
-        msg = f"{search_name}: {exc.detail or exc.title} Nothing was {done}."
-        raise ModelRetry(msg) from exc
+        key = RefusalKey(check="stated_value", search=search_name)
+        named = Problems(
+            found=tuple(
+                Problem(key=p.key, sentence=f"{search_name}: {p.sentence}")
+                for p in library_problems(exc, key).found
+            )
+        )
+        raise refusal_of(named, closing=f"Nothing was {done}.") from exc
 
 
 async def typed_values(

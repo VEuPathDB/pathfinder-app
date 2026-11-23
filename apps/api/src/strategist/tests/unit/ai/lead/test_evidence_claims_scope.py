@@ -137,7 +137,7 @@ async def test_a_scored_comparison_backs_the_counts_it_scored(
     ) -> list[ParameterInfo]:
         del site_id, record_type, search_name, context
         return [
-            param_info(name)
+            param_info(name, required=False)
             for name in ("text_expression", "text_fields", "text_search_organism")
         ]
 

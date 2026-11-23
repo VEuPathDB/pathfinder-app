@@ -2,6 +2,18 @@
 
 ## 2026-11-23
 
+* **Explore checks every proposal and every variant at once.** `propose_readings` checks every
+  proposal before it counts any (`checked_proposals`): each proposal's shape (its labels, its
+  structure, `ProposedReading.shape_problems`, no longer a schema refusal), every search of every
+  proposal keyed by the proposal's title and the search's label, and a title used twice, in one
+  refusal; a plan with its ranking weights inside `parameters` is named for its structure and
+  for each search at once. `resolved_variants` reads every variant and names each one's stated
+  values, phyletic lists and required parameters with no value (a required parameter with no
+  stated, site-set or published value, which WDK answers "Cannot be empty") in one refusal keyed
+  by the variant's label. A stated-value refusal names each library row, prefixed with its
+  search; a transient error is still never a refusal. A refusal's closing sentence is carried on
+  the refusal, not written into its last problem, so a refusal gathered into another closes once.
+
 * **A criterion call names every independent problem once.** `set_criterion` runs its checks in
   stages (`ai/tools/standalone/_frame_stages.py`), and each stage names every problem it finds in
   one `ProblemsRefusal` keyed by check, criterion, search and parameter, closed by one sentence,

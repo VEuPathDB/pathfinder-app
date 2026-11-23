@@ -20,10 +20,13 @@ from strategist.ai.tools.standalone import catalog, catalog_discovery
 from strategist.ai.tools.standalone.record_reads import record_columns_block
 from strategist.ai.tools.standalone.search_reads import resolved_search
 from strategist.domain.comparison_facts import ComparedVariant, ComparisonFact
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.ranking import score_rows
 from strategist.domain.strategy.reading_plan import OfferedReading
+from strategist.platform.refusals import problems_of_retry, refuse_problems
 from strategist.services.evidence.comparisons import run_reading_count
 from strategist.services.experiment.reading_count import ProposedReading
+from strategist.services.experiment.variant_comparison import VariantSpec
 
 _GENES = "transcript"
 _ARGUMENT = re.compile(r"^ {4}(\w+):")
@@ -39,18 +42,59 @@ class ProposedCount(CamelModel):
     scores: dict[int, int] = Field(default_factory=dict)
 
 
+async def checked_proposals(
+    ctx: RunContext[LeadDeps], readings: list[ProposedReading]
+) -> list[list[VariantSpec]]:
+    found = Problems()
+    checked: list[list[VariantSpec]] = []
+    for proposal in readings:
+        shape = RefusalKey(check="proposal_shape", criterion=proposal.title)
+        found = found.plus(
+            Problems(
+                found=tuple(
+                    Problem(key=shape, sentence=said)
+                    for said in proposal.shape_problems()
+                )
+            )
+        )
+        specs: list[VariantSpec] = []
+        for search in proposal.searches:
+            key = RefusalKey(check="proposal_search")
+            try:
+                specs.append(await resolved_search(ctx, search, record_type=_GENES))
+            except ModelRetry as refused:
+                found = found.plus(
+                    Problems(
+                        found=tuple(
+                            Problem(
+                                key=p.key.model_copy(
+                                    update={
+                                        "criterion": proposal.title,
+                                        "search": search.label,
+                                    }
+                                ),
+                                sentence=f"{search.label}: {p.sentence}",
+                            )
+                            for p in problems_of_retry(refused, key).found
+                        )
+                    )
+                )
+        checked.append(specs)
+    titles = [proposal.title for proposal in readings]
+    if len(set(titles)) < len(titles):
+        found = found.plus(
+            Problems.one(
+                RefusalKey(check="proposal_title"),
+                f"Two proposals carry the same title: {titles}. Give each plan its own.",
+            )
+        )
+    refuse_problems(found)
+    return checked
+
+
 async def _offered(
-    ctx: RunContext[LeadDeps], proposal: ProposedReading
+    ctx: RunContext[LeadDeps], proposal: ProposedReading, specs: list[VariantSpec]
 ) -> OfferedReading:
-    specs = []
-    problems = []
-    for search in proposal.searches:
-        try:
-            specs.append(await resolved_search(ctx, search, record_type=_GENES))
-        except ModelRetry as refused:
-            problems.append(f"{search.label}: {refused.message}")
-    if problems:
-        raise ModelRetry("\n".join(problems))
     counted = await run_reading_count(
         ctx.deps.site_id, specs, proposal.root, proposal.weights
     )
@@ -95,15 +139,16 @@ async def propose_readings(
     Args:
         readings: One proposal at least, each one plan.
     """
-    offered = [await _offered(ctx, proposal) for proposal in readings]
+    checked = await checked_proposals(ctx, readings)
+    offered = [
+        await _offered(ctx, proposal, specs)
+        for proposal, specs in zip(readings, checked, strict=True)
+    ]
     labels = [reading.label for reading in offered]
     plans = [reading.plan for reading in offered]
-    if len(set(labels)) < len(labels):
-        msg = f"Two proposals carry the same title: {labels}. Give each plan its own."
-        raise ModelRetry(msg)
     if len(set(plans)) < len(plans):
         msg = f"Two proposals state the same plan: {plans}. Propose each plan once."
-        raise ModelRetry(msg)
+        refuse_problems(Problems.one(RefusalKey(check="proposal_plan"), msg))
     state = ctx.deps.state
     state.turn_markers.proposed_readings = labels
     for reading in offered:

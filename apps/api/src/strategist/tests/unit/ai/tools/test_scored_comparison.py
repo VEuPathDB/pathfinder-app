@@ -43,7 +43,7 @@ def _every_parameter_is_taken(monkeypatch: pytest.MonkeyPatch) -> None:
         site_id: str, record_type: str, search_name: str, context: dict[str, str]
     ) -> list[ParameterInfo]:
         del site_id, record_type, search_name, context
-        return [param_info("fold_change")]
+        return [param_info("fold_change", required=False)]
 
     monkeypatch.setattr(variant_comparison, "search_parameters", _takes)
     list_searches_under(monkeypatch, "transcript", {"SA", "SB"})

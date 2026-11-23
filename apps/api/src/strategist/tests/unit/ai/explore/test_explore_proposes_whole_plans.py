@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import TypeAdapter
 from pydantic_ai import ModelRetry
 
 from strategist.ai.explore.explore_tools import ProposedCount, propose_readings
@@ -131,16 +131,18 @@ async def test_two_proposals_of_one_plan_are_refused(
 
 
 def test_two_searches_need_a_structure() -> None:
-    with pytest.raises(ValidationError, match="states how its 2 searches combine"):
-        _proposal(searches=[_CODING, _PEPTIDE])
+    [said] = _proposal(searches=[_CODING, _PEPTIDE]).shape_problems()
+
+    assert "states how its 2 searches combine" in said
 
 
 def test_a_structure_that_leaves_out_a_search_is_refused() -> None:
-    with pytest.raises(ValidationError, match="leaves out peptide"):
-        _proposal(
-            searches=[_CODING, _PEPTIDE],
-            structure={"kind": "leaf", "criterionId": "coding"},
-        )
+    [said] = _proposal(
+        searches=[_CODING, _PEPTIDE],
+        structure={"kind": "leaf", "criterionId": "coding"},
+    ).shape_problems()
+
+    assert "leaves out peptide" in said
 
 
 async def test_a_later_call_replaces_the_turns_proposals(
@@ -218,7 +220,7 @@ async def test_one_refusal_names_every_search_a_plan_gets_wrong(
             [_proposal(searches=[coding, peptide], structure=_MINUS)],
         )
 
-    assert [line.split(":", 1)[0] for line in refused.value.message.splitlines()] == [
-        "coding",
-        "peptide",
-    ]
+    assert [
+        line.split(":", 1)[0].removeprefix("1. ").removeprefix("2. ")
+        for line in refused.value.message.splitlines()[1:]
+    ] == ["coding", "peptide"]

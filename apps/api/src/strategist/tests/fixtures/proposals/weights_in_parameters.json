@@ -1,0 +1,173 @@
+{
+  "readings": [
+    {
+      "title": "Multi-evidence Pf vaccine candidate ranking",
+      "searches": [
+        {
+          "label": "secreted",
+          "searchName": "GenesWithSignalPeptide",
+          "parameters": {
+            "organism": {
+              "type": "multi-pick-vocabulary",
+              "values": [
+                "Plasmodium falciparum 3D7"
+              ]
+            },
+            "signalp_version": {
+              "type": "single-pick-vocabulary",
+              "value": "SignalP-6.0"
+            },
+            "weight": 2
+          }
+        },
+        {
+          "label": "surface",
+          "searchName": "GenesByTransmembraneDomains",
+          "parameters": {
+            "organism": {
+              "type": "multi-pick-vocabulary",
+              "values": [
+                "Plasmodium falciparum 3D7"
+              ]
+            },
+            "min_tm": {
+              "type": "string",
+              "value": "1"
+            },
+            "max_tm": {
+              "type": "string",
+              "value": "3"
+            },
+            "weight": 2
+          }
+        },
+        {
+          "label": "blood-stage expression",
+          "searchName": "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCPercentile",
+          "parameters": {
+            "profileset_generic": {
+              "type": "single-pick-vocabulary",
+              "value": "P. falciparum Su Seven Stages RNA Seq dataunstranded"
+            },
+            "samples_percentile_generic": {
+              "type": "multi-pick-vocabulary",
+              "values": [
+                "Ring",
+                "Early Trophozoite",
+                "Late Trophozoite",
+                "Schizont"
+              ]
+            },
+            "min_expression_percentile": {
+              "type": "string",
+              "value": "80"
+            },
+            "max_expression_percentile": {
+              "type": "string",
+              "value": "100"
+            },
+            "any_or_all": {
+              "type": "single-pick-vocabulary",
+              "value": "any"
+            },
+            "protein_coding_only": {
+              "type": "single-pick-vocabulary",
+              "value": "yes"
+            },
+            "weight": 1
+          }
+        },
+        {
+          "label": "sexual-stage expression",
+          "searchName": "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCPercentile",
+          "parameters": {
+            "profileset_generic": {
+              "type": "single-pick-vocabulary",
+              "value": "P. falciparum Su Seven Stages RNA Seq dataunstranded"
+            },
+            "samples_percentile_generic": {
+              "type": "multi-pick-vocabulary",
+              "values": [
+                "Gametocyte II",
+                "Gametocyte V",
+                "Ookinete"
+              ]
+            },
+            "min_expression_percentile": {
+              "type": "string",
+              "value": "80"
+            },
+            "max_expression_percentile": {
+              "type": "string",
+              "value": "100"
+            },
+            "any_or_all": {
+              "type": "single-pick-vocabulary",
+              "value": "any"
+            },
+            "protein_coding_only": {
+              "type": "single-pick-vocabulary",
+              "value": "yes"
+            },
+            "weight": 1
+          }
+        },
+        {
+          "label": "low variation",
+          "searchName": "GenesByVariantCharacteristics",
+          "parameters": {
+            "organism_select_none": {
+              "type": "multi-pick-vocabulary",
+              "values": [
+                "Plasmodium falciparum"
+              ]
+            },
+            "gene_variant_stats": {
+              "type": "filter",
+              "filters": [
+                {
+                  "field": "variants_per_kb",
+                  "type": "number",
+                  "isRange": true,
+                  "value": {
+                    "max": 5
+                  }
+                },
+                {
+                  "field": "pi_n_pi_s_snpeff",
+                  "type": "number",
+                  "isRange": true,
+                  "value": {
+                    "max": 1
+                  }
+                }
+              ]
+            },
+            "weight": 1
+          }
+        },
+        {
+          "label": "conserved across apicomplexans",
+          "searchName": "GenesByOrthologPattern",
+          "parameters": {
+            "organism": {
+              "type": "multi-pick-vocabulary",
+              "values": [
+                "Plasmodium falciparum 3D7"
+              ]
+            },
+            "included_species": {
+              "type": "string",
+              "value": "APIC"
+            },
+            "excluded_species": {
+              "type": "string",
+              "value": "hsap"
+            },
+            "weight": 1
+          }
+        }
+      ]
+    }
+  ]
+}

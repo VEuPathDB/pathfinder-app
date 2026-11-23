@@ -24,7 +24,7 @@ _ASKS = (
 _REFUSAL = (
     "text_expression on GenesByText: the request asks for the phrase, so the "
     'term is quoted: "cysteine-rich protein"; an unquoted term matches any of '
-    "its words."
+    "its words. Nothing was recorded."
 )
 
 

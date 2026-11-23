@@ -7,7 +7,6 @@ import re
 
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import StringValue
 from veupathdb_mcp import catalog
@@ -22,7 +21,9 @@ from strategist.ai.tools.standalone._variant_targets import (
 )
 from strategist.domain.membership_facts import MembershipFact
 from strategist.domain.record_page import ListedRecord
+from strategist.domain.refusal import Problems, RefusalKey
 from strategist.domain.strategy.text_expression import unquoted_phrase_refusal
+from strategist.platform.refusals import refusal_of
 from strategist.services.evidence.comparisons import (
     run_search_count,
     run_search_membership,
@@ -48,7 +49,7 @@ _TO_FRAMING = (
 async def _refuse_an_unlisted_search(
     ctx: RunContext[LeadDeps], search: VariantInput, record_type: str, *, framing: bool
 ) -> None:
-    """Raises ModelRetry for a search the catalog does not list, with the
+    """Refuses a search the catalog does not list, with the
     searches the catalog lookup finds for its name."""
     site_id = ctx.deps.site_id
     name = search.search_name
@@ -67,24 +68,26 @@ async def _refuse_an_unlisted_search(
     except VagueSearchQueryError:
         found = []
     unlisted = f"{site_id} lists no search {name} ({search.label})."
+    key = RefusalKey(check="unlisted_search", criterion=search.label, search=name)
     if not found:
         msg = (
             f"{unlisted} The catalog lookup for '{query}' finds no search, so "
             f"{site_id} has no search of that name."
         )
         reroute = framing and "frame_problem" not in unmet_preconditions(ctx.deps)
-        raise ModelRetry(f"{msg} {_TO_FRAMING}" if reroute else msg)
+        said = f"{msg} {_TO_FRAMING}" if reroute else msg
+        raise refusal_of(Problems.one(key, said))
     named = ", ".join(f"{m.name} ({m.display_name})" for m in found)
     msg = (
         f"{unlisted} The catalog lookup for '{query}' finds: {named}. Call again "
         f"with one of these names. A search is absent from {site_id} only when "
         "this lookup finds none."
     )
-    raise ModelRetry(msg)
+    raise refusal_of(Problems.one(key, msg))
 
 
 def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantSpec) -> None:
-    """Raises ModelRetry for a text term of several words sent unquoted when
+    """Refuses a text term of several words sent unquoted when
     this turn's message asks for the phrase."""
     for name, value in search.parameters.items():
         match value:
@@ -93,7 +96,13 @@ def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantSpec) -
                     name, search.search_name, text, [ctx.deps.state.user_prompt]
                 )
                 if refusal is not None:
-                    raise ModelRetry(refusal)
+                    key = RefusalKey(
+                        check="phrase",
+                        criterion=search.label,
+                        search=search.search_name,
+                        parameter=name,
+                    )
+                    raise refusal_of(Problems.one(key, refusal))
             case _:
                 continue
 
@@ -181,7 +190,9 @@ async def genes_in_search(
             "No gene ids were given, and this conversation has shown no record. "
             "Name the gene ids to check."
         )
-        raise ModelRetry(msg)
+        raise refusal_of(
+            Problems.one(RefusalKey(check="gene_ids", criterion=search.label), msg)
+        )
     spec = await resolved_search(ctx, search, record_type=_GENES)
     site_id = ctx.deps.site_id
     membership = await run_search_membership(site_id, spec, asked)

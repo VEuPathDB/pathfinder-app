@@ -291,7 +291,7 @@ async def test_a_search_the_catalog_does_not_list_names_what_the_lookup_finds(
         "plasmodb lists no search GenesByProteinDomain (Protein domain). The "
         "catalog lookup for 'Genes By Protein Domain' finds: GenesByInterproDomain "
         "(InterPro Domain). Call again with one of these names. A search is "
-        "absent from plasmodb only when this lookup finds none."
+        "absent from plasmodb only when this lookup finds none. Nothing was recorded."
     )
     assert reports.ran == []
 
@@ -349,7 +349,7 @@ async def test_no_gene_ids_and_no_shown_record_is_refused(reports: _Reports) -> 
 
     assert str(refused.value) == (
         "No gene ids were given, and this conversation has shown no record. "
-        "Name the gene ids to check."
+        "Name the gene ids to check. Nothing was recorded."
     )
     assert reports.ran == []
 

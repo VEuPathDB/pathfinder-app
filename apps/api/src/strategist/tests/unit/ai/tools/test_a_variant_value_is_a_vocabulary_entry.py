@@ -182,7 +182,7 @@ async def test_an_empty_pick_the_parameter_does_not_allow_is_refused(
     assert ran == []
     assert refused.value.message == (
         "GenesByText: text_fields takes a value, not the empty value []. "
-        "Nothing was written."
+        "Nothing was recorded."
     )
 
 

@@ -38,6 +38,14 @@ def _problems_of(refused: ModelRetry) -> Problems:
             return Problems()
 
 
+def _closing_of(refused: ModelRetry) -> str:
+    match refused:
+        case ProblemsRefusal(closing=closing):
+            return closing
+        case _:
+            return ""
+
+
 @dataclass
 class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
     """Holds each refusal until a call outside ``reads`` runs.
@@ -78,7 +86,7 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
             )
             raise CallRefused(msg)
         if held is not None and not held.problems.empty:
-            raise ProblemsRefusal(held.problems)
+            raise ProblemsRefusal(held.problems, held.closing)
         if held is not None:
             raise ModelRetry(held.refusal)
         try:
@@ -90,6 +98,7 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
                     arguments=arguments,
                     refusal=refused.message,
                     problems=_problems_of(refused),
+                    closing=_closing_of(refused),
                 )
             )
             raise

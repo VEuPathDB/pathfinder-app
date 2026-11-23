@@ -7,7 +7,7 @@ strategy structure, so it has no search to run.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from difflib import get_close_matches
 
 from pydantic import JsonValue
@@ -22,17 +22,23 @@ from veupathdb.domain.parameters import (
     wire_map,
 )
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME
+from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog import (
     BoundValues,
     ParameterInfo,
-    PhyleticListError,
     ResolveContext,
     is_phyletic_sheet,
 )
 
 from strategist.ai.tools.standalone._stated_values import typed_values
+from strategist.domain.refusal import Problem, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.session import StrategySession
+from strategist.platform.refusals import (
+    ProblemsRefusal,
+    library_problems,
+    refuse_problems,
+)
 from strategist.services.evidence.comparisons import (
     variant_phyletic_values,
     variant_search_parameters,
@@ -225,14 +231,38 @@ type _InfosAt = Callable[[_Search, dict[str, str]], Awaitable[list[ParameterInfo
 
 async def _derived_phyletic(
     about: ResolveContext, search: _Search, values: dict[str, ParamValue]
-) -> dict[str, ParamValue]:
+) -> dict[str, ParamValue] | Problems:
     lists = {
         name: to_wire(values[name]) for name in PHYLETIC_LIST_PARAMS if name in values
     }
     try:
         return await variant_phyletic_values(about, *search, lists)
-    except PhyleticListError as refused:
-        raise ModelRetry(refused.detail or refused.title) from refused
+    except ValidationError as refused:
+        return library_problems(refused, RefusalKey(check="phyletic", search=search[1]))
+
+
+def required_problems(
+    variant: VariantInput, infos: Mapping[str, ParameterInfo], every: set[str]
+) -> Problems:
+    return Problems(
+        found=tuple(
+            Problem(
+                key=RefusalKey(
+                    check="required", search=variant.search_name, parameter=name
+                ),
+                sentence=(
+                    f"{variant.label}: {variant.search_name} requires "
+                    f"{info.display_name or info.name}; state a value."
+                ),
+            )
+            for name, info in infos.items()
+            if info.required
+            and name not in variant.parameters
+            and name not in every
+            and info.site_value is None
+            and _sheet_value(info) is None
+        )
+    )
 
 
 async def _variant_spec(
@@ -244,7 +274,7 @@ async def _variant_spec(
     every: set[str],
     published: list[ParameterInfo],
     infos_at: _InfosAt,
-) -> VariantSpec:
+) -> VariantSpec | Problems:
     values = {n: v for n, v in read.items() if n in variant.parameters}
     parents = {
         info.name: values[info.name]
@@ -265,8 +295,13 @@ async def _variant_spec(
     )
     if not is_phyletic_sheet(list(infos.values())):
         return spec
-    derived = await _derived_phyletic(about, search, values)
-    return spec.model_copy(update={"parameters": {**spec.parameters, **derived}})
+    match await _derived_phyletic(about, search, values):
+        case Problems() as refused:
+            return refused
+        case derived:
+            return spec.model_copy(
+                update={"parameters": {**spec.parameters, **derived}}
+            )
 
 
 async def checked_variants(
@@ -303,50 +338,68 @@ async def resolved_variants(
         dict.fromkeys((listed[v.search_name], v.search_name) for v in stated)
     )
     published = {search: await infos_at(search, {}) for search in searches}
-    problems = [
-        problem
-        for search, infos in published.items()
-        if (
-            problem := _unknown_parameters(
-                search[1], [v for v in stated if v.search_name == search[1]], infos
+    refuse_problems(
+        Problems(
+            found=tuple(
+                Problem(
+                    key=RefusalKey(check="variant_parameters", search=search[1]),
+                    sentence=(
+                        f"{said} A step of the strategy is never a parameter: each "
+                        "variant is counted in place in the strategy's result."
+                    ),
+                )
+                for search, infos in published.items()
+                if (
+                    said := _unknown_parameters(
+                        search[1],
+                        [v for v in stated if v.search_name == search[1]],
+                        infos,
+                    )
+                )
             )
         )
-    ]
-    if problems:
-        msg = (
-            f"{' '.join(problems)} A step of the strategy is never a parameter: "
-            "each variant is counted in place in the strategy's result."
-        )
-        raise ModelRetry(msg)
+    )
     checked: list[VariantSpec] = []
+    found = Problems()
     for variant in stated:
         search = (listed[variant.search_name], variant.search_name)
         sheet = {info.name: info for info in published[search]}
-        held = _held_values(session, variant.search_name)
         every = {
             name
             for name, value in variant.parameters.items()
             if _names_every_entry(sheet[name], value)
         }
-        stated_read = await typed_values(
-            about,
-            variant.search_name,
-            {
-                name: value
-                for name, value in variant.parameters.items()
-                if name not in every
-            },
-            record_type=search[0],
-            bound=held,
+        problems = required_problems(variant, sheet, every)
+        try:
+            stated_read = await typed_values(
+                about,
+                variant.search_name,
+                {
+                    name: value
+                    for name, value in variant.parameters.items()
+                    if name not in every
+                },
+                record_type=search[0],
+                bound=_held_values(session, variant.search_name),
+            )
+        except ProblemsRefusal as refused:
+            problems = problems.plus(refused.problems)
+        else:
+            match await _variant_spec(
+                about,
+                search,
+                variant,
+                stated_read,
+                every=every,
+                published=published[search],
+                infos_at=infos_at,
+            ):
+                case Problems() as refused_spec:
+                    problems = problems.plus(refused_spec)
+                case spec:
+                    checked.append(spec)
+        found = found.plus(
+            problems.under(criterion=variant.label, search=variant.search_name)
         )
-        spec = await _variant_spec(
-            about,
-            search,
-            variant,
-            stated_read,
-            every=every,
-            published=published[search],
-            infos_at=infos_at,
-        )
-        checked.append(spec)
+    refuse_problems(found)
     return checked

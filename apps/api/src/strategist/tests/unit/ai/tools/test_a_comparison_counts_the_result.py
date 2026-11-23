@@ -99,7 +99,9 @@ async def _takes(
 ) -> list[ParameterInfo]:
     del site_id, record_type, context
     assert search_name == _TM
-    return [param_info(name) for name in ("organism", "min_tm", "max_tm")]
+    return [
+        param_info(name, required=False) for name in ("organism", "min_tm", "max_tm")
+    ]
 
 
 @pytest.fixture(autouse=True)
@@ -141,7 +143,8 @@ async def test_a_parameter_the_search_does_not_take_is_refused_by_name() -> None
     assert str(refused.value) == (
         f"{_TM} takes no parameter input (Minimum 2, Minimum 3). The parameters "
         f"it takes: organism, min_tm, max_tm. A step of the strategy is never a "
-        f"parameter: each variant is counted in place in the strategy's result."
+        f"parameter: each variant is counted in place in the strategy's result. "
+        "Nothing was recorded."
     )
 
 

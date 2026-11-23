@@ -56,7 +56,7 @@ def _profile(**lists: str) -> VariantInput:
         {
             "label": "in falciparum, not in human",
             "searchName": "GenesByOrthologPattern",
-            "parameters": dict(lists),
+            "parameters": {"organism": ["Plasmodium falciparum 3D7"], **lists},
         }
     )
 
