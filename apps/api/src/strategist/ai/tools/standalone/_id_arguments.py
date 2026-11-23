@@ -1,24 +1,19 @@
-"""Reading a Strategist id out of a tool argument.
-
-The conversation carries WDK numeric ids as well, so a tool that wants a
-Strategist UUID has to say so when it gets something else.
-"""
+"""The Strategist ids a tool argument names, each a UUID."""
 
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
-from pydantic_ai.exceptions import ModelRetry
+from pydantic import Field
 
+_NOT_A_WDK_ID = "A WDK strategy or step id is a different id and does not work here."
 
-def parse_id_argument(value: str, *, argument: str, names: str) -> UUID:
-    """Returns the argument as a UUID, or asks the model for the right id."""
-    try:
-        return UUID(value)
-    except ValueError:
-        msg = (
-            f"{argument} must be a Strategist {names} id, which is a UUID. "
-            f"Got {value!r}. A WDK strategy or step id is a different id and "
-            "does not work here."
-        )
-        raise ModelRetry(msg) from None
+ControlSetId = Annotated[
+    UUID,
+    Field(description=f"A Strategist control set id, a UUID. {_NOT_A_WDK_ID}"),
+]
+ConversationId = Annotated[
+    UUID,
+    Field(description=f"A Strategist conversation id, a UUID. {_NOT_A_WDK_ID}"),
+]

@@ -14,6 +14,36 @@
   read it, and `test_obsolete_has_one_definition.py` holds the word to that module. The count
   path once took the word anywhere in the label; on the 5,991 recorded GO entries both rules
   agree.
+* **A tool argument's shape is in its schema.** The checks a tool body made on the shape of its own
+  arguments moved onto the argument types, so the model reads the rule in the tool schema and
+  pydantic-ai refuses another shape before the body runs: a download's `output_format` is
+  `csv`/`tab`/`json` and a gene set export's `csv`/`txt` (`Literal`), a WDK step id is above 0
+  (`WdkStepId`), a control set id and a conversation id are UUIDs whose description says a WDK id
+  is another id (`ControlSetId`, `ConversationId`), a comparison takes at least two variants
+  (`ComparedVariants`), a gene set name is not blank and a pasted list holds a gene and names no
+  step (`GeneSetName`, `PastedGeneIds`), a count filter is one `only` object with a column and its
+  values (`TallyOnly`), and the two groups of `run_eda_compute` share no label (`GroupBLabels`,
+  which replaces the `refuse_shared_labels` argument validator). The refusal guidance reads an id
+  argument held as a UUID.
+
+* **A shape error is charged to the refusal ledger, never to the tool's retries.** Before, an
+  argument the schema refused was a pydantic-ai validation retry: it charged no key, and a fourth
+  shape error in a row on one tool ended the run (`Tool 'download' exceeded max retries count of
+  3`). Now `ChargedArgumentRefusals` (`platform/refusals.py`) answers every argument validation
+  failure of a tool `KeyedRefusalToolset` holds (the toolset marks each tool definition's
+  `metadata`; a tool outside it keeps pydantic-ai's retries, as its body refusals do) in
+  `on_tool_validate_error`: a schema error is one problem per invalid field, keyed by
+  check `arguments`, the arguments that parsed and `<tool>.<field>` (`refusal_keys.py::
+  argument_problems`), and a validator's `ModelRetry` is keyed as a body refusal is. Both are
+  charged through the one rule a body refusal takes (`answered`) and raised as `CallRefused` or
+  `CallSpent`, a `ToolFailed`, which pydantic-ai answers without spending a retry. The capability
+  marks the refused result corrected in the event stream, since a validation failure runs no
+  execute hook. A call of the tool that runs clears its shape keys, as pydantic-ai resets a
+  tool's count. `agent_capabilities(carried, toolsets=...)` gives an agent the capability whenever
+  its toolsets hold a `KeyedRefusalToolset` at any depth, so no builder pairs the two by hand, and a
+  test reads every production `Agent(` and refuses one whose capabilities are not built from its
+  own toolsets. The event stream wrapper makes a run stream its nodes; every keyed agent already
+  runs through `run_stream_events`.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new

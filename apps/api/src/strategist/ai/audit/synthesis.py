@@ -141,7 +141,7 @@ def build_synthesis_agent() -> Agent[SynthesisDeps, SynthesisDraft]:
         output_type=NativeOutput(SynthesisDraft, strict=True),
         deps_type=SynthesisDeps,
         instructions=SYNTHESIS_INSTRUCTIONS,
-        capabilities=agent_capabilities([]),
+        capabilities=agent_capabilities([], toolsets=()),
         retries=3,
         name=REVIEW_ROLE,
         defer_model_check=True,

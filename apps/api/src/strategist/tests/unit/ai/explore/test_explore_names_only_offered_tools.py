@@ -11,7 +11,7 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.toolsets import FunctionToolset
 
 from strategist.ai.agents.research_reads import RESEARCH_UNAVAILABLE
@@ -25,6 +25,7 @@ from strategist.tests._support.offered_tools import (
     offered_tool_names,
     served_tool_names,
 )
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
     REDIRECT,
@@ -75,7 +76,7 @@ async def _run(deps: LeadDeps, *answers: str) -> _Run:
         return ModelResponse(parts=[TextPart(answers[len(run.seen) - 1])])
 
     agent = build_explore_agent()
-    with agent.override(model=FunctionModel(answer)):
+    with agent.override(model=streamed(answer)):
         result = await agent.run(deps.state.user_prompt, deps=deps)
     assert isinstance(result.output, str)
     run.output = result.output

@@ -36,6 +36,7 @@ class Check(StrEnum):
     AN_OPTION_TO_ITS_PARAMETER = "an_option_to_its_parameter"
     AN_ORGANISM_TO_A_STEP = "an_organism_to_a_step"
     ANSWERS = "answers"
+    ARGUMENTS = "arguments"
     BOUND_ANALYSIS = "bound_analysis"
     COMPUTED_GROUPS = "computed_groups"
     COUNT = "count"
@@ -108,6 +109,14 @@ class RefusalKey(CamelModel):
 
     def __hash__(self) -> int:
         return hash((self.check, self.criterion, self.search, self.parameter))
+
+    def clears(self, key: RefusalKey, *, by: str) -> bool:
+        if by != self.check:
+            return False
+        return key.check == Check.ARGUMENTS or (key.criterion, key.search) == (
+            self.criterion,
+            self.search,
+        )
 
     def under(self, *, criterion: str, search: str) -> RefusalKey:
         return self.model_copy(
@@ -214,12 +223,7 @@ class RefusalLedger(CamelModel):
 
     def cleared(self, on: RefusalKey) -> RefusalLedger:
         return RefusalLedger(
-            uses=tuple(
-                use
-                for use in self.uses
-                if (use.by, use.key.criterion, use.key.search)
-                != (on.check, on.criterion, on.search)
-            )
+            uses=tuple(use for use in self.uses if not on.clears(use.key, by=use.by))
         )
 
 

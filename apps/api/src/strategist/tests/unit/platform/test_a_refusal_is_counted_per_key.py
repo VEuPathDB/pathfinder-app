@@ -40,19 +40,20 @@ from strategist.domain.refusal import (
     RefusalLedger,
 )
 from strategist.platform.errors import AppError, ErrorCode, UnauthorizedError
+from strategist.platform.library_refusals import library_problems
+from strategist.platform.refusal_keys import call_key
 from strategist.platform.refusals import (
     TOOL_REFUSALS_PER_KEY,
     KeyedRefusalToolset,
     ProblemsRefusal,
     SpentRefusal,
     agent_capabilities,
-    call_key,
     closing_of,
     last_answer,
-    library_problems,
     problems_of_retry,
     refusal_text,
 )
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _S = "GenesByTaxon"
@@ -90,7 +91,7 @@ def _calls(*criteria: str, search_name: str = _S) -> FunctionModel:
             return ModelResponse(parts=[ToolCallPart("bind", args, f"tc_{made}")])
         return ModelResponse(parts=[TextPart("done")])
 
-    return FunctionModel(_respond)
+    return streamed(_respond)
 
 
 def _deps() -> AgentDeps:
@@ -104,11 +105,12 @@ def _deps() -> AgentDeps:
 def _agent(
     model: FunctionModel, toolset: AbstractToolset[AgentDeps]
 ) -> Agent[AgentDeps, str]:
+    toolsets = [toolset]
     return Agent(
         model,
         deps_type=AgentDeps,
-        toolsets=[toolset],
-        capabilities=agent_capabilities([ToolResilience()]),
+        toolsets=toolsets,
+        capabilities=agent_capabilities([ToolResilience()], toolsets=toolsets),
         retries=3,
     )
 

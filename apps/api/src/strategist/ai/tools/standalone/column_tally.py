@@ -33,17 +33,16 @@ async def count_by_column(
     search: VariantInput,
     record_type: str,
     column: str,
-    only_column: str | None = None,
-    only_values: list[str] | None = None,
+    only: TallyOnly | None = None,
 ) -> ToolReturn[ColumnTally]:
     """Count one catalog search's records by each value of one column. Read-only.
 
     This answers "which <value> has the most <records>" and "how many <records>
     per <value>": the site's own column reporter counts the whole result in one
-    request, and no step is added. ``only_column`` and ``only_values`` keep only
-    the rows whose ``only_column`` is one of ``only_values`` before the count,
-    for example the RNA-Seq datasets (``newcategory`` is ``RNASeq``) counted by
-    organism (``organism_prefix``). A value that lists several entries counts as
+    request, and no step is added. ``only`` keeps only the rows whose
+    ``column`` is one of its ``values`` before the count, for example the
+    RNA-Seq datasets (``newcategory`` is ``RNASeq``) counted by organism
+    (``organism_prefix``). A value that lists several entries counts as
     one value of its own. The table shows every count. A column the site
     cannot count is refused with the columns it can.
 
@@ -53,17 +52,8 @@ async def count_by_column(
             genes, ``dataset`` for datasets. A search name the catalog does not
             list is looked up among this record type's searches.
         column: The column whose values are counted.
-        only_column: The column that keeps the rows counted, with ``only_values``.
-        only_values: The values of ``only_column`` the rows counted hold.
+        only: The column and its values that keep the rows counted.
     """
-    if (only_column is None) != (not only_values):
-        msg = "Name only_column and only_values together, or neither."
-        raise ModelRetry(msg)
-    only = (
-        None
-        if only_column is None or not only_values
-        else TallyOnly(column=only_column, values=only_values)
-    )
     spec = await resolved_search(ctx, search, record_type=record_type, framing=True)
     try:
         tally = await run_column_tally(

@@ -2,11 +2,43 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+)
 from veupathdb.domain.parameters import ParamValue
 
 from strategist.services.gene_sets.types import GeneSetSource, OutOfDate
+
+_A_LIST_AND_A_STEP = (
+    "A pasted list of gene ids carries no strategy step. Leave step_id out to save "
+    "these ids as a list, or leave gene_ids out to save the genes of that step."
+)
+
+
+class _NamedStep(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    step_id: str | None = None
+
+
+def _held_by_no_step(gene_ids: list[str], info: ValidationInfo) -> list[str]:
+    if _NamedStep.model_validate(info.data).step_id is not None:
+        raise ValueError(_A_LIST_AND_A_STEP)
+    return gene_ids
+
+
+GeneSetName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+PastedGeneIds = Annotated[
+    list[str], Field(min_length=1), AfterValidator(_held_by_no_step)
+]
 
 
 class WdkProvenance(BaseModel):

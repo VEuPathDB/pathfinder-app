@@ -251,18 +251,6 @@ async def test_a_pasted_list_is_saved_as_a_list(
     assert "no pushed strategy step" in created.message
 
 
-async def test_a_pasted_list_with_a_step_is_refused(
-    saved: list[GeneSet], reads: list[tuple[str, int]]
-) -> None:
-    deps = _deps(_leaf_session())
-
-    with pytest.raises(ModelRetry) as raised:
-        await _save(deps, gene_ids=PASTED_GENES, step_id=LEAF_STEP_ID)
-
-    assert "carries no strategy step" in str(raised.value)
-    assert (saved, reads) == ([], [])
-
-
 async def test_a_thread_with_no_pushed_strategy_is_refused(
     saved: list[GeneSet], reads: list[tuple[str, int]]
 ) -> None:

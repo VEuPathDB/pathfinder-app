@@ -9,8 +9,9 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from difflib import get_close_matches
+from typing import Annotated
 
-from pydantic import JsonValue
+from pydantic import Field, JsonValue
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import (
     PHYLETIC_LIST_PARAMS,
@@ -34,11 +35,8 @@ from strategist.ai.tools.standalone._stated_values import typed_values
 from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.session import StrategySession
-from strategist.platform.refusals import (
-    ProblemsRefusal,
-    library_problems,
-    refuse_problems,
-)
+from strategist.platform.library_refusals import library_problems
+from strategist.platform.refusals import ProblemsRefusal, refuse_problems
 from strategist.services.evidence.comparisons import (
     variant_phyletic_values,
     variant_search_parameters,
@@ -63,6 +61,9 @@ _NEAREST_CUTOFF = 0.3
 _EVERY_ENTRY_WORDS = frozenset(
     {"all", "every", "*", "all fields", "every field", "everything"}
 )
+
+
+ComparedVariants = Annotated[list[VariantInput], Field(min_length=2)]
 
 
 def reject_combine_variants(variants: list[VariantInput]) -> None:

@@ -9,6 +9,7 @@ from assistant_core.scratchpad.toolset import (
 )
 from pydantic_ai import Agent, DeferredToolRequests, RunContext
 from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.toolsets import AgentToolset
 
 from strategist.ai.agents._instructions import (
     pinned_conversation_so_far,
@@ -166,19 +167,20 @@ def build_verification_agent() -> VerificationAgent:
     never reaches another.
     """
     stable = StableInstructions[AgentDeps]()
+    toolsets: list[AgentToolset[AgentDeps]] = [
+        build_toolset(),
+        build_scratchpad_toolset(
+            guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
+            promoted_kind=PROMOTED_NOTE_KIND,
+        ),
+        turn_tool_sources,
+    ]
     agent: VerificationAgent = Agent(
         VERIFICATION_MODEL,
         output_type=[VerificationDelta, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_VERIFICATION_INSTRUCTIONS,
-        toolsets=[
-            build_toolset(),
-            build_scratchpad_toolset(
-                guidance=STRATEGIST_SCRATCHPAD_GUIDANCE,
-                promoted_kind=PROMOTED_NOTE_KIND,
-            ),
-            turn_tool_sources,
-        ],
+        toolsets=toolsets,
         capabilities=agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
@@ -186,6 +188,7 @@ def build_verification_agent() -> VerificationAgent:
                 stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         description="Reads sample records of a strategy the runtime checked",

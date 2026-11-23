@@ -29,7 +29,7 @@ from strategist.ai.tools.standalone._expression_check import read_expression_fit
 from strategist.ai.tools.standalone._result_models import (
     MAX_SAMPLE_LIMIT,
     StepColumns,
-    _validate_sample_inputs,
+    WdkStepId,
     no_column,
     unread_note,
 )
@@ -137,7 +137,7 @@ async def _sample(
 
 async def get_sample_records(
     ctx: RunContext[AgentDeps],
-    wdk_step_id: int | None = None,
+    wdk_step_id: WdkStepId | None = None,
     limit: Annotated[int, Field(ge=1, le=MAX_SAMPLE_LIMIT)] = 5,
 ) -> ToolReturn[StepSample]:
     """Get a sample of records from an executed step, spread over the step.
@@ -163,7 +163,6 @@ async def get_sample_records(
     """
     session = ctx.deps.strategy_session
     wdk_step_id = named_or_root(session.sync_state, wdk_step_id)
-    _validate_sample_inputs(wdk_step_id)
 
     sample = await read_in_time(
         "get_sample_records",

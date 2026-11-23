@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
@@ -11,16 +13,14 @@ from veupathdb_mcp.tool_payloads import StepDownloadUrl
 from veupathdb_mcp.wdk import step_download_url
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone._result_models import (
-    _validate_download_url_inputs,
-)
+from strategist.ai.tools.standalone._result_models import WdkStepId
 from strategist.platform.errors import ErrorCode
 
 
 async def get_download_url(
     ctx: RunContext[AgentDeps],
-    wdk_step_id: int,
-    output_format: str = "csv",
+    wdk_step_id: WdkStepId,
+    output_format: Literal["csv", "tab", "json"] = "csv",
     attributes: list[str] | None = None,
 ) -> ToolReturn[StepDownloadUrl | ToolErrorPayload]:
     """Get a download URL for step results.
@@ -33,8 +33,6 @@ async def get_download_url(
         output_format: Download format: csv, tab, or json.
         attributes: Specific attributes to include in the download.
     """
-    _validate_download_url_inputs(wdk_step_id, output_format)
-
     site_id = ctx.deps.strategy_session.site_id
     try:
         url = await step_download_url(

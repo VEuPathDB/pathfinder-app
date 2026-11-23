@@ -13,7 +13,7 @@ from assistant_core.capabilities.stable_instructions import StableInstructions
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.capabilities import HandleDeferredToolCalls, ProcessHistory
-from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
+from pydantic_ai.toolsets import AbstractToolset, AgentToolset, FunctionToolset
 
 from strategist.ai.agents._instructions import (
     pinned_run_budget,
@@ -209,17 +209,18 @@ def build_lead_agent() -> LeadAgent:
     reaches another turn.
     """
     stable = StableInstructions[LeadDeps]()
+    toolsets: list[AgentToolset[LeadDeps]] = [
+        build_lead_toolset(),
+        eda.build_toolset(),
+        build_sweep_toolset(),
+        turn_tool_sources,
+    ]
     agent: LeadAgent = Agent(
         LEAD_MODEL,
         output_type=[LeadResponse, DeferredToolRequests],
         deps_type=LeadDeps,
         instructions=LEAD_INSTRUCTIONS,
-        toolsets=[
-            build_lead_toolset(),
-            eda.build_toolset(),
-            build_sweep_toolset(),
-            turn_tool_sources,
-        ],
+        toolsets=toolsets,
         capabilities=agent_capabilities(
             [
                 AllowedTools[LeadDeps](rules=[withhold_by_turn_state]),
@@ -228,6 +229,7 @@ def build_lead_agent() -> LeadAgent:
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],
+            toolsets=toolsets,
         ),
         retries=3,
         description="The user's voice - orchestrates sub-agents via the Ledger",

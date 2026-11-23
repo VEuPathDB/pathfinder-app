@@ -17,6 +17,7 @@ from strategist.platform.refusals import (
     TOOL_REFUSALS_PER_TURN,
     KeyedRefusalToolset,
 )
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from strategist.tests.unit.platform.test_a_refusal_is_counted_per_key import (
     _agent,
@@ -36,7 +37,7 @@ def _script(tool: str, calls: list[dict[str, Any]]) -> FunctionModel:
             return ModelResponse(parts=[ToolCallPart(tool, calls[made], f"tc_{made}")])
         return ModelResponse(parts=[TextPart("done")])
 
-    return FunctionModel(_respond)
+    return streamed(_respond)
 
 
 def _gene_reads(fails: list[bool]) -> FunctionToolset[AgentDeps]:

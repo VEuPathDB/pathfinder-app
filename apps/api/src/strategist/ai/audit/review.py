@@ -17,7 +17,7 @@ from pydantic_ai.exceptions import (
 )
 from pydantic_ai.models import Model, infer_model
 from pydantic_ai.settings import ModelSettings
-from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
+from pydantic_ai.toolsets import AbstractToolset, AgentToolset, CombinedToolset
 from pydantic_ai.usage import RunUsage, UsageLimits
 from pydantic_core import ValidationError
 
@@ -146,12 +146,13 @@ def _literature(ctx: RunContext[ReviewDeps]) -> str | None:
 def _reviewer_agent(
     output_type: type[FindingReview],
 ) -> Agent[ReviewDeps, FindingReview]:
+    toolsets: list[AgentToolset[ReviewDeps]] = [_review_sources]
     agent = Agent(
         output_type=output_type,
         deps_type=ReviewDeps,
         instructions=[REVIEWER_INSTRUCTIONS, _literature],
-        toolsets=[_review_sources],
-        capabilities=agent_capabilities([]),
+        toolsets=toolsets,
+        capabilities=agent_capabilities([], toolsets=toolsets),
         retries=3,
         name=REVIEW_ROLE,
         defer_model_check=True,

@@ -1,4 +1,4 @@
-"""A ``set_structure`` call whose tree breaks a node's shape is a retry the model
+"""A ``set_structure`` call whose tree breaks a node's shape is a refusal the model
 reads, and the run goes on."""
 
 from __future__ import annotations
@@ -12,11 +12,12 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 
 from strategist.ai.agents.frame import build_frame_agent
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.dispatch_context import agent_deps_for
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _EMPTY_INTERSECT: dict[str, Any] = {
@@ -30,7 +31,7 @@ def _retries(messages: list[ModelMessage]) -> list[ToolReturnPart]:
         for message in messages
         if isinstance(message, ModelRequest)
         for part in message.parts
-        if isinstance(part, ToolReturnPart) and part.outcome == "retried"
+        if isinstance(part, ToolReturnPart) and part.outcome == "failed"
     ]
 
 
@@ -64,14 +65,14 @@ async def test_an_intersect_of_nothing_is_answered_with_the_combine_shape() -> N
     deps.db_session_factory = None
     agent = build_frame_agent()
 
-    with agent.override(model=FunctionModel(_model)):
+    with agent.override(model=streamed(_model)):
         result = await agent.run("drop the filter", deps=deps)
 
     assert isinstance(result.output, FrameResult)
     (retry,) = seen
     assert retry.tool_name == "set_structure"
-    assert isinstance(retry.content, list)
-    (error,) = retry.content
-    assert error["msg"].startswith('Value error, a combine is {"kind": "combine"')
-    assert error["msg"].endswith("with no criterion left, there is no tree to set.")
+    assert str(retry.content).startswith('a combine is {"kind": "combine"')
+    assert str(retry.content).endswith(
+        "with no criterion left, there is no tree to set. Nothing was recorded."
+    )
     assert deps.agent_state.operational_spec_draft.structure is None
