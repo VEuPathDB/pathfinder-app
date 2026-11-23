@@ -79,6 +79,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
     drops_the_weight_on_create: bool = False
     refuses_patches: bool = False
     refuses_once: set[str] = field(default_factory=set)
+    garbles_once: set[str] = field(default_factory=set)
     answer_size: int = 100
     next_id: int = 5000
 
@@ -104,6 +105,9 @@ class HoldingWDK(httpx.AsyncBaseTransport):
         if kind in self.refuses_once:
             self.refuses_once.discard(kind)
             return httpx.Response(422, json={"message": f"{kind} refused"})
+        if kind in self.garbles_once:
+            self.garbles_once.discard(kind)
+            return httpx.Response(200, json={"strategyId": "not a strategy"})
         answer = self._answer(request.method, path, body)
         if answer is None:
             return httpx.Response(204)
@@ -264,6 +268,8 @@ class HoldingWDK(httpx.AsyncBaseTransport):
 def _kind_of(method: str, path: str) -> str:
     if method == "GET" and _STEP.fullmatch(path):
         return "step read"
+    if method == "GET" and _STRATEGY.fullmatch(path):
+        return "strategy read"
     if method == "PUT" and _STEP_CONFIG.fullmatch(path):
         return "search-config put"
     if method == "POST" and path.endswith("/steps"):

@@ -14,7 +14,7 @@ from veupathdb.domain.strategy import (
     walk,
     wdk_search_name,
 )
-from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb.errors import DataParsingError, ValidationError, VEuPathDBError
 from veupathdb.model import CamelModel
 from veupathdb.wdk import StrategyAPI, get_site, get_strategy_api
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
@@ -82,14 +82,14 @@ class CommitTarget(CamelModel):
 class CommittedTree(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    pushed: list[str]
-    failures: list[StepPushFailure]
-    drafts: dict[str, str]
-    skipped: list[str]
-    sync: SyncResult | None
-    record_type: str | None
-    held: dict[str, StepSettings]
-    put: bool
+    pushed: list[str] = Field(default_factory=list)
+    failures: list[StepPushFailure] = Field(default_factory=list)
+    drafts: dict[str, str] = Field(default_factory=dict)
+    skipped: list[str] = Field(default_factory=list)
+    sync: SyncResult | None = None
+    record_type: str | None = None
+    held: dict[str, StepSettings] = Field(default_factory=dict)
+    put: bool = False
 
     @property
     def refused(self) -> dict[str, str]:
@@ -361,8 +361,17 @@ async def commit_tree(
     api = get_strategy_api(site_id)
     try:
         held = await reconcile_sync_state_with_wdk(sync_state, api)
+    except DataParsingError as exc:
+        return _unread(
+            site_id,
+            steps[root_id],
+            f"answered the read of the strategy with a strategy that does not "
+            f"parse: {exc}",
+        )
     except (VEuPathDBError, OSError) as exc:
-        return _unread(site_id, steps[root_id], exc)
+        return _unread(
+            site_id, steps[root_id], f"did not answer the read of the strategy: {exc}"
+        )
     await provision_the_datasets(api, steps, target.datasets)
     await fill_record_classes(site_id, steps)
     root = rebuild_tree(root_id, steps)
@@ -393,23 +402,14 @@ async def commit_tree(
     return committed
 
 
-def _unread(site_id: str, root: StrategyStep, exc: Exception) -> CommittedTree:
+def _unread(site_id: str, root: StrategyStep, what: str) -> CommittedTree:
     site = get_site(site_id).display_name
     failure = StepPushFailure(
         step_id=root.id,
         search_name=wdk_search_name(root),
-        error=f"{site} did not answer the read of the strategy: {exc}",
+        error=f"{site} {what}",
     )
-    return CommittedTree(
-        pushed=[],
-        failures=[failure],
-        drafts={},
-        skipped=[],
-        sync=None,
-        record_type=None,
-        held={},
-        put=False,
-    )
+    return CommittedTree(failures=[failure])
 
 
 async def drop_the_tree(
