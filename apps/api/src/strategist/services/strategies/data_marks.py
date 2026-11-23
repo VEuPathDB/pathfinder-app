@@ -15,6 +15,7 @@ from strategist.domain.strategy.operational_spec import Criterion, OperationalSp
 from strategist.domain.unread import Unread
 from strategist.services.strategies.bound_uploads import uploads_the_specs_run_on
 from strategist.services.strategies.search_sheets import search_definitions
+from strategist.services.strategies.user_dataset_searches import OwnedUpload
 
 logger = get_logger(__name__)
 
@@ -24,6 +25,14 @@ def _curated_studies(criteria: Sequence[Criterion]) -> list[str]:
     return sorted(
         {study for study in studies if not study.startswith(EDA_USER_DATASET_PREFIX)}
     )
+
+
+def _upload_type(upload: OwnedUpload | Unread) -> str | Unread:
+    match upload:
+        case Unread():
+            return upload
+        case OwnedUpload(type_name=type_name):
+            return type_name
 
 
 type _AssayRead = Callable[[str, str], Awaitable[str | None]]
@@ -64,7 +73,7 @@ async def read_data_marks(
     criteria = [c for spec in specs if spec is not None for c in spec.criteria]
     searches = sorted({c.search_name for c in criteria if c.search_name})
     return DataMarks(
-        uploads={c: u.type_name for c, u in uploads.items()},
+        uploads={c: _upload_type(u) for c, u in uploads.items()},
         searches=await _assays(site_id, searches, dataset_assay),
         studies=await _assays(site_id, _curated_studies(criteria), study_assay),
         read_for=frozenset(searches),

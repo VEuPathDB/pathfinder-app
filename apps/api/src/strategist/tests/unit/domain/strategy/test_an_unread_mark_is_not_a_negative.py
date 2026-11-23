@@ -62,3 +62,18 @@ def test_a_search_read_with_no_mark_runs_on_no_expression_data() -> None:
     marks = DataMarks(read_for=frozenset({_NEWBOLD, _PEXEL}))
 
     assert _ground(marks) == (ConstraintStatus.UNGROUNDABLE, None, None)
+
+
+def test_an_upload_whose_listing_failed_leaves_the_data_type_not_verified() -> None:
+    upload = _SPEC.criteria[1].id
+    marks = DataMarks(
+        uploads={upload: Unread(reason="your uploads were not read")},
+        read_for=frozenset({_NEWBOLD, _PEXEL}),
+    )
+
+    [grounded] = ground_against_spec([_R5], _SPEC, marks=marks)
+
+    assert (grounded.status, grounded.note) == (
+        ConstraintStatus.NOT_VERIFIED,
+        "your uploads were not read",
+    )

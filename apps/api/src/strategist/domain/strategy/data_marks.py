@@ -23,7 +23,7 @@ class DataMarks(CamelModel):
 
     model_config = ConfigDict(frozen=True)
 
-    uploads: dict[str, str] = Field(default_factory=dict)
+    uploads: dict[str, str | Unread] = Field(default_factory=dict)
     studies: dict[str, str | Unread] = Field(default_factory=dict)
     searches: dict[str, str | Unread] = Field(default_factory=dict)
     read_for: frozenset[str] = frozenset()
