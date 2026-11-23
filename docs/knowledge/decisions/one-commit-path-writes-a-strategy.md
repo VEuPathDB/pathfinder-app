@@ -34,7 +34,9 @@ A commit runs in this order:
 - R1. A value that moved against what WDK holds is stated; the rest is context. A value
   the earlier plan stated and this plan no longer states has moved too: the step is written
   without it and WDK takes its default. Each
-  written step is validated once, and every refusal is returned together.
+  written step is validated once, and every refusal is returned together. A context value
+  goes to WDK as WDK holds it, and the plan keeps the value it states: what WDK holds
+  decides what is sent and is compared, and never replaces a value in the plan.
 - R2. A refusal on a step WDK does not hold makes a draft; on a step WDK holds, a failure.
   Either keeps the tree from being put.
 - R3. Filters ride the step write. A new step is created without its filters, the filters

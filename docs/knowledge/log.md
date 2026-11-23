@@ -2,6 +2,10 @@
 
 ## 2026-11-24
 
+* **An edit keeps the values it did not state.** A commit sends a value the edit did not
+  move in the form WDK holds it, and the plan keeps its own typed value; before, an
+  organism edit stored a step's other values as the site's wire text.
+
 * **One commit path, measured after.** On the stateful fake of the before measurement, 0 of
   84 path and field cells are red (27 before), and the canvas undo keeps a step's weight,
   filters, analyses and expansion. WDK-MAP-011 states that every step and tree write goes
