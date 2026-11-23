@@ -314,17 +314,17 @@ async def read_message(
     ask: Decide = decide_reading,
 ) -> tuple[MessageReading, StatedRequest]:
     modeling = asyncio.create_task(_model_reading(read, files, model, meter, model_id))
+    deciding = asyncio.create_task(_decisions_reading(read, ask))
     try:
-        decided, stated = await asyncio.gather(
-            _decisions_reading(read, ask),
-            _stated_request(read, files, model, meter, model_id),
-        )
+        stated = await _stated_request(read, files, model, meter, model_id)
+        decided = await deciding
         if decided is not None and _settled(decided):
             return decided, stated
         modeled = await modeling
     finally:
-        modeling.cancel()
-        await asyncio.wait([modeling])
+        for task in (modeling, deciding):
+            task.cancel()
+        await asyncio.wait([modeling, deciding])
     if decided is None:
         return modeled, stated
     return decided.model_copy(

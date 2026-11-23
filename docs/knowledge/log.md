@@ -9,8 +9,10 @@
   names the tool the library says ran out (`exhausted_its_retries` reads the message), not the
   last refusal of another tool, and its usage is recorded in a `finally`. A message reader that
   spent its output retries raises `MessageNotReadError`; the Lead and Explore end on "I could not
-  read your message into its requirements: ..." and charge what the reader spent. Explore charges
-  in a `finally` and sets the Decisions spend sink around the reader and the run. A cancelled
+  read your message into its requirements: ..." and charge what the reader spent. The Lead and
+  Explore charge a turn's spend outside the agent through one rule (`spend_charged_on_exit`): the
+  Decisions sink is set for the reader and the run, and the charge runs on every exit, a stopped
+  turn included. A failed request reading cancels and awaits its Decisions sibling. A cancelled
   model reading is awaited so its spend lands. A spent refusal key answers as a final failed call
   (`CallSpent`), never as a success.
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, Awaitable, Sequence
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Any, Literal, Protocol
 from uuid import uuid4
 
@@ -31,7 +32,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 )
 from pydantic_ai.usage import RunUsage
 
-from strategist.ai.capabilities.decisions_spend import decisions_spend_to
+from strategist.ai.capabilities.decisions_spend import spend_charged_on_exit
 from strategist.ai.capabilities.metering import SpendMeter, charge_spend
 from strategist.ai.explore.explore_agent import ExploreAgent, build_explore_agent
 from strategist.ai.explore.explore_model import resolve_explore_model_context
@@ -198,19 +199,15 @@ async def _read_and_run(
     state: PipelineState, run: _ExploreRun, stream: _Stream, *, fresh: bool
 ) -> CardHold:
     writer = get_stream_writer()
-    with decisions_spend_to(stream.meter.absorb):
-        try:
-            if fresh:
-                await classify_the_words(
-                    state,
-                    stream.deps,
-                    model_id=stream.model.model_id,
-                    meter=stream.meter,
-                )
-        except MessageNotReadError as exc:
-            run.stop = reader_stop_reply(exc.refusal).prose
-            return CardHold(resumed=set())
-        return await _stream(stream, run, writer)
+    try:
+        if fresh:
+            await classify_the_words(
+                state, stream.deps, model_id=stream.model.model_id, meter=stream.meter
+            )
+    except MessageNotReadError as exc:
+        run.stop = reader_stop_reply(exc.refusal).prose
+        return CardHold(resumed=set())
+    return await _stream(stream, run, writer)
 
 
 def _reply_of(state: PipelineState, run: _ExploreRun) -> str | None:
@@ -316,7 +313,13 @@ async def _run_explore_turn(
     run = _ExploreRun()
     run.capture.lead_model = model.model_id
     run.capture.lead_reasoning_effort = model.reasoning_effort
-    try:
+    charge = partial(
+        charge_spend,
+        context.db_session_factory,
+        user_id=state.user_id,
+        spent=meter.spent,
+    )
+    async with spend_charged_on_exit(meter.absorb, charge):
         hold = await _read_and_run(
             state,
             run,
@@ -335,10 +338,6 @@ async def _run_explore_turn(
                 answered=turn.answered,
                 counts=proposal_counts(deps),
             )
-        )
-    finally:
-        await charge_spend(
-            context.db_session_factory, user_id=state.user_id, spent=meter.spent
         )
     delta = explore_state_delta(
         state,

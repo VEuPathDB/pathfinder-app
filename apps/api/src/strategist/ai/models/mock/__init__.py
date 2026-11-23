@@ -8,6 +8,8 @@ turn's words are read as the arc declares, before the Lead runs.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 from assistant_core.models.scripted import (
     RoleMarkers,
     ScriptedModel,
@@ -17,8 +19,8 @@ from assistant_core.models.scripted import (
     terminal_call,
     user_texts,
 )
-from pydantic_ai.messages import ModelMessage, TextPart, ToolCallPart
-from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
+from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from pydantic_ai.profiles import ModelProfile
 
 from strategist.ai.models.mock.arc import Arc, Role, Script
@@ -122,16 +124,31 @@ STRATEGIST_SCRIPT = ScriptedModel(
 )
 
 
+def _respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+    return ModelResponse(parts=[STRATEGIST_SCRIPT.response_part(messages, info)])
+
+
+async def _stream(
+    messages: list[ModelMessage], info: AgentInfo
+) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
+    match STRATEGIST_SCRIPT.response_part(messages, info):
+        case TextPart(content=text):
+            yield text
+        case call:
+            yield {
+                0: DeltaToolCall(
+                    name=call.tool_name,
+                    json_args=call.args_as_json_str(),
+                    tool_call_id=call.tool_call_id,
+                )
+            }
+
+
 def get_mock_model() -> FunctionModel:
-    scripted = STRATEGIST_SCRIPT.as_function_model()
-    respond, stream = scripted.function, scripted.stream_function
-    if respond is None or stream is None:
-        msg = "the scripted model answers in both modes"
-        raise TypeError(msg)
     return FunctionModel(
-        respond,
-        stream_function=stream,
-        model_name=scripted.model_name,
+        _respond,
+        stream_function=_stream,
+        model_name=STRATEGIST_SCRIPT.model_name,
         profile=ModelProfile(
             supports_inline_system_prompts=True, supports_json_schema_output=True
         ),

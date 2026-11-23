@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from assistant_core.scratchpad.compactor import CompactorDeps
-from pydantic import ValidationError
+from assistant_core.scratchpad.compactor import CompactionResult, CompactorDeps
+from pydantic import BaseModel, ValidationError
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models import ModelRequestParameters
@@ -12,7 +12,8 @@ from pydantic_ai.profiles.openai import OpenAIJsonSchemaTransformer
 from strategist.ai.agents.compactor import build_compactor_agent
 from strategist.ai.audit.synthesis import SynthesisDeps, build_synthesis_agent
 from strategist.ai.capabilities.metering import SpendMeter
-from strategist.ai.lead.message_reader import ReaderInput, read_message
+from strategist.ai.lead.message_reader import ReaderInput, _ModelReading, read_message
+from strategist.domain.audit.verdicts import SynthesisDraft
 from strategist.domain.message_reading import StatedRequest
 
 
@@ -76,8 +77,11 @@ async def test_the_synthesis_asks_for_strict_native_output() -> None:
     assert _strict(seen) == [("native", True)]
 
 
-def test_the_stated_request_schema_is_strict_on_openai() -> None:
-    walked = OpenAIJsonSchemaTransformer(StatedRequest.model_json_schema(), strict=True)
+@pytest.mark.parametrize(
+    "output", [StatedRequest, _ModelReading, CompactionResult, SynthesisDraft]
+)
+def test_each_strict_output_schema_is_strict_on_openai(output: type[BaseModel]) -> None:
+    walked = OpenAIJsonSchemaTransformer(output.model_json_schema(), strict=True)
     walked.walk()
 
     assert walked.is_strict_compatible is True

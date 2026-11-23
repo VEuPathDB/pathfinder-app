@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from decimal import Decimal
 
@@ -60,6 +60,17 @@ def decisions_spend_to(sink: DecisionsSpendSink) -> Iterator[None]:
         yield
     finally:
         _sink.reset(token)
+
+
+@asynccontextmanager
+async def spend_charged_on_exit(
+    sink: DecisionsSpendSink, charge: Callable[[], Awaitable[None]]
+) -> AsyncIterator[None]:
+    with decisions_spend_to(sink):
+        try:
+            yield
+        finally:
+            await charge()
 
 
 def decision_cost(usage: DecisionUsage) -> Decimal:
@@ -128,5 +139,6 @@ __all__ = [
     "decisions_spend_to",
     "install_decisions_transport",
     "send_decision",
+    "spend_charged_on_exit",
     "the_deployment_decides",
 ]

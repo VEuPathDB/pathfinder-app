@@ -41,7 +41,7 @@ from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import AgentStreamEvent, UserContent
 from pydantic_ai.usage import RunUsage
 
-from strategist.ai.capabilities.decisions_spend import decisions_spend_to
+from strategist.ai.capabilities.decisions_spend import spend_charged_on_exit
 from strategist.ai.graph._lead_answers import typed_reply
 from strategist.ai.graph._lead_capture import (
     LeadRunCapture,
@@ -354,7 +354,10 @@ async def _run_lead_turn(
         linked_pages=await read_linked_pages(state.user_prompt),
     )
 
-    with decisions_spend_to(partial(absorb_outside_spend, capture)):
+    async with spend_charged_on_exit(
+        partial(absorb_outside_spend, capture),
+        partial(_persist_residual_quota, runtime.context, state, capture),
+    ):
         await _drive_lead_stream(
             state=state,
             agent=build_agent(),
@@ -374,7 +377,6 @@ async def _run_lead_turn(
     if capture.declined is None:
         deps.state.domain.record_exchange(turn_exchange(deps.state, capture))
     residual_tokens, residual_cost = capture.residual_totals(state)
-    await _persist_residual_quota(runtime.context, state, capture)
     emit_turn_usage(writer, residual_tokens, residual_cost)
     emit_lead_usage(writer, capture, capture.tokens, str(capture.cost_usd))
     if capture.declined is None:

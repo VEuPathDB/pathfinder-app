@@ -36,6 +36,7 @@ from strategist.tests._support.explore_turns import (
 )
 
 _RECORDED = recorded_decision("interpro_pick.json")
+_REFUSED = "the provider refused the request"
 
 
 async def test_a_decision_the_explore_reader_asks_is_charged(
@@ -80,7 +81,7 @@ async def test_a_decision_the_explore_reader_asks_is_charged(
         cost_usd=decision_cost(DecisionUsage(input_tokens=tokens)),
         paid_by=PaidBy.USER,
     )
-    assert decided in charged
+    assert charged.count(decided) == 1
 
 
 class _SlowReading:
@@ -129,3 +130,30 @@ async def test_a_cancelled_model_reading_still_leaves_its_spend() -> None:
     )
 
     assert len(meter.spent) == 2
+
+
+async def test_a_failed_request_reading_ends_its_decision_before_it_returns() -> None:
+    ended: list[str] = []
+
+    async def unanswered(request: DecisionRequest) -> DecisionResponse | None:
+        del request
+        try:
+            await asyncio.sleep(30)
+        finally:
+            ended.append("decision")
+        return None
+
+    def refused(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        raise RuntimeError(_REFUSED)
+
+    with pytest.raises(RuntimeError, match=_REFUSED):
+        await read_message(
+            ReaderInput(conversation="", strategy="", message="kinases"),
+            model=FunctionModel(refused),
+            model_id="openai:gpt-5.6-luna",
+            meter=SpendMeter(),
+            ask=unanswered,
+        )
+
+    assert ended == ["decision", "decision"]
