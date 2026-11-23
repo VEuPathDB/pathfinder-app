@@ -7,7 +7,7 @@ from typing import Final
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from veupathdb.wdk import EDA_USER_DATASET_PREFIX
 
-_WORD: Final = re.compile(r"\w+")
+_UPLOAD_ID: Final = re.compile(rf"{re.escape(EDA_USER_DATASET_PREFIX)}\w+")
 UPLOAD_WORDS: Final = "a private dataset"
 
 
@@ -31,12 +31,7 @@ def leaves(value: JsonValue) -> Iterator[str]:
 
 
 def account_datasets_in(value: JsonValue) -> set[str]:
-    return {
-        word
-        for leaf in leaves(value)
-        for word in _WORD.findall(leaf)
-        if is_account_dataset(word)
-    }
+    return {found for leaf in leaves(value) for found in _UPLOAD_ID.findall(leaf)}
 
 
 class StudyNames(BaseModel):
