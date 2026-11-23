@@ -324,6 +324,7 @@ async def read_message(
         modeled = await modeling
     finally:
         modeling.cancel()
+        await asyncio.wait([modeling])
     if decided is None:
         return modeled, stated
     return decided.model_copy(
