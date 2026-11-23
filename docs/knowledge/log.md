@@ -2,6 +2,11 @@
 
 ## 2026-11-23
 
+* **An unstated colocation takes the site's defaults.** `ColocationParams` defaults are the
+  site's span defaults (veupathdb-py WDK-STEP-011), `SPAN_LOGIC_DEFAULTS` is gone, the web
+  editor parses the generated schema's defaults, and a stored COLOCATE node without
+  parameters loads on them.
+
 * **One step view.** `StepResponse` is the step's settings (`StepSettings`: search, parameters,
   operator, colocation, filters, weight, expansion) plus its view fields, built by one function,
   `step_response`, for the chat snapshot, the REST load, the strategy read and the live read. A

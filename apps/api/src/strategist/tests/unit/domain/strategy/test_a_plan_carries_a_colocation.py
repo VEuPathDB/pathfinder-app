@@ -122,13 +122,14 @@ def test_a_union_carrying_colocation_parameters_is_refused() -> None:
         )
 
 
-def test_a_colocation_without_parameters_is_refused() -> None:
-    with pytest.raises(ValidationError):
-        StructureNode(
-            kind="combine",
-            operator=CombineOp.COLOCATE,
-            inputs=[_leaf("c_kin"), _leaf("c_snp")],
-        )
+def test_a_colocation_without_parameters_takes_the_sites_defaults() -> None:
+    node = StructureNode(
+        kind="combine",
+        operator=CombineOp.COLOCATE,
+        inputs=[_leaf("c_kin"), _leaf("c_snp")],
+    )
+
+    assert node.colocation_params == _site_defaults()
 
 
 async def test_a_frame_structure_states_the_colocation_it_builds(

@@ -4,6 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from veupathdb.domain.strategy import ColocationParams
 
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.domain.strategy.question_options import PickTail
@@ -65,3 +66,31 @@ def test_a_domain_this_build_cannot_read_is_refused_on_load() -> None:
         _loaded(StrategyDomainState.model_construct(**stored))
     assert "saved by an earlier version of Strategist" in str(caught.value.detail)
     assert "answered_questions" in str(caught.value.detail)
+
+
+def test_a_saved_colocation_without_parameters_loads_on_the_sites_defaults() -> None:
+    colocated = {
+        "kind": "combine",
+        "operator": "COLOCATE",
+        "inputs": [
+            {"kind": "leaf", "criterionId": "c_kin"},
+            {"kind": "leaf", "criterionId": "c_snp"},
+        ],
+    }
+    stored: dict[str, Any] = {
+        "operational_spec": {
+            "goal": "kinases near snps",
+            "criteria": [
+                {"id": "c_kin", "text": "kinases", "searchName": "GenesByText"},
+                {"id": "c_snp", "text": "snps", "searchName": "GenesByGoTerm"},
+            ],
+            "structure": {"root": colocated},
+        }
+    }
+
+    state = _loaded(StrategyDomainState.model_construct(**stored))
+
+    spec = state.domain.operational_spec
+    assert spec is not None
+    assert spec.structure is not None
+    assert spec.structure.root.colocation_params == ColocationParams()

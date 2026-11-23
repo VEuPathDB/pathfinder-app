@@ -9,8 +9,9 @@ from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep, record_
 MIN_COMBINE_INPUTS = 2
 COLOCATION_SHAPE = (
     'a colocation is {"kind": "combine", "operator": "COLOCATE", '
-    '"colocationParams": {...}, "inputs": [<genes>, <features>]}, and no other '
-    "node states colocationParams."
+    '"colocationParams": {...}, "inputs": [<genes>, <features>]}, where a field '
+    "it leaves out takes the site's default, and no other node states "
+    "colocationParams."
 )
 NODE_SHAPES = {
     "leaf": (

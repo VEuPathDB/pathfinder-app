@@ -217,6 +217,12 @@ class StructureNode(CamelModel):
         return cls.model_validate(wrapper.inputs[0]).model_dump(by_alias=True)
 
     @model_validator(mode="after")
+    def _a_colocation_states_its_region(self) -> StructureNode:
+        if self.operator is CombineOp.COLOCATE and self.colocation_params is None:
+            self.colocation_params = ColocationParams()
+        return self
+
+    @model_validator(mode="after")
     def _in_the_shape_of_its_kind(self) -> StructureNode:
         refusal = shape_refusal(
             self.kind,
