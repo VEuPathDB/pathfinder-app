@@ -18,13 +18,9 @@ import json
 import sys
 from pathlib import Path
 
-from veupathdb.domain.strategy import (
-    StrategyStepNode,
-    leaves,
-)
+from veupathdb.domain.strategy import flatten_tree, leaves
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
-    WDKStepTree,
     get_strategy_api,
     password_login,
 )
@@ -34,10 +30,11 @@ from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 from strategist.jobs.auth_context import attach_wdk_auth
 from strategist.platform.config import get_settings
 from strategist.services.experiment.controls_search import controls_search
-from strategist.services.experiment.materialization import (
-    materialize_classed_tree,
-    tree_classes,
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
+from strategist.services.strategies.record_classes import (
+    refuse_a_tree_the_site_cannot_run,
 )
+from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.services.wdk_build import site_build
 from strategist_scripted.seeds.catalog import (
     MARKS_FILE,
@@ -48,14 +45,6 @@ from strategist_scripted.seeds.catalog import (
 from strategist_scripted.seeds.types import SeedDef, SeedMeasurement
 
 STRATEGY_NAME = "strategist seed measure"
-
-
-async def materialize_step_tree(
-    site_id: str, root: StrategyStepNode, made: list[int]
-) -> WDKStepTree:
-    return await materialize_classed_tree(
-        site_id, root, await tree_classes(site_id, root), made
-    )
 
 
 async def measure_seed(
@@ -70,17 +59,26 @@ async def measure_seed(
         "positives_total": len(controls.positive_ids),
         "negatives_total": len(controls.negative_ids),
     }
-    made: list[int] = []
-    strategy_id: int | None = None
+    root = seed.step_node()
+    sync_state = WDKSyncState()
     try:
-        root = seed.step_node()
-        tree = await materialize_step_tree(seed.site_id, root, made)
-        strategy_id = (
-            await api.create_strategy(tree, name=STRATEGY_NAME, is_internal=True)
-        ).id
+        await refuse_a_tree_the_site_cannot_run(seed.site_id, root)
+        committed = await commit_tree(
+            site_id=seed.site_id,
+            steps=flatten_tree(root),
+            root_id=root.id,
+            old=None,
+            sync_state=sync_state,
+            target=CommitTarget(name=STRATEGY_NAME, description="", role="internal"),
+        )
+        if committed.sync is None or committed.refused:
+            refused = "; ".join(committed.refused.values())
+            return SeedMeasurement.model_validate(
+                {**stamp, "refusal": refused or "the site took no strategy"}
+            )
         read = await run_step_control_tests(
             seed.site_id,
-            tree.step_id,
+            committed.sync.root_step_id,
             positive_controls=controls.positive_ids,
             negative_controls=controls.negative_ids,
             controls=controls_search(seed.record_type),
@@ -88,10 +86,10 @@ async def measure_seed(
     except VEuPathDBError as exc:
         return SeedMeasurement.model_validate({**stamp, "refusal": str(exc)})
     finally:
-        if strategy_id is not None:
-            await api.delete_strategy(strategy_id)
+        if sync_state.wdk_strategy_id is not None:
+            await api.delete_strategy(sync_state.wdk_strategy_id)
         else:
-            await api.delete_orphaned_steps(made)
+            await api.delete_orphaned_steps(list(sync_state.wdk_step_ids.values()))
     return SeedMeasurement.model_validate(
         {
             **stamp,

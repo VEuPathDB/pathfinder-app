@@ -79,6 +79,10 @@ class CommittedTree(BaseModel):
     record_type: str | None
     held: dict[str, StepSettings]
 
+    @property
+    def refused(self) -> dict[str, str]:
+        return {**self.drafts, **{f.step_id: f.error for f in self.failures}}
+
 
 @dataclass
 class _Commit:

@@ -5,11 +5,9 @@ Flow:
 2. Deep-clone the subtree, assigning fresh local ids (so the clones do not
    collide with the source graph if the user later inserts the saved
    strategy back into the same conversation).
-3. Push every cloned node to WDK with a fresh ``WDKSyncState`` - the
-   saved strategy must own its own steps, never share with the source.
-4. Build a ``WDKStepTree`` from the new wdk_step_ids and POST it as a new
-   strategy with ``isSaved=True``.
-5. Return the saved strategy id, name, and url. The caller stores the id
+3. Commit the clone through the one commit path with a fresh
+   ``WDKSyncState`` as a new saved strategy: it owns its own steps.
+4. Return the saved strategy id, name, and url. The caller stores the id
    on the source conversation's ``imported_saved_strategy_ids`` once the
    user inserts the saved strategy via a combine step.
 """
@@ -24,21 +22,12 @@ from veupathdb.domain.strategy import (
     clone_with_fresh_ids,
     flatten_tree,
     rebuild_tree,
-    subtree_ids,
-    wdk_search_name,
 )
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import get_strategy_api
 
-from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.session import StrategySession
 from strategist.platform.errors import ErrorCode, NotFoundError
-from strategist.services.strategies._wdk_step_calls import pushed_step
-from strategist.services.strategies.record_classes import (
-    fill_record_classes,
-    unclassed_step_failure,
-)
-from strategist.services.strategies.sync import build_step_tree_from_graph
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -94,53 +83,37 @@ async def save_subtree_as_strategy(
     # deep_clone works on the nested shape, so project this subtree first.
     cloned_root = clone_with_fresh_ids(rebuild_tree(source_step_id, graph.steps))
     cloned_steps = flatten_tree(cloned_root)
-    push_order = subtree_ids(cloned_root.id, cloned_steps)
-
-    isolated_sync = WDKSyncState()
-    await fill_record_classes(site_id, cloned_steps)
-
-    classes: dict[str, str] = {}
-    for node in (cloned_steps[sid] for sid in push_order):
-        node_class = step_class_of(cloned_steps, node.id)
-        if node_class is not None:
-            classes[node.id] = node_class
-            failure = await pushed_step(
-                get_strategy_api(site_id),
-                isolated_sync,
-                node,
-                node_class,
-                dict(node.parameters),
-            )
-        else:
-            failure = unclassed_step_failure(node.id, wdk_search_name(node))
-        if failure is not None:
-            raise ValidationError(
-                title="failed to clone step into saved strategy",
-                detail=f"step {node.id!r} ({node.search_name}): {failure.error}",
-            )
-
-    step_tree = build_step_tree_from_graph(cloned_root, isolated_sync.wdk_step_ids)
-
-    api = get_strategy_api(site_id)
-    identifier = await api.create_strategy(
-        step_tree=step_tree,
-        name=name,
-        description=description,
-        is_saved=True,
+    sync_state = WDKSyncState()
+    committed = await commit_tree(
+        site_id=site_id,
+        steps=cloned_steps,
+        root_id=cloned_root.id,
+        old=None,
+        sync_state=sync_state,
+        target=CommitTarget(name=name, description=description or "", role="saved"),
     )
+    if committed.sync is None or committed.refused or committed.record_type is None:
+        refused = "; ".join(
+            f"step {sid!r}: {text}" for sid, text in committed.refused.items()
+        )
+        raise ValidationError(
+            title="failed to clone step into saved strategy",
+            detail=refused or "the site did not take the saved strategy",
+        )
+    identifier = committed.sync
 
     logger.info(
         "Saved substrategy",
-        wdk_strategy_id=identifier.id,
+        wdk_strategy_id=identifier.wdk_strategy_id,
         name=name,
         steps=len(cloned_steps),
     )
 
     return SavedSubstrategyResult(
-        wdk_strategy_id=identifier.id,
+        wdk_strategy_id=identifier.wdk_strategy_id,
         name=name,
         description=description,
-        record_type=classes[cloned_root.id],
-        root_step_id=isolated_sync.wdk_step_ids[cloned_root.id],
+        record_type=committed.record_type,
+        root_step_id=identifier.root_step_id,
         cloned_root=cloned_root,
     )

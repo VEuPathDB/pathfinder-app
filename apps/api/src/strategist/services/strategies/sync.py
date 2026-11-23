@@ -31,7 +31,7 @@ class TreeNotHeldError(WDKError):
 class SyncResult:
     """Outcome of a successful strategy sync."""
 
-    wdk_strategy_id: int | None
+    wdk_strategy_id: int
     wdk_url: str | None
     root_step_id: int
     counts: dict[str, int | None]

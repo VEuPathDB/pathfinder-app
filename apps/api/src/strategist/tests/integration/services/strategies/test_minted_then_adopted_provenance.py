@@ -12,11 +12,20 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.wdk import StrategyAPI, WDKAnswer, WDKIdentifier, WDKStrategyDetails
+from veupathdb.wdk import (
+    StrategyAPI,
+    WDKAnswer,
+    WDKIdentifier,
+    WDKSearchConfig,
+    WDKStep,
+    WDKStrategyDetails,
+)
 
 from strategist.persistence.models import User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.services.eval import build_gold_strategy
+from strategist.services.strategies import _tree_write, commit_tree
+from strategist.tests._support.wdk_write_stubs import keeps_every_value
 
 _SITE = "plasmodb"
 _GOLD_STRATEGY = 9001
@@ -47,6 +56,11 @@ def _minting_api(strategy_id: int) -> StrategyAPI:
     api = Mock(spec=StrategyAPI)
     api.create_step = AsyncMock(return_value=WDKIdentifier(id=_STEP))
     api.create_strategy = AsyncMock(return_value=WDKIdentifier(id=strategy_id))
+    api.find_step = AsyncMock(
+        return_value=WDKStep(
+            id=_STEP, search_name="GenesByTaxon", search_config=WDKSearchConfig()
+        )
+    )
     api.get_step_answer = AsyncMock(
         return_value=WDKAnswer.model_validate(
             {"meta": {"totalCount": 0}, "records": []}
@@ -100,10 +114,17 @@ async def test_a_gold_strategy_thread_claims_the_strategy_it_minted(
     del patch_app_db_engine
     api = _minting_api(_GOLD_STRATEGY)
     monkeypatch.setattr("strategist.services.eval.get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(
-        "strategist.services.experiment.materialization.get_strategy_api",
-        lambda _site: api,
-    )
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
+
+    async def _no_marks(*_args: object) -> dict[str, str]:
+        return {}
+
+    async def _no_organisms(*_args: object) -> dict[str, frozenset[str]]:
+        return {}
+
+    monkeypatch.setattr(_tree_write, "tree_organism_parameters", _no_marks)
+    monkeypatch.setattr(_tree_write, "tree_dataset_organisms", _no_organisms)
 
     result = await build_gold_strategy(
         gold_id="gold-1",

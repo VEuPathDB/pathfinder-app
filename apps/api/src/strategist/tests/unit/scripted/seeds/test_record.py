@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 from pydantic import SecretStr
+from veupathdb.wdk import WDKSearchConfig, WDKStep
 from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.controls import (
     ControlsSearch,
@@ -16,12 +17,13 @@ from veupathdb_mcp.controls import (
 )
 
 from strategist.platform.config import get_settings
-from strategist.services.experiment import materialization
+from strategist.services.strategies import commit_tree
 from strategist.tests._support.organism_reads import MARKS
 from strategist.tests._support.record_classes import (
     list_each_search_under,
     list_searches_under,
 )
+from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
 from strategist_scripted.models import site_values
 from strategist_scripted.seeds import record
 from strategist_scripted.seeds.catalog import (
@@ -119,6 +121,9 @@ class _SeedApi:
     async def delete_strategy(self, strategy_id: int) -> None:
         del strategy_id
 
+    async def find_step(self, step_id: int) -> WDKStep:
+        return WDKStep(id=step_id, search_name=_PFAM, search_config=WDKSearchConfig())
+
     async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
         del step_ids
         return []
@@ -149,10 +154,11 @@ async def test_a_group_seed_reads_its_controls_by_group_id(
         )
 
     api = _SeedApi()
-    monkeypatch.setattr(record, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
+    for module in (record, commit_tree):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(record, "run_step_control_tests", run)
-    monkeypatch.setattr(materialization, "validate_parameters", _as_stated)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _as_stated)
+    skip_the_tree_put(monkeypatch)
     list_searches_under(monkeypatch, "group", [_PFAM, _PATTERN])
     (seed, *_) = get_seeds_for_site("orthomcl")
 
@@ -172,8 +178,8 @@ async def test_a_seed_whose_leaves_the_site_lists_under_two_classes_posts_nothin
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = _SeedApi()
-    monkeypatch.setattr(record, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
+    for module in (record, commit_tree):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site: api)
     list_each_search_under(monkeypatch, {_PFAM: "sequence", _PATTERN: "group"})
     (seed, *_) = get_seeds_for_site("orthomcl")
 

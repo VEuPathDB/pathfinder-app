@@ -30,7 +30,6 @@ from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import (
     commit_tree,
-    save_substrategy,
     stated_sides,
 )
 from strategist.services.strategies.commit_tree import CommittedTree
@@ -157,7 +156,6 @@ def _serve(monkeypatch: pytest.MonkeyPatch, api: _Api) -> None:
     monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     skip_the_tree_put(monkeypatch)
-    monkeypatch.setattr(save_substrategy, "get_strategy_api", lambda _site: api)
     list_every_search_under(monkeypatch, "transcript")
 
 
@@ -230,7 +228,7 @@ async def test_a_failed_push_retried_sends_the_stated_canonical_values(
     assert api.created == [_wire(_LEAVES, "50"), _wire(_LEAVES, "50")]
 
 
-async def test_a_saved_subtree_sends_read_values_as_read_and_stated_ones_canonical(
+async def test_a_saved_subtree_states_every_value_it_copies(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = _Api()
@@ -244,4 +242,4 @@ async def test_a_saved_subtree_sends_read_values_as_read_and_stated_ones_canonic
         session=session, site_id="plasmodb", source_step_id="s", name="saved"
     )
 
-    assert api.created == [_wire(_BRANCH, "60")]
+    assert api.created == [_wire(_LEAVES, "60")]

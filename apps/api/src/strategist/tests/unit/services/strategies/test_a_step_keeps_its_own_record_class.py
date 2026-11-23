@@ -15,7 +15,6 @@ from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import (
     _tree_write,
     commit_tree,
-    save_substrategy,
     stated_sides,
 )
 from strategist.services.strategies.commit_tree import CommittedTree
@@ -46,7 +45,6 @@ def api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         return ValidatedParams(params=dict(kwargs["stated"]))
 
     monkeypatch.setattr(commit_tree, "validate_parameters", _as_stated)
-    monkeypatch.setattr(save_substrategy, "get_strategy_api", lambda _site: api)
     return api
 
 
@@ -155,7 +153,7 @@ async def test_a_saved_group_subtree_is_pushed_and_saved_as_groups(
         saved.record_type,
         [c.kwargs["record_type"] for c in api.named("create_step")],
     ) == ("group", ["group"])
-    assert len(api.named("create_strategy")) == 1
+    assert saved.wdk_strategy_id == 42
 
 
 async def test_a_saved_subtree_of_no_listed_class_is_refused(

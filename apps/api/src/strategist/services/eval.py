@@ -16,8 +16,8 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.parameters import InputDatasetValue
-from veupathdb.domain.strategy import StrategyStepNode, walk
-from veupathdb.errors import VEuPathDBError
+from veupathdb.domain.strategy import StrategyStepNode, flatten_tree, walk
+from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
     StrategyAPI,
     WDKDatasetConfigIdList,
@@ -27,14 +27,15 @@ from veupathdb.wdk import (
 
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.experiment.materialization import (
-    materialize_classed_tree,
-    tree_classes,
-)
 from strategist.services.gene_sets.step_genes import (
     TooManyGenesError,
     fetch_all_gene_ids,
 )
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
+from strategist.services.strategies.record_classes import (
+    refuse_a_tree_the_site_cannot_run,
+)
+from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.services.strategies.wdk_sync import ChatOwner, sync_to_chat
 
 logger = get_logger(__name__)
@@ -99,31 +100,43 @@ async def build_gold_strategy(
 
     1. Reads each step's record type, and refuses a tree the site cannot run.
     2. Provisions any user-specific datasets (gene ID lists).
-    3. Recursively creates WDK steps from the step tree.
-    4. Wraps them in a WDK strategy.
-    5. Fetches all gene IDs from the root step via standard report.
-    6. Returns the gene IDs plus WDK IDs.
+    3. Commits the tree through the one commit path as an internal strategy.
+    4. Fetches all gene IDs from the root step via standard report.
+    5. Returns the gene IDs plus WDK IDs.
     """
     api = get_strategy_api(site_id)
     tree_node = StrategyStepNode.model_validate(step_tree)
-    known = await tree_classes(site_id, tree_node)
+    await refuse_a_tree_the_site_cannot_run(site_id, tree_node)
 
     await _provision_datasets(api, tree_node, dataset_gene_ids)
 
-    made: list[int] = []
-    try:
-        root_tree = await materialize_classed_tree(site_id, tree_node, known, made)
-        created = await api.create_strategy(
-            step_tree=root_tree,
+    sync_state = WDKSyncState()
+    committed = await commit_tree(
+        site_id=site_id,
+        steps=flatten_tree(tree_node),
+        root_id=tree_node.id,
+        old=None,
+        sync_state=sync_state,
+        target=CommitTarget(
             name=f"gold:{gold_id}",
             description=f"Gold strategy: {gold_id}",
-            is_saved=False,
+            role="internal",
+        ),
+    )
+    if committed.sync is None or committed.refused:
+        if committed.sync is None:
+            await api.delete_orphaned_steps(list(sync_state.wdk_step_ids.values()))
+        else:
+            await api.delete_strategy(committed.sync.wdk_strategy_id)
+        raise ValidationError(
+            title="The site did not build the gold strategy",
+            detail="; ".join(
+                f"step {sid!r}: {text}" for sid, text in committed.refused.items()
+            )
+            or "the site took no strategy",
         )
-    except VEuPathDBError:
-        await api.delete_orphaned_steps(made)
-        raise
-    root_step_id = root_tree.step_id
-    wdk_strategy_id = created.id
+    root_step_id = committed.sync.root_step_id
+    wdk_strategy_id = committed.sync.wdk_strategy_id
 
     logger.info(
         "Built gold strategy on WDK",

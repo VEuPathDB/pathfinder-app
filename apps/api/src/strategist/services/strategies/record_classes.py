@@ -10,6 +10,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     walk,
 )
+from veupathdb.errors import ValidationError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     get_raw_record_types,
@@ -138,3 +139,11 @@ async def tree_record_class_refusal(
     if mixed is not None:
         return mixed_combine_refusal(mixed, names, transforms)
     return transform_input_refusal(root, own, transforms, names)
+
+
+async def refuse_a_tree_the_site_cannot_run(
+    site_id: str, root: StrategyStepNode
+) -> None:
+    refusal = await tree_record_class_refusal(site_id, root, {})
+    if refusal is not None:
+        raise ValidationError(title="The site cannot run this tree", detail=refusal)

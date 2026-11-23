@@ -2,6 +2,15 @@
 
 ## 2026-11-23
 
+* **A saved subtree, a gold strategy and a seed measurement go through the one commit
+  path.** Each commits its tree with no prior tree and a fresh sync state: a saved subtree
+  as a saved strategy, a gold strategy and a seed as internal ones. Every value is stated,
+  so each is validated once, and each step carries its weight, filters, expansion and a
+  colocation's own parameters; a refused or open step refuses the whole write and names
+  every step it refused, and the steps already made are deleted.
+  `services/experiment/materialization.py` is gone, and no module but the commit path's
+  own creates or patches a step.
+
 * **A build goes through the one commit path.** `build_strategy_from_spec` replaces the
   graph and commits it with the tree it held before as `old`, so a rebuild writes only the
   steps that moved: a moved value is a search-config PUT on the step WDK holds, a moved

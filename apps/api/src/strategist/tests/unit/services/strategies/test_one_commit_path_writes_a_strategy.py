@@ -12,6 +12,7 @@ from veupathdb.domain.strategy import (
     StepFilter,
     StrategyAst,
     StrategyStepNode,
+    flatten_tree,
     walk,
 )
 from veupathdb_mcp.catalog import ValidatedParams
@@ -24,6 +25,7 @@ from strategist.domain.strategy.operations import (
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.validate import ValidationResult, validate_strategy
+from strategist.services.eval import build_gold_strategy
 from strategist.services.strategies import (
     commit_tree,
     organism_params,
@@ -33,6 +35,7 @@ from strategist.services.strategies import (
 from strategist.services.strategies.commit import apply_operations_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.materialize import materialize_strategy_snapshot
+from strategist.services.strategies.save_substrategy import save_subtree_as_strategy
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.tests._support.record_classes import list_every_search_under
@@ -367,6 +370,44 @@ async def test_p2_build_holds_every_setting(monkeypatch: pytest.MonkeyPatch) -> 
     async def write(root: StrategyStepNode) -> int | None:
         await build_strategy_from_spec(deps=deps, root=root.model_copy(deep=True))
         return ensure_sync_state(deps.strategy_session).wdk_strategy_id
+
+    assert await _row(env, plan_root(), write) == FIELDS
+
+
+async def test_p3_save_subtree_holds_every_setting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env = Env(monkeypatch)
+
+    async def write(root: StrategyStepNode) -> int | None:
+        session = StrategySession(site_id=_SITE)
+        graph = StrategyGraph(graph_id="g1", name="Kinases", site_id=_SITE)
+        graph.steps = flatten_tree(root)
+        graph.recompute_roots()
+        session.graph = graph
+        saved = await save_subtree_as_strategy(
+            session=session, site_id=_SITE, source_step_id=root.id, name="Saved"
+        )
+        return saved.wdk_strategy_id
+
+    assert await _row(env, plan_root(), write) == FIELDS
+
+
+async def test_p6_gold_holds_every_setting(monkeypatch: pytest.MonkeyPatch) -> None:
+    env = Env(monkeypatch)
+
+    async def _no_genes(*_args: object) -> list[str]:
+        return []
+
+    monkeypatch.setattr("strategist.services.eval.fetch_all_gene_ids", _no_genes)
+
+    async def write(root: StrategyStepNode) -> int | None:
+        gold = await build_gold_strategy(
+            gold_id="matrix",
+            site_id=_SITE,
+            step_tree=root.model_dump(by_alias=True, mode="json"),
+        )
+        return gold.wdk_strategy_id
 
     assert await _row(env, plan_root(), write) == FIELDS
 
