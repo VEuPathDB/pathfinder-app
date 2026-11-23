@@ -2,6 +2,11 @@
 
 ## 2026-11-23
 
+* **Strategist takes veupathdb-py 0.9.0b14 and veupathdb-mcp 0.9.0b19.** Both carry the refusal
+  work: a read and a walk name every miss once, and a refused walk names the quantity it held
+  back. The pins in `apps/api/pyproject.toml` and the two MCP build contexts in
+  `docker-compose.yml` name the new tags.
+
 * **Every stop names its tool and its refusal, and every spend is charged.** A Lead or Explore
   run whose tool spent its retries ends on "I stopped this turn when <tool> refused every attempt:
   ...", from the refusals the run noted per tool (`LeadRunCapture.refusals`), never the generic
