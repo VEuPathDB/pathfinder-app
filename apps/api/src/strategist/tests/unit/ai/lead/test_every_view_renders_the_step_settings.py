@@ -399,3 +399,31 @@ def test_the_ledger_names_a_weight_stated_before_a_search() -> None:
     rendered = render_frame_full(FrameSection(spec=_weighted_before_a_search()))
 
     assert "    SETTINGS weight 10" in rendered.splitlines()
+
+
+def test_a_rewire_beside_an_edit_names_both() -> None:
+    answered = _tree(
+        leaf_a=_leaf("step_a", "kinase"), operator=CombineOp.MINUS, offset=0
+    )
+    edited = _leaf("step_a", "kinase").model_copy(
+        update={"parameters": {"text_expression": StringValue(value="kinases")}}
+    )
+    swapped = answered.model_copy(
+        update={
+            "root": answered.root.model_copy(
+                update={
+                    "primary_input": answered.root.secondary_input,
+                    "secondary_input": edited,
+                }
+            )
+        }
+    )
+
+    briefing = compose_turn_briefing(
+        ThreadActivity(), requirements=[], answered=answered, live=swapped
+    )
+
+    assert briefing.render().splitlines()[1:-1] == [
+        '- kinase (step_a): text_expression "kinase" -> "kinases"',
+        "- the combinations changed",
+    ]

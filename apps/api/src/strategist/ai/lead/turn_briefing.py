@@ -105,7 +105,7 @@ class TurnBriefing(BaseModel):
                 f"- {step.label} ({step.step_id}): removed"
                 for step in self.strategy.removed
             ),
-            *([_COMBINATIONS_CHANGED] if self._only_the_structure_moved() else []),
+            *([_COMBINATIONS_CHANGED] if self._combinations_changed() else []),
             *(_task_line(task) for task in self.tasks),
             *([_analysis_line(self.analysis)] if self.analysis is not None else []),
             *(
@@ -114,10 +114,11 @@ class TurnBriefing(BaseModel):
             ),
         ]
 
-    def _only_the_structure_moved(self) -> bool:
+    def _combinations_changed(self) -> bool:
         moved = self.strategy
-        return moved.structure_moved and not (
-            moved.changed or moved.added or moved.removed
+        return moved.rewired or (
+            moved.structure_moved
+            and not (moved.changed or moved.added or moved.removed)
         )
 
 
