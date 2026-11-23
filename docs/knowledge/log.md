@@ -1,5 +1,12 @@
 # Log
 
+## 2026-11-24
+
+* **Strategist takes veupathdb-py 0.9.0b17 and veupathdb-mcp 0.9.0b22.** They carry the one
+  step settings model, filters on the step write, the strategy read of weight, filters and
+  colocation, and a strategy read that states no saved-strategy id; with them come
+  0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
+
 ## 2026-11-23
 
 * **The review fixes of the one step model.** A one-sided join nested on its kept side
