@@ -88,6 +88,12 @@
   harness sends a tool refusal as `failed`, as production does. C7 and the conversation-count
   test read only what they made, and C6, which reads the whole account, holds it alone, because
   every e2e worker acts as one user.
+* **A share hides the owner's uploaded studies.** With "Include what it read from your account"
+  off, a shared thread and a copy no longer show a study the owner uploaded: the EDA calls that
+  name it lose their contents, its analysis-state part is left out, a reply block that names it
+  (its id, or its study or analysis name, even split across deltas) reads as not shared, and any
+  other chunk that names it has the mark replaced. One predicate, `domain/account_datasets.py`,
+  says which dataset is an upload.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new

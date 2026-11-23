@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from strategist.domain.owner_reads import (
     NOT_SHARED,
     OWNER_READ_TOOLS,
+    UPLOAD_BLOCK,
     without_owner_reads,
 )
 from strategist.tests._support.tool_names import all_tool_names
@@ -229,3 +234,161 @@ def test_an_owner_read_keeps_only_what_names_the_call() -> None:
         "input": {},
         "errorText": NOT_SHARED,
     }
+
+
+UPLOAD = "EDAUD_sF88g1cwo00gw"
+
+
+def _upload_thread() -> list[dict[str, object]]:
+    state = {
+        "siteId": "plasmodb",
+        "datasetId": UPLOAD,
+        "studyId": "STUDY_up_3d7",
+        "analysisId": "a-up-1",
+        "revision": 1,
+        "studyDisplayName": "My 3D7 RNA-seq upload",
+        "displayName": "gametocyte subset",
+        "numFilters": 0,
+        "numComputations": 0,
+        "filters": [],
+        "filterSummaries": [],
+        "entityCounts": [],
+        "canExportRows": True,
+    }
+    return [
+        {
+            "type": "tool-input-start",
+            "toolCallId": "c-9",
+            "toolName": "open_eda_analysis",
+        },
+        {
+            "type": "tool-input-available",
+            "toolCallId": "c-9",
+            "toolName": "open_eda_analysis",
+            "input": {"datasetId": UPLOAD, "purpose": "gametocyte subset"},
+        },
+        {
+            "type": "tool-output-available",
+            "toolCallId": "c-9",
+            "output": {
+                "datasetId": UPLOAD,
+                "studyDisplayName": "My 3D7 RNA-seq upload",
+            },
+        },
+        {"type": "data-eda.analysis-state", "id": "a-up-1", "data": state},
+        *_call("c-10", "preview_eda_subset", {"analysisId": "a-up-1", "count": 812}),
+        {"type": "text-delta", "id": "t-1", "delta": f"I opened {UPLOAD} for you."},
+    ]
+
+
+def test_a_read_of_the_owners_upload_is_not_shown() -> None:
+    shown = json.dumps(without_owner_reads(_upload_thread()))
+
+    assert [UPLOAD in shown, "My 3D7 RNA-seq upload" in shown, "812" in shown] == [
+        False,
+        False,
+        False,
+    ]
+
+
+def test_a_read_of_a_curated_study_is_shown() -> None:
+    chunks = _call("c-11", "open_eda_analysis", {"datasetId": "DS_53f554ec6a"})
+
+    assert without_owner_reads(chunks) == chunks
+
+
+def test_a_name_split_across_deltas_is_not_shown() -> None:
+    chunks: list[dict[str, object]] = [
+        *_upload_thread()[:4],
+        {"type": "reasoning-delta", "id": "r-1", "delta": "The My 3D7 RNA"},
+        {"type": "reasoning-delta", "id": "r-1", "delta": "-seq upload holds it."},
+        {"type": "text-delta", "id": "t-2", "delta": "Kinases on "},
+        {"type": "text-delta", "id": "t-2", "delta": "chromosome 3."},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert [c["delta"] for c in shown if c["type"].endswith("-delta")] == [
+        UPLOAD_BLOCK,
+        "",
+        "Kinases on ",
+        "chromosome 3.",
+    ]
+    assert "RNA-seq upload" not in json.dumps(shown)
+
+
+def test_a_chunk_of_another_shape_that_names_an_upload_is_withheld() -> None:
+    chunks: list[dict[str, object]] = [
+        {"type": "source-document", "sourceId": "s-1", "title": f"Study {UPLOAD}"},
+        {"type": "data-eda.viz", "id": "v-1", "data": {"datasetId": UPLOAD}},
+        {"type": "source-document", "sourceId": "s-2", "title": "PlasmoDB release 68"},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert shown == [
+        {
+            "type": "source-document",
+            "sourceId": "s-1",
+            "title": "Study a private dataset",
+        },
+        {"type": "source-document", "sourceId": "s-2", "title": "PlasmoDB release 68"},
+    ]
+
+
+def _strings(value: object) -> list[str]:
+    match value:
+        case str():
+            return [value]
+        case list():
+            return [s for item in value for s in _strings(item)]
+        case dict():
+            return [s for k, v in value.items() for s in [str(k), *_strings(v)]]
+        case _:
+            return []
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        f"{chr(0xC9)}tude de P. vivax {chr(0x2013)} sang",
+        'The "3D7" upload',
+        "Gametocytes\nday 12",
+    ],
+)
+def test_a_name_that_json_escapes_is_still_hidden(name: str) -> None:
+    chunks: list[dict[str, object]] = [
+        {
+            "type": "data-eda.analysis-state",
+            "id": "a-up-2",
+            "data": {
+                "datasetId": UPLOAD,
+                "analysisId": "a-up-2",
+                "studyDisplayName": name,
+            },
+        },
+        {"type": "source-document", "sourceId": "s-1", "title": f"From {name}"},
+        {"type": "text-delta", "id": "t-3", "delta": f"Read {name} today."},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert [s for s in _strings(shown) if name in s] == []
+
+
+def test_a_name_reached_through_another_mark_is_hidden() -> None:
+    chunks: list[dict[str, object]] = [
+        *_call("c-12", "describe_eda_study", {"datasetId": UPLOAD, "studyId": "ST_up"}),
+        {
+            "type": "data-eda.viz",
+            "id": "v-2",
+            "data": {"studyId": "ST_up", "displayName": "Ring stage counts"},
+        },
+        {"type": "source-document", "sourceId": "s-3", "title": "Ring stage counts"},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert [
+        s for s in _strings(shown) if "Ring stage counts" in s or "ST_up" in s
+    ] == []

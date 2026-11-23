@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from strategist.domain.owner_reads import without_owner_reads
+from strategist.domain.owner_reads import shown_with_positions
 from strategist.services.conversations.fork_ids import (
     IdMint,
     rewrite_message_ids_in_chunk,
@@ -48,10 +48,14 @@ async def copy_conversation_events(
     )
     source = list(rows.mappings())
     chunks = [dict(row["chunk"]) for row in source]
-    if rewrite.hide_owner_reads:
-        chunks = without_owner_reads(chunks)
+    shown = (
+        shown_with_positions(chunks)
+        if rewrite.hide_owner_reads
+        else list(enumerate(chunks))
+    )
     inserts: list[dict[str, Any]] = []
-    for row, copied in zip(source, chunks, strict=True):
+    for position, copied in shown:
+        row = source[position]
         chunk = rewrite_scratchpad_ids_in_chunk(copied, rewrite.note_id_map)
         chunk = rewrite_message_ids_in_chunk(chunk, messages)
         inserts.append(
