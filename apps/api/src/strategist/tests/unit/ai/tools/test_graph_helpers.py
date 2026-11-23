@@ -12,8 +12,8 @@ from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
 from strategist.ai.tools.standalone.graph_helpers import (
     build_context_strategy_ast,
-    build_step_response,
     count_summary,
+    serialize_step,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -132,7 +132,7 @@ def test_a_step_wdk_refused_reports_no_estimated_size() -> None:
         wdk_push_errors={"a": "422 profileset_generic: Invalid value"},
     )
 
-    response = build_step_response(graph, step, sync_state)
+    response = serialize_step(graph, step, sync_state)
 
     assert response.estimated_size is None
     assert response.wdk_push_error == "422 profileset_generic: Invalid value"
@@ -141,7 +141,7 @@ def test_a_step_wdk_refused_reports_no_estimated_size() -> None:
 def test_an_unnamed_combine_is_answered_under_its_operators_name() -> None:
     graph = _with_a_pair_and_a_stray()
 
-    response = build_step_response(graph, graph.steps["c"])
+    response = serialize_step(graph, graph.steps["c"])
 
     assert response.display_name == "Intersect"
 

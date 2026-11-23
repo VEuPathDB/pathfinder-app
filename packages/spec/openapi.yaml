@@ -12574,6 +12574,71 @@ components:
       description: Report request attached to a step.
     StepResponse:
       properties:
+        searchName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Searchname
+        parameters:
+          additionalProperties:
+            oneOf:
+            - $ref: '#/components/schemas/StringValue'
+            - $ref: '#/components/schemas/NumberValue'
+            - $ref: '#/components/schemas/NumberRangeValue'
+            - $ref: '#/components/schemas/DateValue'
+            - $ref: '#/components/schemas/DateRangeValue'
+            - $ref: '#/components/schemas/TimestampValue'
+            - $ref: '#/components/schemas/SinglePickValue'
+            - $ref: '#/components/schemas/MultiPickValue'
+            - $ref: '#/components/schemas/FilterValue'
+            - $ref: '#/components/schemas/InputDatasetValue'
+            - $ref: '#/components/schemas/InputStepValue'
+            - $ref: '#/components/schemas/HeldValue'
+            discriminator:
+              propertyName: type
+              mapping:
+                date: '#/components/schemas/DateValue'
+                date-range: '#/components/schemas/DateRangeValue'
+                filter: '#/components/schemas/FilterValue'
+                held: '#/components/schemas/HeldValue'
+                input-dataset: '#/components/schemas/InputDatasetValue'
+                input-step: '#/components/schemas/InputStepValue'
+                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
+                number: '#/components/schemas/NumberValue'
+                number-range: '#/components/schemas/NumberRangeValue'
+                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
+                string: '#/components/schemas/StringValue'
+                timestamp: '#/components/schemas/TimestampValue'
+          type: object
+          title: Parameters
+        operator:
+          anyOf:
+          - $ref: '#/components/schemas/CombineOp'
+          - type: 'null'
+        colocationParams:
+          anyOf:
+          - $ref: '#/components/schemas/ColocationParams'
+          - type: 'null'
+        filters:
+          items:
+            $ref: '#/components/schemas/StepFilter'
+          type: array
+          title: Filters
+        wdkWeight:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Wdkweight
+        expandedStrategyId:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Expandedstrategyid
+        expandedName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expandedname
         id:
           type: string
           title: Id
@@ -12606,25 +12671,11 @@ components:
                 search: '#/components/schemas/SearchRationale'
           - type: 'null'
           title: Rationale
-        searchName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Searchname
         recordType:
           anyOf:
           - type: string
           - type: 'null'
           title: Recordtype
-        operator:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Operator
-        colocationParams:
-          anyOf:
-          - $ref: '#/components/schemas/ColocationParams'
-          - type: 'null'
         primaryInputStepId:
           anyOf:
           - type: string
@@ -12661,13 +12712,6 @@ components:
           anyOf:
           - $ref: '#/components/schemas/StepValidation'
           - type: 'null'
-        filters:
-          anyOf:
-          - items:
-              $ref: '#/components/schemas/StepFilter'
-            type: array
-          - type: 'null'
-          title: Filters
         analyses:
           anyOf:
           - items:
@@ -12675,50 +12719,6 @@ components:
             type: array
           - type: 'null'
           title: Analyses
-        expandedStrategyId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Expandedstrategyid
-        expandedName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Expandedname
-        parameters:
-          anyOf:
-          - additionalProperties:
-              oneOf:
-              - $ref: '#/components/schemas/StringValue'
-              - $ref: '#/components/schemas/NumberValue'
-              - $ref: '#/components/schemas/NumberRangeValue'
-              - $ref: '#/components/schemas/DateValue'
-              - $ref: '#/components/schemas/DateRangeValue'
-              - $ref: '#/components/schemas/TimestampValue'
-              - $ref: '#/components/schemas/SinglePickValue'
-              - $ref: '#/components/schemas/MultiPickValue'
-              - $ref: '#/components/schemas/FilterValue'
-              - $ref: '#/components/schemas/InputDatasetValue'
-              - $ref: '#/components/schemas/InputStepValue'
-              - $ref: '#/components/schemas/HeldValue'
-              discriminator:
-                propertyName: type
-                mapping:
-                  date: '#/components/schemas/DateValue'
-                  date-range: '#/components/schemas/DateRangeValue'
-                  filter: '#/components/schemas/FilterValue'
-                  held: '#/components/schemas/HeldValue'
-                  input-dataset: '#/components/schemas/InputDatasetValue'
-                  input-step: '#/components/schemas/InputStepValue'
-                  multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                  number: '#/components/schemas/NumberValue'
-                  number-range: '#/components/schemas/NumberRangeValue'
-                  single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                  string: '#/components/schemas/StringValue'
-                  timestamp: '#/components/schemas/TimestampValue'
-            type: object
-          - type: 'null'
-          title: Parameters
       type: object
       required:
       - id

@@ -9,9 +9,9 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 
-from strategist.ai.tools.standalone.graph_helpers import build_step_response
+from strategist.ai.tools.standalone.graph_helpers import serialize_step
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies.schemas import step_response_from_strategy_ast
+from strategist.services.conversations.responses import derive_steps_from_strategy_ast
 
 
 def _leaf() -> StrategyStepNode:
@@ -29,8 +29,8 @@ def test_a_step_response_names_no_report() -> None:
     stored = StrategyAst(record_type="transcript", root=_leaf())
 
     wired = [
-        build_step_response(graph, graph.steps["step_a"]).model_dump(by_alias=True),
-        step_response_from_strategy_ast(stored, stored.root).model_dump(by_alias=True),
+        serialize_step(graph, graph.steps["step_a"]).model_dump(by_alias=True),
+        derive_steps_from_strategy_ast(stored)[0].model_dump(by_alias=True),
     ]
 
     assert ["reports" in w for w in wired] == [False, False]

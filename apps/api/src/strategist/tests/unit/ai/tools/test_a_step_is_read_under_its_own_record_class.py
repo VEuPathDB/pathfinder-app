@@ -24,7 +24,7 @@ from strategist.ai.tools.standalone._edit_refusal import refusal_context
 from strategist.ai.tools.standalone._result_models import StepColumns
 from strategist.ai.tools.standalone._stated_values import StatedUpdateStepParamsOp
 from strategist.ai.tools.standalone._step_read import read_as
-from strategist.ai.tools.standalone.graph_helpers import build_step_response
+from strategist.ai.tools.standalone.graph_helpers import serialize_step
 from strategist.ai.tools.standalone.optimization import sweep_can_run
 from strategist.ai.tools.standalone.results import read_step_columns
 from strategist.ai.tools.standalone.step_ids import read_step_ids
@@ -294,7 +294,7 @@ async def test_a_refused_edit_of_a_group_step_names_the_group_class() -> None:
     ]
 
 
-def test_a_step_response_carries_the_steps_class_not_the_strategys() -> None:
+def test_a_step_response_carries_the_steps_own_class_else_the_strategys() -> None:
     session = _protein_and_groups()
     graph = session.graph
     assert graph is not None
@@ -302,11 +302,11 @@ def test_a_step_response_carries_the_steps_class_not_the_strategys() -> None:
     graph.steps["step_groups"].record_class = "group"
 
     responses = [
-        build_step_response(graph, graph.steps[step_id]).record_type
+        serialize_step(graph, graph.steps[step_id]).record_type
         for step_id in ("step_groups", "step_protein", "step_root")
     ]
 
-    assert responses == ["group", None, "group"]
+    assert responses == ["group", "transcript", "group"]
 
 
 async def test_a_turn_classes_every_step_of_its_strategy_on_arrival() -> None:

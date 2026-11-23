@@ -117,7 +117,7 @@ function treeToFlatSteps(root: StrategyStepNode, strategy: Strategy): Step[] {
             : "search",
       displayName: node.displayName ?? null,
       searchName: node.searchName,
-      parameters: node.parameters ?? null,
+      parameters: node.parameters ?? {},
       operator: node.operator ?? null,
       colocationParams: node.colocationParams ?? null,
       primaryInputStepId: primary?.id ?? null,

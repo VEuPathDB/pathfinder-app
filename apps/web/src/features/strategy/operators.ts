@@ -17,7 +17,7 @@ const LABELS: ReadonlySet<string> = new Set([
   ...RETIRED_OPERATOR_LABELS,
 ]);
 
-function isCombineOp(operator: string): operator is CombineOp {
+export function isCombineOp(operator: string): operator is CombineOp {
   return Object.hasOwn(COMBINE_OP_LABELS, operator);
 }
 

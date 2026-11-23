@@ -8,32 +8,15 @@ than a memory.
 """
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field, JsonValue
+from pydantic import Field
 
-from strategist.ai.tools.standalone.graph_helpers import build_step_response
+from strategist.ai.tools.standalone.graph_helpers import serialize_step
+from strategist.ai.tools.standalone.strategy_graph import ShownStep, shown_step
 from strategist.domain.strategy.build_outcome import citable_count
-from strategist.domain.strategy.expression_handles import stated_values
 from strategist.domain.strategy.session import StrategySession, strategy_root_id
 from strategist.services.strategies.live_counts import read_wdk_step_counts
 
-__all__ = ["LiveStepState", "LiveStrategyState", "read_live_state"]
-
-
-class LiveStepState(CamelModel):
-    step_id: str
-    display_name: str
-    search_name: str | None = None
-    estimated_size: int | None = None
-    """What the site returns for this step now. ``None`` means unknown."""
-
-    parameters: dict[str, JsonValue] = Field(default_factory=dict)
-    """The values stored on the step, which outrank the name it carries."""
-
-    wdk_step_id: int | None = None
-    """The step's id on the site. ``None`` means the site does not hold it."""
-
-    is_root: bool = False
-    """True for the step whose count is the strategy's count."""
+__all__ = ["LiveStrategyState", "read_live_state"]
 
 
 class LiveStrategyState(CamelModel):
@@ -45,7 +28,10 @@ class LiveStrategyState(CamelModel):
     root_count: int | None = None
     """What the whole strategy returns now. ``None`` means unknown."""
 
-    steps: list[LiveStepState] = Field(default_factory=list)
+    root_step_id: str | None = None
+    """The step whose count is the strategy's count."""
+
+    steps: list[ShownStep] = Field(default_factory=list)
 
 
 async def read_live_state(
@@ -67,17 +53,16 @@ async def read_live_state(
     refused = sync_state.wdk_push_errors if sync_state else {}
     root_id = strategy_root_id(graph, sync_state)
     steps = [
-        LiveStepState(
-            step_id=step.id,
-            display_name=response.display_name or step.id,
-            search_name=response.search_name,
-            estimated_size=citable_count(step.id, counts=counts, refused=refused),
-            parameters=stated_values(step.parameters),
-            wdk_step_id=response.wdk_step_id,
-            is_root=step.id == root_id,
+        shown_step(
+            serialize_step(graph, step, sync_state).model_copy(
+                update={
+                    "estimated_size": citable_count(
+                        step.id, counts=counts, refused=refused
+                    )
+                }
+            )
         )
         for step in graph.steps.values()
-        if (response := build_step_response(graph, step, sync_state)) is not None
     ]
     root_count = (
         citable_count(root_id, counts=counts, refused=refused)
@@ -90,5 +75,6 @@ async def read_live_state(
         step_count=len(graph.steps),
         record_type=graph.record_type,
         root_count=root_count,
+        root_step_id=root_id,
         steps=steps,
     )

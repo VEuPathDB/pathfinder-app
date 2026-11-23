@@ -2,6 +2,12 @@
 
 ## 2026-11-23
 
+* **One step view.** `StepResponse` is the step's settings (`StepSettings`: search, parameters,
+  operator, colocation, filters, weight, expansion) plus its view fields, built by one function,
+  `step_response`, for the chat snapshot, the REST load, the strategy read and the live read. A
+  step states its own record class, else the strategy's. The live read lists the same view with
+  the root named once (`rootStepId`), its parameters shown as stated values.
+
 * **The plan carries a colocation.** A COLOCATE node of the spec's structure states its
   `colocationParams`, and only a COLOCATE node does (`StructureNode`). The build, an edit that
   rebuilds or adds a combine, the stated-steps projection and the hydration of a strategy all

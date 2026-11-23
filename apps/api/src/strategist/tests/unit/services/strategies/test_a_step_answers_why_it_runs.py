@@ -7,7 +7,7 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 from veupathdb.eda import EdaAnalysisDetail
 
-from strategist.ai.tools.standalone.graph_helpers import build_step_response
+from strategist.ai.tools.standalone.graph_helpers import serialize_step
 from strategist.domain.strategy.analysis_binding import AnalysisKind
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.step_rationale import (
@@ -16,8 +16,8 @@ from strategist.domain.strategy.step_rationale import (
     SearchRationale,
 )
 from strategist.domain.strategy.step_words import StampedKind, StepWords
+from strategist.services.conversations.responses import derive_steps_from_strategy_ast
 from strategist.services.eda.export import eda_step_request
-from strategist.services.strategies.schemas import step_response_from_strategy_ast
 from strategist.tests._support.eda_wire import fixture
 
 _EXPORTED = "GenesByExportPrediction"
@@ -73,7 +73,7 @@ def _exported_step() -> StrategyStepNode:
 def test_a_stored_step_answers_with_its_search_choice() -> None:
     ast = _stored(_leaf("step_a"), StepWords(rationales={"step_a": _CHOSEN}))
 
-    assert step_response_from_strategy_ast(ast, ast.root).rationale == _CHOSEN
+    assert derive_steps_from_strategy_ast(ast)[0].rationale == _CHOSEN
 
 
 def test_a_live_step_answers_with_its_search_choice() -> None:
@@ -82,7 +82,7 @@ def test_a_live_step_answers_with_its_search_choice() -> None:
     graph.recompute_roots()
     graph.note_words(StepWords(rationales={"step_a": _CHOSEN}))
 
-    assert build_step_response(graph, graph.steps["step_a"]).rationale == _CHOSEN
+    assert serialize_step(graph, graph.steps["step_a"]).rationale == _CHOSEN
 
 
 def test_a_step_the_site_moved_to_another_search_answers_no_reason() -> None:
@@ -90,7 +90,7 @@ def test_a_step_the_site_moved_to_another_search_answers_no_reason() -> None:
         _leaf("step_a", "GenesByTaxon"), StepWords(rationales={"step_a": _CHOSEN})
     )
 
-    response = step_response_from_strategy_ast(ast, ast.root)
+    response = derive_steps_from_strategy_ast(ast)[0]
 
     assert (response.search_name, response.rationale) == ("GenesByTaxon", None)
 
@@ -98,7 +98,7 @@ def test_a_step_the_site_moved_to_another_search_answers_no_reason() -> None:
 def test_a_re_imported_search_step_answers_no_reason() -> None:
     ast = _stored(_leaf("step_a"), None)
 
-    response = step_response_from_strategy_ast(ast, ast.root)
+    response = derive_steps_from_strategy_ast(ast)[0]
 
     assert (response.search_name, response.rationale) == (_EXPORTED, None)
 
@@ -108,7 +108,7 @@ def test_a_re_imported_analysis_step_answers_its_compute() -> None:
     stamped = StampedKind(search_name=_COMPUTE, kind=AnalysisKind.COMPUTE)
     ast = _stored(step, StepWords(analysis_kinds={step.id: stamped}))
 
-    assert step_response_from_strategy_ast(ast, ast.root).rationale == (
+    assert derive_steps_from_strategy_ast(ast)[0].rationale == (
         AnalysisRationale(
             dataset_id=_DATASET,
             method="DESeq",

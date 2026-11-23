@@ -1,4 +1,4 @@
-import type { CombineOp, StrategyStepNode, StrategyAst } from "@strategist/shared";
+import type { StrategyStepNode, StrategyAst } from "@strategist/shared";
 import { DEFAULT_STREAM_NAME } from "@strategist/shared";
 import type { Step, Strategy } from "@strategist/shared";
 import { walkSubtreeIds } from "@/features/strategy/operations";
@@ -99,7 +99,7 @@ export function serializeStrategyAst(
       if (!secondary) return null;
       node.secondaryInput = secondary;
       if (step.operator == null) return null;
-      node.operator = step.operator as CombineOp;
+      node.operator = step.operator;
       if (step.operator === "COLOCATE" && step.colocationParams) {
         node.colocationParams = step.colocationParams;
       }

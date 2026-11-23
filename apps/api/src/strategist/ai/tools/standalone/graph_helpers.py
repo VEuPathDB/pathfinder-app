@@ -7,7 +7,7 @@ responses and context payloads for AI tool results.
 from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy import StepValidation, StrategyStep
+from veupathdb.domain.strategy import StrategyStep
 
 from strategist.ai.tools.standalone._validation_helpers import (
     ContextStrategyAstPayload,
@@ -15,15 +15,11 @@ from strategist.ai.tools.standalone._validation_helpers import (
     GraphSnapshotContent,
     StepOkResponse,
 )
-from strategist.domain.strategy.build_outcome import built_counts
-from strategist.domain.strategy.combine_naming import combine_name
 from strategist.domain.strategy.explain import explain_operation
-from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.domain.strategy.step_status import step_status
 from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.domain.strategy.types import SyncStateProtocol
-from strategist.services.strategies.schemas import StepResponse, step_rationale_of
+from strategist.services.strategies.schemas import StepResponse, step_response
 
 # ---------------------------------------------------------------------------
 # Strategy naming
@@ -54,58 +50,6 @@ def derive_strategy_name(
 # ---------------------------------------------------------------------------
 # Step serialization
 # ---------------------------------------------------------------------------
-
-
-def build_step_response(
-    graph: StrategyGraph | None,
-    step: StrategyStep,
-    sync_state: SyncStateProtocol | None = None,
-) -> StepResponse:
-    """Build a StepResponse from a StrategyStepNode + graph/sync enrichment."""
-    wdk_step_id: int | None = None
-    validation: StepValidation | None = None
-    estimated_size: int | None = None
-    record_type: str | None = None
-    wdk_push_error: str | None = None
-
-    if graph:
-        record_type = step_class_of(graph.steps, step.id)
-    if sync_state:
-        wdk_step_id = sync_state.wdk_step_ids.get(step.id)
-        validation = sync_state.step_validations.get(step.id)
-        wdk_push_error = sync_state.wdk_push_errors.get(step.id)
-        estimated_size = built_counts(graph, sync_state).of(step.id)
-
-    return StepResponse(
-        id=step.id,
-        kind=step.kind.value,
-        display_name=(
-            combine_name(step.display_name, step.search_name, step.operator)
-            or step.display_label
-        ),
-        criterion_text=graph.words.criterion_texts.get(step.id) if graph else None,
-        rationale=step_rationale_of(graph.words, step) if graph else None,
-        search_name=step.search_name,
-        record_type=record_type,
-        parameters=step.parameters or None,
-        operator=step.operator.value if step.operator else None,
-        colocation_params=step.colocation_params,
-        primary_input_step_id=step.primary_input_id,
-        secondary_input_step_id=step.secondary_input_id,
-        estimated_size=estimated_size,
-        wdk_step_id=wdk_step_id,
-        status=step_status(
-            step,
-            wdk_step_id=wdk_step_id,
-            validation=validation,
-            has_open_params=False,
-        ),
-        is_filtered=bool(step.filters),
-        wdk_push_error=wdk_push_error,
-        validation=validation,
-        filters=step.filters or None,
-        analyses=step.analyses or None,
-    )
 
 
 def count_summary(
@@ -145,7 +89,13 @@ def serialize_step(
     sync_state: SyncStateProtocol | None = None,
 ) -> StepResponse:
     """Serialize a step for AI tool responses."""
-    return build_step_response(graph, step, sync_state)
+    return step_response(
+        step,
+        steps=graph.steps,
+        record_type=graph.record_type,
+        words=graph.words,
+        sync=sync_state,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +120,7 @@ def build_graph_snapshot(
     roots = find_root_step_ids(graph)
 
     steps: list[JSONObject] = [
-        build_step_response(graph, step, sync_state).model_dump(
+        serialize_step(graph, step, sync_state).model_dump(
             by_alias=True, exclude_none=True, mode="json"
         )
         for step in graph.steps.values()

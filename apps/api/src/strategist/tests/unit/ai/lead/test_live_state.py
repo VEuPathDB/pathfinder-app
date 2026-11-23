@@ -138,7 +138,7 @@ async def test_the_edited_step_reports_the_count_the_site_holds(
 
     live = await read_live_state(_session(), _SITE_ID)
 
-    sizes = {step.step_id: step.estimated_size for step in live.steps}
+    sizes = {step.id: step.estimated_size for step in live.steps}
     assert sizes == {_ROOT: 7, _TEXT: 2122, _SU: 752}
     assert 15 not in sizes.values()
 
@@ -151,8 +151,8 @@ async def test_the_step_reports_the_parameter_value_that_is_stored(
 
     live = await read_live_state(_session(), _SITE_ID)
 
-    su = next(step for step in live.steps if step.step_id == _SU)
-    assert su.parameters == {"min_expression_percentile": 90.0}
+    su = next(step for step in live.steps if step.id == _SU)
+    assert su.model_dump()["parameters"] == {"min_expression_percentile": 90.0}
     assert su.display_name == "Su et al. RNA-Seq: top 20%"
 
 
@@ -194,7 +194,7 @@ async def test_a_step_wdk_refused_reports_no_count_and_no_root_count(
 
     live = await read_live_state(session, _SITE_ID)
 
-    sizes = {step.step_id: step.estimated_size for step in live.steps}
+    sizes = {step.id: step.estimated_size for step in live.steps}
     assert sizes == {_ROOT: None, _TEXT: 2122, _SU: None}
     assert live.root_count is None
 
@@ -206,8 +206,8 @@ async def test_a_built_strategy_names_each_steps_wdk_id_and_one_root(
 
     live = await read_live_state(_session(), _SITE_ID)
 
-    assert {step.step_id: step.wdk_step_id for step in live.steps} == _WDK_STEP_IDS
-    assert [step.step_id for step in live.steps if step.is_root] == [_ROOT]
+    assert {step.id: step.wdk_step_id for step in live.steps} == _WDK_STEP_IDS
+    assert live.root_step_id == _ROOT
 
 
 async def test_a_strategy_the_site_never_saw_names_no_wdk_id(
@@ -220,4 +220,4 @@ async def test_a_strategy_the_site_never_saw_names_no_wdk_id(
     live = await read_live_state(session, _SITE_ID)
 
     assert [step.wdk_step_id for step in live.steps] == [None, None, None]
-    assert [step.step_id for step in live.steps if step.is_root] == [_ROOT]
+    assert live.root_step_id == _ROOT

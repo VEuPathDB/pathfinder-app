@@ -12,18 +12,18 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 
-from strategist.ai.tools.standalone.graph_helpers import build_step_response
+from strategist.ai.tools.standalone.graph_helpers import serialize_step
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.step_rationale import ComparedSearch, SearchRationale
 from strategist.domain.strategy.step_words import StepWords
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.persistence.repositories import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
+from strategist.services.conversations.responses import derive_steps_from_strategy_ast
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
-from strategist.services.strategies.schemas import step_response_from_strategy_ast
 from strategist.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
@@ -130,9 +130,7 @@ async def test_a_stored_strategy_serves_the_reason_it_was_written_with(
     assert stored.strategy_ast is not None
     assert reloaded.graph is not None
     served = (
-        build_step_response(reloaded.graph, reloaded.graph.steps["step_a"]).rationale,
-        step_response_from_strategy_ast(
-            stored.strategy_ast, stored.strategy_ast.root
-        ).rationale,
+        serialize_step(reloaded.graph, reloaded.graph.steps["step_a"]).rationale,
+        derive_steps_from_strategy_ast(stored.strategy_ast)[0].rationale,
     )
     assert served == (_CHOSEN, _CHOSEN)

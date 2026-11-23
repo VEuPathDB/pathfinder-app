@@ -151,6 +151,7 @@ async def test_the_live_state_and_a_search_count_show_the_organism_as_stated(
 
     monkeypatch.setattr(search_reads, "run_variant_search", _answer)
     live = await read_live_state(ctx.deps.strategy_session, "plasmodb")
+    shown = live.model_dump(mode="json")["steps"][0]["parameters"]
     counted = await search_reads.search_count(
         "plasmodb",
         VariantSpec(
@@ -163,14 +164,10 @@ async def test_the_live_state_and_a_search_count_show_the_organism_as_stated(
     [read] = await typed_operations(
         _PLASMO,
         graph,
-        [
-            StatedUpdateStepParamsOp(
-                step_id="step_s", parameters=dict(live.steps[0].parameters)
-            )
-        ],
+        [StatedUpdateStepParamsOp(step_id="step_s", parameters=shown)],
     )
 
-    assert live.steps[0].parameters == {"organism": [_PF]}
+    assert shown == {"organism": [_PF]}
     assert counted.values == {"organism": [_PF]}
     assert read == UpdateStepParamsOp(
         step_id="step_s", parameters={"organism": organism}

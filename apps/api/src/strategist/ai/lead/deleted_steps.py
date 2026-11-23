@@ -35,7 +35,7 @@ def named_step(step: StrategyStep) -> NamedStep:
 
 def _named(live: LiveStrategyState, step_id: str) -> str | None:
     """The step by its title, search and count, as a card names it."""
-    step = next((s for s in live.steps if s.step_id == step_id), None)
+    step = next((s for s in live.steps if s.id == step_id), None)
     if step is None:
         return None
     count = (

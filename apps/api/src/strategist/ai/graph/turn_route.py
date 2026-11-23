@@ -16,8 +16,8 @@ from veupathdb_mcp.catalog import (
 from strategist.ai.capabilities.decisions_spend import decisions_on_the_deployment
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.tools.standalone.graph_helpers import (
-    build_step_response,
     counted_records,
+    serialize_step,
 )
 from strategist.domain.exchanges import exchanges_text
 from strategist.domain.modes import TurnRoute, route_of_build_probability
@@ -81,7 +81,7 @@ def strategy_line(session: StrategySession) -> str:
     root_id = strategy_root_id(graph, session.sync_state)
     if root_id is None:
         return held
-    title = build_step_response(graph, graph.steps[root_id]).display_name
+    title = serialize_step(graph, graph.steps[root_id]).display_name
     count = built_counts(graph, session.sync_state).of(root_id)
     if count is None:
         return f'{held}; the final step "{title}"'

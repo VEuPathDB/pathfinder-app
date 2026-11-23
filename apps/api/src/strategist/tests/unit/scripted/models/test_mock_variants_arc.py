@@ -18,10 +18,11 @@ _TEXT = "GenesByText"
 
 def _live(*searches: str) -> dict[str, object]:
     return {
+        "root_step_id": "step_0",
         "steps": [
-            {"step_id": f"step_{i}", "search_name": search, "is_root": i == 0}
+            {"id": f"step_{i}", "search_name": search}
             for i, search in enumerate(searches)
-        ]
+        ],
     }
 
 

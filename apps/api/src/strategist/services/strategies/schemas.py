@@ -1,27 +1,28 @@
 """Service-layer strategy DTOs shared across services, AI, and transport."""
 
-from assistant_core.platform.pydantic_base import CamelModel
-from veupathdb.domain.parameters import ParamValue
+from collections.abc import Mapping
+
 from veupathdb.domain.strategy import (
-    ColocationParams,
     StepAnalysis,
-    StepFilter,
+    StepSettings,
     StepValidation,
-    StrategyAst,
     StrategyStep,
     StrategyStepNode,
-    flatten_tree,
+    settings_of,
 )
 
+from strategist.domain.strategy.build_outcome import citable_count
 from strategist.domain.strategy.combine_naming import combine_name
+from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.step_rationale import AnalysisRationale, StepRationale
 from strategist.domain.strategy.step_status import StepStatus, step_status
 from strategist.domain.strategy.step_words import StepWords
+from strategist.domain.strategy.types import SyncStateProtocol
 from strategist.services.eda.export import exported_analysis
 
 
-class StepFields(CamelModel):
-    """Strategy step - WDK-aligned fields, except its parameter values."""
+class StepFields(StepSettings):
+    """Strategy step - its settings and the view fields beside them."""
 
     id: str
     kind: str | None = None
@@ -30,10 +31,7 @@ class StepFields(CamelModel):
     criterion_text: str | None = None
     # Why the step runs what it runs: its analysis's compute, else the search choice.
     rationale: StepRationale | None = None
-    search_name: str | None = None
     record_type: str | None = None
-    operator: str | None = None
-    colocation_params: ColocationParams | None = None
     primary_input_step_id: str | None = None
     secondary_input_step_id: str | None = None
     estimated_size: int | None = None
@@ -48,16 +46,11 @@ class StepFields(CamelModel):
     is_filtered: bool = False
     wdk_push_error: str | None = None
     validation: StepValidation | None = None
-    filters: list[StepFilter] | None = None
     analyses: list[StepAnalysis] | None = None
-    expanded_strategy_id: int | None = None
-    expanded_name: str | None = None
 
 
 class StepResponse(StepFields):
     """Strategy step - WDK-aligned fields."""
-
-    parameters: dict[str, ParamValue] | None = None
 
 
 def step_rationale_of(
@@ -71,47 +64,47 @@ def step_rationale_of(
     return words.rationale_of(step.id, step.search_name)
 
 
-def step_response_from_strategy_ast(
-    payload: StrategyAst, step: StrategyStepNode
+def step_response(
+    step: StrategyStep,
+    *,
+    steps: Mapping[str, StrategyStep],
+    record_type: str | None,
+    words: StepWords,
+    sync: SyncStateProtocol | None,
 ) -> StepResponse:
-    counts = payload.step_counts or {}
-    ids = payload.wdk_step_ids or {}
-    validations = payload.step_validations or {}
-    words = StepWords.of(payload)
-
-    wdk_step_id = ids.get(step.id)
-    if wdk_step_id is None and step.id.isdigit():
-        wdk_step_id = int(step.id)
-
-    return StepResponse(
-        id=step.id,
-        kind=step.infer_kind(),
-        display_name=(
-            combine_name(step.display_name, step.search_name, step.operator)
-            or step.display_label
-        ),
-        criterion_text=words.criterion_texts.get(step.id),
-        rationale=step_rationale_of(words, step),
-        search_name=step.search_name,
-        record_type=payload.record_type,
-        parameters=step.parameters,
-        operator=step.operator.value if step.operator else None,
-        colocation_params=step.colocation_params,
-        primary_input_step_id=step.primary_input_id,
-        secondary_input_step_id=step.secondary_input_id,
-        estimated_size=counts.get(step.id),
-        wdk_step_id=wdk_step_id,
-        status=step_status(
-            flatten_tree(step)[step.id],
-            wdk_step_id=wdk_step_id,
-            validation=validations.get(step.id),
-            has_open_params=False,
-        ),
-        wdk_push_error=(payload.wdk_push_errors or {}).get(step.id),
-        is_filtered=bool(step.filters),
-        validation=validations.get(step.id),
-        filters=step.filters or None,
-        analyses=step.analyses or None,
-        expanded_strategy_id=step.expanded_strategy_id,
-        expanded_name=step.expanded_name,
+    wdk_step_id = sync.wdk_step_ids.get(step.id) if sync else None
+    validation = sync.step_validations.get(step.id) if sync else None
+    return StepResponse.model_validate(
+        {
+            **settings_of(step).model_dump(),
+            "id": step.id,
+            "kind": step.kind.value,
+            "display_name": (
+                combine_name(step.display_name, step.search_name, step.operator)
+                or step.display_label
+            ),
+            "criterion_text": words.criterion_texts.get(step.id),
+            "rationale": step_rationale_of(words, step),
+            "record_type": step_class_of(steps, step.id) or record_type,
+            "primary_input_step_id": step.primary_input_id,
+            "secondary_input_step_id": step.secondary_input_id,
+            "estimated_size": (
+                citable_count(
+                    step.id, counts=sync.step_counts, refused=sync.wdk_push_errors
+                )
+                if sync
+                else None
+            ),
+            "wdk_step_id": wdk_step_id,
+            "status": step_status(
+                step,
+                wdk_step_id=wdk_step_id,
+                validation=validation,
+                has_open_params=False,
+            ),
+            "is_filtered": bool(step.filters),
+            "wdk_push_error": sync.wdk_push_errors.get(step.id) if sync else None,
+            "validation": validation,
+            "analyses": step.analyses or None,
+        }
     )

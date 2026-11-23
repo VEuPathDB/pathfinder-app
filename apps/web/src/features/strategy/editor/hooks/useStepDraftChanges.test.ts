@@ -17,7 +17,7 @@ function makeStep(overrides: Partial<Step> = {}): Step {
     recordType: "transcript",
     parameters: { organism: single("Pf3D7") },
     isFiltered: false,
-    operator: "",
+    operator: null,
     colocationParams: null,
     ...overrides,
   };
@@ -129,7 +129,7 @@ describe("useStepDraftChanges", () => {
     const result = useStepDraftChanges({
       step: makeStep({
         parameters: { organism: single("Pf3D7") },
-        operator: "",
+        operator: null,
         displayName: "Step 1",
       }),
       formValues: { organism: "PvP01", min_weight: "5000" },

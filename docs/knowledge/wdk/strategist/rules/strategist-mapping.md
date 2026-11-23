@@ -246,12 +246,9 @@ point at the pushed ids 7000/7001/7002, and then asserts the old and new id sets
 are **disjoint**. It fails if a fork ever lets a parent's WDK id survive into a
 child, which is exactly the aliasing this rule exists to prevent.
 
-**The uncovered half is the reverse reading.**
-`step_response_from_strategy_ast` treats a local id as a WDK id when the map has
-no entry and `step.id.isdigit()`. That is coherent - a generated id is
-`step_<8 hex>` and can never be all digits, while a step imported from WDK takes
-`str(step_id)` as its local id - but nothing asserts either premise, so nothing
-would notice if the id generator ever emitted digits.
+The reverse reading has one source: a step view (`step_response`) takes the WDK
+id from `StrategyAst.wdk_step_ids` alone, on the chat snapshot and the REST load
+alike, and never reads a local id as a WDK id.
 
 ### WDK-MAP-007 - The WDK-shaped types that reach the browser are owned by `domain/` and carry no I/O
 

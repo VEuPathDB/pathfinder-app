@@ -1,6 +1,7 @@
 import type { ColocationParams, Step } from "@strategist/shared";
 import type { ParamSpec } from "@/features/strategy/parameters/spec";
 import { isInputStepParam } from "@/lib/parameters/visibility";
+import { isCombineOp } from "@/features/strategy/operators";
 import {
   paramValueToRaw,
   rawToParamValue,
@@ -55,7 +56,7 @@ export function buildStepPatch(args: BuildPatchArgs): Partial<Step> {
     patch.parameters = parameters;
   }
   if (args.operator !== (args.step.operator ?? "")) {
-    patch.operator = args.operator;
+    patch.operator = isCombineOp(args.operator) ? args.operator : null;
   }
   if (args.displayName !== (args.step.displayName ?? "")) {
     patch.displayName = args.displayName;

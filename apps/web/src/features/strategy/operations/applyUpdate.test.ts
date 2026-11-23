@@ -36,7 +36,7 @@ function strat(): Strategy {
     displayName: "InterPro OR EC kinases",
     searchName: "__combine__",
     recordType: "transcript",
-    parameters: null,
+    parameters: {},
     operator: combineOpEnum.UNION,
     primaryInputStepId: "a",
     secondaryInputStepId: "b",

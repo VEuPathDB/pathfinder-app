@@ -448,10 +448,11 @@ def _intersect_thread() -> Scene:
     return Scene(
         answers={
             "get_live_strategy_state": {
+                "rootStepId": "step_and",
                 "steps": [
-                    {"stepId": "step_sp", "searchName": "GenesWithSignalPeptide"},
-                    {"stepId": "step_tm", "searchName": "GenesByTransmembraneDomains"},
-                    {"stepId": "step_and", "searchName": None, "isRoot": True},
+                    {"id": "step_sp", "searchName": "GenesWithSignalPeptide"},
+                    {"id": "step_tm", "searchName": "GenesByTransmembraneDomains"},
+                    {"id": "step_and", "searchName": None},
                 ],
             }
         },

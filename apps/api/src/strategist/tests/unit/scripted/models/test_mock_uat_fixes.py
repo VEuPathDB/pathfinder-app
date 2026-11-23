@@ -260,7 +260,7 @@ def test_the_portal_route_names_a_portal_organism_the_sheet_does_not_reach(
     assert organism[0] not in SHEET_ORGANISMS[site_id]
 
 
-_EMPTY_STEP = {"stepId": "step_tm", "displayName": "Transmembrane Domain Count"}
+_EMPTY_STEP = {"id": "step_tm", "displayName": "Transmembrane Domain Count"}
 
 
 @pytest.mark.parametrize("site_id", SITES)
@@ -269,7 +269,7 @@ def test_the_recap_names_each_step_that_returns_nothing(site_id: str) -> None:
         "rootCount": 0,
         "steps": [
             {**_EMPTY_STEP, "estimatedSize": 0},
-            {"stepId": "step_sp", "displayName": "Signal Peptide", "estimatedSize": 12},
+            {"id": "step_sp", "displayName": "Signal Peptide", "estimatedSize": 12},
         ],
     }
     scene = Scene(answers={"get_live_strategy_state": live})

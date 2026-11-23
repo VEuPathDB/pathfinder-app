@@ -40,6 +40,7 @@ from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_hydration import spec_from_ast
 from strategist.domain.strategy.spec_tree import node_for
 from strategist.persistence.models import PersistedStrategyGraph
+from strategist.services.conversations.responses import derive_steps_from_strategy_ast
 from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.variant_comparison import (
     VariantComparison,
@@ -50,7 +51,6 @@ from strategist.services.experiment.variant_comparison import (
 from strategist.services.separation.thread_searches import thread_searches
 from strategist.services.strategies import site_changes, stated_sides
 from strategist.services.strategies._wdk_step_calls import _put_search_config
-from strategist.services.strategies.schemas import step_response_from_strategy_ast
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -117,7 +117,7 @@ def test_an_imported_retired_step_keeps_its_values_and_wdks_verdict() -> None:
     )
     graph = session.graph
     assert graph is not None
-    response = step_response_from_strategy_ast(_imported(), _imported().root)
+    response = derive_steps_from_strategy_ast(_imported())[0]
 
     assert graph.steps["10"].parameters == _RETIRED
     assert ensure_sync_state(session).step_validations == {"10": _REFUSED}
