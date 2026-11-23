@@ -421,7 +421,7 @@ test.describe("Slash commands", () => {
   );
 
   test("C7 - /import", async ({ page, chatPage, apiClient, siteId }) => {
-    const name = "UAT import C7";
+    const name = `UAT import C7 ${String(test.info().workerIndex)}`;
     const ids = seedGeneIds(siteId, 3);
     const [first = "", ...rest] = ids;
     await chatPage.startOn(siteId);
