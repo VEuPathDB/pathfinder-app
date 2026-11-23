@@ -377,3 +377,25 @@ def test_the_extracted_strategy_keeps_every_step_setting() -> None:
     assert [settings_of(node) for node in walk(kept.root)] == [
         settings_of(node) for node in walk(stored.root)
     ]
+
+
+def _weighted_before_a_search() -> OperationalSpec:
+    return OperationalSpec(
+        goal="kinases",
+        criteria=[Criterion(id="c_k", text="kinases", role="seed", weight=10)],
+    )
+
+
+def test_the_pinned_plan_names_a_weight_stated_before_a_search() -> None:
+    ctx = lead_run_context()
+    ctx.deps.state.domain.operational_spec = _weighted_before_a_search()
+
+    lines = (pinned_operational_spec(ctx) or "").splitlines()
+
+    assert next(line for line in lines if "[c_k]" in line).endswith("| weight 10")
+
+
+def test_the_ledger_names_a_weight_stated_before_a_search() -> None:
+    rendered = render_frame_full(FrameSection(spec=_weighted_before_a_search()))
+
+    assert "    SETTINGS weight 10" in rendered.splitlines()

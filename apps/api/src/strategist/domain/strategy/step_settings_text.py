@@ -7,12 +7,10 @@ from veupathdb.domain.strategy import (
     ColocationParams,
     StepFilter,
     StepSettings,
-    settings_of,
 )
 
 from strategist.domain.strategy.expression_handles import cut_stated
 from strategist.domain.strategy.operational_spec import Criterion
-from strategist.domain.strategy.spec_tree import node_for
 
 __all__ = [
     "colocation_text",
@@ -88,9 +86,7 @@ def settings_text(settings: StepSettings) -> str:
 
 
 def criterion_settings(criterion: Criterion) -> str:
-    if not criterion.search_name:
-        return ""
-    return settings_text(settings_of(node_for(criterion)))
+    return settings_text(StepSettings(wdk_weight=criterion.weight))
 
 
 def _either(value: object) -> str:
