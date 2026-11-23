@@ -14,15 +14,16 @@ COPY package.json yarn.lock .yarnrc.yml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared-ts/package.json ./packages/shared-ts/
 
-# Cache mount keeps yarn's download cache across builds.
-RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+# Cache mount keeps Yarn 4's project cache (.yarn/cache) across builds.
+RUN --mount=type=cache,target=/app/.yarn/cache \
     yarn install --immutable
 
 # Workspace source + generated shared-ts types (gitignored), shared by dev + builder.
-FROM base AS sources
+FROM deps AS sources
 WORKDIR /app
-COPY --from=deps /app ./
-COPY apps/web ./apps/web
+COPY apps/web/package.json apps/web/next.config.ts apps/web/tsconfig.json apps/web/postcss.config.js apps/web/components.json apps/web/vitest.setup.ts apps/web/vitest.msw-setup.ts ./apps/web/
+COPY apps/web/public ./apps/web/public
+COPY apps/web/src ./apps/web/src
 COPY packages/shared-ts ./packages/shared-ts
 COPY packages/spec ./packages/spec
 RUN yarn --cwd packages/shared-ts generate

@@ -27,3 +27,24 @@ htmlcov/
 # Local outputs
 apps/api/ingest_reports/
 
+
+# Agent worktrees, run artifacts and test output
+.claude/
+**/.claude/
+.superpowers/
+.codex/
+.hypothesis/
+apps/api/.pf-runs/
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/all-blob-reports/
+apps/web/reports/
+apps/web/e2e/
+**/*.tsbuildinfo
+thesis/
+
+# Local environment files
+**/.env*
+!**/.env.example
+!**/.env.dev.example
