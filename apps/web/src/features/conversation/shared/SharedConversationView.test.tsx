@@ -30,6 +30,7 @@ const HEAD: SharedConversation = {
   siteId: "plasmodb",
   assistantId: "strategist",
   allowCopy: false,
+  includeContext: false,
   cursor: 7,
   turnInFlight: false,
 };

@@ -5531,12 +5531,16 @@ components:
         includeAccountReads:
           type: boolean
           title: Includeaccountreads
+        includeContext:
+          type: boolean
+          title: Includecontext
       type: object
       required:
       - token
       - public
       - allowCopy
       - includeAccountReads
+      - includeContext
       title: ConversationShareView
     CreateConversationRequest:
       properties:
@@ -12154,6 +12158,10 @@ components:
           type: boolean
           title: Includeaccountreads
           default: false
+        includeContext:
+          type: boolean
+          title: Includecontext
+          default: true
       type: object
       required:
       - public
@@ -12183,6 +12191,9 @@ components:
         allowCopy:
           type: boolean
           title: Allowcopy
+        includeContext:
+          type: boolean
+          title: Includecontext
         cursor:
           type: integer
           title: Cursor
@@ -12195,6 +12206,7 @@ components:
       - siteId
       - assistantId
       - allowCopy
+      - includeContext
       - cursor
       - turnInFlight
       title: SharedConversation

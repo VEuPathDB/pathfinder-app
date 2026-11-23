@@ -474,6 +474,9 @@ class ConversationShare(Base):
     include_account_reads: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
     )
+    include_context: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

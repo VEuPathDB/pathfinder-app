@@ -41,6 +41,7 @@ class ShareSettings(CamelModel):
     public: bool
     allow_copy: bool
     include_account_reads: bool = False
+    include_context: bool = True
 
 
 class ConversationShareView(CamelModel):
@@ -48,6 +49,7 @@ class ConversationShareView(CamelModel):
     public: bool
     allow_copy: bool
     include_account_reads: bool
+    include_context: bool
 
 
 class ShareState(CamelModel):
@@ -64,6 +66,7 @@ class SharedConversation(CamelModel):
     site_id: str
     assistant_id: str
     allow_copy: bool
+    include_context: bool
     cursor: int
     turn_in_flight: bool
 
@@ -78,6 +81,7 @@ def _view(row: ConversationShare) -> ConversationShareView:
         public=row.public,
         allow_copy=row.allow_copy,
         include_account_reads=row.include_account_reads,
+        include_context=row.include_context,
     )
 
 
@@ -130,6 +134,7 @@ async def set_share(
     row.public = settings.public
     row.allow_copy = settings.allow_copy
     row.include_account_reads = settings.include_account_reads
+    row.include_context = settings.include_context
     if settings.public:
         row.password_hash = None
     elif password is not None:
@@ -209,6 +214,7 @@ async def read_shared(
         site_id=conversation.site_id,
         assistant_id=conversation.assistant_id,
         allow_copy=share.allow_copy,
+        include_context=share.include_context,
         cursor=await latest_snapshot_boundary(conversation.id),
         turn_in_flight=await turn_is_in_flight(
             session, conversation_id=conversation.id, user_id=conversation.user_id

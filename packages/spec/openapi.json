@@ -8739,6 +8739,10 @@
           "includeAccountReads": {
             "type": "boolean",
             "title": "Includeaccountreads"
+          },
+          "includeContext": {
+            "type": "boolean",
+            "title": "Includecontext"
           }
         },
         "type": "object",
@@ -8746,7 +8750,8 @@
           "token",
           "public",
           "allowCopy",
-          "includeAccountReads"
+          "includeAccountReads",
+          "includeContext"
         ],
         "title": "ConversationShareView"
       },
@@ -18510,6 +18515,11 @@
             "type": "boolean",
             "title": "Includeaccountreads",
             "default": false
+          },
+          "includeContext": {
+            "type": "boolean",
+            "title": "Includecontext",
+            "default": true
           }
         },
         "type": "object",
@@ -18556,6 +18566,10 @@
             "type": "boolean",
             "title": "Allowcopy"
           },
+          "includeContext": {
+            "type": "boolean",
+            "title": "Includecontext"
+          },
           "cursor": {
             "type": "integer",
             "title": "Cursor"
@@ -18571,6 +18585,7 @@
           "siteId",
           "assistantId",
           "allowCopy",
+          "includeContext",
           "cursor",
           "turnInFlight"
         ],
