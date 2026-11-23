@@ -157,7 +157,7 @@ repos:
         stages: [manual]
       - id: openapi-check-api
         name: openapi spec freshness (api)
-        entry: bash -c "cd apps/api && OPENAI_API_KEY=spec-generation-placeholder VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/strategist $HOME/.local/bin/uv run python -m strategist.devtools.openapi check"
+        entry: bash -c "cd apps/api && API_ENV=test API_SECRET_KEY=spec-generation-secret-key-0000000000 STRATEGIST_CHAT_PROVIDER=default ANTHROPIC_API_KEY=spec-generation-placeholder OPENAI_API_KEY=spec-generation-placeholder VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/strategist $HOME/.local/bin/uv run python -m strategist.devtools.openapi check"
         language: system
         pass_filenames: false
         types: [python]
