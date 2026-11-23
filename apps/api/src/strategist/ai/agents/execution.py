@@ -160,8 +160,6 @@ If a step fails to push, or you need to refine the strategy:
   combine slots in where ``target_step_id`` was; the saved strategy renders \
   as a collapsed pill in the UI.
 
-There is NO ``create_leaf_step``, ``combine_steps``, polymorphic \
-``update_step``, or ``undo_last_change``. Those imperative tools are gone. \
 Build the whole tree at once; refine with the kind-discriminated edit \
 tools.
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 from uuid import UUID
 
 from assistant_core.graph.tool_summary import summary_chunks
@@ -21,7 +21,6 @@ from strategist.ai.lead.card_reply import CardReply
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone._step_read import graph_step_id, read_as
 from strategist.ai.tools.standalone.saved_control_sets import (
-    ATTACH_A_SET,
     unattached_set,
 )
 from strategist.domain.evidence import (
@@ -210,6 +209,11 @@ def _sweep_chunks_from_result(
     ]
 
 
+NO_SET_ATTACHED: Final = (
+    "A control set is saved or attached in Build: Build saves the researcher's "
+    "ids as a control set, or attaches a saved set the researcher names."
+)
+
 PARAMETER_SWEEP = declare_durable_tool(
     tool_name="optimize_search_parameters",
     estimated_duration_seconds=900,
@@ -238,7 +242,7 @@ async def sweep_can_run(
         raise ModelRetry(msg)
     refused = unattached_set(control_set_id, ctx.deps.state.domain.control_sets)
     if refused is not None:
-        msg = f"{refused} {ATTACH_A_SET} Nothing was started and no card was shown."
+        msg = f"{refused} {NO_SET_ATTACHED} Nothing was started and no card was shown."
         raise ModelRetry(msg)
     session = ctx.deps.runtime.strategy_session
     if not parameters or graph_step_id(session, wdk_step_id) is None:
@@ -281,14 +285,14 @@ async def optimize_search_parameters(
     trial holds fixed.
 
     A search with nothing tunable is refused by name. Call this directly:
-    the researcher approves the run on its card, so never offer a sweep on a
-    ``propose_changes`` card and never ask in prose. ``reply`` streams above
+    the researcher approves the run on its card, so never offer a sweep on any
+    other card and never ask in prose. ``reply`` streams above
     the card and names the parameters, the budget and that the sweep takes
     about fifteen minutes.
 
     The controls are the control set attached to this conversation, named
     by ``control_set_id`` and read whole on the worker. Ids the researcher
-    types are saved first with ``build_control_set``, which attaches the set.
+    types are first saved as a control set in Build, which attaches the set.
 
     Durable: the trials run on the worker, the turn ends while they run, and
     you are called again with the result (``variants``, ``best``,

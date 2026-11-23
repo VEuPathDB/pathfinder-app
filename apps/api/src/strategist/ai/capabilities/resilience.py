@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import traceback
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
 
 from assistant_core.errors import ModelDeclinedError
 from assistant_core.platform.logging import get_logger
@@ -127,20 +127,23 @@ def _wrapped_args_hint(
 # Next-action libraries
 # ---------------------------------------------------------------------------
 
-_ONE_OF_THE_SITES = 'record_type="<one of the record types get_record_types names>"'
-_NEXT_ACTIONS_WDK_404_SEARCH = [
-    "Call get_record_types to see the record types this site publishes",
-    (
-        'Call search_for_searches(query="<describe what you need>", '
-        f"{_ONE_OF_THE_SITES}) to find the correct search name"
-    ),
-    f"Call list_searches({_ONE_OF_THE_SITES}) to see all of that type's searches",
-]
 
-_NEXT_ACTIONS_WDK_422 = [
-    "Call get_parameter_options for the rejected parameter to see valid values",
-    "Use the exact value from the vocabulary, not free text",
-]
+class WdkNextActions(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    search_not_found: tuple[str, ...]
+    invalid_value: tuple[str, ...]
+
+
+NEUTRAL_NEXT_ACTIONS: Final[WdkNextActions] = WdkNextActions(
+    search_not_found=(
+        (
+            "Name a search this site publishes; the refusal names the one that "
+            "does not exist"
+        ),
+    ),
+    invalid_value=("Use the exact value from the vocabulary, not free text",),
+)
 
 _NEXT_ACTIONS_SEMANTIC_GENERIC = [
     "Check tool arguments and retry with corrected values",
@@ -162,6 +165,7 @@ def _semantic_directive(
     tool_name: str,
     args: dict[str, Any],
     search_lookup_tools: frozenset[str],
+    next_actions: WdkNextActions,
 ) -> str:
     """Return a context-specific directive for SEMANTIC errors."""
     if isinstance(error, WDKError):
@@ -171,7 +175,7 @@ def _semantic_directive(
                 tool_name=tool_name,
                 tool_args=args,
                 detail=str(error),
-                next_actions=_NEXT_ACTIONS_WDK_404_SEARCH,
+                next_actions=list(next_actions.search_not_found),
                 do_not="Do not retry with the same search name - it does not exist on this site",
             )
         if error.status == _WDK_STATUS_UNPROCESSABLE:
@@ -180,7 +184,7 @@ def _semantic_directive(
                 tool_name=tool_name,
                 tool_args=args,
                 detail=str(error),
-                next_actions=_NEXT_ACTIONS_WDK_422,
+                next_actions=list(next_actions.invalid_value),
                 do_not="Do not pass free-text values for vocabulary parameters",
             )
 
@@ -254,6 +258,7 @@ class ToolResilience(AbstractCapability[AgentDeps]):
     """
 
     search_lookup_tools: frozenset[str] = frozenset()
+    next_actions: WdkNextActions = NEUTRAL_NEXT_ACTIONS
     circuit_break_threshold: int = DEFAULT_CIRCUIT_BREAK_THRESHOLD
 
     async def on_tool_validate_error(
@@ -314,7 +319,9 @@ class ToolResilience(AbstractCapability[AgentDeps]):
             raise TransientRetry(retry_message)
 
         if category == ErrorCategory.SEMANTIC:
-            return _semantic_directive(error, tool_name, args, self.search_lookup_tools)
+            return _semantic_directive(
+                error, tool_name, args, self.search_lookup_tools, self.next_actions
+            )
 
         if category == ErrorCategory.PERMANENT:
             return build_error_directive(

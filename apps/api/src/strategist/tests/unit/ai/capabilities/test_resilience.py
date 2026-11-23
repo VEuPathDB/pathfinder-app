@@ -13,6 +13,7 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import ToolDefinition
 from veupathdb.errors import WDKError
 
+from strategist.ai.agents.frame import FRAME_NEXT_ACTIONS
 from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.capabilities.resilience import (
     DEFAULT_CIRCUIT_BREAK_THRESHOLD,
@@ -46,7 +47,9 @@ class TestOnToolExecuteError:
 
     @pytest.mark.asyncio
     async def test_wdk_404_returns_directive_string(self) -> None:
-        capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
+        capability = ToolResilience(
+            search_lookup_tools=SEARCH_LOOKUP_TOOLS, next_actions=FRAME_NEXT_ACTIONS
+        )
         ctx = _make_ctx()
         error = WDKError("search not found", status=404)
         result: Any = await capability.on_tool_execute_error(
@@ -309,7 +312,9 @@ class TestOnToolValidateError:
 
 @pytest.mark.asyncio
 async def test_a_missing_search_on_orthomcl_points_at_the_sites_record_types() -> None:
-    capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
+    capability = ToolResilience(
+        search_lookup_tools=SEARCH_LOOKUP_TOOLS, next_actions=FRAME_NEXT_ACTIONS
+    )
     ctx = _make_ctx()
     ctx.deps.site_id = "orthomcl"
 
@@ -324,3 +329,41 @@ async def test_a_missing_search_on_orthomcl_points_at_the_sites_record_types() -
     assert "transcript" not in result
     assert result.index("get_record_types") < result.index("search_for_searches")
     assert 'record_type="<one of the record types get_record_types names>"' in result
+
+
+@pytest.mark.asyncio
+async def test_a_422_names_no_tool_by_default() -> None:
+    capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
+
+    result = await capability.on_tool_execute_error(
+        _make_ctx(),
+        call=_make_call("update_leaf_params"),
+        tool_def=_make_tool_def("update_leaf_params"),
+        args={"step_id": "step_1"},
+        error=WDKError("organism: not in the vocabulary", status=422),
+    )
+
+    assert "INVALID_PARAMETER_VALUE" in str(result)
+    assert "Use the exact value from the vocabulary, not free text" in str(result)
+    assert "get_parameter_options" not in str(result)
+
+
+@pytest.mark.asyncio
+async def test_a_missing_search_names_no_tool_by_default() -> None:
+    capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
+
+    result = await capability.on_tool_execute_error(
+        _make_ctx(),
+        call=_make_call("get_search_overview"),
+        tool_def=_make_tool_def("get_search_overview"),
+        args={"search_name": "GenesByNothing"},
+        error=WDKError("search not found", status=404),
+    )
+
+    assert "SEARCH_NOT_FOUND" in str(result)
+    assert "Name a search this site publishes" in str(result)
+    assert [
+        t
+        for t in ("get_record_types", "search_for_searches", "list_searches")
+        if t in str(result)
+    ] == []

@@ -2,6 +2,17 @@
 
 ## 2026-11-23
 
+* **Every agent is told only its own tools.** Explore gains `read_experiment` (another site's
+  experiment its own search showed this turn) and `get_record_types`, its catalog reads carry
+  descriptions of their own, and it is pinned the open EDA filter sheet; it holds no
+  `ask_eda_cut` and states the cut it chose. A text two agents share states the fact or the
+  action and names no tool: the EDA descriptions and the compute result say the export into a
+  strategy step is Build's, the sweep refusal and descriptions name no control set tool, a STALE
+  ledger line says to read the live strategy (the Lead's instructions name
+  `get_live_strategy_state`), and the edit and contradiction refusals name the framing pass.
+  The WDK 404 and 422 directives name no tool by default (`NEUTRAL_NEXT_ACTIONS`); FRAME passes
+  its own (`FRAME_NEXT_ACTIONS`) and carries the catalog retry lines that left `safety.md`.
+
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new
   budget; a test refuses a production key that names its check in free text. A key a call builds

@@ -5,7 +5,7 @@ from strategist.domain.owner_reads import (
     OWNER_READ_TOOLS,
     without_owner_reads,
 )
-from strategist.tests._support.offered_tools import offered_tool_names
+from strategist.tests._support.tool_names import all_tool_names
 
 
 def _call(call_id: str, tool: str, output: object) -> list[dict[str, object]]:
@@ -126,7 +126,7 @@ THREAD_TOOLS = frozenset(
 
 
 def test_every_tool_an_agent_carries_is_classed_as_an_owner_read_or_not() -> None:
-    offered = offered_tool_names()
+    offered = all_tool_names()
 
     assert offered - OWNER_READ_TOOLS - THREAD_TOOLS == set()
     assert offered >= OWNER_READ_TOOLS

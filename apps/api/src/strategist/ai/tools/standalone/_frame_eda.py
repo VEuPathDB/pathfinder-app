@@ -43,7 +43,7 @@ def bound_analysis_problems(state: AgentToolState, criterion_id: str) -> Problem
         f"{criterion_id} is bound to the analysis workflow ({words}). "
         f"Keep it as it is; do not re-bind it, and do not "
         f"restate its comparison with another search. Only the Lead removes it, "
-        f"with delete_step."
+        f"on the researcher's approval."
     )
     return Problems.one(RefusalKey(check=Check.BOUND_ANALYSIS), msg)
 
@@ -67,8 +67,7 @@ def waiting_problems(state: AgentToolState, criterion_id: str) -> Problems:
     return Problems.one(
         RefusalKey(check=Check.WAITING),
         f"{criterion_id} waits for the analysis workflow on dataset {waiting}, and "
-        f'create_eda_step(criterion_id="{criterion_id}") binds it and nothing '
-        f"else does. Keep it in the structure where it stands and bind no other "
+        f"the Lead's analysis export binds it and nothing else does. Keep it in the structure where it stands and bind no other "
         f"search for it.",
     )
 

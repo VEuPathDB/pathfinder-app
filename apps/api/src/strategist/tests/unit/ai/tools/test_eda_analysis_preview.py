@@ -433,9 +433,9 @@ async def test_a_sample_subset_says_it_filters_no_gene(
 
     assert guidance.endswith(
         "6 of 12 Samples selected; this subset does not filter genes, because "
-        "it holds 1 filter on Sample. A step exports genes, so run "
+        "it holds 1 filter on Sample. A strategy step exports genes, so run "
         "run_eda_compute or filter the gene entity pfal3D7 htseq counts "
-        "(ENT_fd574cd6) before create_eda_step."
+        "(ENT_fd574cd6) before a step exports them."
     )
     assert "Genes this subset selects" not in guidance
     assert counted == []

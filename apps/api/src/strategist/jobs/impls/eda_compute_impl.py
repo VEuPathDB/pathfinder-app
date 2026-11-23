@@ -194,9 +194,9 @@ def compute_result(
             f"{cut.significance_threshold}: {summary.retained_up} higher in "
             f"{higher_in_b} and {summary.retained_down} higher in {higher_in_a}. "
             f"upOnly keeps the {summary.retained_up}, downOnly the "
-            f"{summary.retained_down}. Call create_eda_step with those "
-            f"thresholds to export them, or with different ones to change the "
-            f"cut."
+            f"{summary.retained_down}. A strategy step exports them under those "
+            f"thresholds, or under different ones to change the cut; only Build "
+            f"writes that step."
         ),
     )
 

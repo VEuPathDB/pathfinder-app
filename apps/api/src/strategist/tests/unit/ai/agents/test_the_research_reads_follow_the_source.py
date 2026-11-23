@@ -13,8 +13,8 @@ from strategist.ai.explore._explore_instructions import EXPLORE_INSTRUCTIONS
 from strategist.ai.lead import lead_agent
 from strategist.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from strategist.tests._support.instructions import pinned_instructions
-from strategist.tests._support.offered_tools import served_tool_names
 from strategist.tests._support.run_context import run_context_for
+from strategist.tests._support.tool_names import served_tool_names
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 

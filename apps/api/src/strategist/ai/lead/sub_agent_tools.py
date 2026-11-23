@@ -25,7 +25,7 @@ from veupathdb_mcp.records import LinkReading
 from strategist.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
 from strategist.ai.agents.frame import FRAME_MODEL, build_frame_agent
 from strategist.ai.agents.roles import PhaseRole, StageRole
-from strategist.ai.agents.state import CreatedGeneSet
+from strategist.ai.agents.state import CreatedGeneSet, ShownExperiment
 from strategist.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from strategist.ai.agents.verification import (
     VERIFICATION_MODEL,
@@ -316,6 +316,7 @@ class LeadDeps:
     refused_tally_columns: dict[int, set[str]] = field(default_factory=dict)
     # The pages the message links to, read once before the turn's agent runs.
     linked_pages: list[LinkReading] = field(default_factory=list)
+    shown_experiments: dict[str, ShownExperiment] = field(default_factory=dict)
 
     @property
     def conversation_id(self) -> UUID | None:

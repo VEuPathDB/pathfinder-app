@@ -282,9 +282,10 @@ async def test_a_sweep_on_a_set_that_is_not_attached_is_refused() -> None:
     assert str(refused.value) == (
         f"control_set_id '{_ELSEWHERE.control_set_id}' names no control set "
         f"attached to this conversation. The attached control sets: "
-        f"{_KINASES.control_set_id} (Kinase controls). Save the researcher's ids "
-        "with build_control_set, or attach a saved set the researcher names with "
-        "use_control_set. Nothing was started and no card was shown."
+        f"{_KINASES.control_set_id} (Kinase controls). A control set is saved or "
+        "attached in Build: Build saves the researcher's ids as a control set, or "
+        "attaches a saved set the researcher names. Nothing was started and no "
+        "card was shown."
     )
 
 

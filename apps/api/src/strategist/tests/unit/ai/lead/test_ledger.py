@@ -71,9 +71,11 @@ def test_summary_flags_stale_build() -> None:
     assert "587" in summary
 
 
-def test_stale_marker_names_the_live_read_tool() -> None:
+def test_stale_marker_says_to_read_the_live_strategy() -> None:
     stale = StaleBuild(changed_nodes=[("step_a", 10, 11)])
-    assert "get_live_strategy_state" in _ledger(stale).render_summary()
+    assert "Read the live strategy before quoting any number" in (
+        _ledger(stale).render_summary()
+    )
 
 
 def _ledger_with(analysis: OpenEdaAnalysis) -> InvestigationLedger:

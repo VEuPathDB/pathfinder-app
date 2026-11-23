@@ -320,6 +320,6 @@ async def test_an_account_that_adds_what_the_edit_does_not_build_is_refused_whol
 
     assert isinstance(refusal, str), refusal
     assert "c_unbound" in refusal
-    assert "drop_criterion" in refusal
+    assert "drop that criterion" in refusal
     assert thread.committed == []
     assert thread.spec == entry

@@ -83,9 +83,9 @@ async def open_eda_analysis(
 
     This creates a real analysis document in the researcher's VEuPathDB
     workspace and binds it to this conversation. From then on set_eda_filters,
-    preview_eda_subset, run_eda_compute and create_eda_step all act on it, and
-    the researcher sees the same analysis in the EDA tab and on the VEuPathDB
-    site.
+    preview_eda_subset, run_eda_compute and the export into a strategy step
+    all act on it, and the researcher sees the same analysis in the EDA tab and
+    on the VEuPathDB site.
 
     One conversation holds one open analysis at a time. Opening a second one
     replaces the binding, so open the study you actually mean, after
