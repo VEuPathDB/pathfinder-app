@@ -50,7 +50,7 @@ async def test_a_saved_copy_with_a_refused_step_leaves_no_step_behind(
     with pytest.raises(ValidationError):
         await _save(plan_root())
 
-    assert env.wdk.written("POST", "/steps") != []
+    assert len(env.wdk.written("POST", "/steps")) == 4
     assert (env.wdk.steps, env.wdk.strategies) == ({}, {})
 
 
@@ -102,5 +102,5 @@ async def test_a_gold_tree_the_strategy_check_refuses_leaves_no_step_behind(
             ),
         )
 
-    assert env.wdk.written("POST", "/steps") != []
+    assert len(env.wdk.written("POST", "/steps")) == 7
     assert (env.wdk.steps, env.wdk.strategies) == ({}, {})
