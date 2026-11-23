@@ -24,12 +24,13 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
-    # A hand-started run has no diff to filter, so it runs everything.
+    # A hand-started run has no diff to filter, and a change to the workflows
+    # or their actions can break any job, so either runs everything.
     outputs:
-      api: ${{ steps.filter.outputs.api == 'true' || steps.filter.outcome == 'skipped' }}
-      web: ${{ steps.filter.outputs.web == 'true' || steps.filter.outcome == 'skipped' }}
-      knowledge: ${{ steps.filter.outputs.knowledge == 'true' || steps.filter.outcome == 'skipped' }}
-      wdk: ${{ steps.filter.outputs.wdk == 'true' || steps.filter.outcome == 'skipped' }}
+      api: ${{ steps.filter.outputs.api == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outcome == 'skipped' }}
+      web: ${{ steps.filter.outputs.web == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outcome == 'skipped' }}
+      knowledge: ${{ steps.filter.outputs.knowledge == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outcome == 'skipped' }}
+      wdk: ${{ steps.filter.outputs.wdk == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outcome == 'skipped' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -42,6 +43,9 @@ jobs:
             web:
               - 'apps/web/**'
               - 'packages/shared-ts/**'
+              - 'packages/spec/**'
+            ci:
+              - '.github/**'
             knowledge:
               - 'docs/knowledge/**'
               - 'scripts/check-knowledge.mjs'
