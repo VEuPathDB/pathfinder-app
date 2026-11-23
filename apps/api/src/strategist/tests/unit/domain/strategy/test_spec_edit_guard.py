@@ -10,7 +10,7 @@ from veupathdb.domain.parameters import (
     ParamValue,
     StringValue,
 )
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
 from strategist.ai.agents.execution import build_execution_agent
 from strategist.ai.lead.lead_agent import build_lead_agent
@@ -451,3 +451,39 @@ def test_a_symmetric_join_over_swapped_sides_states_the_spec() -> None:
     )
 
     assert contradicted_joins(structure, graph, ["c_e", "c_k"]) == {}
+
+
+def _folded(operator: CombineOp, ids: list[str]) -> StrategyStepNode:
+    tree = leaf(ids[0])
+    for index, criterion_id in enumerate(ids[1:]):
+        tree = combine(f"step_join_{index}", tree, leaf(criterion_id), operator)
+    return tree
+
+
+@pytest.mark.parametrize("operator", [CombineOp.MINUS, CombineOp.LONLY])
+@pytest.mark.parametrize("count", [2, 3, 4])
+def test_a_one_sided_join_over_many_inputs_folded_left_states_the_spec(
+    operator: CombineOp, count: int
+) -> None:
+    ids = [f"c_{index}" for index in range(count)]
+    structure = SpecStructure(root=spec_joined(operator, *(spec_leaf(i) for i in ids)))
+
+    assert contradicted_joins(structure, graph_of(_folded(operator, ids)), ids) == {}
+
+
+@pytest.mark.parametrize("operator", [CombineOp.MINUS, CombineOp.LONLY])
+def test_a_one_sided_join_over_many_inputs_reversed_departs_from_the_spec(
+    operator: CombineOp,
+) -> None:
+    ids = ["c_0", "c_1", "c_2"]
+    reversed_tree = combine(
+        "step_root",
+        leaf("c_2"),
+        combine("step_inner", leaf("c_0"), leaf("c_1"), operator),
+        operator,
+    )
+    structure = SpecStructure(root=spec_joined(operator, *(spec_leaf(i) for i in ids)))
+
+    assert contradicted_joins(structure, graph_of(reversed_tree), ids) == {
+        frozenset(ids): JoinContradiction(declared=operator, written=operator)
+    }
