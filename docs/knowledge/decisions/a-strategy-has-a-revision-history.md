@@ -26,8 +26,17 @@ the one seam that appends, so a strategy state that reaches the database
 reaches the history. A write that repeats the newest row's fingerprint, WDK
 strategy id and step count appends nothing. The fingerprint hashes every
 step setting (`StepSettings`: search, parameters, operator, colocation, filters,
-weight, expansion and its name) and the tree shape; a multi-pick is hashed with
-its terms sorted, so a reordered pick is not a new revision.
+weight, expansion and its name) and the tree shape; a multi-pick is hashed by
+its identity (`MultiPickValue.identity`), so a reordered pick is not a new revision.
+A held value is hashed as written, so a pick stored as wire text and the same pick
+stored as terms are two revisions although `StepSettings.changed` calls them equal.
+
+Hashing the expanded name and the pick's identity moved the fingerprint of every
+stored tree that has an unsorted multi-pick or an `expandedName`. Each such thread
+reads its newest revision as new once: it shows one "superseded" mark, the last
+check's verdict and its evidence card stop counting as current
+(`verdict_of_the_strategy`, `card_of_the_strategy`), and the gene set imported from
+the strategy is synced again once (`gene_set_refresh`).
 
 **A message resolves to the state in force when it was written.** A snapshot
 the message names wins; otherwise the newest snapshot written no later than

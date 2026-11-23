@@ -66,7 +66,14 @@ default.
 The step-settings field set is `search_name`, `parameters`, `operator`,
 `colocation_params`, `filters`, `wdk_weight`, `expanded_strategy_id` and `expanded_name`
 (`StepSettings` in `veupathdb-py: src/veupathdb/domain/strategy/`). The display name is not
-a setting.
+a setting. WDK holds every one of them except `expanded_strategy_id`: an inserted saved
+strategy's steps are copied into the strategy that holds them, so no step names the saved
+one. `SITE_HELD_SETTINGS` (`domain/strategy/site_held_settings.py`) is the one list of
+the settings WDK holds. The read-back check (R5), the plan's view of what WDK holds and
+the site read compare only those, and keep the graph's saved-strategy id.
+
+The site read takes all of a site's edit or none of it. When the site's tree does not
+parse (`build_snapshot_from_wdk` refuses it), it takes no value, setting or shape.
 
 Measured before the commit path, on the stateful fake: 27 of 84 matrix cells were red
 (a weight, a filter, a sort, an expansion or a validation that a writer dropped).

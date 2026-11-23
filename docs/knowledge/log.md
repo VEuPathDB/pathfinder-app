@@ -2,6 +2,19 @@
 
 ## 2026-11-23
 
+* **The review fixes of the one step model.** A one-sided join nested on its kept side
+  (`MINUS(c_0, MINUS(c_1, c_2))` for "c_0 minus c_1 minus c_2") departs from the spec: the
+  join's first criterion must reach the kept side. A card option's value is a typed list of
+  terms or one value as written (`SetValues.params`), so a term that starts with a bracket,
+  such as `[Candida] auris`, is one organism on FRAME's card, in the Lead's option check and
+  through a consulted organism. veupathdb-mcp reads no saved-strategy id from WDK, and one
+  list (`SITE_HELD_SETTINGS`) names the settings WDK holds for the commit and the site read,
+  so a group the site left alone keeps the saved strategy it expands. A weight renders
+  before a search is chosen (the pinned plan, the ledger and the picked plan use
+  `criterion_settings`). The briefing names a rewire among steps both trees hold beside any
+  edit. An unreadable site tree takes nothing. One `OWN_LINES` set is in
+  `step_settings_text`, and `stated_text` takes no cut.
+
 * **Every view renders the one step model.** `step_settings_text` renders a step's settings
   other than its search and values (operator, colocation, filters, weight, expansion), and a
   change to one. The turn briefing names every setting an outside edit moved (`StepChange.settings`
