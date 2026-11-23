@@ -143,12 +143,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-api
 
+      # mypy checks each cached module against its file and rechecks what a
+      # changed dependency reaches, so a cache from an older lock is safe.
       - name: Restore the mypy cache
         uses: actions/cache@v4
         with:
           path: apps/api/.mypy_cache
-          key: mypy-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock') }}-${{ github.sha }}
-          restore-keys: mypy-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock') }}-
+          key: mypy-${{ runner.os }}-${{ github.sha }}
+          restore-keys: mypy-${{ runner.os }}-
 
       - name: Run mypy
         working-directory: apps/api
