@@ -40,7 +40,7 @@ from strategist.domain.strategy.spec_tree import (
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import commit_tree, spec_build
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -50,6 +50,7 @@ from strategist.tests._support.wdk_write_stubs import (
     NoStrategyRead,
     RecordedPushes,
     landed_pushes,
+    wdk_holds_the_tree_before_the_edit,
 )
 
 # A strategy write defers the gene-set refresh onto the job queue.
@@ -108,12 +109,9 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         del context, held_validation, callbacks, about
         return ValidatedParams(params=stated)
 
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", _accept_every_value)
-    monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _noop_reconcile)
     monkeypatch.setattr(commit_tree, "put_the_tree", api.pushes.put)
     list_every_search_under(monkeypatch, "transcript")
     return api

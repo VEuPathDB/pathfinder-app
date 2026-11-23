@@ -190,11 +190,6 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
 
     monkeypatch.setattr(stated_sides, "validate_parameters", _echo_parameters)
 
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
-
     async def _noop_persist(*_args: Any, **_kwargs: Any) -> None:
         return None
 

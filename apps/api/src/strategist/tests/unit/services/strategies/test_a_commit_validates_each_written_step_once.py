@@ -31,6 +31,7 @@ from strategist.tests._support.recorded_searches import (
     serve_recorded_record_types,
     suite_search,
 )
+from strategist.tests._support.wdk_write_stubs import wdk_holds_the_tree_before_the_edit
 from strategist.tests.unit.services.strategies._holding_strategy_api import (
     HoldingWDK,
     serve_the_holding_wdk,
@@ -160,6 +161,7 @@ async def test_every_refused_value_of_one_commit_is_returned(
     monkeypatch: pytest.MonkeyPatch, wdk: HoldingWDK
 ) -> None:
     serve_the_holding_wdk(monkeypatch, wdk)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     graph = StrategyGraph(graph_id="g1", name="Two", site_id=_SITE)
     before = StrategyStepNode(
         id="step_c",

@@ -21,7 +21,7 @@ from strategist.services.strategies.step_push_planner import (
     PatchAction,
     plan_step_pushes,
 )
-from strategist.tests._support.wdk_write_stubs import commit_against
+from strategist.tests._support.wdk_write_stubs import commit_against, held_as
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -88,7 +88,10 @@ def test_a_pushed_combine_whose_name_lags_plans_a_name_patch() -> None:
         )
 
     plan = plan_step_pushes(
-        old_ast=ast(None), new_ast=ast("Intersect"), existing_wdk_ids=_WDK_IDS, held={}
+        old_ast=ast(None),
+        new_ast=ast("Intersect"),
+        existing_wdk_ids=_WDK_IDS,
+        held=held_as(ast(None)),
     )
 
     assert {entry.step_id: entry.action for entry in plan}["step_join"] == (

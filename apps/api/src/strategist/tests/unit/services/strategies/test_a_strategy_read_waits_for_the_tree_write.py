@@ -25,7 +25,10 @@ from strategist.tests._support.read_saves_back import (
     one_request_per_strategy,
     strategy_api_on,
 )
-from strategist.tests._support.wdk_write_stubs import put_the_graph
+from strategist.tests._support.wdk_write_stubs import (
+    put_the_graph,
+    wdk_holds_the_tree_before_the_edit,
+)
 
 
 def _graph_after_the_delete() -> StrategyGraph:
@@ -71,6 +74,7 @@ async def site(monkeypatch: pytest.MonkeyPatch, signed_in: None) -> ReadSavesBac
     served = ReadSavesBack()
     api = await strategy_api_on(served)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(strategy_genes, "get_strategy_api", lambda _site_id: api)
 
     async def _genes(_site_id: str, _root: WDKStep) -> StepGenes:

@@ -110,23 +110,20 @@ def _renamed(new_step: StrategyStepNode, old_step: StrategyStepNode) -> bool:
 
 def _decide_step(
     step: StrategyStepNode,
-    old_ast: StrategyAst | None,
     old_by_id: dict[str, StrategyStepNode],
     existing_wdk_ids: dict[str, int],
     held: Mapping[str, StepSettings],
 ) -> tuple[StepActionT, str]:
     if step.id not in existing_wdk_ids:
         return CreateAction(), "no wdk id"
-    if old_ast is None:
-        return CreateAction(), "no prior ast"
     old_step = old_by_id.get(step.id)
-    if old_step is None:
-        return CreateAction(), "new step not in prior ast"
+    holds = held.get(step.id)
+    if old_step is None or holds is None:
+        return CreateAction(), "no prior step or no read of what wdk holds"
     new_kind = step.infer_kind()
     old_kind = old_step.infer_kind()
     if new_kind != old_kind:
         return RecreateAction(), f"step kind changed {old_kind}->{new_kind}"
-    holds = held.get(step.id, settings_of(old_step))
     if new_kind == "combine":
         return _decide_combine(step, old_step, holds)
     return _decide_leaf_or_transform(step, old_step, holds)
@@ -145,7 +142,7 @@ def plan_step_pushes(
     )
 
     decisions: dict[str, tuple[StepActionT, str]] = {
-        step.id: _decide_step(step, old_ast, old_by_id, existing_wdk_ids, held)
+        step.id: _decide_step(step, old_by_id, existing_wdk_ids, held)
         for step in new_steps
     }
 

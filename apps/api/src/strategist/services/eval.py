@@ -15,13 +15,9 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.parameters import InputDatasetValue
-from veupathdb.domain.strategy import StrategyStepNode, flatten_tree, walk
+from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
-    StrategyAPI,
-    WDKDatasetConfigIdList,
-    WDKDatasetIdListContent,
     get_strategy_api,
 )
 
@@ -58,34 +54,6 @@ class GoldStrategyResult:
     conversation_id: UUID | None = None
 
 
-async def _provision_datasets(
-    api: StrategyAPI,
-    root: StrategyStepNode,
-    dataset_gene_ids: dict[str, list[str]] | None,
-) -> None:
-    """Create a WDK dataset for each named parameter and bind every step to it.
-
-    Gold strategies may reference user-specific dataset IDs (e.g. curated
-    gene ID lists). This function creates fresh datasets under the current
-    user and binds the tree's steps to the new IDs.
-    """
-    for param_name, gene_ids in (dataset_gene_ids or {}).items():
-        config = WDKDatasetConfigIdList(
-            source_type="idList",
-            source_content=WDKDatasetIdListContent(ids=gene_ids),
-        )
-        new_id = await api.create_dataset(config)
-        logger.info(
-            "Created dataset for gold strategy",
-            param_name=param_name,
-            gene_count=len(gene_ids),
-            dataset_id=new_id,
-        )
-        for step in walk(root):
-            if param_name in step.parameters:
-                step.parameters[param_name] = InputDatasetValue(dataset_id=str(new_id))
-
-
 async def build_gold_strategy(
     *,
     gold_id: str,
@@ -105,8 +73,6 @@ async def build_gold_strategy(
     api = get_strategy_api(site_id)
     tree_node = StrategyStepNode.model_validate(step_tree)
 
-    await _provision_datasets(api, tree_node, dataset_gene_ids)
-
     sync_state = WDKSyncState()
     try:
         committed = await commit_tree(
@@ -119,6 +85,7 @@ async def build_gold_strategy(
                 name=f"gold:{gold_id}",
                 description=f"Gold strategy: {gold_id}",
                 role="internal",
+                datasets=dataset_gene_ids or {},
             ),
         )
     except ApplyError as exc:

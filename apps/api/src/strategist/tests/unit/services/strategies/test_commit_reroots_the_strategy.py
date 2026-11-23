@@ -179,11 +179,6 @@ def api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     recording = _RecordingAPI()
     serve_the_site(monkeypatch, recording)
 
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
-
     async def _noop_persist(*_args: Any, **_kwargs: Any) -> None:
         return None
 

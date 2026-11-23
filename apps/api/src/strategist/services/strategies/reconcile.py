@@ -1,13 +1,8 @@
-"""WDK reconciliation: read live WDK state to self-heal local sync_state.
+"""What WDK holds for each step a strategy maps, read before a commit plans."""
 
-Local `wdk_step_ids` can drift from WDK reality after a partial push
-failure or out-of-band edits on the WDK web UI. Before planning a new
-push, intersect locally-tracked IDs with what WDK actually has so the
-planner doesn't try to PATCH/RECREATE steps that no longer exist (or
-worse, CREATE duplicates of steps it forgot were already pushed).
-"""
-
+from collections.abc import Mapping
 from http import HTTPStatus
+from typing import Protocol
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.parameters import HeldValue
@@ -22,9 +17,8 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
-    StrategyAPI,
+    WDKStep,
     WDKStrategyDetails,
-    get_strategy_api,
     walk_wdk_step_tree,
 )
 from veupathdb_mcp.wdk import WireStep, build_snapshot_from_wdk
@@ -34,66 +28,72 @@ from strategist.services.strategies.sync_state import WDKSyncState
 logger = get_logger(__name__)
 
 
+class StrategyReads(Protocol):
+    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails: ...
+    async def find_step(self, step_id: int) -> WDKStep: ...
+
+
 async def reconcile_sync_state_with_wdk(
-    sync_state: WDKSyncState,
-    site_id: str,
-    wdk_strategy_id: int | None,
-) -> None:
-    """Drop locally-tracked wdk_step_ids WDK no longer holds.
+    sync_state: WDKSyncState, api: StrategyReads
+) -> dict[str, StepSettings]:
+    """Read what WDK holds for every mapped step before a commit plans.
 
-    A step outside the live tree that WDK still holds stays mapped: a commit
-    that stopped before its put made it.
-
-    Self-heals from prior partial-failure corruption and out-of-band
-    deletes, and records the name WDK holds. If the WDK GET fails (network,
-    404, etc.) the function logs and returns - better to push with
-    possibly-stale state than to fail the whole patch because reconciliation
-    could not run.
+    A step WDK no longer holds is unmapped. A step outside the live tree that
+    WDK still holds stays mapped and is read on its own. A read that fails
+    raises, so no commit plans against settings it did not read.
     """
-    if wdk_strategy_id is None or not sync_state.wdk_step_ids:
-        return
-    try:
-        api = get_strategy_api(site_id)
-        detail = await api.get_strategy(wdk_strategy_id)
-    except (VEuPathDBError, OSError) as exc:
-        logger.warning(
-            "WDK reconciliation read failed; proceeding with stale sync_state",
-            wdk_strategy_id=wdk_strategy_id,
-            error=str(exc),
-        )
-        return
-
-    sync_state.wdk_strategy_name = detail.name
-    sync_state.wdk_strategy_description = detail.description
-    sync_state.wdk_held = held_by_id(detail, sync_state)
-    live_ids = {node.step_id for node in walk_wdk_step_tree(detail.step_tree)}
-    dropped = {
-        local: wdk
-        for local, wdk in sync_state.wdk_step_ids.items()
-        if wdk not in live_ids and not await _wdk_holds(api, wdk)
-    }
+    if not sync_state.wdk_step_ids:
+        return {}
+    live_ids: set[int] = set()
+    held: dict[str, StepSettings] = {}
+    if sync_state.wdk_strategy_id is not None:
+        detail = await api.get_strategy(sync_state.wdk_strategy_id)
+        sync_state.wdk_strategy_name = detail.name
+        sync_state.wdk_strategy_description = detail.description
+        held = _held_in(detail, sync_state)
+        live_ids = {node.step_id for node in walk_wdk_step_tree(detail.step_tree)}
+    dropped: set[str] = set()
+    for local, wdk in sync_state.wdk_step_ids.items():
+        if wdk in live_ids:
+            continue
+        step = await _the_step_wdk_holds(api, wdk)
+        if step is None:
+            dropped.add(local)
+        else:
+            held[local] = _settings_of_a_step(step)
     if not dropped:
-        return
+        return held
     sync_state.wdk_step_ids = {
         local: wdk
         for local, wdk in sync_state.wdk_step_ids.items()
         if local not in dropped
     }
-    logger.info(
-        "Reconciled sync_state against WDK",
-        wdk_strategy_id=wdk_strategy_id,
-        dropped=dropped,
-    )
+    logger.info("Reconciled sync_state against WDK", dropped=sorted(dropped))
+    return held
 
 
-async def _wdk_holds(api: StrategyAPI, wdk_step_id: int) -> bool:
+async def _the_step_wdk_holds(api: StrategyReads, wdk_step_id: int) -> WDKStep | None:
     try:
-        await api.find_step(wdk_step_id)
+        return await api.find_step(wdk_step_id)
     except VEuPathDBError as exc:
-        return exc.status != HTTPStatus.NOT_FOUND
-    except OSError:
-        return True
-    return True
+        if exc.status == HTTPStatus.NOT_FOUND:
+            return None
+        raise
+
+
+def _settings_of_a_step(step: WDKStep) -> StepSettings:
+    config = step.search_config
+    return StepSettings(
+        search_name=step.search_name,
+        parameters={
+            name: HeldValue(wire=value) for name, value in config.parameters.items()
+        },
+        filters=[
+            StepFilter.model_validate(f.model_dump(by_alias=True, mode="json"))
+            for f in config.filters
+        ],
+        wdk_weight=config.wdk_weight,
+    )
 
 
 def held_by_id(
@@ -102,10 +102,16 @@ def held_by_id(
     if live is None:
         return {}
     try:
-        snapshot, wire = build_snapshot_from_wdk(live)
+        return _held_in(live, sync_state)
     except VEuPathDBError as exc:
         logger.warning("The held strategy did not read back", error=str(exc))
         return {}
+
+
+def _held_in(
+    live: WDKStrategyDetails, sync_state: WDKSyncState
+) -> dict[str, StepSettings]:
+    snapshot, wire = build_snapshot_from_wdk(live)
     local = {str(wdk): sid for sid, wdk in sync_state.wdk_step_ids.items()}
     return {
         local[node.id]: _with_the_held_values(settings_of(node), wire.get(node.id))
@@ -127,23 +133,26 @@ def held_before_the_commit(
     old: StrategyAst | None,
     root: StrategyStepNode,
     steps: dict[str, StrategyStep],
-    sync_state: WDKSyncState,
+    held: Mapping[str, StepSettings],
 ) -> dict[str, StepSettings]:
-    if old is None:
-        return {}
-    nodes = [*walk(old.root), *(n for r in old.detached_roots for n in walk(r))]
-    held = [n for n in nodes if n.id in sync_state.wdk_step_ids]
-    for node in held:
+    nodes = (
+        []
+        if old is None
+        else [*walk(old.root), *(n for r in old.detached_roots for n in walk(r))]
+    )
+    for node in nodes:
         step = steps.get(node.id)
         if step is not None and step.filters_wdk_added is None:
             step.filters_wdk_added = node.filters_wdk_added
-    found = {node.id: settings_of(node) for node in held}
-    for node in walk(root):
-        holds = sync_state.wdk_held.get(node.id)
-        if holds is not None and node.id in sync_state.wdk_step_ids:
-            added = steps[node.id].filters_wdk_added or []
-            found[node.id] = _as_planned(holds, settings_of(node), added)
-    return found
+    return {
+        node.id: _as_planned(
+            held[node.id],
+            settings_of(node),
+            steps[node.id].filters_wdk_added or [],
+        )
+        for node in walk(root)
+        if node.id in held
+    }
 
 
 def _as_planned(

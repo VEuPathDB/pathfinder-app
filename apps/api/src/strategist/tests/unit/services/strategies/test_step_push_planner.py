@@ -20,6 +20,7 @@ from strategist.services.strategies.step_push_planner import (
     StepPushPlan,
     plan_step_pushes,
 )
+from strategist.tests._support.wdk_write_stubs import held_as
 
 
 def _multi(items: Iterable[str]) -> MultiPickValue:
@@ -122,7 +123,9 @@ def test_unchanged_strategy_skips_everything() -> None:
     ast = _four_step_strategy_with_two_combines()
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3, "step_inner": 4, "step_outer": 5}
 
-    plan = plan_step_pushes(old_ast=ast, new_ast=ast, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=ast, new_ast=ast, existing_wdk_ids=wdk_ids, held=held_as(ast)
+    )
 
     assert all(p.action == SkipAction() for p in plan)
     assert {p.step_id for p in plan} == set(wdk_ids.keys())
@@ -139,7 +142,9 @@ def test_single_leaf_param_change_patches_only_that_leaf() -> None:
     new = _ast(outer)
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3, "step_inner": 4, "step_outer": 5}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_a"].action == PatchAction(search_config=True, name=False)
@@ -175,7 +180,9 @@ def test_combine_operator_change_recreates_only_that_combine() -> None:
     new = _ast(outer)
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3, "step_inner": 4, "step_outer": 5}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_outer"].action == RecreateAction()
@@ -196,7 +203,9 @@ def test_combine_operator_change_propagates_recreate_upward() -> None:
     new = _ast(outer)
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3, "step_inner": 4, "step_outer": 5}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_inner"].action == RecreateAction()
@@ -214,7 +223,9 @@ def test_combine_input_swap_is_recreate() -> None:
     new = _ast(_combine("step_c", b, a, op=CombineOp.UNION))
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_c"].action == RecreateAction()
@@ -237,7 +248,7 @@ def test_step_kind_transition_recreates() -> None:
         old_ast=_ast(old_root),
         new_ast=_ast(new_root),
         existing_wdk_ids=wdk_ids,
-        held={},
+        held=held_as(_ast(old_root)),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -254,7 +265,9 @@ def test_added_step_creates_only_that_step() -> None:
     new = _ast(_combine("step_outer", inner, d, op=CombineOp.INTERSECT))
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_a"].action == SkipAction()
@@ -285,7 +298,9 @@ def test_display_name_only_change_patches_leaf() -> None:
     )
     wdk_ids = {"step_a": 1}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     assert plan == [
         StepPushPlan(
@@ -302,7 +317,9 @@ def test_search_name_change_recreates_the_leaf() -> None:
     new = _ast(_leaf("step_a", "GenesByOrtholog", organism=_multi(["Pf3D7"])))
     wdk_ids = {"step_a": 1}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     assert plan == [
         StepPushPlan(
@@ -329,7 +346,9 @@ def test_a_replaced_search_recreates_every_combine_above_it() -> None:
     )
     wdk_ids = {"step_a": 440432473, "step_b": 2, "step_join": 3}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_a"].action == RecreateAction()
@@ -345,7 +364,9 @@ def test_combine_metadata_only_change_patches_combine() -> None:
     new = _ast(_combine("step_c", a, b, op=CombineOp.UNION, display_name="A union B"))
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p for p in plan}
     assert by_id["step_c"].action == PatchAction(search_config=False, name=True)
@@ -374,7 +395,9 @@ def test_a_filter_only_change_on_a_leaf_patches_its_search_config() -> None:
     new = _ast(_combine("step_c", _filtered(a, "N"), b))
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     by_id = {p.step_id: p.action for p in plan}
     assert by_id == {
@@ -391,7 +414,9 @@ def test_a_filter_change_on_a_combine_recreates_it() -> None:
     new = _ast(_filtered(_combine("step_c", a, b), "YY"))
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3}
 
-    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held={})
+    plan = plan_step_pushes(
+        old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids, held=held_as(old)
+    )
 
     assert [p.action for p in plan] == [SkipAction(), SkipAction(), RecreateAction()]
 
@@ -401,7 +426,7 @@ def test_a_value_restated_in_its_canonical_spelling_is_not_written() -> None:
     new = _ast(_leaf("step_a", organism=_multi(["PvP01", "Pf3D7"])))
 
     plan = plan_step_pushes(
-        old_ast=old, new_ast=new, existing_wdk_ids={"step_a": 1}, held={}
+        old_ast=old, new_ast=new, existing_wdk_ids={"step_a": 1}, held=held_as(old)
     )
 
     assert [p.action for p in plan] == [SkipAction()]

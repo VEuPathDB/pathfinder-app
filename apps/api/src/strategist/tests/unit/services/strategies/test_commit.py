@@ -120,7 +120,6 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     async def _noop(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop)
     monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _noop)
     return api
 

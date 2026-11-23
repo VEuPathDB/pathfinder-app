@@ -35,7 +35,11 @@ from strategist.services.strategies.step_push_planner import (
 )
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
+from strategist.tests._support.wdk_write_stubs import (
+    held_as,
+    skip_the_tree_put,
+    wdk_holds_the_tree_before_the_edit,
+)
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     install_stub_api,
@@ -83,7 +87,7 @@ def _plan_of(old: StrategyStepNode, new: StrategyStepNode) -> StepPushPlan:
         old_ast=StrategyAst(record_type="transcript", root=old),
         new_ast=StrategyAst(record_type="transcript", root=new),
         existing_wdk_ids={_LEAF: _WDK_LEAF},
-        held={},
+        held=held_as(StrategyAst(record_type="transcript", root=old)),
     )
     return entry
 
@@ -120,7 +124,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=_combine(name="A and B"),
             new_ast=_combine(name="A with B"),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
-            held={},
+            held=held_as(_combine(name="A and B")),
         )
 
         assert {entry.step_id: entry.action for entry in plan}["step_join"] == (
@@ -133,7 +137,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=_combine(),
             new_ast=_combine(weight=5),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
-            held={},
+            held=held_as(_combine()),
         )
 
         by_id = {entry.step_id: entry for entry in plan}
@@ -162,7 +166,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=ortholog(a, 10),
             new_ast=ortholog(b, 12),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_t": 3},
-            held={},
+            held=held_as(ortholog(a, 10)),
         )
 
         by_id = {entry.step_id: entry for entry in plan}
@@ -189,6 +193,7 @@ class TestTheCommitSendsWhatThePlanNames:
     def api(self, monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         api = StubAPI()
         monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+        wdk_holds_the_tree_before_the_edit(monkeypatch)
         skip_the_tree_put(monkeypatch)
         list_every_search_under(monkeypatch, "transcript")
         return api

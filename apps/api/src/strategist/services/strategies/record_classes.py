@@ -8,6 +8,7 @@ from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStep,
     StrategyStepNode,
+    rebuild_tree,
     walk,
 )
 from veupathdb.wdk import WDKSearch
@@ -17,6 +18,7 @@ from veupathdb_mcp.catalog import (
     make_record_type_resolver,
 )
 
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.record_class_check import (
     SearchRecordClasses,
@@ -138,3 +140,15 @@ async def tree_record_class_refusal(
     if mixed is not None:
         return mixed_combine_refusal(mixed, names, transforms)
     return transform_input_refusal(root, own, transforms, names)
+
+
+async def what_the_site_cannot_run(
+    site_id: str, steps: Mapping[str, StrategyStep], root_id: str
+) -> Problems:
+    classes = {sid: s.record_class for sid, s in steps.items() if s.record_class}
+    root = rebuild_tree(root_id, dict(steps))
+    refusal = await tree_record_class_refusal(site_id, root, classes)
+    if refusal is None:
+        return Problems()
+    key = RefusalKey(check=Check.THE_TREE_TO_ITS_RECORD_CLASSES)
+    return Problems.one(key, refusal).under(criterion=root.id, search=root.search_name)

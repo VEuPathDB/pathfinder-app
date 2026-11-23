@@ -23,7 +23,10 @@ from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import put_the_graph
+from strategist.tests._support.wdk_write_stubs import (
+    put_the_graph,
+    wdk_holds_the_tree_before_the_edit,
+)
 
 _WDK_STEP_ID = 1001
 _ADOPTED_ID = 42
@@ -64,6 +67,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> Mock:
     stub.get_strategy = AsyncMock(side_effect=get_strategy)
     stub.update_strategy = AsyncMock(side_effect=get_strategy)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: stub)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     return stub
 
 

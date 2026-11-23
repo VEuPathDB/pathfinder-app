@@ -2,13 +2,19 @@ from dataclasses import dataclass
 from typing import Literal, Protocol
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.parameters import InputDatasetValue
 from veupathdb.domain.strategy import (
     StrategyStep,
     StrategyStepNode,
     walk,
 )
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
+from veupathdb.wdk import (
+    StrategyAPI,
+    WDKDatasetConfigIdList,
+    WDKDatasetIdListContent,
+    WDKStrategyDetails,
+)
 
 from strategist.domain.strategy.validate import validate_strategy
 from strategist.platform.errors import StrategyCompilationError
@@ -212,3 +218,33 @@ def sync_result(
         step_count=len(walk(root)),
         created_wdk_strategy=written.created,
     )
+
+
+async def provision_the_datasets(
+    api: StrategyAPI, steps: dict[str, StrategyStep], datasets: dict[str, list[str]]
+) -> None:
+    for param_name, gene_ids in datasets.items():
+        config = WDKDatasetConfigIdList(
+            source_type="idList",
+            source_content=WDKDatasetIdListContent(ids=gene_ids),
+        )
+        made = await api.create_dataset(config)
+        logger.info(
+            "Created a dataset for a tree",
+            param_name=param_name,
+            gene_count=len(gene_ids),
+            dataset_id=made,
+        )
+        for step in steps.values():
+            if param_name in step.parameters:
+                step.parameters[param_name] = InputDatasetValue(dataset_id=str(made))
+
+
+async def undo_the_tree(api: StrategyAPI, sync_state: WDKSyncState) -> None:
+    if sync_state.wdk_strategy_id is not None:
+        await api.delete_strategy(sync_state.wdk_strategy_id)
+    else:
+        await api.delete_orphaned_steps(list(sync_state.wdk_step_ids.values()))
+    sync_state.wdk_strategy_id = None
+    sync_state.wdk_step_tree = None
+    sync_state.wdk_step_ids = {}

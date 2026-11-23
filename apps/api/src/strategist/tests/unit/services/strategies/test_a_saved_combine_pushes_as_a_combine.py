@@ -42,7 +42,11 @@ from strategist.services.strategies.step_search import (
 )
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests._support.wdk_write_stubs import commit_against, skip_the_tree_put
+from strategist.tests._support.wdk_write_stubs import (
+    commit_against,
+    skip_the_tree_put,
+    wdk_holds_the_tree_before_the_edit,
+)
 
 _VALUES = PatchAction(search_config=True, name=False)
 
@@ -199,6 +203,7 @@ class _Validations:
 def api(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     recorder = RecordingAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: recorder)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     skip_the_tree_put(monkeypatch)
     return recorder

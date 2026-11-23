@@ -6,13 +6,16 @@ from veupathdb.wdk import build_wdk_step_tree
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
 from strategist.persistence.models import PersistedStrategyGraph
-from strategist.services.strategies import _tree_write, commit_tree, reconcile
+from strategist.services.strategies import _tree_write, commit_tree
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
-from strategist.tests._support.wdk_write_stubs import put_the_graph
+from strategist.tests._support.wdk_write_stubs import (
+    put_the_graph,
+    wdk_holds_the_tree_before_the_edit,
+)
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -31,6 +34,7 @@ async def _sync(
 ) -> StubAPI:
     api = StubAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     session = session_with(combine("step_join", leaf("step_a"), leaf("step_b")), _IDS)
     assert session.graph is not None
     session.graph.description = stated
@@ -101,10 +105,9 @@ async def test_the_read_before_a_push_records_the_description_wdk_holds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = StubAPI()
-    monkeypatch.setattr(reconcile, "get_strategy_api", lambda _site: api)
     state = WDKSyncState(wdk_step_ids={"step_a": 1}, wdk_strategy_id=42)
 
-    await reconcile_sync_state_with_wdk(state, "plasmodb", 42)
+    await reconcile_sync_state_with_wdk(state, api)
 
     assert state.wdk_strategy_description == ""
 

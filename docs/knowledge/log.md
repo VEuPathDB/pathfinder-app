@@ -12,10 +12,14 @@
   with `under()` on its criterion and search. A build that sends four values the spec states
   otherwise is refused once with four problems, and nothing is posted.
 
-* **A commit plans against what WDK holds.** The sync state keeps the settings WDK held
-  at the last read-back (`wdk_held`, read by the reconcile and by each put), and the
-  planner compares the plan with them, so a refused search-config PUT or recreate POST is
-  written again by the next commit. A filter WDK still holds after a PUT that left it out
+* **A commit plans against what WDK holds.** Every commit reads what WDK holds for each
+  mapped step before it plans (`reconcile_sync_state_with_wdk`, called by `commit_tree`,
+  so the edit, the build, the recovery resync and the snapshot all read first; a read that
+  fails writes nothing), and the planner compares the plan with it, so a refused
+  search-config PUT or recreate POST is written again by the next commit. Nothing held is
+  kept between commits, and the planner never falls back to the tree before the edit. A
+  gold strategy's id-list datasets are made by the commit path after the record-class
+  check, so a refused gold tree leaves nothing on WDK. A filter WDK still holds after a PUT that left it out
   is WDK's own default and is recorded, not refused. A live-tree check keeps the mapping of
   a step WDK still holds, so a step a stopped commit made is not made twice.
   `last_pushed_ast` is gone.

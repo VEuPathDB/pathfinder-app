@@ -214,7 +214,7 @@ def _serve_gold(monkeypatch: pytest.MonkeyPatch) -> _GoldAPI:
     return api
 
 
-async def test_a_gold_tree_the_site_cannot_run_posts_no_step(
+async def test_a_gold_tree_the_site_cannot_run_provisions_no_dataset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_orthomcl_record_classes(monkeypatch)
@@ -231,7 +231,7 @@ async def test_a_gold_tree_the_site_cannot_run_posts_no_step(
             dataset_gene_ids={"ds_gene_ids": ["PF3D7_1133400"]},
         )
 
-    assert (api.posted, api.calls) == ([], [])
+    assert (api.datasets, api.posted, api.calls) == ([], [], [])
 
 
 async def test_a_gold_strategy_the_site_refuses_releases_its_steps(
@@ -265,7 +265,7 @@ async def test_a_gold_build_checks_its_tree_once(
         checked.append(root.id)
         return await refusal(site_id, root, held)
 
-    monkeypatch.setattr(commit_tree, "tree_record_class_refusal", _counted)
+    monkeypatch.setattr(record_classes, "tree_record_class_refusal", _counted)
     tree = _join(_protein(), StrategyStepNode(id="step_more", search_name="ByIdList"))
 
     with pytest.raises(ValidationError):

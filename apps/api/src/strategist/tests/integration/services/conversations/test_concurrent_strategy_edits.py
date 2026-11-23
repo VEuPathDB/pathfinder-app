@@ -32,10 +32,8 @@ from strategist.persistence.repositories.conversation import ConversationReposit
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.conversations import strategy_ops
 from strategist.services.strategies import (
-    commit,
     commit_tree,
     insert_saved,
-    spec_build,
     stated_sides,
 )
 from strategist.services.strategies.insert_saved import ClonedSavedStrategy
@@ -142,18 +140,14 @@ class _SlowAPI(wdk_write_stubs.NoStrategyRead):
         )
 
 
-async def _no_reconcile(*_args: Any, **_kwargs: Any) -> None:
-    return None
-
-
 @pytest.fixture
 def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     api = _SlowAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    wdk_write_stubs.wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(
         commit_tree, "validate_parameters", wdk_write_stubs.keeps_every_value
     )
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
     monkeypatch.setattr(
         commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put
     )
@@ -360,7 +354,7 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
         return ValidatedParams(params=dict(stated), record_class="transcript")
 
     monkeypatch.setattr(commit_tree, "validate_parameters", _passthrough_validation)
-    monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _no_reconcile)
+    wdk_write_stubs.wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(
         commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put
     )

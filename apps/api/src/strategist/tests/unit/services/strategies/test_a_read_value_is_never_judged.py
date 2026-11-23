@@ -24,7 +24,10 @@ from strategist.services.strategies import commit_tree, stated_sides
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
+from strategist.tests._support.wdk_write_stubs import (
+    skip_the_tree_put,
+    wdk_holds_the_tree_before_the_edit,
+)
 
 _PATTERN = "profile_pattern"
 _READ: dict[str, ParamValue] = {
@@ -100,6 +103,7 @@ async def test_a_sibling_edit_and_its_push_never_judge_a_read_value(
     monkeypatch.setattr(stated_sides, "search_record_types", _listed)
     monkeypatch.setattr(commit_tree, "validate_parameters", catalog)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     graph = StrategyGraph("g", "g", "plasmodb")
@@ -140,6 +144,7 @@ async def test_restating_a_held_pattern_with_a_retired_code_pushes_the_new_one(
     monkeypatch.setattr(stated_sides, "search_record_types", _listed)
     monkeypatch.setattr(commit_tree, "validate_parameters", catalog)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     graph = StrategyGraph("g", "g", "plasmodb")

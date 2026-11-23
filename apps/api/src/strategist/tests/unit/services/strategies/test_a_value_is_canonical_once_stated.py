@@ -37,7 +37,10 @@ from strategist.services.strategies.save_substrategy import save_subtree_as_stra
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
+from strategist.tests._support.wdk_write_stubs import (
+    skip_the_tree_put,
+    wdk_holds_the_tree_before_the_edit,
+)
 
 _BRANCH = MultiPickValue(values=["Haemoproteidae"])
 _LEAVES = MultiPickValue(values=["Haemoproteus tartakovskyi strain SISKIN1"])
@@ -158,6 +161,7 @@ class _Api:
 def _serve(monkeypatch: pytest.MonkeyPatch, api: _Api) -> None:
     monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
 

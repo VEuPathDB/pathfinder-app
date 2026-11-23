@@ -45,6 +45,7 @@ from strategist.tests._support.recorded_searches import serve_stated_reads
 from strategist.tests._support.wdk_write_stubs import (
     keeps_every_value,
     skip_the_tree_put,
+    wdk_holds_the_tree_before_the_edit,
 )
 
 _STEP_PUSHES = frozenset(
@@ -240,15 +241,22 @@ class StubAPI:
     async def get_strategy(
         self, strategy_id: int, user_id: str | None = None
     ) -> WDKStrategyDetails:
-        """A strategy that lists no step, so every count reads as unknown."""
+        """A strategy rooted on a step no graph maps, so every count reads as unknown."""
         del user_id
         return WDKStrategyDetails.model_validate(
             {
                 "strategyId": strategy_id,
                 "name": "Test",
+                "recordClassName": "transcript",
                 "rootStepId": 0,
                 "stepTree": {"stepId": 0},
-                "steps": {},
+                "steps": {
+                    "0": {
+                        "id": 0,
+                        "searchName": "GenesByTaxon",
+                        "searchConfig": {"parameters": {}},
+                    }
+                },
             }
         )
 
@@ -274,10 +282,10 @@ def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     for module in (commit, spec_build):
-        monkeypatch.setattr(module, "reconcile_sync_state_with_wdk", _noop)
         monkeypatch.setattr(module, "persist_strategy_ast_to_conversation", _noop)
         monkeypatch.setattr(module, "defer_the_gene_set_refresh", _noop)
     skip_the_tree_put(monkeypatch)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     pin_validator(monkeypatch, _echo_parameters)
     monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
     list_every_search_under(monkeypatch, "transcript")

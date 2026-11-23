@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import assert_never
 
@@ -20,7 +19,6 @@ from veupathdb.model import CamelModel
 from veupathdb.wdk import StrategyAPI, get_site, get_strategy_api
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
-from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.record_class_check import step_class_of
@@ -28,9 +26,11 @@ from strategist.domain.strategy.step_status import step_status
 from strategist.services.strategies._tree_write import (
     StrategyRole,
     delete_what_the_tree_dropped,
+    provision_the_datasets,
     put_the_tree,
     read_the_strategy,
     sync_result,
+    undo_the_tree,
 )
 from strategist.services.strategies._wdk_step_calls import (
     _sort_a_ranking,
@@ -40,11 +40,12 @@ from strategist.services.strategies._wdk_step_calls import (
 from strategist.services.strategies.reconcile import (
     held_before_the_commit,
     held_by_id,
+    reconcile_sync_state_with_wdk,
 )
 from strategist.services.strategies.record_classes import (
     fill_record_classes,
-    tree_record_class_refusal,
     unclassed_step_failure,
+    what_the_site_cannot_run,
 )
 from strategist.services.strategies.stated_sides import unmoved
 from strategist.services.strategies.step_push_planner import (
@@ -74,6 +75,7 @@ class CommitTarget(CamelModel):
     description: str
     role: StrategyRole = "thread"
     copies: dict[str, StepSettings] = Field(default_factory=dict)
+    datasets: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class CommittedTree(BaseModel):
@@ -230,13 +232,7 @@ class _Commit:
         if record_type is None:
             self._fail(unclassed_step_failure(step.id, wdk_search_name(step)))
             return False
-        failure = await finished_step(
-            self.api,
-            self.sync_state,
-            step,
-            record_type,
-            self.before.get(step.id, StepSettings()),
-        )
+        failure = await finished_step(self.api, self.sync_state, step, record_type)
         if failure is not None:
             self._fail(failure)
             return False
@@ -300,7 +296,6 @@ class _Commit:
         await delete_what_the_tree_dropped(self.api, self.steps, self.sync_state)
         live = await read_the_strategy(self.api, self.sync_state)
         held = held_by_id(live, self.sync_state)
-        self.sync_state.wdk_held = held
         for node in walk(root):
             self._record_what_wdk_added(node, held.get(node.id))
             self._departed(node, held.get(node.id))
@@ -368,56 +363,61 @@ async def commit_tree(
     refused = await what_the_site_cannot_run(site_id, steps, root_id)
     if not refused.empty:
         raise PlanDeparturesError(refused)
+    api = get_strategy_api(site_id)
+    try:
+        held = await reconcile_sync_state_with_wdk(sync_state, api)
+    except (VEuPathDBError, OSError) as exc:
+        return _unread(site_id, steps[root_id], exc)
+    await provision_the_datasets(api, steps, target.datasets)
     await fill_record_classes(site_id, steps)
     root = rebuild_tree(root_id, steps)
-    before = {**target.copies, **held_before_the_commit(old, root, steps, sync_state)}
+    before = {**target.copies, **held_before_the_commit(old, root, steps, held)}
     plan = plan_step_pushes(
         old_ast=old,
         new_ast=StrategyAst(record_type="", root=root),
         existing_wdk_ids=sync_state.wdk_step_ids,
         held=before,
     )
-    run = _Commit(get_strategy_api(site_id), site_id, steps, sync_state, before)
+    run = _Commit(api, site_id, steps, sync_state, before)
     if target.role == "thread":
         return await run.everything(plan, root, target)
     try:
         committed = await run.everything(plan, root, target)
     except VEuPathDBError:
-        await _undo(run.api, sync_state)
+        await undo_the_tree(run.api, sync_state)
         raise
     if committed.refused or committed.sync is None:
-        await _undo(run.api, sync_state)
+        await undo_the_tree(run.api, sync_state)
     elif target.role == "saved":
         await run.api.set_saved(committed.sync.wdk_strategy_id, is_saved=True)
     return committed
 
 
-async def what_the_site_cannot_run(
-    site_id: str, steps: Mapping[str, StrategyStep], root_id: str
-) -> Problems:
-    classes = {sid: s.record_class for sid, s in steps.items() if s.record_class}
-    root = rebuild_tree(root_id, dict(steps))
-    refusal = await tree_record_class_refusal(site_id, root, classes)
-    if refusal is None:
-        return Problems()
-    key = RefusalKey(check=Check.THE_TREE_TO_ITS_RECORD_CLASSES)
-    return Problems.one(key, refusal).under(criterion=root.id, search=root.search_name)
-
-
-async def _undo(api: StrategyAPI, sync_state: WDKSyncState) -> None:
-    if sync_state.wdk_strategy_id is not None:
-        await api.delete_strategy(sync_state.wdk_strategy_id)
-    else:
-        await api.delete_orphaned_steps(list(sync_state.wdk_step_ids.values()))
-    sync_state.wdk_strategy_id = None
-    sync_state.wdk_step_tree = None
-    sync_state.wdk_step_ids = {}
+def _unread(site_id: str, root: StrategyStep, exc: Exception) -> CommittedTree:
+    site = get_site(site_id).display_name
+    failure = StepPushFailure(
+        step_id=root.id,
+        search_name=wdk_search_name(root),
+        error=f"{site} did not answer the read of the strategy: {exc}",
+    )
+    return CommittedTree(
+        pushed=[],
+        failures=[failure],
+        drafts={},
+        skipped=[],
+        sync=None,
+        record_type=None,
+        held={},
+        put=False,
+    )
 
 
 async def drop_the_tree(
     *, site_id: str, steps: dict[str, StrategyStep], sync_state: WDKSyncState
 ) -> None:
-    await delete_what_the_tree_dropped(get_strategy_api(site_id), steps, sync_state)
+    api = get_strategy_api(site_id)
+    await reconcile_sync_state_with_wdk(sync_state, api)
+    await delete_what_the_tree_dropped(api, steps, sync_state)
 
 
 def _writes_parameters(action: StepActionT) -> bool:

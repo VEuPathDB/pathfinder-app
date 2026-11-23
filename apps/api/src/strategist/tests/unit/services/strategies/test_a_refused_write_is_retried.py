@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters import StringValue
 
-from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.ai.lead import sub_agent_dispatch
+from strategist.ai.lead.dispatch_context import agent_deps_for
+from strategist.domain.strategy.build_outcome import BuildOutcome
+from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from strategist.tests.unit.services.strategies.test_a_half_written_step_is_finished import (
     _commit,
     _held_tree,
@@ -11,6 +15,10 @@ from strategist.tests.unit.services.strategies.test_a_half_written_step_is_finis
 )
 from strategist.tests.unit.services.strategies.test_one_commit_path_writes_a_strategy import (
     Env,
+    commit_ops,
+    new_thread,
+    plan_root,
+    replace_with,
 )
 
 
@@ -50,3 +58,33 @@ async def test_a_search_whose_recreate_was_refused_is_recreated_by_the_next_comm
     assert [f.step_id for f in first.failures] == ["step_a"]
     assert (second.failures, held["searchName"]) == ([], "GenesByOtherText")
     assert replaced not in env.wdk.steps
+
+
+async def test_a_resync_after_a_refused_put_rewrites_the_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env = Env(monkeypatch)
+    deps = new_thread()
+    await commit_ops(deps, replace_with(plan_root()))
+    session = deps.strategy_session
+    sync_state = ensure_sync_state(session)
+    graph = session.graph
+    assert graph is not None
+    step_b = sync_state.wdk_step_ids["step_b"]
+    graph.steps["step_b"].parameters = {"text_expression": StringValue(value="actin")}
+    env.wdk.refuses_once = {"search-config put"}
+    await _commit(graph, sync_state, graph.to_strategy_ast())
+    lead = lead_deps(pipeline_state(user_prompt="kinases"), strategy_session=session)
+
+    await sub_agent_dispatch._resync_outcome(
+        agent_deps_for(lead, call_id="call_test"), BuildOutcome()
+    )
+
+    held = env.wdk.steps[step_b]["searchConfig"]
+    assert (
+        sync_state.wdk_step_ids["step_b"],
+        held["parameters"]["text_expression"],
+    ) == (
+        step_b,
+        "actin",
+    )

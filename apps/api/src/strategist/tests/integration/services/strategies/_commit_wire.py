@@ -29,10 +29,14 @@ from veupathdb.wdk import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import commit, commit_tree
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import NoStrategyRead, keeps_every_value
+from strategist.tests._support.wdk_write_stubs import (
+    NoStrategyRead,
+    keeps_every_value,
+    wdk_holds_the_tree_before_the_edit,
+)
 
 PROMPT = "find kinases expressed in blood stages"
 
@@ -167,12 +171,9 @@ class CountingAPI(NoStrategyRead):
 def patch_strategy_api(monkeypatch: pytest.MonkeyPatch, api: CountingAPI) -> None:
     """Serve ``api`` to the commit path, and let every step count as complete."""
 
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
 
 
 def orphaned(api: CountingAPI) -> list[list[int]]:

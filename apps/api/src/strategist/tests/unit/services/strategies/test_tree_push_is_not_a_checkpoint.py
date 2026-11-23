@@ -21,7 +21,10 @@ from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import put_the_graph
+from strategist.tests._support.wdk_write_stubs import (
+    put_the_graph,
+    wdk_holds_the_tree_before_the_edit,
+)
 
 _WDK_STEP_ID = 1001
 
@@ -81,6 +84,7 @@ def calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     recorded: list[str] = []
     api = _recording_api(recorded)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     return recorded
 
 

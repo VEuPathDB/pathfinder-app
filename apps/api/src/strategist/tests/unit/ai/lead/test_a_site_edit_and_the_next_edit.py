@@ -22,7 +22,9 @@ from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.wdk_write_stubs import (
     accepts_every_value,
+    held_as,
     skip_the_tree_put,
+    wdk_holds_the_tree_before_the_edit,
 )
 from strategist.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
@@ -74,14 +76,16 @@ async def _the_writes(
     """The WDK writes the production push sends for the edit the thread made."""
     before = site.pushed
     after = thread.graph.to_strategy_ast()
+    assert before is not None
     assert after is not None
     api = StubAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     plan = plan_step_pushes(
-        old_ast=before, new_ast=after, existing_wdk_ids=site.ids, held={}
+        old_ast=before, new_ast=after, existing_wdk_ids=site.ids, held=held_as(before)
     )
     assert {entry.step_id: entry.action for entry in plan} == {
         SURFACE: SkipAction(),

@@ -9,7 +9,7 @@ import respx
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.wdk import WDKStepTree, get_site
+from veupathdb.wdk import WDKStepTree, get_site, get_strategy_api
 
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
@@ -21,6 +21,19 @@ _STRATEGY = 214648770
 _SIGNAL, _GO, _JOIN = 227290990, 227291030, 227291040
 _NAME = "Plasmodium Falciparum 3D7 Signal Peptide Prediction"
 _DESCRIBED = "Find transcript results for Predicted Signal Peptide."
+
+
+def _held_step(
+    step_id: int, search_name: str, parameters: dict[str, str]
+) -> dict[str, object]:
+    return {
+        "id": step_id,
+        "strategyId": _STRATEGY,
+        "searchName": search_name,
+        "recordClassName": "transcript",
+        "estimatedSize": 10,
+        "searchConfig": {"wdkWeight": 0, "parameters": parameters},
+    }
 
 
 def _strategy(tree: dict[str, object]) -> dict[str, object]:
@@ -53,7 +66,13 @@ def _strategy(tree: dict[str, object]) -> dict[str, object]:
                         "signalp_version": "SignalP-6.0",
                     },
                 },
-            }
+            },
+            str(_GO): _held_step(_GO, "GenesByGoTerm", {"go_term": "GO:0020011"}),
+            str(_JOIN): _held_step(
+                _JOIN,
+                "boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+                {"bq_operator": "INTERSECT", "bq_left_op_": "", "bq_right_op_": ""},
+            ),
         },
     }
 
@@ -123,7 +142,7 @@ async def _push(held: dict[str, object]) -> tuple[list[object], list[object]]:
     )
     with respx.mock(assert_all_called=False) as router:
         put, patch = _site(router, held)
-        await reconcile_sync_state_with_wdk(state, "plasmodb", _STRATEGY)
+        await reconcile_sync_state_with_wdk(state, get_strategy_api("plasmodb"))
         await put_the_graph(_signal_peptides(), state, "plasmodb")
     return (
         [json.loads(call.request.content) for call in put.calls],

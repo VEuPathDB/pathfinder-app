@@ -19,7 +19,7 @@ from strategist.services.strategies.step_push_planner import (
     plan_step_pushes,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import commit_against
+from strategist.tests._support.wdk_write_stubs import commit_against, held_as
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import StubAPI
 
 _NAME = "Union: PEXEL motif, Signal peptide"
@@ -112,7 +112,7 @@ def test_a_new_group_name_is_a_name_write() -> None:
             root=_tree(signal="SignalP", named="Union: PEXEL motif, SignalP"),
         ),
         existing_wdk_ids=dict(_WDK_IDS),
-        held={},
+        held=held_as(StrategyAst(record_type="transcript", root=_tree(named=_NAME))),
     )
 
     assert {entry.step_id: entry.action for entry in plan}["root"] == PatchAction(

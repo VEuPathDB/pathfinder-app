@@ -41,7 +41,6 @@ from strategist.services.strategies.commit_tree import (
     CommitTarget,
     CommittedTree,
     commit_tree,
-    what_the_site_cannot_run,
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
@@ -55,7 +54,7 @@ from strategist.services.strategies.organism_params import tree_organism_paramet
 from strategist.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
-from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
+from strategist.services.strategies.record_classes import what_the_site_cannot_run
 from strategist.services.strategies.stated_sides import (
     CanonicalSides,
     canonical_sides,
@@ -259,12 +258,6 @@ async def build_strategy_from_spec(
     # A step the build minted under a new id carries no kind yet, so the
     # catalog says which plugin reads its analysis document.
     await read_the_unread_kinds(site_id=deps.site_id, graph=graph)
-
-    await reconcile_sync_state_with_wdk(
-        sync_state,
-        deps.site_id,
-        sync_state.wdk_strategy_id,
-    )
 
     # The local tree persists before any push, so a slow or failed push still
     # leaves the declared structure on record.

@@ -316,17 +316,12 @@ async def _new_step(
 
 
 async def _put_the_stated_filters(
-    api: StrategyAPI,
-    sync_state: WDKSyncState,
-    step: StrategyStep,
-    record_type: str,
-    before: StepSettings,
+    api: StrategyAPI, sync_state: WDKSyncState, step: StrategyStep, record_type: str
 ) -> None:
     wdk_id = sync_state.wdk_step_ids[step.id]
     found = await api.find_step(wdk_id)
     held = _held_settings(found)
-    stated = settings_of(step)
-    wanted = held.filters_to_put(before, stated)
+    wanted = held.filters_to_put(StepSettings(), settings_of(step))
     if wanted != held.filters:
         await api.update_step_search_config(
             step_id=wdk_id,
@@ -338,7 +333,7 @@ async def _put_the_stated_filters(
             search_name=found.search_name,
             held=found,
         )
-    step.filters_wdk_added = held.filters_wdk_added(before)
+    step.filters_wdk_added = held.filters_wdk_added(StepSettings())
 
 
 def _failure(
@@ -369,18 +364,14 @@ async def pushed_step(
         return _failure(step, str(exc), exc.status)
     except OSError as exc:
         return _failure(step, str(exc))
-    return await finished_step(api, sync_state, step, record_type, StepSettings())
+    return await finished_step(api, sync_state, step, record_type)
 
 
 async def finished_step(
-    api: StrategyAPI,
-    sync_state: WDKSyncState,
-    step: StrategyStep,
-    record_type: str,
-    before: StepSettings,
+    api: StrategyAPI, sync_state: WDKSyncState, step: StrategyStep, record_type: str
 ) -> StepPushFailure | None:
     try:
-        await _put_the_stated_filters(api, sync_state, step, record_type, before)
+        await _put_the_stated_filters(api, sync_state, step, record_type)
     except VEuPathDBError as exc:
         return _failure(step, str(exc), exc.status)
     except OSError as exc:

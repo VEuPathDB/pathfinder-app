@@ -75,9 +75,6 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
     api = _Recorder()
     serve_the_site(monkeypatch, api)
 
-    async def _no_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
     async def _put(*_args: Any) -> WrittenTree:
         api.order.append("sync")
         return WrittenTree(strategy_id=42, root_step_id=0, created=False)
@@ -85,7 +82,6 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
     async def _no_persist(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
     monkeypatch.setattr(commit_tree, "put_the_tree", _put)
     monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _no_persist)
     return api
