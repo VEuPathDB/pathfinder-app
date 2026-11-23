@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 
 from strategist.ai.explore.explore_agent import build_explore_agent
 from strategist.ai.lead.lead_agent import build_lead_agent
@@ -20,6 +20,7 @@ from strategist.services.eda.compute import RetainedSummary
 from strategist.services.eda.gene_subset import GeneSubset
 from strategist.tests._support.eda_wire import PHENOTYPE_DATASET, PHENOTYPE_ENTITY
 from strategist.tests._support.run_context import lead_run_context
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests._support.tool_names import foreign_names
 
 _SHEET = OpenEdaSheet(
@@ -48,7 +49,7 @@ async def test_explore_is_pinned_the_open_eda_sheet() -> None:
         return ModelResponse(parts=[TextPart("High parasitemia is one value.")])
 
     agent = build_explore_agent()
-    with agent.override(model=FunctionModel(answer)):
+    with agent.override(model=streamed(answer)):
         await agent.run(deps.state.user_prompt, deps=deps)
 
     [info] = seen
