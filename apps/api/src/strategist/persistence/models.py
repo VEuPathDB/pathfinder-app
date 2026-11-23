@@ -258,6 +258,11 @@ class ConversationStrategy(Base):
         nullable=False,
         default=list,
     )
+    replaced_wdk_step_ids: Mapped[list[int]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=list,
+    )
     # Null when a person chose the thread's name. When the name is generated:
     # the wire value of each parameter of each step it was written over.
     generated_name_seed: Mapped[dict[str, dict[str, str]] | None] = mapped_column(
@@ -284,6 +289,7 @@ class ConversationStrategyView(BaseModel):
     gene_set_id: str | None = None
     gene_set_auto_imported: bool = False
     imported_saved_strategy_ids: list[int] = Field(default_factory=list)
+    replaced_wdk_step_ids: list[int] = Field(default_factory=list)
     generated_name_seed: NameSeed | None = None
 
 
@@ -296,6 +302,7 @@ class PersistedStrategyGraph(CamelModel):
     name: str | None = None
     strategy_ast: StrategyAst | None = None
     wdk_strategy_id: int | None = None
+    replaced_wdk_step_ids: list[int] = Field(default_factory=list)
 
 
 # A thread with no side row reads as a thread whose strategy was never built.

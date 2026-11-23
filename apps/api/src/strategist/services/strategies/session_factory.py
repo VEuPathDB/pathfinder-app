@@ -56,6 +56,7 @@ def persisted_graph(
         name=conversation.name,
         strategy_ast=_stored_ast(conversation_id, strategy.strategy_ast),
         wdk_strategy_id=strategy.wdk_strategy_id,
+        replaced_wdk_step_ids=strategy.replaced_wdk_step_ids,
     )
 
 
@@ -69,7 +70,9 @@ def _restore_wdk_state(
     persisted: PersistedStrategyGraph, graph: StrategyGraph
 ) -> WDKSyncState:
     """Restore WDK state from persisted strategy graph payload."""
-    sync_state = WDKSyncState()
+    sync_state = WDKSyncState(
+        replaced_wdk_step_ids=list(persisted.replaced_wdk_step_ids)
+    )
 
     if persisted.wdk_strategy_id is not None:
         sync_state.wdk_strategy_id = persisted.wdk_strategy_id
