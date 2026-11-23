@@ -354,15 +354,13 @@ def _join(plan: EditPlan, left_id: str, right_id: str, node: StructureNode) -> s
     existing = live_join(plan.graph, left_id, right_id, node.combine_operator)
     if existing is not None:
         live = plan.graph.steps[existing.step_id]
-        if (
-            live.operator is not existing.operator
-            or live.colocation_params != node.colocation_params
-        ):
+        region = node.region(live.colocation_params)
+        if live.operator is not existing.operator or live.colocation_params != region:
             plan.emit(
                 UpdateCombineOperatorOp(
                     step_id=existing.step_id,
                     operator=existing.operator,
-                    colocation_params=node.colocation_params,
+                    colocation_params=region,
                 )
             )
         return existing.step_id
@@ -381,7 +379,7 @@ def _join(plan: EditPlan, left_id: str, right_id: str, node: StructureNode) -> s
                 id=new_id,
                 search_name=COMBINE_SEARCH_NAME,
                 operator=join.operator,
-                colocation_params=node.colocation_params,
+                colocation_params=node.region(),
                 display_name=combine_display_name(join.operator),
             ),
             left_id=join.primary,

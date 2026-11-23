@@ -106,8 +106,8 @@ def render_structure(node: StructureNode, spec: OperationalSpec) -> str:
         return f"COPY {render_structure(node.inputs[0], spec)}"
     op = node.combine_operator.value
     inner = f" {op} ".join(render_structure(child, spec) for child in node.inputs)
-    if node.colocation_params is not None:
-        inner = f"{inner}; {colocation_text(node.colocation_params)}"
+    if (region := node.region()) is not None:
+        inner = f"{inner}; {colocation_text(region)}"
     return f"({inner})"
 
 

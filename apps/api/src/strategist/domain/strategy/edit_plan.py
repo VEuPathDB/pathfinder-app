@@ -160,7 +160,7 @@ def _target_join(
             id=generate_step_id(),
             search_name=COMBINE_SEARCH_NAME,
             operator=join.operator,
-            colocation_params=node.colocation_params,
+            colocation_params=node.region(),
             display_name=combine_display_name(join.operator),
             primary_input=join.primary,
             secondary_input=join.secondary,
@@ -174,7 +174,7 @@ def _target_join(
         **{
             **dict(held),
             "operator": existing.operator,
-            "colocation_params": node.colocation_params,
+            "colocation_params": node.region(live.colocation_params),
             "display_name": combine_name(
                 live.display_name, live.search_name, existing.operator
             ),

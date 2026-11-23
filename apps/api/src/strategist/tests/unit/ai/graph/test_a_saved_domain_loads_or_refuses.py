@@ -4,7 +4,6 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from veupathdb.domain.strategy import ColocationParams
 
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.domain.strategy.question_options import PickTail
@@ -68,7 +67,7 @@ def test_a_domain_this_build_cannot_read_is_refused_on_load() -> None:
     assert "answered_questions" in str(caught.value.detail)
 
 
-def test_a_saved_colocation_without_parameters_loads_on_the_sites_defaults() -> None:
+def test_a_saved_colocation_without_parameters_loads_unstated() -> None:
     colocated = {
         "kind": "combine",
         "operator": "COLOCATE",
@@ -93,4 +92,4 @@ def test_a_saved_colocation_without_parameters_loads_on_the_sites_defaults() -> 
     spec = state.domain.operational_spec
     assert spec is not None
     assert spec.structure is not None
-    assert spec.structure.root.colocation_params == ColocationParams()
+    assert spec.structure.root.colocation_params is None

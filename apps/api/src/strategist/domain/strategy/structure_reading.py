@@ -5,7 +5,6 @@ from typing import Annotated, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.strategy import (
-    ColocationParams,
     CombineOp,
     StepKind,
     StrategyStep,
@@ -42,14 +41,6 @@ NODE_SHAPES = {
 }
 
 
-def stated_region(
-    operator: CombineOp | None, params: ColocationParams | None
-) -> ColocationParams | None:
-    if operator is CombineOp.COLOCATE and params is None:
-        return ColocationParams()
-    return params
-
-
 def shape_refusal(
     kind: str,
     *,
@@ -67,7 +58,7 @@ def shape_refusal(
     }[kind]
     if not fits:
         return NODE_SHAPES[kind]
-    if (operator is CombineOp.COLOCATE) != colocated:
+    if colocated and operator is not CombineOp.COLOCATE:
         return COLOCATION_SHAPE
     return None
 

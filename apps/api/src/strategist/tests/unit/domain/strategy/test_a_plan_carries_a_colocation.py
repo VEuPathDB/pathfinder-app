@@ -11,6 +11,8 @@ from veupathdb.domain.strategy import (
 )
 
 from strategist.ai.agents.state import AgentToolState
+from strategist.ai.graph.state import StrategyDomainState
+from strategist.ai.lead.pre_turn import refresh_live_strategy_state
 from strategist.ai.tools.standalone.frame_structure import set_structure
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -19,11 +21,14 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.operator_reading import with_operator
+from strategist.domain.strategy.session import StrategySession
 from strategist.domain.strategy.spec_hydration import spec_from_ast
 from strategist.domain.strategy.spec_tree import build_step_tree
+from strategist.domain.strategy.stated_regions import spec_with_the_regions_it_runs
 from strategist.tests._support.organism_reads import serve_organism_reads
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_searches import suite_search
+from strategist.tests.unit.ai.lead.conftest import lead_runtime, pipeline_state
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 from strategist.tests.unit.domain.strategy._builders import (
     applied,
@@ -122,14 +127,17 @@ def test_a_union_carrying_colocation_parameters_is_refused() -> None:
         )
 
 
-def test_a_colocation_without_parameters_takes_the_sites_defaults() -> None:
+def test_a_colocation_without_parameters_builds_on_the_sites_defaults() -> None:
     node = StructureNode(
         kind="combine",
         operator=CombineOp.COLOCATE,
         inputs=[_leaf("c_kin"), _leaf("c_snp")],
     )
 
-    assert node.colocation_params == _site_defaults()
+    assert (node.colocation_params, build_step_tree(_spec(node)).colocation_params) == (
+        None,
+        _site_defaults(),
+    )
 
 
 async def test_a_frame_structure_states_the_colocation_it_builds(
@@ -213,3 +221,77 @@ def test_an_edit_from_a_union_to_a_colocation_is_applied() -> None:
         CombineOp.COLOCATE,
         _CONTAINS,
     )
+
+
+_UPSTREAM = ColocationParams(
+    region_a="custom", begin_direction_a="-", begin_offset_a=1000
+)
+
+
+def _stored_without_a_region(spec: OperationalSpec) -> OperationalSpec:
+    dumped = spec.model_dump(by_alias=True, mode="json")
+    del dumped["structure"]["root"]["colocationParams"]
+    return OperationalSpec.model_validate(dumped)
+
+
+def test_a_text_edit_over_a_stored_region_writes_nothing_to_the_join() -> None:
+    held = _two_leaves(CombineOp.COLOCATE, _UPSTREAM)
+    before = _stored_without_a_region(spec_of(held))
+    after = before.model_copy(
+        update={
+            "criteria": [
+                c.model_copy(update={"text": f"{c.text}, restated"})
+                for c in before.criteria
+            ]
+        }
+    )
+
+    ops = plan(before, after, graph_of(held))
+
+    assert (ops, applied(held, ops).steps["step_join"].colocation_params) == (
+        [],
+        _UPSTREAM,
+    )
+
+
+def test_a_stored_region_is_read_back_from_the_join_the_graph_holds() -> None:
+    held = _two_leaves(CombineOp.COLOCATE, _UPSTREAM)
+
+    spec = spec_with_the_regions_it_runs(
+        _stored_without_a_region(spec_of(held)), graph_of(held)
+    )
+
+    assert spec.structure is not None
+    assert spec.structure.root.colocation_params == _UPSTREAM
+
+
+def test_a_stored_region_with_no_join_takes_the_sites_defaults() -> None:
+    held = _two_leaves(CombineOp.COLOCATE, _UPSTREAM)
+    stored = _stored_without_a_region(spec_of(held))
+
+    spec = spec_with_the_regions_it_runs(
+        stored, graph_of(_two_leaves(CombineOp.UNION, None))
+    )
+
+    assert spec.structure is not None
+    assert spec.structure.root.colocation_params == _site_defaults()
+
+
+async def test_a_turn_opens_on_the_region_its_join_runs() -> None:
+    held = _two_leaves(CombineOp.COLOCATE, _UPSTREAM)
+    session = StrategySession(site_id="plasmodb")
+    session.graph = graph_of(held)
+    stored = _stored_without_a_region(spec_of(held))
+    state = pipeline_state(
+        domain=StrategyDomainState(operational_spec=stored, answered_spec=stored)
+    )
+
+    refreshed = await refresh_live_strategy_state(
+        state, lead_runtime(strategy_session=session)
+    )
+
+    assert [
+        spec.structure.root.colocation_params
+        for spec in (refreshed.domain.operational_spec, refreshed.domain.answered_spec)
+        if spec is not None and spec.structure is not None
+    ] == [_UPSTREAM, _UPSTREAM]

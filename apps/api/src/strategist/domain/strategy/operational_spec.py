@@ -32,7 +32,6 @@ from strategist.domain.strategy.structure_reading import (
     SpareWrapper,
     record_class_at,
     shape_refusal,
-    stated_region,
 )
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
@@ -219,7 +218,6 @@ class StructureNode(CamelModel):
 
     @model_validator(mode="after")
     def _in_the_shape_of_its_kind(self) -> StructureNode:
-        self.colocation_params = stated_region(self.operator, self.colocation_params)
         refusal = shape_refusal(
             self.kind,
             named=self.criterion_id is not None,
@@ -230,6 +228,11 @@ class StructureNode(CamelModel):
         if refusal is not None:
             raise ValueError(refusal)
         return self
+
+    def region(self, held: ColocationParams | None = None) -> ColocationParams | None:
+        if self.operator is not CombineOp.COLOCATE:
+            return None
+        return self.colocation_params or held or ColocationParams()
 
     @property
     def combine_operator(self) -> CombineOp:

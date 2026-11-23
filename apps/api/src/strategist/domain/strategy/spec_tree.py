@@ -78,14 +78,14 @@ def _node_to_step(node: StructureNode, by_id: dict[str, Criterion]) -> StrategyS
         _node_to_operand(node.inputs[0], by_id),
         _node_to_operand(node.inputs[1], by_id),
         operator,
-        node.colocation_params,
+        node.region(),
     )
     for extra in node.inputs[2:]:
         combined = _combine(
             combined,
             _node_to_operand(extra, by_id),
             operator,
-            node.colocation_params,
+            node.region(),
         )
     return combined.step
 

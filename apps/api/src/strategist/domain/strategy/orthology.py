@@ -399,7 +399,7 @@ def projected_steps(
             joined = StrategyStepNode(
                 search_name=COMBINE_SEARCH_NAME,
                 operator=node.combine_operator,
-                colocation_params=node.colocation_params,
+                colocation_params=node.region(),
                 primary_input=joined,
                 secondary_input=step,
             )
