@@ -36,7 +36,7 @@ from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.tools.toolsets.frame import build_toolset
 from strategist.domain.strategy.constraints import CONSTRAINT_KINDS
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
-from strategist.platform.refusals import agent_capabilities
+from strategist.platform.refusals import keyed_agent_capabilities
 
 # The kinds are the enum's own values and the cap is the recorded reason's, so
 # neither needs an edit here.
@@ -320,7 +320,7 @@ def build_frame_agent() -> FrameAgent:
             ),
             turn_tool_sources,
         ],
-        capabilities=agent_capabilities(
+        capabilities=keyed_agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
                 AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),

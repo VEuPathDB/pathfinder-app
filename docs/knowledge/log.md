@@ -11,9 +11,25 @@
   (`ComparedVariants`), a gene set name is not blank and a pasted list holds a gene and names no
   step (`GeneSetName`, `PastedGeneIds`), a count filter is one `only` object with a column and its
   values (`TallyOnly`), and the two groups of `run_eda_compute` share no label (`GroupBLabels`,
-  which replaces the `refuse_shared_labels` argument validator). A refused shape is a schema
-  validation error: it spends the tool's own retries, not a refusal key. The refusal guidance reads
-  an id argument held as a UUID.
+  which replaces the `refuse_shared_labels` argument validator). The refusal guidance reads an id
+  argument held as a UUID.
+
+* **A shape error is charged to the refusal ledger, never to the tool's retries.** Before, an
+  argument the schema refused was a pydantic-ai validation retry: it charged no key, and a fourth
+  shape error in a row on one tool ended the run (`Tool 'download' exceeded max retries count of
+  3`). Now `ChargedArgumentRefusals` (`platform/refusals.py`), which `keyed_agent_capabilities`
+  gives the Lead, Explore, FRAME, execution and VERIFY agents, answers every argument validation
+  failure of a tool `KeyedRefusalToolset` holds (the toolset marks each tool definition's
+  `metadata`; a tool outside it keeps pydantic-ai's retries, as its body refusals do) in
+  `on_tool_validate_error`: a schema error is one problem per invalid field, keyed by
+  check `arguments`, the arguments that parsed and `<tool>.<field>` (`refusal_keys.py::
+  argument_problems`), and a validator's `ModelRetry` is keyed as a body refusal is. Both are
+  charged through the one rule a body refusal takes (`answered`) and raised as `CallRefused` or
+  `CallSpent`, a `ToolFailed`, which pydantic-ai answers without spending a retry. The capability
+  marks the refused result corrected in the event stream, since a validation failure runs no
+  execute hook. A call of the tool that runs clears its shape keys, as pydantic-ai resets a
+  tool's count. The event stream wrapper makes a run stream its nodes; every keyed agent already
+  runs through `run_stream_events`.
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new

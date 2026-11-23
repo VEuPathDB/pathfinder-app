@@ -60,7 +60,7 @@ from strategist.ai.tools.standalone.record_reads import (
 from strategist.ai.tools.toolsets import eda
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.model_catalog import EXPLORE_MODELS
-from strategist.platform.refusals import KeyedRefusalToolset, agent_capabilities
+from strategist.platform.refusals import KeyedRefusalToolset, keyed_agent_capabilities
 
 ExploreAgent = Agent[LeadDeps, str | DeferredToolRequests]
 
@@ -156,7 +156,7 @@ def build_explore_agent() -> ExploreAgent:
             build_sweep_toolset().filtered(_explore_may_call),
             turn_tool_sources,
         ],
-        capabilities=agent_capabilities(
+        capabilities=keyed_agent_capabilities(
             [
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),

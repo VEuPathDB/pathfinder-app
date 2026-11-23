@@ -42,6 +42,7 @@ from strategist.domain.strategy.requirement_reports import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.tests._support.database import no_database
 from strategist.tests._support.site_organisms import serve_recorded_organisms
+from strategist.tests._support.streamed_model import streamed
 
 PartFor = Callable[[list[ModelMessage]], ToolCallPart | list[ToolCallPart]]
 
@@ -337,7 +338,7 @@ class RetryRecordingScript:
                 )
             return ModelResponse(parts=[self._part])
 
-        return FunctionModel(_fn, model_name="scripted")
+        return streamed(_fn, model_name="scripted")
 
 
 @pytest.fixture

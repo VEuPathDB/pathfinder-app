@@ -32,7 +32,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import RecoveryDelta
 from strategist.ai.tools.toolsets.execution import build_toolset
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
-from strategist.platform.refusals import agent_capabilities
+from strategist.platform.refusals import keyed_agent_capabilities
 
 _EXECUTION_INSTRUCTIONS = with_vocabulary(
     """\
@@ -221,7 +221,7 @@ def build_execution_agent() -> ExecutionAgent:
                 promoted_kind=PROMOTED_NOTE_KIND,
             ),
         ],
-        capabilities=agent_capabilities(
+        capabilities=keyed_agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
                 AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),

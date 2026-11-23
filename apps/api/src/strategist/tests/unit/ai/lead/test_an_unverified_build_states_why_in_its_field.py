@@ -12,7 +12,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 
 from strategist.ai.agents.roles import PhaseRole
 from strategist.ai.lead.card_contract import hold_the_contract_on_a_card
@@ -23,6 +23,7 @@ from strategist.ai.lead.turn_contract import LeadResponse, hold_the_turn_contrac
 from strategist.ai.lead.turn_record import turn_record
 from strategist.domain.turn_facts import UNVERIFIED_BUILD
 from strategist.tests._support.run_context import run_context_for
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead._turn_contract_cases import building_deps
 
 _WHY = "the verification pass stopped on its call budget"
@@ -164,7 +165,7 @@ def test_the_lead_sets_the_field_the_refusal_names() -> None:
         build_lead_agent().run(
             "Add an essentiality filter.",
             deps=deps,
-            model=FunctionModel(_fn, model_name="scripted"),
+            model=streamed(_fn, model_name="scripted"),
         ),
     )
 

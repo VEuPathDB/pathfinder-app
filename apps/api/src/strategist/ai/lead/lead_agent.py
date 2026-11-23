@@ -107,7 +107,7 @@ from strategist.ai.tools.toolsets import eda
 from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
-from strategist.platform.refusals import KeyedRefusalToolset, agent_capabilities
+from strategist.platform.refusals import KeyedRefusalToolset, keyed_agent_capabilities
 
 
 def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
@@ -220,7 +220,7 @@ def build_lead_agent() -> LeadAgent:
             build_sweep_toolset(),
             turn_tool_sources,
         ],
-        capabilities=agent_capabilities(
+        capabilities=keyed_agent_capabilities(
             [
                 AllowedTools[LeadDeps](rules=[withhold_by_turn_state]),
                 stable,

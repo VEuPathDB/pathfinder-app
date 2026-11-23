@@ -26,6 +26,7 @@ from strategist.ai.lead.sub_agent_tools import (
 )
 from strategist.domain.strategy.session import StrategySession
 from strategist.platform.config import get_settings
+from strategist.tests._support.streamed_model import streamed
 
 _SITE = "plasmodb"
 _ASKED = "Find the kinases."
@@ -43,7 +44,7 @@ def _recording(sent: list[object]) -> FunctionModel:
         sent.append(info.model_request_parameters.thinking)
         raise _SentError
 
-    return FunctionModel(_model, profile=ModelProfile(supports_thinking=True))
+    return streamed(_model, profile=ModelProfile(supports_thinking=True))
 
 
 def _deps(phase_reasoning: dict[str, ReasoningEffort]) -> LeadDeps:

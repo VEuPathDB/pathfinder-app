@@ -7,7 +7,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo
 
 from strategist.ai.agents.frame import build_frame_agent
 from strategist.ai.lead.deltas import FrameResult, PassGap
@@ -25,6 +25,7 @@ from strategist.tests._support.organism_specs import (
     taxon,
 )
 from strategist.tests._support.orthomcl_counts import CLADE_ONLY, replayed_counts
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _READY = {"summary": "Bound the ME49 proteins.", "disposition": "spec_ready"}
@@ -61,7 +62,7 @@ async def _run(
 
     with (
         replayed_counts(CLADE_ONLY),
-        agent.override(model=FunctionModel(_frame, model_name="scripted")),
+        agent.override(model=streamed(_frame, model_name="scripted")),
     ):
         run = await agent.run("FRAME work order: frame it", deps=deps)
 

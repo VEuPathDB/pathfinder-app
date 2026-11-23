@@ -37,6 +37,7 @@ from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.errors import NotFoundError
 from strategist.platform.refusals import KeyedRefusalToolset, ServiceRefusalRetry
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests._support.sub_agents import agent_tool_names
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -139,7 +140,7 @@ def _calls_then_answers(
             ]
         )
 
-    return FunctionModel(_respond, model_name="scripted")
+    return streamed(_respond, model_name="scripted")
 
 
 def _retry_messages(messages: list[ModelMessage]) -> list[str]:

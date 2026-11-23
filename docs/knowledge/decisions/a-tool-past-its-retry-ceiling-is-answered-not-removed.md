@@ -28,7 +28,8 @@ three transient failures raise `TransientRetry` and spend the three retries,
 and the fourth is answered with the directive, on exactly the call whose retry
 the run would refuse. The breaker counts transient failures only. A refusal is
 charged to the refusal ledger and answered with `CallRefused`, which spends
-none of the tool's retries (`platform/refusals.py::KeyedRefusalToolset`).
+none of the tool's retries (`platform/refusals.py::KeyedRefusalToolset`). An argument the schema
+refuses is charged the same way (`ChargedArgumentRefusals`), so no shape error spends a retry.
 
 # What was rejected
 

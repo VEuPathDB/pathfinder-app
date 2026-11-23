@@ -26,6 +26,7 @@ from strategist.domain.strategy.operational_spec import Criterion, OperationalSp
 from strategist.domain.strategy.session import StrategySession
 from strategist.tests._support.held_answers import refused_once
 from strategist.tests._support.run_context import run_context_for
+from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead.conftest import (
     OfferedTools,
     lead_deps,
@@ -88,7 +89,7 @@ def _final_only(seen: OfferedTools) -> FunctionModel:
             ],
         )
 
-    return FunctionModel(_fn, model_name="scripted")
+    return streamed(_fn, model_name="scripted")
 
 
 def _offered(deps: LeadDeps) -> frozenset[str]:
@@ -372,7 +373,7 @@ def _replies_twice(seen: OfferedTools) -> FunctionModel:
             ],
         )
 
-    return FunctionModel(_fn, model_name="scripted")
+    return streamed(_fn, model_name="scripted")
 
 
 def _unverified_build_deps() -> LeadDeps:

@@ -84,8 +84,7 @@ def _none_in_group_a(labels: list[str], info: ValidationInfo) -> list[str]:
     if shared:
         msg = (
             f"Labels named in both groups: {', '.join(shared)}. A sample cannot "
-            f"be its own control, so put each label in one group only. Nothing "
-            f"started."
+            f"be its own control, so put each label in one group only."
         )
         raise ValueError(msg)
     return labels
