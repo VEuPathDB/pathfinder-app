@@ -3,9 +3,16 @@ from __future__ import annotations
 import json
 from typing import Any, Final
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
 
-from strategist.domain.account_datasets import account_datasets_in, is_account_dataset
+from strategist.domain.account_datasets import (
+    UPLOAD_WORDS,
+    StudyNames,
+    account_datasets_in,
+    is_account_dataset,
+    names_any,
+    scrubbed,
+)
 
 OWNER_READ_TOOLS: Final = frozenset(
     {
@@ -32,7 +39,7 @@ OWNER_READ_TOOLS: Final = frozenset(
 _RECALLED_MEMORIES: Final = "data-memory-retrieved"
 _ANALYSIS_STATE: Final = "data-eda.analysis-state"
 _DATA_PART: Final = "data-"
-_UPLOAD_WORDS: Final = "a private dataset"
+UPLOAD_BLOCK: Final = f"This part names {UPLOAD_WORDS} and is not shared."
 
 NOT_SHARED: Final = "Not shared: this read the owner's account."
 
@@ -58,45 +65,73 @@ class _ToolChunk(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     type: str = ""
+    id: str | None = None
     tool_call_id: str | None = Field(default=None, alias="toolCallId")
     tool_name: str | None = Field(default=None, alias="toolName")
     delta: str | None = None
 
+    def block(self) -> tuple[str, str] | None:
+        if self.delta is None or self.id is None or self.tool_call_id is not None:
+            return None
+        return self.type.removesuffix("-delta"), self.id
 
-class _StateIds(BaseModel):
+
+class _Carrier(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    dataset_id: str = Field(default="", alias="datasetId")
-    study_id: str = Field(default="", alias="studyId")
-    analysis_id: str = Field(default="", alias="analysisId")
+    data: StudyNames = Field(default_factory=StudyNames)
+    input: StudyNames = Field(default_factory=StudyNames)
+    output: StudyNames = Field(default_factory=StudyNames)
+
+    @field_validator("data", "input", "output", mode="before")
+    @classmethod
+    def _an_object_or_nothing(cls, value: JsonValue) -> JsonValue:
+        match value:
+            case dict():
+                return value
+            case _:
+                return {}
+
+    def marks(self) -> set[str]:
+        return self.data.marks() | self.input.marks() | self.output.marks()
 
 
-class _StateChunk(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    data: _StateIds = Field(default_factory=_StateIds)
+def _names(chunk: dict[str, Any], marks: set[str]) -> bool:
+    return names_any(json.dumps(chunk), marks)
 
 
 def _upload_marks(chunks: list[dict[str, Any]], read: list[_ToolChunk]) -> set[str]:
     marks = account_datasets_in(json.dumps(chunks))
-    for raw, shape in zip(chunks, read, strict=True):
-        if shape.type != _ANALYSIS_STATE:
-            continue
-        ids = _StateChunk.model_validate(raw).data
-        if is_account_dataset(ids.dataset_id):
-            marks |= {ids.study_id, ids.analysis_id} - {""}
-    return marks
+    carriers = [_Carrier.model_validate(chunk) for chunk in chunks]
+    while True:
+        calls = {
+            shape.tool_call_id
+            for raw, shape in zip(chunks, read, strict=True)
+            if shape.tool_call_id is not None and _names(raw, marks)
+        }
+        found = marks.union(
+            *(
+                carrier.marks()
+                for raw, shape, carrier in zip(chunks, read, carriers, strict=True)
+                if (shape.tool_call_id is not None and shape.tool_call_id in calls)
+                or (
+                    shape.type == _ANALYSIS_STATE
+                    and is_account_dataset(carrier.data.dataset_id)
+                )
+            )
+        )
+        if found == marks:
+            return marks
+        marks = found
 
 
-def _names(chunk: dict[str, Any], marks: set[str]) -> bool:
-    text = json.dumps(chunk)
-    return any(mark in text for mark in marks)
-
-
-def _scrubbed(delta: str, marks: set[str]) -> str:
-    for mark in sorted(marks, key=len, reverse=True):
-        delta = delta.replace(mark, _UPLOAD_WORDS)
-    return delta
+def _tainted_blocks(read: list[_ToolChunk], marks: set[str]) -> set[tuple[str, str]]:
+    texts: dict[tuple[str, str], str] = {}
+    for shape in read:
+        block = shape.block()
+        if block is not None and shape.delta is not None:
+            texts[block] = texts.get(block, "") + shape.delta
+    return {block for block, text in texts.items() if names_any(text, marks)}
 
 
 def shown_with_positions(
@@ -113,18 +148,25 @@ def shown_with_positions(
         for raw, shape in zip(chunks, read, strict=True)
         if shape.tool_call_id is not None and _names(raw, marks)
     }
+    tainted = _tainted_blocks(read, marks)
+    started: set[tuple[str, str]] = set()
     shown: list[tuple[int, dict[str, Any]]] = []
     for position, (raw, shape) in enumerate(zip(chunks, read, strict=True)):
+        block = shape.block()
         if shape.type == _RECALLED_MEMORIES:
             shown.append((position, {**raw, "data": {"memories": []}}))
         elif shape.tool_call_id in calls:
             shown.append((position, _hidden(raw, shape.type)))
+        elif block is not None and block in tainted:
+            line = "" if block in started else UPLOAD_BLOCK
+            started.add(block)
+            shown.append((position, {**raw, "delta": line}))
         elif not _names(raw, marks):
             shown.append((position, raw))
-        elif shape.delta is not None:
-            shown.append((position, {**raw, "delta": _scrubbed(shape.delta, marks)}))
         elif not shape.type.startswith(_DATA_PART):
-            shown.append((position, raw))
+            shown.append(
+                (position, {key: scrubbed(value, marks) for key, value in raw.items()})
+            )
     return shown
 
 

@@ -5,6 +5,7 @@ import json
 from strategist.domain.owner_reads import (
     NOT_SHARED,
     OWNER_READ_TOOLS,
+    UPLOAD_BLOCK,
     without_owner_reads,
 )
 from strategist.tests._support.offered_tools import offered_tool_names
@@ -292,3 +293,42 @@ def test_a_read_of_a_curated_study_is_shown() -> None:
     chunks = _call("c-11", "open_eda_analysis", {"datasetId": "DS_53f554ec6a"})
 
     assert without_owner_reads(chunks) == chunks
+
+
+def test_a_name_split_across_deltas_is_not_shown() -> None:
+    chunks: list[dict[str, object]] = [
+        *_upload_thread()[:4],
+        {"type": "reasoning-delta", "id": "r-1", "delta": "The My 3D7 RNA"},
+        {"type": "reasoning-delta", "id": "r-1", "delta": "-seq upload holds it."},
+        {"type": "text-delta", "id": "t-2", "delta": "Kinases on "},
+        {"type": "text-delta", "id": "t-2", "delta": "chromosome 3."},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert [c["delta"] for c in shown if c["type"].endswith("-delta")] == [
+        UPLOAD_BLOCK,
+        "",
+        "Kinases on ",
+        "chromosome 3.",
+    ]
+    assert "RNA-seq upload" not in json.dumps(shown)
+
+
+def test_a_chunk_of_another_shape_that_names_an_upload_is_withheld() -> None:
+    chunks: list[dict[str, object]] = [
+        {"type": "source-document", "sourceId": "s-1", "title": f"Study {UPLOAD}"},
+        {"type": "data-eda.viz", "id": "v-1", "data": {"datasetId": UPLOAD}},
+        {"type": "source-document", "sourceId": "s-2", "title": "PlasmoDB release 68"},
+    ]
+
+    shown = without_owner_reads(chunks)
+
+    assert shown == [
+        {
+            "type": "source-document",
+            "sourceId": "s-1",
+            "title": "Study a private dataset",
+        },
+        {"type": "source-document", "sourceId": "s-2", "title": "PlasmoDB release 68"},
+    ]

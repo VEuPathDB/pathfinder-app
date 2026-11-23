@@ -58,6 +58,9 @@ UPLOAD_READ = (
             "canExportRows": True,
         },
     },
+    {"type": "reasoning-delta", "id": "r-1", "delta": "The My 3D7 RNA"},
+    {"type": "reasoning-delta", "id": "r-1", "delta": "-seq upload holds it."},
+    {"type": "source-document", "sourceId": "s-1", "title": f"Study {UPLOAD}"},
     {"type": "finish"},
     {"type": "done"},
 )
@@ -102,7 +105,11 @@ async def test_the_snapshot_names_the_owners_upload_only_with_the_account_reads(
         got = await viewer.get(f"/api/v1/shared/{made['share']['token']}/snapshot")
 
     assert got.status_code == 200
-    assert [UPLOAD in got.text, NAME in got.text] == [shown, shown]
+    assert [UPLOAD in got.text, NAME in got.text, "RNA-seq upload" in got.text] == [
+        shown,
+        shown,
+        shown,
+    ]
 
 
 async def test_a_copy_without_the_account_reads_names_no_upload(
@@ -139,8 +146,9 @@ async def test_a_copy_without_the_account_reads_names_no_upload(
         ).all()
     copy = json.dumps(list(chunks))
     assert copied.status_code == 200
-    assert [UPLOAD in copy, NAME in copy, "Kinases on chromosome 3." in copy] == [
-        False,
-        False,
-        True,
-    ]
+    assert [
+        UPLOAD in copy,
+        NAME in copy,
+        "RNA-seq upload" in copy,
+        "Kinases on chromosome 3." in copy,
+    ] == [False, False, False, True]
