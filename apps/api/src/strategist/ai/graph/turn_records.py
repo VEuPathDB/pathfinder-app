@@ -248,7 +248,7 @@ class TurnMarkers(CamelModel):
     # reply cites is checked against it.
     retrieved_sources: list[str] = Field(default_factory=list)
     # The new-conversation pages on another site this turn's routes link.
-    route_links: list[str] = Field(default_factory=list)
+    route_links: list[str] = Field(default_factory=list, exclude=True)
     # The control sets this turn wrote. A reply that claims one is checked
     # against it.
     created_control_sets: list[CreatedControlSet] = Field(default_factory=list)
