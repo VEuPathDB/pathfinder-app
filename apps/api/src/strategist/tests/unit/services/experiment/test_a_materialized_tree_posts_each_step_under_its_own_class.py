@@ -24,7 +24,6 @@ from strategist.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
 )
 from strategist.tests._support.record_classes import list_each_search_under
-from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import StubAPI
 
 _LISTED = {
@@ -45,7 +44,6 @@ async def _as_stated(*_args: Any, **kwargs: Any) -> ValidatedParams:
 @pytest.fixture(autouse=True)
 def _the_catalog_takes_each_value_as_stated(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(commit_tree, "validate_parameters", _as_stated)
-    skip_the_tree_put(monkeypatch)
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
@@ -111,7 +109,7 @@ async def test_a_group_tree_posts_each_step_under_group(
     )
     sync_state = await _commit("orthomcl", _join(groups, _mammals()))
 
-    assert [(c.name, c.kwargs["record_type"]) for c in api.calls] == [
+    assert [(c.name, c.kwargs["record_type"]) for c in api.step_writes()] == [
         ("create_step", "sequence"),
         ("create_transform_step", "group"),
         ("create_step", "group"),
@@ -135,7 +133,7 @@ async def test_a_colocation_posts_its_own_search_under_its_listed_class(
 
     assert [
         (c.name, c.kwargs.get("search_name"), c.kwargs["record_type"])
-        for c in api.calls
+        for c in api.step_writes()
     ] == [
         ("create_step", "GroupsByPhyleticPattern", "group"),
         ("create_step", "SnpsByLocation", "snp"),

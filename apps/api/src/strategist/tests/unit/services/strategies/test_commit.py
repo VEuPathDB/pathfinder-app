@@ -25,7 +25,7 @@ from strategist.tests._support.recording_wdk import (
     held_by_the_site,
     served,
 )
-from strategist.tests._support.wdk_write_stubs import serve_the_site, skip_the_tree_put
+from strategist.tests._support.wdk_write_stubs import serve_the_site
 
 
 @pytest.fixture
@@ -33,7 +33,6 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> RecordingWDK:
     api = RecordingWDK()
     monkeypatch.setitem(served, "site", api)
     serve_the_site(monkeypatch, api)
-    skip_the_tree_put(monkeypatch)
 
     async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
         params: dict[str, ParamValue] = dict(kwargs["stated"])

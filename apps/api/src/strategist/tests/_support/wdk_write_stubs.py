@@ -16,8 +16,7 @@ from veupathdb.domain.strategy import (
     settings_of,
     walk,
 )
-from veupathdb.errors import WDKError
-from veupathdb.wdk import StrategyAPI, WDKSearch, WDKStrategyDetails
+from veupathdb.wdk import StrategyAPI, WDKSearch
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.domain.strategy.session import StrategyGraph
@@ -28,14 +27,12 @@ from strategist.services.strategies import (
     stated_sides,
 )
 from strategist.services.strategies._tree_write import (
-    StrategyLabels,
     TreeTarget,
     WrittenTree,
-    put_the_strategy_labels,
+    put_the_tree,
 )
 from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.naming import name_for_the_push
-from strategist.services.strategies.sync import step_tree_is_current
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_searches import (
@@ -67,39 +64,11 @@ def stub_every_catalog_read(monkeypatch: pytest.MonkeyPatch) -> None:
     list_every_search_under(monkeypatch, "transcript")
 
 
-class NoStrategyRead:
-    """A site that answers no read of the strategy, so a commit keeps its counts."""
-
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
-        msg = f"strategy {strategy_id} is not read here"
-        raise WDKError(msg, status=404)
-
-
 def serve_the_site(monkeypatch: pytest.MonkeyPatch, api: RecordingWDK) -> None:
     for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
     list_every_search_under(monkeypatch, "transcript")
-
-
-def skip_the_tree_put(monkeypatch: pytest.MonkeyPatch, strategy_id: int = 42) -> None:
-
-    async def _put(
-        api: StrategyAPI,
-        site_id: str,
-        root: StrategyStepNode,
-        record_type: str,
-        sync_state: WDKSyncState,
-        target: TreeTarget,
-    ) -> WrittenTree | None:
-        del site_id, record_type
-        if step_tree_is_current(root, sync_state):
-            labels = StrategyLabels(name=target.name, description=target.description)
-            await put_the_strategy_labels(api, sync_state, labels)
-            return None
-        return WrittenTree(strategy_id=strategy_id, root_step_id=0, created=False)
-
-    monkeypatch.setattr(commit_tree, "put_the_tree", _put)
 
 
 async def commit_against(
@@ -111,7 +80,6 @@ async def commit_against(
     held: Mapping[str, int],
 ) -> tuple[CommittedTree, WDKSyncState]:
     serve_the_site(monkeypatch, api)
-    skip_the_tree_put(monkeypatch)
     sync_state = WDKSyncState(wdk_step_ids=dict(held))
     if before is not None:
         api.holds(flatten_tree(before), sync_state)
@@ -165,9 +133,8 @@ def validate_against(
 
 @dataclass
 class RecordedPushes:
-    """A tree put that records the strategy name each one carries."""
+    """The real tree put, recording the strategy name each one carries."""
 
-    result: WrittenTree
     pushed: list[str] = field(default_factory=list)
 
     async def put(
@@ -178,16 +145,6 @@ class RecordedPushes:
         record_type: str,
         sync_state: WDKSyncState,
         target: TreeTarget,
-    ) -> WrittenTree:
-        del api, site_id, root, record_type, sync_state
+    ) -> WrittenTree | None:
         self.pushed.append(target.name)
-        return self.result
-
-
-def landed_pushes(wdk_strategy_id: int, *, root_step_id: int = 0) -> RecordedPushes:
-    """Puts that each land on ``wdk_strategy_id``."""
-    return RecordedPushes(
-        result=WrittenTree(
-            strategy_id=wdk_strategy_id, root_step_id=root_step_id, created=False
-        )
-    )
+        return await put_the_tree(api, site_id, root, record_type, sync_state, target)

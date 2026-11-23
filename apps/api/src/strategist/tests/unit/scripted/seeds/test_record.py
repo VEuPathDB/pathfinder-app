@@ -8,7 +8,6 @@ from typing import Any
 
 import pytest
 from pydantic import SecretStr
-from veupathdb.wdk import WDKSearchConfig, WDKStep
 from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.controls import (
     ControlsSearch,
@@ -23,7 +22,7 @@ from strategist.tests._support.record_classes import (
     list_each_search_under,
     list_searches_under,
 )
-from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
+from strategist.tests._support.recording_wdk import RecordingWDK
 from strategist_scripted.models import site_values
 from strategist_scripted.seeds import record
 from strategist_scripted.seeds.catalog import (
@@ -88,45 +87,16 @@ async def test_the_dev_login_signs_in_as_the_settings_dev_account(
     assert calls == [("plasmodb", "dev@example.org", "dev-password")]
 
 
-class _Made:
-    def __init__(self, made_id: int) -> None:
-        self.id = made_id
-
-
 _PFAM = "GroupsByPFamIdOrKeyword"
 _PATTERN = "GroupsByPhyleticPattern"
 
 
-class _SeedApi:
-    def __init__(self) -> None:
-        self.ids = iter(range(1, 100))
-        self.posted: list[str] = []
-
-    async def create_step(self, *args: Any, record_type: str, **kwargs: Any) -> _Made:
-        del args, kwargs
-        self.posted.append(record_type)
-        return _Made(next(self.ids))
-
-    async def create_combined_step(
-        self, *args: Any, record_type: str, **kwargs: Any
-    ) -> _Made:
-        del args, kwargs
-        self.posted.append(record_type)
-        return _Made(next(self.ids))
-
-    async def create_strategy(self, *args: Any, **kwargs: Any) -> _Made:
-        del args, kwargs
-        return _Made(900)
-
-    async def delete_strategy(self, strategy_id: int) -> None:
-        del strategy_id
-
-    async def find_step(self, step_id: int) -> WDKStep:
-        return WDKStep(id=step_id, search_name=_PFAM, search_config=WDKSearchConfig())
-
-    async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
-        del step_ids
-        return []
+def _posted(api: RecordingWDK) -> list[str]:
+    return [
+        call.kwargs["record_type"]
+        for call in api.calls
+        if call.name in {"create_step", "create_combined_step"}
+    ]
 
 
 async def _as_stated(*_args: Any, **kwargs: Any) -> ValidatedParams:
@@ -153,18 +123,17 @@ async def test_a_group_seed_reads_its_controls_by_group_id(
             target=ControlTargetData(step_id=wdk_step_id, estimated_size=5),
         )
 
-    api = _SeedApi()
+    api = RecordingWDK()
     for module in (record, commit_tree):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(record, "run_step_control_tests", run)
     monkeypatch.setattr(commit_tree, "validate_parameters", _as_stated)
-    skip_the_tree_put(monkeypatch)
     list_searches_under(monkeypatch, "group", [_PFAM, _PATTERN])
     (seed, *_) = get_seeds_for_site("orthomcl")
 
     await record.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
 
-    assert (seed.record_type, api.posted) == ("group", ["group"] * 3)
+    assert (seed.record_type, _posted(api)) == ("group", ["group"] * 3)
     assert tested == [
         ControlsSearch(
             search_name="GroupsByNameList",
@@ -177,7 +146,7 @@ async def test_a_group_seed_reads_its_controls_by_group_id(
 async def test_a_seed_whose_leaves_the_site_lists_under_two_classes_posts_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    api = _SeedApi()
+    api = RecordingWDK()
     for module in (record, commit_tree):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site: api)
     list_each_search_under(monkeypatch, {_PFAM: "sequence", _PATTERN: "group"})
@@ -185,6 +154,6 @@ async def test_a_seed_whose_leaves_the_site_lists_under_two_classes_posts_nothin
 
     measured = await record.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
 
-    assert api.posted == []
+    assert _posted(api) == []
     assert measured.refusal is not None
     assert "joins two record types" in measured.refusal

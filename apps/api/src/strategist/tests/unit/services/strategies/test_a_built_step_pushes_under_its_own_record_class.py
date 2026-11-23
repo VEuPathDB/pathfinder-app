@@ -18,7 +18,6 @@ from veupathdb_mcp.catalog import ValidatedParams
 from strategist.services.strategies import commit_tree, record_classes
 from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
 
 from ._counting_strategy_api import CountingStrategyAPI
 
@@ -48,7 +47,6 @@ def _recording(
     monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
-    skip_the_tree_put(monkeypatch)
     return validated, api
 
 
@@ -89,7 +87,7 @@ async def test_each_step_of_an_orthomcl_build_pushes_under_its_own_class(
         ("FromGroups", "sequence"),
         ("ByTaxonomy", "sequence"),
     ]
-    assert [(c.name, c.kwargs["record_type"]) for c in api.calls] == [
+    assert [(c.name, c.kwargs["record_type"]) for c in api.step_writes()] == [
         ("create_step", "group"),
         ("create_transform_step", "sequence"),
         ("create_step", "sequence"),

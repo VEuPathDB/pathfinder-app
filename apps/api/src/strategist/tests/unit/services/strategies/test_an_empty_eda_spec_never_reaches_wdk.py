@@ -30,7 +30,7 @@ class RecordingAPI(RecordingWDK):
 
     @property
     def written(self) -> list[str]:
-        return [call.name for call in self.calls]
+        return [call.name for call in self.step_writes()]
 
 
 @pytest.fixture

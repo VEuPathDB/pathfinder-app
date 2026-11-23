@@ -15,7 +15,6 @@ from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.wdk_write_stubs import (
     accepts_every_value,
-    skip_the_tree_put,
 )
 
 from ._counting_strategy_api import CountingStrategyAPI
@@ -26,7 +25,6 @@ def counting_api(monkeypatch: pytest.MonkeyPatch) -> CountingStrategyAPI:
     api = CountingStrategyAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
-    skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     return api
 

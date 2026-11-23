@@ -40,7 +40,6 @@ from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recording_wdk import RecordingWDK
 from strategist.tests._support.wdk_write_stubs import (
     commit_against,
-    skip_the_tree_put,
 )
 
 _VALUES = PatchAction(search_config=True, name=False)
@@ -181,7 +180,6 @@ def api(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     recorder = RecordingAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: recorder)
     list_every_search_under(monkeypatch, "transcript")
-    skip_the_tree_put(monkeypatch)
     return recorder
 
 

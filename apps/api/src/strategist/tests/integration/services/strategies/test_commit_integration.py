@@ -33,7 +33,6 @@ from strategist.services.strategies.commit import (
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.wdk_write_stubs import (
     RecordedPushes,
-    landed_pushes,
     validate_against,
 )
 from strategist.tests.integration.services.strategies._commit_wire import (
@@ -54,7 +53,7 @@ pytestmark = pytest.mark.usefixtures("open_job_queue")
 
 @pytest.fixture
 def pushes() -> RecordedPushes:
-    return landed_pushes(42)
+    return RecordedPushes()
 
 
 @pytest.fixture

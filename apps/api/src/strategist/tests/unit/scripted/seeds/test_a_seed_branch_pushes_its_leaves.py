@@ -19,7 +19,6 @@ from veupathdb_mcp.catalog import ValidatedParams
 from strategist.services.strategies import commit_tree
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests._support.wdk_write_stubs import skip_the_tree_put
 from strategist.tests.unit.services.strategies._counting_strategy_api import (
     CountingStrategyAPI,
 )
@@ -51,7 +50,6 @@ async def test_a_seed_holding_a_branch_term_pushes_its_leaves(
     api = CountingStrategyAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
-    skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     seed = StrategyStepNode(
         id="step_seed",

@@ -88,12 +88,13 @@ async def test_a_colocation_over_a_group_carries_its_name(
 
     api = await _created(monkeypatch, root)
 
-    assert [call.name for call in api.calls] == [
+    writes = api.step_writes()
+    assert [call.name for call in writes] == [
         "create_transform_step",
         "update_step_properties",
     ]
-    assert api.calls[1].kwargs["spec"].expanded_name == _NAME
-    assert api.calls[1].kwargs["spec"].expanded is True
+    assert writes[1].kwargs["spec"].expanded_name == _NAME
+    assert writes[1].kwargs["spec"].expanded is True
 
 
 async def test_a_combine_over_no_group_patches_nothing(

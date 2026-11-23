@@ -37,7 +37,6 @@ from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.wdk_write_stubs import (
     held_as,
-    skip_the_tree_put,
 )
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
@@ -192,7 +191,6 @@ class TestTheCommitSendsWhatThePlanNames:
     def api(self, monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         api = StubAPI()
         monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
-        skip_the_tree_put(monkeypatch)
         list_every_search_under(monkeypatch, "transcript")
         return api
 
@@ -226,8 +224,9 @@ class TestTheCommitSendsWhatThePlanNames:
     ) -> None:
         await self._commit(api, _leaf(score=12))
 
-        assert [call.name for call in api.calls] == ["update_step_properties"]
-        assert api.calls[0].kwargs["spec"].custom_name == "exported, renamed"
+        writes = api.step_writes()
+        assert [call.name for call in writes] == ["update_step_properties"]
+        assert writes[0].kwargs["spec"].custom_name == "exported, renamed"
         assert validated == []
 
     async def test_a_value_and_a_name_are_two_writes_in_order(
@@ -235,7 +234,7 @@ class TestTheCommitSendsWhatThePlanNames:
     ) -> None:
         await self._commit(api, _leaf())
 
-        assert [(c.name, c.kwargs["step_id"]) for c in api.calls] == [
+        assert [(c.name, c.kwargs["step_id"]) for c in api.step_writes()] == [
             ("update_step_search_config", _WDK_LEAF),
             ("update_step_properties", _WDK_LEAF),
         ]

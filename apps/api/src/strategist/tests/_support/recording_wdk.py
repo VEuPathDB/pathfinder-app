@@ -66,6 +66,9 @@ class RecordingWDK(StrategyAPI):
             msg = f"synthetic failure for {search}"
             raise WDKError(msg)
 
+    def step_writes(self) -> list[Call]:
+        return [call for call in self.calls if call.name in _STEP_PUSHES]
+
     def named(self, name: str) -> list[Call]:
         return [call for call in self.calls if call.name == name]
 

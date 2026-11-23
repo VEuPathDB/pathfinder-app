@@ -23,7 +23,6 @@ from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.wdk_write_stubs import (
     accepts_every_value,
     held_as,
-    skip_the_tree_put,
 )
 from strategist.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
@@ -82,7 +81,6 @@ async def _the_writes(
     api.holds(flatten_tree(before.root), sync_state, root_id=ROOT)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
-    skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     plan = plan_step_pushes(
         old_ast=before, new_ast=after, existing_wdk_ids=site.ids, held=held_as(before)
