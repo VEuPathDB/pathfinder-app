@@ -809,7 +809,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       .toEqual(["complete"]);
     const reopened = await context.newPage();
     const chat = new ChatPage(reopened);
-    await reopened.goto(`conversation/${id}`);
+    await gotoOnSite(reopened, siteId, `conversation/${id}`);
     await expect(chat.composer).toBeVisible({ timeout: 60_000 });
     const done = reopened.getByTestId("task-row").filter({ hasText: CONTROL_TESTS });
     await expect(done).toHaveCount(1, { timeout: 60_000 });
