@@ -82,10 +82,9 @@ def stated_values(values: Mapping[str, ParamValue]) -> dict[str, JsonValue]:
     return {name: stated_value(name, value) for name, value in values.items()}
 
 
-def stated_text(name: str, value: ParamValue, *, limit: int | None = None) -> str:
+def stated_text(name: str, value: ParamValue) -> str:
     handle = _handle(name, value)
-    text = shown_stated_text(value) if handle is None else handle
-    return text if limit is None else cut_stated(text, limit)
+    return shown_stated_text(value) if handle is None else handle
 
 
 def cut_stated(text: str, limit: int) -> str:
