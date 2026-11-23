@@ -26,15 +26,14 @@ from strategist.services.strategies.commit_tree import (
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.holding_wdk import (
+    HoldingWDK,
+    serve_the_holding_wdk,
+)
 from strategist.tests._support.recorded_searches import (
     serve_recorded_definitions,
     serve_recorded_record_types,
     suite_search,
-)
-from strategist.tests._support.wdk_write_stubs import wdk_holds_the_tree_before_the_edit
-from strategist.tests.unit.services.strategies._holding_strategy_api import (
-    HoldingWDK,
-    serve_the_holding_wdk,
 )
 
 _SITE = "plasmodb"
@@ -161,7 +160,6 @@ async def test_every_refused_value_of_one_commit_is_returned(
     monkeypatch: pytest.MonkeyPatch, wdk: HoldingWDK
 ) -> None:
     serve_the_holding_wdk(monkeypatch, wdk)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     graph = StrategyGraph(graph_id="g1", name="Two", site_id=_SITE)
     before = StrategyStepNode(
         id="step_c",
@@ -178,13 +176,15 @@ async def test_every_refused_value_of_one_commit_is_returned(
     )
     graph.steps = flatten_tree(after)
     graph.recompute_roots()
+    sync_state = WDKSyncState(wdk_step_ids={"step_a": 1, "step_b": 2, "step_c": 3})
+    wdk.holds(flatten_tree(before), sync_state)
 
     committed = await commit_tree(
         site_id=_SITE,
         steps=graph.steps,
         root_id="step_c",
         old=StrategyAst(record_type="transcript", root=before),
-        sync_state=WDKSyncState(wdk_step_ids={"step_a": 1, "step_b": 2, "step_c": 3}),
+        sync_state=sync_state,
         target=CommitTarget(name="Two", description=""),
     )
 

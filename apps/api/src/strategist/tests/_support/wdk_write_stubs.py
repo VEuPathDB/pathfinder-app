@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Container, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,7 +10,6 @@ import pytest
 from veupathdb.domain.strategy import (
     StepSettings,
     StrategyAst,
-    StrategyStep,
     StrategyStepNode,
     flatten_tree,
     pushable_root_id,
@@ -26,7 +25,6 @@ from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.services.strategies import (
     commit_tree,
     live_counts,
-    reconcile,
     stated_sides,
 )
 from strategist.services.strategies._tree_write import (
@@ -44,6 +42,7 @@ from strategist.tests._support.recorded_searches import (
     serve_recorded_definitions,
     serve_recorded_record_types,
 )
+from strategist.tests._support.recording_wdk import RecordingWDK
 
 
 async def accepts_every_value(*_args: Any, **kwargs: Any) -> ValidatedParams:
@@ -61,33 +60,11 @@ def held_as(ast: StrategyAst) -> dict[str, StepSettings]:
     return {node.id: settings_of(node) for root in roots for node in walk(root)}
 
 
-def wdk_holds_the_tree_before_the_edit(monkeypatch: pytest.MonkeyPatch) -> None:
-    """WDK holds every mapped step as the tree before the edit states it."""
-
-    async def _read(*_args: object) -> dict[str, StepSettings]:
-        return {}
-
-    def _before(
-        old: StrategyAst | None,
-        root: StrategyStepNode,
-        steps: dict[str, StrategyStep],
-        held: Mapping[str, StepSettings],
-        *,
-        unfinished: Container[str],
-    ) -> dict[str, StepSettings]:
-        reconcile.held_before_the_commit(old, root, steps, held, unfinished=unfinished)
-        return {} if old is None else held_as(old)
-
-    monkeypatch.setattr(commit_tree, "reconcile_sync_state_with_wdk", _read)
-    monkeypatch.setattr(commit_tree, "held_before_the_commit", _before)
-
-
 def stub_every_catalog_read(monkeypatch: pytest.MonkeyPatch) -> None:
     """A write reaches no catalog and no WDK: every read answers its input."""
     monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
     monkeypatch.setattr(stated_sides, "validate_parameters", accepts_every_value)
     list_every_search_under(monkeypatch, "transcript")
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
 
 
 class NoStrategyRead:
@@ -98,12 +75,11 @@ class NoStrategyRead:
         raise WDKError(msg, status=404)
 
 
-def serve_the_site(monkeypatch: pytest.MonkeyPatch, api: object) -> None:
+def serve_the_site(monkeypatch: pytest.MonkeyPatch, api: RecordingWDK) -> None:
     for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
     list_every_search_under(monkeypatch, "transcript")
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
 
 
 def skip_the_tree_put(monkeypatch: pytest.MonkeyPatch, strategy_id: int = 42) -> None:
@@ -128,7 +104,7 @@ def skip_the_tree_put(monkeypatch: pytest.MonkeyPatch, strategy_id: int = 42) ->
 
 async def commit_against(
     monkeypatch: pytest.MonkeyPatch,
-    api: object,
+    api: RecordingWDK,
     root: StrategyStepNode,
     *,
     before: StrategyStepNode | None,
@@ -137,6 +113,8 @@ async def commit_against(
     serve_the_site(monkeypatch, api)
     skip_the_tree_put(monkeypatch)
     sync_state = WDKSyncState(wdk_step_ids=dict(held))
+    if before is not None:
+        api.holds(flatten_tree(before), sync_state)
     committed = await commit_tree.commit_tree(
         site_id="plasmodb",
         steps=flatten_tree(root),

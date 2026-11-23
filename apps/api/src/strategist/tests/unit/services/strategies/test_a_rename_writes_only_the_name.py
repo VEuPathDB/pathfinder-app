@@ -38,7 +38,6 @@ from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.wdk_write_stubs import (
     held_as,
     skip_the_tree_put,
-    wdk_holds_the_tree_before_the_edit,
 )
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
@@ -193,7 +192,6 @@ class TestTheCommitSendsWhatThePlanNames:
     def api(self, monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         api = StubAPI()
         monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
-        wdk_holds_the_tree_before_the_edit(monkeypatch)
         skip_the_tree_put(monkeypatch)
         list_every_search_under(monkeypatch, "transcript")
         return api
@@ -210,21 +208,23 @@ class TestTheCommitSendsWhatThePlanNames:
         monkeypatch.setattr(commit_tree, "validate_parameters", _record)
         return seen
 
-    async def _commit(self, before: StrategyStepNode) -> None:
+    async def _commit(self, api: StubAPI, before: StrategyStepNode) -> None:
         graph = _graph(_leaf(score=12, name="exported, renamed"))
+        sync_state = WDKSyncState(wdk_step_ids={_LEAF: _WDK_LEAF})
+        api.holds(flatten_tree(before), sync_state)
         await commit_tree.commit_tree(
             site_id="plasmodb",
             steps=graph.steps,
             root_id=_LEAF,
             old=StrategyAst(record_type="transcript", root=before),
-            sync_state=WDKSyncState(wdk_step_ids={_LEAF: _WDK_LEAF}),
+            sync_state=sync_state,
             target=commit_tree.CommitTarget(name="test", description=""),
         )
 
     async def test_a_rename_is_one_properties_patch(
         self, api: StubAPI, validated: list[object]
     ) -> None:
-        await self._commit(_leaf(score=12))
+        await self._commit(api, _leaf(score=12))
 
         assert [call.name for call in api.calls] == ["update_step_properties"]
         assert api.calls[0].kwargs["spec"].custom_name == "exported, renamed"
@@ -233,7 +233,7 @@ class TestTheCommitSendsWhatThePlanNames:
     async def test_a_value_and_a_name_are_two_writes_in_order(
         self, api: StubAPI, validated: list[object]
     ) -> None:
-        await self._commit(_leaf())
+        await self._commit(api, _leaf())
 
         assert [(c.name, c.kwargs["step_id"]) for c in api.calls] == [
             ("update_step_search_config", _WDK_LEAF),

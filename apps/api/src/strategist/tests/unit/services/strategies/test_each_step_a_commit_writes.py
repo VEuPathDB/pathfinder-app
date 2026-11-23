@@ -16,7 +16,6 @@ from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.wdk_write_stubs import (
     accepts_every_value,
     skip_the_tree_put,
-    wdk_holds_the_tree_before_the_edit,
 )
 
 from ._counting_strategy_api import CountingStrategyAPI
@@ -26,7 +25,6 @@ from ._counting_strategy_api import CountingStrategyAPI
 def counting_api(monkeypatch: pytest.MonkeyPatch) -> CountingStrategyAPI:
     api = CountingStrategyAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
@@ -42,10 +40,13 @@ def _leaf(step_id: str, search: str = "GenesByTaxon") -> StrategyStepNode:
 
 
 async def _commit(
+    api: CountingStrategyAPI,
     root: StrategyStepNode,
     sync_state: WDKSyncState,
     before: StrategyStepNode | None = None,
 ) -> CommittedTree:
+    if before is not None:
+        api.holds(flatten_tree(before), sync_state)
     return await commit_tree.commit_tree(
         site_id="plasmodb",
         steps=flatten_tree(root),
@@ -73,7 +74,7 @@ def _deleted(api: CountingStrategyAPI) -> list[int]:
 async def test_a_step_that_lands_is_pushed(counting_api: CountingStrategyAPI) -> None:
     sync_state = WDKSyncState()
 
-    committed = await _commit(_leaf("A", "SearchA"), sync_state)
+    committed = await _commit(counting_api, _leaf("A", "SearchA"), sync_state)
 
     assert (committed.pushed, _failed(committed)) == (["A"], [])
     assert sync_state.wdk_step_ids == {"A": 1001}
@@ -92,7 +93,7 @@ async def test_a_refused_step_skips_the_combine_above_it_and_not_its_sibling(
         operator=CombineOp.UNION,
     )
 
-    committed = await _commit(root, sync_state)
+    committed = await _commit(counting_api, root, sync_state)
 
     assert (committed.pushed, _failed(committed), committed.skipped) == (
         ["A"],
@@ -114,6 +115,7 @@ async def test_a_replaced_search_is_created_and_never_patched(
     sync_state = WDKSyncState(wdk_step_ids={"A": 440432473})
 
     committed = await _commit(
+        counting_api,
         _leaf("A", "GenesByMicroarrayBirkholtz"),
         sync_state,
         before=_leaf("A", "GenesByRNASeqSu"),
@@ -137,6 +139,7 @@ async def test_a_recreate_that_fails_keeps_the_step_it_replaced(
     sync_state = WDKSyncState(wdk_step_ids={"A": 440432473})
 
     committed = await _commit(
+        counting_api,
         _leaf("A", "GenesByMicroarrayBirkholtz"),
         sync_state,
         before=_leaf("A", "GenesByRNASeqSu"),
@@ -153,7 +156,7 @@ async def test_a_step_that_reaches_wdk_clears_its_earlier_refusal(
     """The refusal describes the last push, so a push that lands ends it."""
     sync_state = WDKSyncState(wdk_push_errors={"A": "422 organism: Invalid value"})
 
-    committed = await _commit(_leaf("A", "SearchA"), sync_state)
+    committed = await _commit(counting_api, _leaf("A", "SearchA"), sync_state)
 
     assert committed.pushed == ["A"]
     assert sync_state.wdk_push_errors == {}
@@ -176,6 +179,7 @@ async def test_a_combine_above_a_replaced_search_is_created_with_the_new_input(
     sync_state = WDKSyncState(wdk_step_ids={"A": 440432473, "B": 200, "J": 300})
 
     committed = await _commit(
+        counting_api,
         _join(_leaf("A", "GenesByMicroarrayBirkholtz")),
         sync_state,
         before=_join(_leaf("A", "GenesByRNASeqSu")),
@@ -202,6 +206,7 @@ async def test_a_patched_leaf_pushes_the_name_it_now_states(
 ) -> None:
     """WDK holds the name the step states, not the one it was created with."""
     await _commit(
+        counting_api,
         _named("Genes with 1 to 2 predicted transmembrane domains", "TgME49"),
         WDKSyncState(wdk_step_ids={"A": 500}),
         before=_named("Genes with 1 to 7 predicted transmembrane domains", "Pf3D7"),
@@ -220,6 +225,7 @@ async def test_a_patched_leaf_whose_name_stood_still_writes_no_name(
     name = "Genes with 1 to 7 predicted transmembrane domains"
 
     await _commit(
+        counting_api,
         _named(name, "TgME49"),
         WDKSyncState(wdk_step_ids={"A": 500}),
         before=_named(name, "Pf3D7"),

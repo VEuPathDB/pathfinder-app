@@ -14,6 +14,7 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     StrategyAPI,
     WDKIdentifier,
+    WDKStep,
     WDKStepTree,
     WDKStrategyDetails,
 )
@@ -23,10 +24,7 @@ from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import (
-    put_the_graph,
-    wdk_holds_the_tree_before_the_edit,
-)
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 _WDK_STEP_ID = 1001
 _ADOPTED_ID = 42
@@ -63,11 +61,14 @@ def api(monkeypatch: pytest.MonkeyPatch) -> Mock:
     async def get_strategy(*_args: object, **_kwargs: object) -> WDKStrategyDetails:
         return _details(_ADOPTED_ID)
 
+    async def find_step(*_args: object, **_kwargs: object) -> WDKStep:
+        return _details(_ADOPTED_ID).steps[str(_WDK_STEP_ID)]
+
+    stub.find_step = AsyncMock(side_effect=find_step)
     stub.create_strategy = AsyncMock(side_effect=create_strategy)
     stub.get_strategy = AsyncMock(side_effect=get_strategy)
     stub.update_strategy = AsyncMock(side_effect=get_strategy)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: stub)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     return stub
 
 

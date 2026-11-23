@@ -165,15 +165,20 @@ _STRATEGY_REFUSED = WDKError("strategy refused", status=500)
 
 
 class _GoldAPI(StubAPI):
-    datasets: list[list[str]]
     released: list[list[int]]
     posted: list[dict[str, str]]
 
     def __init__(self) -> None:
         super().__init__()
-        self.datasets = []
         self.released = []
         self.posted = []
+
+    @property
+    def datasets(self) -> list[list[str]]:
+        return [
+            write.body["sourceContent"]["ids"]
+            for write in self.wdk.written("POST", "/datasets")
+        ]
 
     async def create_step(
         self,
@@ -183,10 +188,6 @@ class _GoldAPI(StubAPI):
     ) -> WDKIdentifier:
         self.posted.append(dict(spec.search_config.parameters))
         return await super().create_step(spec, record_type, user_id)
-
-    async def create_dataset(self, config: Any) -> int:
-        self.datasets.append(list(config.source_content.ids))
-        return 7001
 
     async def create_strategy(self, *args: Any, **kwargs: Any) -> Any:
         del args, kwargs

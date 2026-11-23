@@ -45,30 +45,6 @@ class _RefusingSite(StubAPI):
         raise WDKError(_REFUSAL, status=HTTPStatus.UNPROCESSABLE_ENTITY)
 
 
-class _ListingSite(StubAPI):
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del user_id
-        survivor = _IDS["step_a"]
-        return WDKStrategyDetails.model_validate(
-            {
-                "strategyId": strategy_id,
-                "name": "Test",
-                "rootStepId": survivor,
-                "stepTree": {"stepId": survivor},
-                "steps": {
-                    str(survivor): {
-                        "id": survivor,
-                        "searchName": "GenesWithSignalPeptide",
-                        "searchConfig": {"parameters": {}},
-                        "estimatedSize": 479,
-                    }
-                },
-            }
-        )
-
-
 def _pushed_join() -> WDKSyncState:
     root = combine("step_join", leaf("step_a"), leaf("step_b"))
     return WDKSyncState(
@@ -95,6 +71,7 @@ async def _delete_b(
     assert session.graph is not None
     for step in session.graph.steps.values():
         step.record_class = "transcript"
+    api.holds(session.graph.steps, state, root_id="step_join")
     result = await apply_and_commit(
         deps=StrategyMutationContext(site_id="plasmodb", strategy_session=session),
         op=DeleteStepOp(step_id="step_b", resolution=DeleteResolution.COLLAPSE_COMBINE),
@@ -106,7 +83,7 @@ async def test_a_delete_puts_the_tree_without_the_step_and_drops_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     install_stub_api(monkeypatch)
-    api = _ListingSite()
+    api = StubAPI()
 
     result, state = await _delete_b(monkeypatch, api)
 

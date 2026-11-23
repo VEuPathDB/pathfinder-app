@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
@@ -12,17 +11,6 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
-from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    PatchStepSpec,
-    StepsMixin,
-    WDKIdentifier,
-    WDKSearchConfig,
-    WDKStep,
-    WDKStepTree,
-    WDKStrategyDetails,
-)
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.graph.runtime import AgentDeps
@@ -42,53 +30,15 @@ from strategist.tests._support.record_classes import (
     recorded_searches,
 )
 from strategist.tests._support.recorded_searches import serve_stated_reads
-from strategist.tests._support.wdk_write_stubs import (
-    keeps_every_value,
-    skip_the_tree_put,
-    wdk_holds_the_tree_before_the_edit,
+from strategist.tests._support.recording_wdk import (
+    RecordingWDK,
+    held_by_the_site,
+    served,
 )
-
-_STEP_PUSHES = frozenset(
-    {
-        "create_step",
-        "create_combined_step",
-        "create_transform_step",
-        "update_step_search_config",
-        "update_step_properties",
-    }
-)
+from strategist.tests._support.wdk_write_stubs import keeps_every_value
 
 
-@dataclass
-class Call:
-    name: str
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class StubAPI:
-    """Records every WDK strategy write and hands back fresh step ids."""
-
-    calls: list[Call] = field(default_factory=list)
-    next_id: int = 9000
-    refuse: Exception | None = None
-    """Raised by every step push, so a test can play WDK turning an edit down."""
-
-    def _record(self, name: str, /, **kwargs: Any) -> None:
-        self.calls.append(Call(name, kwargs))
-        if self.refuse is not None and name in _STEP_PUSHES:
-            raise self.refuse
-
-    def _alloc(self) -> int:
-        self.next_id += 1
-        return self.next_id
-
-    def step_ids(self, name: str) -> set[int]:
-        return {call.kwargs["step_id"] for call in self.calls if call.name == name}
-
-    def named(self, name: str) -> list[Call]:
-        return [call for call in self.calls if call.name == name]
-
+class StubAPI(RecordingWDK):
     def created_searches(self) -> list[str]:
         return [call.kwargs["search_name"] for call in self.named("create_step")]
 
@@ -107,158 +57,6 @@ class StubAPI:
             (call.kwargs["step_id"], call.kwargs["parameters"])
             for call in self.named("update_step_search_config")
         ]
-
-    delete_orphaned_steps = StepsMixin.delete_orphaned_steps
-
-    async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del user_id
-        self._record("delete_step", step_id=step_id)
-
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self._record(
-            "create_step", search_name=spec.search_name, record_type=record_type
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_combined_step(
-        self, spec: CombinedStepSpec, record_type: str, user_id: str | None = None
-    ) -> WDKIdentifier:
-        del user_id
-        self._record(
-            "create_combined_step",
-            primary_step_id=spec.primary_step_id,
-            secondary_step_id=spec.secondary_step_id,
-            boolean_operator=spec.boolean_operator.value,
-            record_type=record_type,
-            custom_name=spec.custom_name,
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_transform_step(
-        self,
-        spec: NewStepSpec,
-        input_step_id: int,
-        record_type: str = "transcript",
-        *,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self._record(
-            "create_transform_step",
-            search_name=spec.search_name,
-            input_step_id=input_step_id,
-            record_type=record_type,
-            custom_name=spec.custom_name,
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def update_step_search_config(
-        self,
-        step_id: int,
-        search_config: WDKSearchConfig,
-        record_type: str,
-        search_name: str,
-        *,
-        user_id: str | None = None,
-        held: WDKStep | None = None,
-    ) -> None:
-        del held
-        del user_id
-        self._record(
-            "update_step_search_config",
-            step_id=step_id,
-            search_name=search_name,
-            record_type=record_type,
-            parameters=dict(search_config.parameters),
-        )
-
-    async def update_step_properties(
-        self, step_id: int, spec: PatchStepSpec, *, user_id: str | None = None
-    ) -> None:
-        del user_id
-        self._record("update_step_properties", step_id=step_id, spec=spec)
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByTaxon",
-            search_config=WDKSearchConfig(parameters={}),
-        )
-
-    async def set_saved(
-        self, strategy_id: int, *, is_saved: bool, user_id: str | None = None
-    ) -> None:
-        del user_id
-        self._record("set_saved", strategy_id=strategy_id, is_saved=is_saved)
-
-    async def create_strategy(
-        self,
-        step_tree: WDKStepTree,
-        name: str,
-        description: str | None = None,
-        *,
-        is_saved: bool = False,
-        is_internal: bool = False,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self._record(
-            "create_strategy",
-            step_tree=step_tree,
-            name=name,
-            description=description,
-            is_saved=is_saved,
-            is_internal=is_internal,
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def update_strategy(
-        self,
-        strategy_id: int,
-        step_tree: WDKStepTree | None = None,
-        name: str | None = None,
-        user_id: str | None = None,
-        *,
-        description: str | None = None,
-    ) -> WDKStrategyDetails:
-        del user_id
-        self._record(
-            "update_strategy",
-            strategy_id=strategy_id,
-            step_tree=step_tree,
-            name=name,
-            description=description,
-        )
-        return await self.get_strategy(strategy_id)
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        """A strategy rooted on a step no graph maps, so every count reads as unknown."""
-        del user_id
-        return WDKStrategyDetails.model_validate(
-            {
-                "strategyId": strategy_id,
-                "name": "Test",
-                "recordClassName": "transcript",
-                "rootStepId": 0,
-                "stepTree": {"stepId": 0},
-                "steps": {
-                    "0": {
-                        "id": 0,
-                        "searchName": "GenesByTaxon",
-                        "searchConfig": {"parameters": {}},
-                    }
-                },
-            }
-        )
 
 
 async def _noop(*_args: Any, **_kwargs: Any) -> None:
@@ -279,13 +77,12 @@ def pin_validator(monkeypatch: pytest.MonkeyPatch, validator: Any) -> None:
 def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     """Serve one StubAPI to every strategy write path and stub the side effects."""
     api = StubAPI()
+    monkeypatch.setitem(served, "site", api)
     for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     for module in (commit, spec_build):
         monkeypatch.setattr(module, "persist_strategy_ast_to_conversation", _noop)
         monkeypatch.setattr(module, "defer_the_gene_set_refresh", _noop)
-    skip_the_tree_put(monkeypatch)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     pin_validator(monkeypatch, _echo_parameters)
     monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
     list_every_search_under(monkeypatch, "transcript")
@@ -338,9 +135,12 @@ def session_with(
             stack.append(node.secondary_input)
     graph.recompute_roots()
     session.graph = graph
-    session.sync_state = WDKSyncState(
-        wdk_step_ids=dict(wdk_step_ids), wdk_strategy_id=42
+    sync_state = WDKSyncState(
+        wdk_step_ids=dict(wdk_step_ids),
+        wdk_strategy_id=42 if wdk_step_ids else None,
     )
+    session.sync_state = sync_state
+    held_by_the_site(session)
     return session
 
 

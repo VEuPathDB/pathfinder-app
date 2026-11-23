@@ -23,6 +23,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.recording_wdk import held_by_the_site
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
@@ -48,6 +49,7 @@ def _cite(session: StrategySession, step_id: str) -> None:
         wdk_strategy_id=42,
         wdk_step_tree=WDKStepTree(step_id=9001),
     )
+    held_by_the_site(session)
 
 
 def _ctx(*, detached: bool = False, cited: bool = False) -> RunContext[LeadDeps]:

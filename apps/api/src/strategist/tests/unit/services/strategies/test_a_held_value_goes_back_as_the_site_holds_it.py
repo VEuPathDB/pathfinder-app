@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, override
 
 import pytest
 from veupathdb.domain.parameters import (
@@ -25,7 +24,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
-from veupathdb.wdk import StrategyAPI, WDKIdentifier, WDKSearchConfig
+from veupathdb.wdk import NewStepSpec, StrategyAPI, WDKIdentifier, WDKSearchConfig
 from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.wdk import WireStep
 
@@ -54,6 +53,7 @@ from strategist.services.strategies._wdk_step_calls import _put_search_config
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.recording_wdk import RecordingWDK
 from strategist.tests._support.wdk_write_stubs import commit_against
 
 _RETIRED: dict[str, ParamValue] = {
@@ -129,17 +129,13 @@ async def test_an_imported_retired_step_is_created_byte_identical(
 ) -> None:
     created: list[WDKSearchConfig] = []
 
-    class _Api:
+    class _Api(RecordingWDK):
+        @override
         async def create_step(
-            self, spec: Any, *, record_type: str, verbatim: Collection[str] = ()
+            self, spec: NewStepSpec, record_type: str, user_id: str | None = None
         ) -> WDKIdentifier:
-            del record_type
             created.append(spec.search_config)
-            return WDKIdentifier(id=11)
-
-        async def find_step(self, step_id: int) -> Any:
-            del step_id
-            raise OSError
+            return await super().create_step(spec, record_type, user_id)
 
     step = StrategyStepNode(
         id="10", search_name="GenesByRetiredText", parameters=dict(_RETIRED)

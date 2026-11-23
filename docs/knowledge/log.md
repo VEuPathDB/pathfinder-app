@@ -2,6 +2,15 @@
 
 ## 2026-11-23
 
+* **The test fakes hold what they were written.** The double that answered every commit's
+  read with the tree before the edit is gone. One fake WDK (`tests/_support/holding_wdk.py`,
+  `RecordingWDK` beside it) holds every step and strategy a test writes and serves them back
+  to the real read; a test that needs WDK to hold something else seeds it (`holds`,
+  `holds_the_strategy`). Moving the fakes onto it found two read gaps, both fixed: a combine
+  read outside the live tree read as a search and was recreated (veupathdb-mcp
+  `settings_on_the_wire`, `runs_a_combine`), and a group name the plan changed was never
+  written because the held name was taken from the plan.
+
 * **An unstated colocation takes the site's defaults.** `ColocationParams` defaults are the
   site's span defaults (veupathdb-py WDK-STEP-011), `SPAN_LOGIC_DEFAULTS` is gone, the web
   editor parses the generated schema's defaults, and a stored COLOCATE node without

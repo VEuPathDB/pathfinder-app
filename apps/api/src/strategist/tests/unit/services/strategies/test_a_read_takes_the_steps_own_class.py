@@ -174,7 +174,11 @@ async def test_a_colocation_over_groups_is_posted_under_its_own_class(
         [],
         "transcript",
     )
-    assert [(c.name, c.kwargs["record_type"]) for c in api.calls] == [
+    assert [
+        (c.name, c.kwargs["record_type"])
+        for c in api.calls
+        if c.name != "create_strategy"
+    ] == [
         ("create_step", "group"),
         ("create_step", "snp"),
         ("create_transform_step", "transcript"),

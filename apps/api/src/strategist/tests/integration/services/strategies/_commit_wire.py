@@ -35,7 +35,6 @@ from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.wdk_write_stubs import (
     NoStrategyRead,
     keeps_every_value,
-    wdk_holds_the_tree_before_the_edit,
 )
 
 PROMPT = "find kinases expressed in blood stages"
@@ -172,7 +171,6 @@ def patch_strategy_api(monkeypatch: pytest.MonkeyPatch, api: CountingAPI) -> Non
     """Serve ``api`` to the commit path, and let every step count as complete."""
 
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", keeps_every_value)
 
 

@@ -356,7 +356,8 @@ async def test_a_replacement_keeps_the_count_the_replaced_step_held(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The export stands where the old step stood, so the old count is its before."""
-    install_stub_api(monkeypatch)
+    api = install_stub_api(monkeypatch)
+    api.wdk.answer_size = None
     ctx = _lead_ctx_over(combine("step_c1", leaf("step_k1"), leaf("step_k2")))
     ctx.deps.state.domain.operational_spec = _two_kinase_criteria()
     counts = {"step_k1": 4200, "step_k2": 1535, "step_c1": 900}

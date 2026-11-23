@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import NumberValue
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import CombineOp, flatten_tree
 
 from strategist.ai.lead.deltas import EditDelta
 from strategist.services.strategies import commit_tree
@@ -24,7 +24,6 @@ from strategist.tests._support.wdk_write_stubs import (
     accepts_every_value,
     held_as,
     skip_the_tree_put,
-    wdk_holds_the_tree_before_the_edit,
 )
 from strategist.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
@@ -79,8 +78,9 @@ async def _the_writes(
     assert before is not None
     assert after is not None
     api = StubAPI()
+    sync_state = WDKSyncState(wdk_step_ids=site.ids, wdk_strategy_id=42)
+    api.holds(flatten_tree(before.root), sync_state, root_id=ROOT)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
@@ -97,12 +97,13 @@ async def _the_writes(
         steps=thread.graph.steps,
         root_id=ROOT,
         old=before,
-        sync_state=WDKSyncState(wdk_step_ids=site.ids),
+        sync_state=sync_state,
         target=commit_tree.CommitTarget(name="Thread", description=""),
     )
     return [
         (call.name, call.kwargs["step_id"], call.kwargs.get("parameters"))
         for call in api.calls
+        if "step_id" in call.kwargs
     ]
 
 

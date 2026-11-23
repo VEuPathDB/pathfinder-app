@@ -94,11 +94,12 @@ async def test_a_build_over_the_proteins_groups_posts_every_step(
     built = await _build(_empty_session(), combine("step_join", groups, _mammals()))
 
     assert (built, sorted(call.name for call in api.calls)) == (
-        42,
+        next(iter(api.wdk.strategies)),
         [
             "create_combined_step",
             "create_step",
             "create_step",
+            "create_strategy",
             "create_transform_step",
         ],
     )
@@ -110,8 +111,8 @@ async def test_a_build_of_two_protein_steps_posts_the_combine(api: StubAPI) -> N
     built = await _build(_empty_session(), combine("step_join", _protein(), other))
 
     assert (built, sorted(call.name for call in api.calls)) == (
-        42,
-        ["create_combined_step", "create_step", "create_step"],
+        next(iter(api.wdk.strategies)),
+        ["create_combined_step", "create_step", "create_step", "create_strategy"],
     )
 
 

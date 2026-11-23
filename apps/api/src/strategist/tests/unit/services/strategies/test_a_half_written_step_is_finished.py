@@ -21,14 +21,16 @@ from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.held_steps import (
+    LEAF_DEFAULT,
+)
+from strategist.tests._support.holding_wdk import (
+    tree_ids,
+)
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
     session_with_one_step,
-)
-from strategist.tests.unit.services.strategies._holding_strategy_api import (
-    LEAF_DEFAULT,
-    tree_ids,
 )
 from strategist.tests.unit.services.strategies.test_one_commit_path_writes_a_strategy import (
     Env,

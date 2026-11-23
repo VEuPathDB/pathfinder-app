@@ -50,7 +50,6 @@ from strategist.tests._support.wdk_write_stubs import (
     NoStrategyRead,
     RecordedPushes,
     landed_pushes,
-    wdk_holds_the_tree_before_the_edit,
 )
 
 # A strategy write defers the gene-set refresh onto the job queue.
@@ -110,7 +109,6 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         return ValidatedParams(params=stated)
 
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", _accept_every_value)
     monkeypatch.setattr(commit_tree, "put_the_tree", api.pushes.put)
     list_every_search_under(monkeypatch, "transcript")

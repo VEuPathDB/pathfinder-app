@@ -124,6 +124,7 @@ async def _pushed(
     session.graph.name = "G"
     for step in session.graph.steps.values():
         step.record_class = "transcript"
+    api.holds(session.graph.steps, state)
     await put_the_graph(session.graph, state, "plasmodb")
     return [c.kwargs["description"] for c in api.named("create_strategy")]
 

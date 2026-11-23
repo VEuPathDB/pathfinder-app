@@ -7,14 +7,12 @@ nothing knows the step exists to retry it.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, override
 from uuid import uuid4
 
 import pytest
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
-from veupathdb.wdk import NewStepSpec, StepsMixin, WDKIdentifier, WDKStrategyDetails
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
@@ -23,56 +21,34 @@ from strategist.services.strategies._tree_write import WrittenTree
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.recording_wdk import (
+    RecordingWDK,
+    held_by_the_site,
+    served,
+)
 from strategist.tests._support.wdk_write_stubs import serve_the_site
 
 _STILL_REFERENCED = "409: step belongs to a strategy"
 
 
-@dataclass
-class _Recorder:
-    """Records the order of the WDK calls a commit makes."""
+class _Recorder(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__()
+        self.order: list[str] = []
+        self.refused: set[int] = set()
 
-    order: list[str] = field(default_factory=list)
-    refuse: set[int] = field(default_factory=set)
-    next_id: int = 9000
-
-    delete_orphaned_steps = StepsMixin.delete_orphaned_steps
-
+    @override
     async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del user_id
         self.order.append(f"delete:{step_id}")
-        if step_id in self.refuse:
+        if step_id in self.refused:
             raise WDKError(_STILL_REFERENCED, status=409)
-
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del spec, record_type, user_id
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def create_combined_step(self, **_kwargs: Any) -> WDKIdentifier:
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def create_transform_step(self, **_kwargs: Any) -> WDKIdentifier:
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def update_step_search_config(self, **_kwargs: Any) -> None:
-        return None
-
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
-        msg = f"strategy {strategy_id} is not read here"
-        raise WDKError(msg, status=404)
+        await super().delete_step(step_id, user_id=user_id)
 
 
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
     api = _Recorder()
+    monkeypatch.setitem(served, "site", api)
     serve_the_site(monkeypatch, api)
 
     async def _put(*_args: Any) -> WrittenTree:
@@ -106,6 +82,7 @@ def _deps(wdk_step_ids: dict[str, int]) -> StrategyMutationContext:
     session.sync_state = WDKSyncState(
         wdk_step_ids=dict(wdk_step_ids), wdk_strategy_id=42
     )
+    held_by_the_site(session)
     return StrategyMutationContext(
         site_id="plasmodb", strategy_session=session, conversation_id=uuid4()
     )
@@ -141,7 +118,7 @@ class TestTheDeleteFollowsThePush:
 class TestARefusedDeleteIsRetryable:
     @pytest.mark.asyncio
     async def test_the_id_survives_for_the_next_commit(self, wdk: _Recorder) -> None:
-        wdk.refuse = {100}
+        wdk.refused = {100}
         deps = _deps({"A": 100, "B": 200, "C": 300})
 
         await _drop_a(deps)
@@ -152,7 +129,7 @@ class TestARefusedDeleteIsRetryable:
 
     @pytest.mark.asyncio
     async def test_a_deleted_id_is_forgotten(self, wdk: _Recorder) -> None:
-        wdk.refuse = {100}
+        wdk.refused = {100}
         deps = _deps({"A": 100, "B": 200, "C": 300})
 
         await _drop_a(deps)

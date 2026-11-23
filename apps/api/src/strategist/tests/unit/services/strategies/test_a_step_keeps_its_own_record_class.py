@@ -102,6 +102,7 @@ async def test_a_sync_reads_the_strategys_class_off_its_root(
     monkeypatch.setattr(commit_tree, "put_the_tree", _tree_write.put_the_tree)
     graph = _graph(_groups())
     sync_state = WDKSyncState(wdk_step_ids={"step_groups": 227284900})
+    api.holds(graph.steps, sync_state)
 
     await put_the_graph(graph, sync_state, "orthomcl")
 
@@ -123,6 +124,7 @@ async def test_an_unlisted_transform_root_is_a_named_refusal(
     sync_state = WDKSyncState(
         wdk_step_ids={"step_groups": 227284900, "step_lost": 227284901}
     )
+    api.holds(graph.steps, sync_state)
 
     committed = await put_the_graph(graph, sync_state, "orthomcl")
 
@@ -153,7 +155,7 @@ async def test_a_saved_group_subtree_is_pushed_and_saved_as_groups(
         saved.record_type,
         [c.kwargs["record_type"] for c in api.named("create_step")],
     ) == ("group", ["group"])
-    assert saved.wdk_strategy_id == 42
+    assert [saved.wdk_strategy_id] == list(api.wdk.strategies)
 
 
 async def test_a_saved_subtree_of_no_listed_class_is_refused(

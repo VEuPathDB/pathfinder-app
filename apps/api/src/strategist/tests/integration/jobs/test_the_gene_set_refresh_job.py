@@ -64,7 +64,6 @@ from strategist.tests._support.read_saves_back import (
 )
 from strategist.tests._support.wdk_write_stubs import (
     put_the_graph,
-    wdk_holds_the_tree_before_the_edit,
 )
 
 # The worker carries the researcher's WDK token into the job.
@@ -340,7 +339,6 @@ async def site(monkeypatch: pytest.MonkeyPatch) -> ReadSavesBack:
     served.release_the_put.clear()
     api = await strategy_api_on(served)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(strategy_genes, "get_strategy_api", lambda _site_id: api)
 
     async def _genes(_site_id: str, _root: WDKStep) -> StepGenes:

@@ -17,7 +17,7 @@ from strategist.tests.unit.ai.tools._strategy_edit_stubs import install_stub_api
 async def test_a_built_strategy_defers_the_refresh_after_it_persists(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    install_stub_api(monkeypatch)
+    api = install_stub_api(monkeypatch)
     writes: list[str] = []
 
     async def _persist(**_kwargs: Any) -> None:
@@ -38,5 +38,5 @@ async def test_a_built_strategy_defers_the_refresh_after_it_persists(
         root=leaf("step_a", {"organism": StringValue(value="P. falciparum 3D7")}),
     )
 
-    assert outcome.wdk_strategy_id == 42
+    assert [outcome.wdk_strategy_id] == list(api.wdk.strategies)
     assert writes == ["persist", "persist", "defer plasmodb"]

@@ -23,11 +23,6 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    WDKIdentifier,
-    WDKSearchConfig,
-    WDKStep,
     WDKStrategyDetails,
 )
 from veupathdb_mcp.catalog import ValidatedParams
@@ -42,10 +37,10 @@ from strategist.services.strategies.step_search import (
 )
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.recording_wdk import RecordingWDK
 from strategist.tests._support.wdk_write_stubs import (
     commit_against,
     skip_the_tree_put,
-    wdk_holds_the_tree_before_the_edit,
 )
 
 _VALUES = PatchAction(search_config=True, name=False)
@@ -150,46 +145,28 @@ def _cloned_nodes(saved: WDKStrategyDetails) -> list[StrategyStep]:
     return [steps[step_id] for step_id in subtree_ids(root.id, steps)]
 
 
-@dataclass
-class RecordingAPI:
-    """Records every WDK write and hands back the site's own step ids."""
+class RecordingAPI(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__(next_id=500000001)
 
-    created: list[NewStepSpec] = field(default_factory=list)
-    combined: list[CombinedStepSpec] = field(default_factory=list)
-    patched: list[str] = field(default_factory=list)
-    next_id: int = 500000001
+    @property
+    def created(self) -> list[str]:
+        return [
+            call.kwargs["search_name"]
+            for call in self.calls
+            if call.name in {"create_step", "create_transform_step"}
+        ]
 
-    async def create_step(self, spec: NewStepSpec, **_kw: Any) -> WDKIdentifier:
-        self.created.append(spec)
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
+    @property
+    def combined(self) -> list[str]:
+        return [
+            call.kwargs["boolean_operator"]
+            for call in self.named("create_combined_step")
+        ]
 
-    async def create_combined_step(
-        self, spec: CombinedStepSpec, **_kw: Any
-    ) -> WDKIdentifier:
-        self.combined.append(spec)
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def create_transform_step(
-        self, spec: NewStepSpec, *_args: Any, **_kw: Any
-    ) -> WDKIdentifier:
-        self.created.append(spec)
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def update_step_properties(self, *_args: Any, **_kw: Any) -> None:
-        return None
-
-    async def update_step_search_config(self, **_kw: Any) -> None:
-        self.patched.append("update_step_search_config")
-
-    async def find_step(self, step_id: int, **_kw: Any) -> WDKStep:
-        return WDKStep(
-            id=step_id,
-            search_name=_SIGNAL,
-            search_config=WDKSearchConfig(parameters={}),
-        )
+    @property
+    def patched(self) -> list[str]:
+        return [call.name for call in self.named("update_step_search_config")]
 
 
 @dataclass
@@ -203,7 +180,6 @@ class _Validations:
 def api(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     recorder = RecordingAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: recorder)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     skip_the_tree_put(monkeypatch)
     return recorder
@@ -271,9 +247,8 @@ class TestTheCombineReachesWDKAsACombine:
 
         await _push(_cloned_nodes(_saved_strategy()))
 
-        assert len(api.combined) == 1
-        assert api.combined[0].boolean_operator is CombineOp.INTERSECT
-        assert [spec.search_name for spec in api.created] == [_SIGNAL, _RNASEQ]
+        assert api.combined == [CombineOp.INTERSECT.value]
+        assert api.created == [_SIGNAL, _RNASEQ]
 
     async def test_the_boolean_question_is_never_validated_as_a_search(
         self, api: RecordingAPI, validated: _Validations
@@ -293,7 +268,7 @@ class TestASingleStepSavedStrategy:
 
         assert (committed.failures, committed.drafts) == ([], {})
         assert len(committed.pushed) == 1
-        assert [spec.search_name for spec in api.created] == [_SIGNAL]
+        assert api.created == [_SIGNAL]
         assert api.combined == []
         assert validated.names == [_SIGNAL]
 

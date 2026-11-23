@@ -16,7 +16,7 @@ from strategist.services.strategies.commit_tree import (
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
-from strategist.tests.unit.services.strategies._holding_strategy_api import (
+from strategist.tests._support.held_steps import (
     LEAF_DEFAULT,
 )
 from strategist.tests.unit.services.strategies.test_one_commit_path_writes_a_strategy import (

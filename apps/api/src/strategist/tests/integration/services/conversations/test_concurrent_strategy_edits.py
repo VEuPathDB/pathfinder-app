@@ -144,7 +144,6 @@ class _SlowAPI(wdk_write_stubs.NoStrategyRead):
 def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     api = _SlowAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
-    wdk_write_stubs.wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(
         commit_tree, "validate_parameters", wdk_write_stubs.keeps_every_value
     )
@@ -354,7 +353,6 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
         return ValidatedParams(params=dict(stated), record_class="transcript")
 
     monkeypatch.setattr(commit_tree, "validate_parameters", _passthrough_validation)
-    wdk_write_stubs.wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(
         commit_tree, "put_the_tree", wdk_write_stubs.landed_pushes(555).put
     )

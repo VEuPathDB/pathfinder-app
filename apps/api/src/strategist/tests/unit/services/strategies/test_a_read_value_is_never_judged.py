@@ -13,7 +13,6 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import WDKSearchConfig, WDKStep
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.domain.strategy.operations import UpdateStepParamsOp
@@ -24,9 +23,9 @@ from strategist.services.strategies import commit_tree, stated_sides
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.recording_wdk import RecordingWDK
 from strategist.tests._support.wdk_write_stubs import (
     skip_the_tree_put,
-    wdk_holds_the_tree_before_the_edit,
 )
 
 _PATTERN = "profile_pattern"
@@ -63,32 +62,26 @@ def _ast(weight: float) -> StrategyAst:
     )
 
 
-async def _commit(graph: StrategyGraph, before: StrategyAst) -> None:
+async def _commit(api: RecordingWDK, graph: StrategyGraph, before: StrategyAst) -> None:
+    sync_state = WDKSyncState(wdk_step_ids={"s": 9})
+    api.holds(flatten_tree(before.root), sync_state)
     await commit_tree.commit_tree(
         site_id="plasmodb",
         steps=graph.steps,
         root_id="s",
         old=before,
-        sync_state=WDKSyncState(wdk_step_ids={"s": 9}),
+        sync_state=sync_state,
         target=commit_tree.CommitTarget(name="g", description=""),
     )
 
 
-class _Api:
-    def __init__(self) -> None:
-        self.written: list[dict[str, str]] = []
-
-    async def update_step_search_config(
-        self,
-        step_id: int,
-        search_config: WDKSearchConfig,
-        record_type: str,
-        search_name: str,
-        held: WDKStep | None = None,
-    ) -> None:
-        del held
-        del step_id, record_type, search_name
-        self.written.append(dict(search_config.parameters))
+class _Api(RecordingWDK):
+    @property
+    def written(self) -> list[dict[str, str]]:
+        return [
+            call.kwargs["parameters"]
+            for call in self.named("update_step_search_config")
+        ]
 
 
 async def test_a_sibling_edit_and_its_push_never_judge_a_read_value(
@@ -103,7 +96,6 @@ async def test_a_sibling_edit_and_its_push_never_judge_a_read_value(
     monkeypatch.setattr(stated_sides, "search_record_types", _listed)
     monkeypatch.setattr(commit_tree, "validate_parameters", catalog)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     graph = StrategyGraph("g", "g", "plasmodb")
@@ -119,7 +111,7 @@ async def test_a_sibling_edit_and_its_push_never_judge_a_read_value(
     )
     for op in batch.ops:
         apply_operation(graph, op)
-    await _commit(graph, _ast(50))
+    await _commit(api, graph, _ast(50))
 
     assert catalog.stated == [{"max_weight"}, {"max_weight"}]
     assert graph.steps["s"].parameters == _values(60)
@@ -144,7 +136,6 @@ async def test_restating_a_held_pattern_with_a_retired_code_pushes_the_new_one(
     monkeypatch.setattr(stated_sides, "search_record_types", _listed)
     monkeypatch.setattr(commit_tree, "validate_parameters", catalog)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     skip_the_tree_put(monkeypatch)
     list_every_search_under(monkeypatch, "transcript")
     graph = StrategyGraph("g", "g", "plasmodb")
@@ -160,7 +151,7 @@ async def test_restating_a_held_pattern_with_a_retired_code_pushes_the_new_one(
     )
     for op in batch.ops:
         apply_operation(graph, op)
-    await _commit(graph, _ast(50))
+    await _commit(api, graph, _ast(50))
 
     assert graph.steps["s"].parameters[_PATTERN] == restated
     assert [w[_PATTERN] for w in api.written] == ["%pfal:Y%"]

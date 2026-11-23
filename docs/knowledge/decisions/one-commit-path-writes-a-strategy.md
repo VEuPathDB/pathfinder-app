@@ -20,8 +20,9 @@ A commit runs in this order:
 1. It refuses a tree the site cannot run (`what_the_site_cannot_run`, the record classes),
    before any write.
 2. It reads what WDK holds for every mapped step (`reconcile_sync_state_with_wdk`): the
-   strategy, and each mapped step outside the live tree on its own. A step WDK no longer
-   holds is unmapped. A read that fails stops the commit with nothing written, and the
+   strategy, and each mapped step outside the live tree on its own, a combine with its
+   operator. The group name a combine holds is read from the step WDK holds. A step WDK
+   no longer holds is unmapped. A read that fails stops the commit with nothing written, and the
    failure says whether the site did not answer or answered with a strategy that does not
    parse; the next commit reads again and writes the edit. A clear whose read fails
    raises, and the graph is restored. What WDK

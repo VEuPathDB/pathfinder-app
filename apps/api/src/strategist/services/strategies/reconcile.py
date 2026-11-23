@@ -21,7 +21,12 @@ from veupathdb.wdk import (
     WDKStrategyDetails,
     walk_wdk_step_tree,
 )
-from veupathdb_mcp.wdk import WireStep, build_snapshot_from_wdk
+from veupathdb_mcp.wdk import (
+    WireStep,
+    build_snapshot_from_wdk,
+    runs_a_combine,
+    settings_on_the_wire,
+)
 
 from strategist.services.strategies.sync_state import WDKSyncState
 
@@ -82,17 +87,16 @@ async def _the_step_wdk_holds(api: StrategyReads, wdk_step_id: int) -> WDKStep |
 
 
 def _settings_of_a_step(step: WDKStep) -> StepSettings:
-    config = step.search_config
-    return StepSettings(
-        search_name=step.search_name,
-        parameters={
-            name: HeldValue(wire=value) for name, value in config.parameters.items()
-        },
-        filters=[
-            StepFilter.model_validate(f.model_dump(by_alias=True, mode="json"))
-            for f in config.filters
-        ],
-        wdk_weight=config.wdk_weight,
+    if runs_a_combine(step):
+        return _with_the_group_name(settings_on_the_wire(step, combine=True), step)
+    return settings_on_the_wire(step, combine=False).model_copy(
+        update={
+            "search_name": step.search_name,
+            "parameters": {
+                name: HeldValue(wire=value)
+                for name, value in step.search_config.parameters.items()
+            },
+        }
     )
 
 
@@ -114,10 +118,20 @@ def _held_in(
     snapshot, wire = build_snapshot_from_wdk(live)
     local = {str(wdk): sid for sid, wdk in sync_state.wdk_step_ids.items()}
     return {
-        local[node.id]: _with_the_held_values(settings_of(node), wire.get(node.id))
+        local[node.id]: _with_the_group_name(
+            _with_the_held_values(settings_of(node), wire.get(node.id)),
+            live.steps.get(node.id),
+        )
         for node in walk(snapshot.root)
         if node.id in local
     }
+
+
+def _with_the_group_name(settings: StepSettings, step: WDKStep | None) -> StepSettings:
+    if step is None:
+        return settings
+    named = step.expanded_name if step.expanded else None
+    return settings.model_copy(update={"expanded_name": named})
 
 
 def _with_the_held_values(
@@ -187,7 +201,6 @@ def _as_planned(
                 f for f in holds.filters if f.name in stated or f not in wdk_added
             ],
             "expanded_strategy_id": plan.expanded_strategy_id,
-            "expanded_name": plan.expanded_name or holds.expanded_name,
         }
     )
 

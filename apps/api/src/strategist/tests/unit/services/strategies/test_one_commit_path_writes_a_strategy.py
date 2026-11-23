@@ -38,15 +38,17 @@ from strategist.services.strategies.materialize import materialize_strategy_snap
 from strategist.services.strategies.save_substrategy import save_subtree_as_strategy
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import ensure_sync_state
-from strategist.tests._support.record_classes import list_every_search_under
-from strategist.tests.unit.services.strategies._holding_strategy_api import (
+from strategist.tests._support.held_steps import (
     BOOLEAN_SEARCH,
     LEAF_DEFAULT,
     SPAN_SEARCH,
-    HoldingWDK,
     default_filters,
+)
+from strategist.tests._support.holding_wdk import (
+    HoldingWDK,
     serve_the_holding_wdk,
 )
+from strategist.tests._support.record_classes import list_every_search_under
 
 _SITE = "plasmodb"
 _SORTED = [{"name": "wdk_weight", "direction": "DESC"}]

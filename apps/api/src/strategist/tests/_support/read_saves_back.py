@@ -33,6 +33,12 @@ AFTER_THE_DELETE = WDKStepTree(
     primary_input=WDKStepTree(step_id=TEXT),
     secondary_input=WDKStepTree(step_id=GO),
 )
+_BOOLEAN = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
+_SEARCHES = {
+    TEXT: "GenesByText",
+    GO: "GenesByGoTerm",
+    SIGNAL: "GenesWithSignalPeptide",
+}
 _PUT_WAITS_SECONDS = 0.5
 _STRATEGY_READ = re.compile(r"/strategies/(\d+)$")
 
@@ -61,6 +67,7 @@ class ReadSavesBack(httpx.AsyncBaseTransport):
         return httpx.Response(204)
 
     async def _put(self, request: httpx.Request) -> httpx.Response:
+        self.reader_loaded.clear()
         self.put_started.set()
         await self.release_the_put.wait()
         if self.put_waits_for_a_reader:
@@ -92,8 +99,12 @@ def _details(tree: WDKStepTree, strategy_id: int) -> dict[str, object]:
         "steps": {
             str(node.step_id): {
                 "id": node.step_id,
-                "searchName": "GenesByText",
-                "searchConfig": {"parameters": {}},
+                "searchName": _SEARCHES.get(node.step_id, _BOOLEAN),
+                "searchConfig": {
+                    "parameters": {}
+                    if node.step_id in _SEARCHES
+                    else {"bq_operator": "INTERSECT"}
+                },
                 "recordClassName": "transcript",
                 "estimatedSize": 48,
             }

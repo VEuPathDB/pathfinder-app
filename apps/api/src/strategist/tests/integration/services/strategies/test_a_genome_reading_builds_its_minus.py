@@ -60,7 +60,6 @@ from strategist.tests._support.wdk_write_stubs import (
     NoStrategyRead,
     RecordedPushes,
     landed_pushes,
-    wdk_holds_the_tree_before_the_edit,
 )
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
 from strategist.tests.unit.ai.tools.test_frame_spec import (
@@ -154,7 +153,6 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         return _COUNTS[wire(params, "profile_pattern")]
 
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     monkeypatch.setattr(commit_tree, "validate_parameters", _accept_every_value)
     monkeypatch.setattr(commit_tree, "put_the_tree", api.pushes.put)
     monkeypatch.setattr(measurements, "count_search_answer", _recorded)

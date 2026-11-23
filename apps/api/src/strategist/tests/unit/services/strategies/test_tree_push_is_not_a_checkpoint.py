@@ -21,10 +21,7 @@ from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.wdk_write_stubs import (
-    put_the_graph,
-    wdk_holds_the_tree_before_the_edit,
-)
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 _WDK_STEP_ID = 1001
 
@@ -73,6 +70,10 @@ def _recording_api(calls: list[str]) -> StrategyAPI:
         calls.append("get_strategy")
         return _details()
 
+    async def find_step(*_args: object, **_kwargs: object) -> WDKStep:
+        return _invalid_step()
+
+    api.find_step = AsyncMock(side_effect=find_step)
     api.create_strategy = AsyncMock(side_effect=create_strategy)
     api.get_strategy = AsyncMock(side_effect=get_strategy)
     api.update_strategy = AsyncMock(side_effect=NotImplementedError)
@@ -84,7 +85,6 @@ def calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     recorded: list[str] = []
     api = _recording_api(recorded)
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     return recorded
 
 

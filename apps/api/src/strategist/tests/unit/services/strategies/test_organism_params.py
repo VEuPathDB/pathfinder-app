@@ -99,6 +99,7 @@ async def test_a_sync_records_the_marks_of_the_tree_it_pushed(
     for step in session.graph.steps.values():
         step.record_class = "transcript"
     state = WDKSyncState(wdk_step_ids=dict(ids))
+    api.holds(session.graph.steps, state)
 
     await put_the_graph(session.graph, state, "plasmodb")
 

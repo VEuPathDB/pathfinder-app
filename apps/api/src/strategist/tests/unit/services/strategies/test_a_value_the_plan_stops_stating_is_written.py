@@ -35,7 +35,8 @@ def _with_b(b: StrategyStepNode) -> StrategyStepNode:
 
 
 def _held_b(env: Env, b_wdk_id: int) -> dict[str, str]:
-    return env.wdk.steps[b_wdk_id]["searchConfig"]["parameters"]
+    held: dict[str, str] = env.wdk.steps[b_wdk_id]["searchConfig"]["parameters"]
+    return held
 
 
 async def test_an_edit_that_drops_a_value_writes_it(

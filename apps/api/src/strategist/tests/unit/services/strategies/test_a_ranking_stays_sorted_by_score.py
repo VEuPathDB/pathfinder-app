@@ -81,11 +81,10 @@ async def test_a_new_ranking_opens_sorted_by_score(api: _RecordingAPI) -> None:
     graph.steps.update(flatten_tree(root))
     graph.recompute_roots()
 
-    await put_the_graph(
-        graph,
-        WDKSyncState(wdk_step_ids={"step_a": 100, "step_b": 200, "step_join": 300}),
-        "toxodb",
-    )
+    state = WDKSyncState(wdk_step_ids={"step_a": 100, "step_b": 200, "step_join": 300})
+    api.holds(graph.steps, state)
+
+    await put_the_graph(graph, state, "toxodb")
 
     assert [call.kwargs["step_id"] for call in api.named("update_step_properties")] == [
         300

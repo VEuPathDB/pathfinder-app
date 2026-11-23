@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, flatten_tree
 from veupathdb.wdk import build_wdk_step_tree
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
@@ -12,10 +12,7 @@ from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
-from strategist.tests._support.wdk_write_stubs import (
-    put_the_graph,
-    wdk_holds_the_tree_before_the_edit,
-)
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -34,13 +31,19 @@ async def _sync(
 ) -> StubAPI:
     api = StubAPI()
     monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
-    wdk_holds_the_tree_before_the_edit(monkeypatch)
     session = session_with(combine("step_join", leaf("step_a"), leaf("step_b")), _IDS)
     assert session.graph is not None
     session.graph.description = stated
     session.graph.name = "G"
     for step in session.graph.steps.values():
         step.record_class = "transcript"
+    api.holds(
+        session.graph.steps,
+        state,
+        root_id="step_join",
+        name="G",
+        description=state.wdk_strategy_description or "",
+    )
     await put_the_graph(session.graph, state, "plasmodb")
     return api
 
@@ -106,6 +109,7 @@ async def test_the_read_before_a_push_records_the_description_wdk_holds(
 ) -> None:
     api = StubAPI()
     state = WDKSyncState(wdk_step_ids={"step_a": 1}, wdk_strategy_id=42)
+    api.holds(flatten_tree(leaf("step_a")), state, root_id="step_a")
 
     await reconcile_sync_state_with_wdk(state, api)
 

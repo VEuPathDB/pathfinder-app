@@ -12,7 +12,7 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
-from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
+from veupathdb.wdk import StrategyAPI
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.domain.modes import ThreadMode
@@ -147,13 +147,7 @@ class SiteAPI(StubAPI):
 
     def __init__(self, strategy: dict[str, Any]) -> None:
         super().__init__()
-        self.strategy = strategy
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del strategy_id, user_id
-        return WDKStrategyDetails.model_validate(self.strategy)
+        self.wdk.holds_the_strategy(strategy)
 
 
 async def decode_numbers(
