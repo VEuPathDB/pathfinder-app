@@ -66,6 +66,7 @@ from strategist.domain.strategy.requirement_reports import (
 )
 from strategist.domain.strategy.site_set_reads import searches_holding_values
 from strategist.domain.strategy.spec_diff import CriterionChange, diff_specs
+from strategist.services.strategies.data_marks import read_data_marks
 from strategist.services.strategies.sheet_params import (
     published_parameters_of_searches,
 )
@@ -223,6 +224,9 @@ async def run_frame(
             domain.operational_spec = await read_the_operators(
                 domain.operational_spec, deps
             )
+        domain.data_marks = await read_data_marks(
+            deps.runtime.site_id, [domain.operational_spec]
+        )
         lacking = requirements_the_site_lacks(deps, result)
         asked = questions_for_the_card(deps, result, lacking)
         if domain.operational_spec is not None:

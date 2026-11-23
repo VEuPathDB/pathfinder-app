@@ -38,7 +38,8 @@ _MARKS = DataMarks(
     searches={
         _RNA_SEQ_PERCENTILE: "RNASeq",
         _MICROARRAY_PERCENTILE: "DNA Microarray Assay",
-    }
+    },
+    read_for=frozenset({_RNA_SEQ_PERCENTILE, _MICROARRAY_PERCENTILE}),
 )
 
 

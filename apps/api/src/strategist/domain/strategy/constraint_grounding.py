@@ -39,6 +39,7 @@ from strategist.domain.strategy.value_grounding import (
     ground_percentile,
     ground_significance,
 )
+from strategist.domain.unread import Unread
 
 _SIGNIFICANCE_RE = re.compile(
     r"p_?value|p_?adj|fdr|q_?value|significance", re.IGNORECASE
@@ -50,10 +51,22 @@ _ASSAYS: tuple[tuple[re.Pattern[str], DataKind], ...] = (
 _MIN_MEMBERS = 2
 
 
-def _assay(mark: str | None) -> DataKind | None:
-    if mark is None:
-        return None
-    return next((data for found, data in _ASSAYS if found.search(mark)), None)
+def _assay(mark: str | Unread | None) -> DataKind | None:
+    match mark:
+        case str():
+            return next((data for found, data in _ASSAYS if found.search(mark)), None)
+        case _:
+            return None
+
+
+def _first_unread(marks: Sequence[str | Unread | None]) -> Unread | None:
+    for mark in marks:
+        match mark:
+            case Unread():
+                return mark
+            case _:
+                pass
+    return None
 
 
 def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
@@ -65,11 +78,21 @@ def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstrai
     linked = linking(c, realized.criteria)
     if not linked:
         return not_verified(c, "no_step_states_it", "no criterion links it")
-    ran = {data for k in linked if (data := _assay(realized.marks.run_on(k)))}
+    marks = [realized.marks.run_on(k) for k in linked]
+    ran: set[DataKind] = {data for mark in marks if (data := _assay(mark))}
     if asked.data in ran:
         return GroundedConstraint(
             constraint=c, status=ConstraintStatus.GROUNDED, realized_value=asked.data
         )
+    settled = [m for k, m in zip(linked, marks, strict=True) if not k.pending_analysis]
+    if (unread := _first_unread(settled)) is not None:
+        return not_verified(c, "no_value_to_compare", unread.reason)
+    return _not_run_on(c, asked, ran, linked)
+
+
+def _not_run_on(
+    c: Constraint, asked: DataTypeValue, ran: set[DataKind], linked: list[Criterion]
+) -> GroundedConstraint:
     if ran:
         [built] = ran
         return GroundedConstraint(

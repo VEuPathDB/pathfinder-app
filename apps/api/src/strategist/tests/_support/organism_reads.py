@@ -73,6 +73,10 @@ STUDIES: dict[str, list[str]] = {ME49_STUDY: [ME49]}
 SEARCH_ASSAYS: dict[str, str] = {
     "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile": "RNASeq",
     "GenesByProfileSimilarity": "DNA Microarray Assay",
+    "GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCPercentile": "RNASeq",
+    "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Cowman_RSRC": (
+        "Protein targeting and localization"
+    ),
 }
 STUDY_ASSAYS: dict[str, str] = dict.fromkeys(
     ("DS_eeca6a5476", "DS_e973eadd57"), "RNASeq"

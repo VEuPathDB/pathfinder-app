@@ -68,7 +68,7 @@ async def test_a_built_curated_search_grounds_by_its_datasets_assay() -> None:
 
     [grounded] = derive_ledger(ctx.deps.state, None).constraints.grounded
     assert (ctx.deps.state.domain.data_marks, grounded.status) == (
-        DataMarks(searches={_PERCENTILE: "RNASeq"}),
+        DataMarks(searches={_PERCENTILE: "RNASeq"}, read_for=frozenset({_PERCENTILE})),
         ConstraintStatus.GROUNDED,
     )
 

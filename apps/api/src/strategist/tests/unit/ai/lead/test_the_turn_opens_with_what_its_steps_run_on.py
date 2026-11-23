@@ -94,7 +94,7 @@ async def test_a_hydrated_strategy_reads_its_assay_and_links_no_requirement() ->
 
     [grounded] = derive_ledger(refreshed, None).constraints.grounded
     assert (refreshed.domain.data_marks, grounded.status, grounded.note) == (
-        DataMarks(searches={_PERCENTILE: "RNASeq"}),
+        DataMarks(searches={_PERCENTILE: "RNASeq"}, read_for=frozenset({_PERCENTILE})),
         ConstraintStatus.NOT_VERIFIED,
         "no criterion links it",
     )
@@ -103,7 +103,8 @@ async def test_a_hydrated_strategy_reads_its_assay_and_links_no_requirement() ->
 def test_the_briefing_regrounds_a_requirement_through_the_specs_links() -> None:
     state = _state()
     state.domain.data_marks = DataMarks(
-        searches={_PERCENTILE: "RNASeq", _SIMILAR: "DNA Microarray Assay"}
+        searches={_PERCENTILE: "RNASeq", _SIMILAR: "DNA Microarray Assay"},
+        read_for=frozenset({_PERCENTILE, _SIMILAR}),
     )
     state.domain.operational_spec = OperationalSpec(
         goal="expressed",
@@ -136,5 +137,6 @@ async def test_the_tree_last_answered_keeps_its_mark_beside_the_live_one() -> No
     )
 
     assert refreshed.domain.data_marks == DataMarks(
-        searches={_PERCENTILE: "RNASeq", _SIMILAR: "DNA Microarray Assay"}
+        searches={_PERCENTILE: "RNASeq", _SIMILAR: "DNA Microarray Assay"},
+        read_for=frozenset({_PERCENTILE, _SIMILAR}),
     )

@@ -50,9 +50,7 @@ from strategist.domain.separation import AttachedControls
 from strategist.domain.site_checks import SiteCheck, failed, unanswered_verdict
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.services.eda.analysis_kinds import unread_analyses
-from strategist.services.strategies.bound_uploads import uploads_the_specs_run_on
-from strategist.services.strategies.data_marks import marks_with_uploads
-from strategist.services.strategies.search_sheets import search_definitions
+from strategist.services.strategies.data_marks import read_data_marks
 
 
 @dataclass(frozen=True)
@@ -160,11 +158,7 @@ async def run_verification(
     agent_deps.tool_repetition_guard = build_tool_repetition_guard()
     domain = deps.state.domain
     site_id = deps.runtime.site_id
-    sheets = await search_definitions(site_id, domain.operational_spec)
-    uploads = await uploads_the_specs_run_on(site_id, [domain.operational_spec], sheets)
-    domain.data_marks = await marks_with_uploads(
-        site_id, [domain.operational_spec], uploads
-    )
+    domain.data_marks = await read_data_marks(site_id, [domain.operational_spec])
     columns = await read_the_columns(deps, agent_deps)
     checks = [*await site_checks(deps), *columns.unanswered]
     await record_score_counts(deps)

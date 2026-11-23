@@ -75,7 +75,10 @@ def _microarray_spec(constraints: list[Constraint]) -> OperationalSpec:
 
 
 # The assay vectorbase's dataset record names for the microarray search.
-_MARKS = DataMarks(searches={_MICROARRAY_SEARCH: "DNA Microarray Assay"})
+_MARKS = DataMarks(
+    searches={_MICROARRAY_SEARCH: "DNA Microarray Assay"},
+    read_for=frozenset({_MICROARRAY_SEARCH}),
+)
 
 
 def _vectorbase_state(spec: OperationalSpec | None = None) -> PipelineState:

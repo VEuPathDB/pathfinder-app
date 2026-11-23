@@ -8,7 +8,8 @@ import pytest
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 from strategist.domain.strategy.data_marks import DataMarks
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
-from strategist.services.strategies import bound_uploads
+from strategist.domain.unread import Unread
+from strategist.services.strategies import bound_uploads, data_marks
 from strategist.services.strategies.data_marks import read_data_marks
 from strategist.services.strategies.user_dataset_searches import OwnedUpload
 from strategist.tests._support.user_dataset_doubles import UPLOAD_DATASET
@@ -55,6 +56,7 @@ async def test_each_criterion_is_marked_by_its_upload_its_study_or_its_search(
         uploads={"step_upload": "rnaseqrc"},
         studies={"DS_eeca6a5476": "RNASeq"},
         searches={_PERCENTILE: "RNASeq"},
+        read_for=frozenset({"GenesByEdaVizWithCompute", _PERCENTILE, "GenesByText"}),
     )
 
 
@@ -75,7 +77,38 @@ async def test_every_spec_named_is_read_and_no_spec_reads_nothing() -> None:
             searches={
                 _PERCENTILE: "RNASeq",
                 "GenesByProfileSimilarity": "DNA Microarray Assay",
-            }
+            },
+            read_for=frozenset({_PERCENTILE, "GenesByProfileSimilarity"}),
         ),
         DataMarks(),
+    )
+
+
+async def test_a_catalog_that_does_not_answer_marks_its_searches_unread(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _down(site_id: str, name: str) -> str | None:
+        msg = f"{site_id} did not answer for {name}"
+        raise OSError(msg)
+
+    monkeypatch.setattr(data_marks, "dataset_assay", _down)
+    spec = OperationalSpec(
+        goal="g",
+        criteria=[
+            Criterion(id="a", text="t", search_name=_PERCENTILE),
+            Criterion(id="b", text="t", search_name="GenesByText"),
+        ],
+    )
+
+    marks = await read_data_marks("plasmodb", [spec])
+
+    unread = Unread(
+        reason=(
+            "the site's catalog did not answer: plasmodb did not answer for "
+            "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile"
+        )
+    )
+    assert (marks.searches, marks.run_on(spec.criteria[1])) == (
+        {"GenesByText": unread, _PERCENTILE: unread},
+        unread,
     )

@@ -16,6 +16,15 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **A mark that was not read is not a negative.** b1 framed a Pexel list and an 80th
+  percentile on the Newbold blood-stage RNA-Seq search, and FRAME's card asked "No search on
+  this site states 'RNA-Seq evidence'. Drop it from the request?" because the marks were last
+  read for the spec the turn started with. `DataMarks.read_for` holds the searches the marks
+  were read for; `run_on` returns `Unread` for any other search and for a search or study
+  whose catalog read failed, and `_ground_data_type` maps `Unread` to not verified, never
+  ungroundable. `run_frame` re-reads the marks for the spec it wrote before the card, and
+  VERIFY reads them through the same `read_data_marks`.
+
 ## 2026-11-23
 
 * **The review fixes of the one step model.** A one-sided join nested on its kept side
