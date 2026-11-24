@@ -60,7 +60,7 @@ def hold_the_reports_to_the_requirement_list(
                 f"requirement_problems names {number}, and the list holds {holds}. "
                 "A report names a requirement by its number in 'Requirements the "
                 "researcher stated'. Use one of those numbers, or leave the entry "
-                "out and say it in summary."
+                "out and say it in notes."
             ),
             *_dropped_with_gap(
                 report,

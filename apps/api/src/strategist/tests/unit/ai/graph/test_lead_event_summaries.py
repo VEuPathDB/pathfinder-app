@@ -100,7 +100,7 @@ def test_summarize_frame_result_needs_user_counts_questions() -> None:
 
 
 def test_summarize_frame_result_spec_ready_uses_summary() -> None:
-    delta = FrameResult(disposition="spec_ready", summary="Framed 3 criteria")
+    delta = FrameResult(disposition="spec_ready", notes="Framed 3 criteria")
     assert _card("frame_problem", delta) == "Framed 3 criteria"
 
 

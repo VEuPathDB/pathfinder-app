@@ -151,12 +151,12 @@ def _slot_options(
 def _asked(crit: CriterionSpec, offer: _Offer | None) -> dict[str, Any]:
     if offer is None:
         return {
-            "summary": f"Framed 1 criterion(s) for {crit.text}.",
+            "notes": f"Framed 1 criterion(s) for {crit.text}.",
             "disposition": "spec_ready",
             "openQuestions": [],
         }
     return {
-        "summary": f"The signal peptide search needs its organism: {crit.text}.",
+        "notes": f"The signal peptide search needs its organism: {crit.text}.",
         "disposition": "needs_user",
         "openQuestions": [
             {
@@ -237,7 +237,7 @@ def _answered_frame(messages: list[ModelMessage], organism: str) -> ToolCallPart
     return scripted_call(
         "final_result",
         {
-            "summary": f"Bound the organism the researcher chose: {organism}.",
+            "notes": f"Bound the organism the researcher chose: {organism}.",
             "disposition": "spec_ready",
             "openQuestions": [],
         },

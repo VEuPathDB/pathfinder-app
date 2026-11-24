@@ -62,7 +62,7 @@ async def test_the_card_offers_no_withdrawal_of_a_cut_the_analysis_states(
             ),
             _ORTHOLOGS,
         ]
-        return FrameResult(disposition="spec_ready", summary="waits for the analysis")
+        return FrameResult(disposition="spec_ready", notes="waits for the analysis")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
     deps = lead_deps(

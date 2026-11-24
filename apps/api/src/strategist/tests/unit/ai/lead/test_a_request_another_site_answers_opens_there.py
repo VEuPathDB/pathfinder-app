@@ -80,7 +80,7 @@ async def test_a_pass_that_reports_another_site_answers_with_its_sentence(
         del agent_deps
         return FrameResult(
             disposition="needs_user",
-            summary="The profile search counts no absences.",
+            notes="The profile search counts no absences.",
             requirement_problems=[
                 RequirementReport(
                     requirement="R1",
@@ -114,7 +114,7 @@ async def test_a_pass_that_reports_another_site_answers_with_its_sentence(
 
     assert result == FrameResult(
         disposition="needs_user",
-        summary=site_route_sentence(
+        route=site_route_sentence(
             "plasmodb",
             "orthomcl",
             'whose searches state "absent from at least 2 other strains"',
@@ -138,7 +138,7 @@ async def test_a_route_for_a_number_no_requirement_holds_says_the_site_answers_i
         work_order="absent from at least 2 other strains",
     )
 
-    assert result == FrameResult(disposition="needs_user", summary=_ORTHOMCL)
+    assert result == FrameResult(disposition="needs_user", route=_ORTHOMCL)
 
 
 async def test_the_reply_vouches_for_the_link_to_the_other_site(

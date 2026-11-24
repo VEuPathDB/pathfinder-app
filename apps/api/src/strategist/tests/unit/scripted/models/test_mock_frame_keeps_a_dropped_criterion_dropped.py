@@ -124,6 +124,6 @@ def test_the_dropped_criterion_is_not_bound_again() -> None:
 def test_the_result_counts_the_criteria_that_remain() -> None:
     call = _next_call(_after_the_drop())
 
-    assert call.args_as_dict()["summary"] == (
+    assert call.args_as_dict()["notes"] == (
         f"Framed 1 criterion(s) for {_PEST} signal peptide genes (mock)."
     )

@@ -24,7 +24,7 @@ def _withdrawing_frame() -> dict[str, object]:
     """A pass that bound the signal peptide step; the dispatch added the card
     that offers to drop the fold change no search of it states."""
     return {
-        "summary": "Framed 1 criterion(s).",
+        "pendingPlan": {"text": "Framed 1 criterion(s)."},
         "disposition": "spec_ready",
         "openQuestions": [],
         "cardQuestions": [

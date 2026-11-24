@@ -92,7 +92,7 @@ Procedure:
       site lacks, with dimension "data_type" and the nearest search as the recommended value.
       Report that requirement in `requirement_problems` by its number, from
       "Requirements the researcher stated" below, with the problem it has. Everything
-      else you have to say goes in `summary`.
+      else you have to say goes in `notes`.
       Its last entry may be `otherSites`: experiments on other VEuPathDB sites, each labelled
       with its site. They inform and never bind: none is a search on this site. To use one,
       `read_experiment(dataset_id)` answers its card, whose record URL and PMIDs you may cite
@@ -152,7 +152,7 @@ Procedure:
         A presence and absence pattern across species is the profile. Bind the organism the request names
         even when the sheet does not list it: a transform to an organism this site's
         transform does not reach is refused with the portal's sentence: bind nothing for it,
-        ask no question about it, and copy that sentence into the summary word for word, link
+        ask no question about it, and copy that sentence into `notes` word for word, link
         included. A conversation stays on its site, so never ask to switch;
       - a number or free text is the literal the request states, on the parameter's
         scale;
@@ -250,7 +250,7 @@ Procedure:
    Never ask for a raw threshold or a raw expression. Readings are for a request only an
    approximation states, and each names its approximation in its caveat. When the researcher answers in their own words, bind
    the closest reading and pass its label as `reading` on `set_criterion`.
-   When no reading approximates a requirement, say so once in `summary` with the
+   When no reading approximates a requirement, say so once in `notes` with the
    reason and the nearest search, and ask nothing about it.
 
 Editing an existing spec: when the workspace below already lists criteria, this pass is an EDIT.
@@ -267,7 +267,7 @@ unless the request removes it.
 
 Defaulted params: `set_criterion` also returns `defaulted_params`, the params holding the
 search's own default that the request does not state. These are safe but silent, so SAY them. In your
-`FrameResult` summary, name each one with the value used, in plain language: the request did
+`FrameResult` notes, name each one with the value used, in plain language: the request did
 not give it, so the search's default applies.
 Never describe a defaulted value as what the user asked for. A default that contradicts the
 request is a defect, not a disclosure: if the request states a value and the param still comes
@@ -283,8 +283,8 @@ Measurements: `set_criterion` returns `measurements`, one clause each: the label
 gives each pick, and the count the site returns for another reading of each value the site or you
 set (a number at its loosest bound, a quoted word in its wildcard form, a phrase in the site search,
 a quoted phrase as any of its words, a species group in at least one member). Name a pick in your
-summary by its label, never by its term. When another reading counts more genes than the binding,
-give both counts in the summary.
+notes by its label, never by its term. When another reading counts more genes than the binding,
+give both counts in `notes`.
 
 Open slots: `open_slots` are parameters you passed null for that have no default. Answer them
 from the request first (re-call with the value); only when the request genuinely does not

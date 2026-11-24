@@ -43,7 +43,7 @@ def _each(genomes: list[str]) -> str:
 
 
 def _bound(*scopes: GroupScope) -> FrameResult:
-    return FrameResult(summary="Bound.", group_scopes=list(scopes))
+    return FrameResult(notes="Bound.", group_scopes=list(scopes))
 
 
 async def _taxonomy(site_id: str) -> PhyleticTree | None:
@@ -206,7 +206,7 @@ async def test_an_accepted_reading_that_leaves_genomes_out_is_sent_back() -> Non
 
 
 async def test_a_pass_that_asks_is_not_held_to_a_scope() -> None:
-    result = FrameResult(summary="Asked.", disposition="needs_user")
+    result = FrameResult(notes="Asked.", disposition="needs_user")
 
     assert (
         await hold_the_taxa_to_their_scope(_context(_per_species(SHORT)), result) == []

@@ -91,8 +91,6 @@ from strategist.services.strategies.revision_ops import previous_revision
 
 __all__ = ["edit_strategy", "run_edit"]
 
-_UNDONE = "The strategy is back to the revision before the last change."
-
 
 @dataclass(frozen=True)
 class _EditBase:
@@ -172,7 +170,8 @@ async def run_edit(
         return EditDelta(
             diff=SpecDiff(),
             disposition="needs_user",
-            summary=frame.summary,
+            pending_plan=frame.pending_plan,
+            route=frame.route,
             open_questions=[
                 q for q in deps.state.domain.open_questions if q.question in asked
             ],
@@ -320,7 +319,7 @@ async def _push_the_edit(
     refusal = wdk_refused_the_edit(commit)
     return EditDelta(
         diff=diff,
-        summary=_UNDONE if undo and refusal is None else "",
+        undone=undo and refusal is None,
         description=commit.description if refusal is None else refusal.message,
         operations_applied=len(ops),
         added_step_ids=added,
@@ -372,7 +371,7 @@ def _unbound(deps: LeadDeps, reason: str, refusal: str) -> EditDelta:
         f"The edit was not applied: {reason} The planning pass refused it: {refusal}"
     )
     deps.state.turn_markers.unbound_edit = unbound
-    return EditDelta(diff=SpecDiff(), disposition="unbound", summary=unbound)
+    return EditDelta(diff=SpecDiff(), disposition="unbound", refusal=unbound)
 
 
 def _emit_graph_snapshot(agent_deps: AgentDeps) -> None:
@@ -403,9 +402,10 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     criterion framed on an earlier turn and built here reads as added in both.
     A claim about what the whole turn did to the spec it started from is read
     from ``ledger.frame.diff`` instead. Disposition ``needs_user`` pushed
-    nothing: its ``diff`` is empty and ``pending_step_ids`` names the criteria
-    the plan moved, which the strategy does not hold until the answer. Disposition
-    ``unbound`` ends the edit: nothing was applied, and the reply names what
+    nothing: its ``diff`` is empty, ``pending_step_ids`` names the criteria
+    the plan moved, which the strategy does not hold until the answer, and
+    ``pending_plan`` is the plan that waits on it. Disposition ``unbound`` ends
+    the edit: nothing was applied, and the reply names what ``refusal`` says
     could not be bound.
     """
     tool_call_id = dispatch_call_id(ctx)

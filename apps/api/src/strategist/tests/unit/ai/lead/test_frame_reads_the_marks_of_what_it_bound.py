@@ -35,7 +35,7 @@ def _deps(monkeypatch: pytest.MonkeyPatch) -> LeadDeps:
         draft = kwargs["agent_deps"].agent_state.operational_spec_draft
         draft.criteria.extend(_SPEC.criteria)
         draft.structure = _SPEC.structure
-        return FrameResult(disposition="spec_ready", summary="framed")
+        return FrameResult(disposition="spec_ready", notes="framed")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
     return lead_deps(

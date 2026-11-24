@@ -151,14 +151,14 @@ def mistyped_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 @pytest.fixture
 def misshapen_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    model = final_result_model({"summary": "bound", "disposition": "finished"})
+    model = final_result_model({"notes": "bound", "disposition": "finished"})
     yield from _pinned(monkeypatch, model, ping)
 
 
 @pytest.fixture
 def answering_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     model = final_result_model(
-        {"summary": "one criterion bound", "disposition": "needs_user"},
+        {"notes": "one criterion bound", "disposition": "needs_user"},
     )
     yield from _pinned(monkeypatch, model, ping)
 
@@ -356,7 +356,7 @@ async def test_a_frame_out_of_shape_hands_the_lead_its_stop() -> None:
     )
 
     assert isinstance(result, FrameResult)
-    assert result.summary == (
+    assert result.gaps[0].sentence == (
         "FRAME stopped on an answer that had the wrong shape every time with no "
         "criteria bound."
     )

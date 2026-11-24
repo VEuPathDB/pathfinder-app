@@ -43,7 +43,7 @@ def test_frame_records_no_question_for_a_portal_only_transform() -> None:
         "Bind the organism the request names even when the sheet does not list "
         "it: a transform to an organism this site's transform does not reach is "
         "refused with the portal's sentence: bind nothing for it, ask no question "
-        "about it, and copy that sentence into the summary word for word, link "
+        "about it, and copy that sentence into `notes` word for word, link "
         "included." in frame
     )
     assert "Switching sites" not in frame
@@ -72,7 +72,7 @@ def _portal_only_pass(monkeypatch: pytest.MonkeyPatch, question: bool) -> None:
         agent_deps.agent_state.portal_route = _ROUTE
         return FrameResult(
             disposition="needs_user",
-            summary="The orthology step needs the portal.",
+            notes="The orthology step needs the portal.",
             open_questions=[_SWITCH] if question else [],
         )
 
@@ -107,11 +107,11 @@ async def test_a_pass_sent_to_the_portal_answers_with_the_sentence_and_asks_noth
         work_order="carry the genes to Toxoplasma gondii ME49",
     )
 
-    assert result == FrameResult(disposition="needs_user", summary=_ROUTE)
+    assert result == FrameResult(disposition="needs_user", route=_ROUTE)
     assert deps.state.domain.open_questions == []
 
 
-async def test_a_pass_that_bound_more_carries_the_sentence_ahead_of_its_summary(
+async def test_a_pass_that_bound_more_carries_the_sentence_beside_its_notes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def _stub(*, agent_deps: AgentDeps, **_kwargs: object) -> FrameResult:
@@ -119,7 +119,7 @@ async def test_a_pass_that_bound_more_carries_the_sentence_ahead_of_its_summary(
         agent_deps.agent_state.operational_spec_draft.criteria.append(
             Criterion(id="c_tm", text="2 to 99 TM domains", search_name="GenesByTM")
         )
-        return FrameResult(disposition="spec_ready", summary="c_tm bound.")
+        return FrameResult(disposition="spec_ready", notes="c_tm bound.")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _stub)
     deps = lead_deps(pipeline_state(user_prompt="Find TM genes and carry them."))
@@ -131,7 +131,7 @@ async def test_a_pass_that_bound_more_carries_the_sentence_ahead_of_its_summary(
     )
 
     assert result == FrameResult(
-        disposition="spec_ready", summary=f"{_ROUTE} c_tm bound."
+        disposition="spec_ready", notes="c_tm bound.", route=_ROUTE
     )
 
 

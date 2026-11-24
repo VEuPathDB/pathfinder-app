@@ -21,7 +21,6 @@ from strategist.ai.lead.dispatch_context import (
     defer_dispatch,
     dispatch_call_id,
 )
-from strategist.ai.lead.dispatch_messages import stop_phrase
 from strategist.ai.lead.evidence_card import (
     judged_control_tests,
     publish_evidence_card,
@@ -234,15 +233,7 @@ def _stopped_by_the_provider(deps: LeadDeps) -> bool:
 
 def verification_stopped(stop: PhaseStop | None) -> VerificationStopped:
     """Report a check that ended before it returned a digest."""
-    why = "stopped before it finished" if stop is None else stop_phrase(stop)
-    return VerificationStopped(
-        stop=stop,
-        summary=(
-            f"VERIFY {why}, so it recorded no verdict and the strategy is not "
-            "verified. Tell the user the check did not finish and why, and ask "
-            "whether to run it again."
-        ),
-    )
+    return VerificationStopped(stop=stop)
 
 
 def _gaps(deps: LeadDeps, checks: list[SiteCheck]) -> list[Gap]:

@@ -49,7 +49,7 @@ _GPI = Constraint(
 
 def _reports(number: str) -> dict[str, object]:
     return {
-        "summary": "No search on this site states a predicted GPI anchor.",
+        "notes": "No search on this site states a predicted GPI anchor.",
         "disposition": "needs_research",
         "requirementProblems": [
             {"requirement": number, "problem": "site_has_no_search"}
@@ -93,7 +93,7 @@ async def test_a_number_the_list_lacks_is_corrected_before_the_caller_reads_it()
     assert sent_back == (
         "requirement_problems names R4, and the list holds R1. A report names "
         "a requirement by its number in 'Requirements the researcher stated'. Use "
-        "one of those numbers, or leave the entry out and say it in summary."
+        "one of those numbers, or leave the entry out and say it in notes."
     )
 
 
@@ -127,7 +127,7 @@ def _asked(
     **question: object,
 ) -> dict[str, object]:
     return {
-        "summary": "A handful needs a numeric upper bound.",
+        "notes": "A handful needs a numeric upper bound.",
         "disposition": "needs_user",
         "openQuestions": [
             {
@@ -249,7 +249,7 @@ async def test_a_question_keyed_nowhere_is_told_the_one_change(echoed: None) -> 
     assert told == [
         (
             "Change this reading, or ask nothing about it and say why in "
-            f"summary: {_FAMILIES}.{_EXPRESSION}: name in the question's "
+            f"notes: {_FAMILIES}.{_EXPRESSION}: name in the question's "
             "`requirements` the keys of the requirements its readings "
             "approximate, from R1, R2."
         )
@@ -300,7 +300,7 @@ _SCOPE = (
 def _bands(keys: list[str]) -> dict[str, object]:
     return {
         "disposition": "needs_user",
-        "summary": "One open expression slot.",
+        "notes": "One open expression slot.",
         "openQuestions": [
             {
                 "question": _SCOPE,

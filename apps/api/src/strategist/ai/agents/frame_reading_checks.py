@@ -249,7 +249,7 @@ def _held_readings(original: SlotQuestion, checked: _Held) -> list[HeldAnswer]:
     return [
         held(
             key,
-            f"Change this reading, or ask nothing about it and say why in summary: "
+            f"Change this reading, or ask nothing about it and say why in notes: "
             f"{problem}.",
             *let,
         )

@@ -2,6 +2,17 @@
 
 ## 2026-11-24
 
+* **An edit that asks says nothing was applied.** An edit that ended on a question returned
+  FRAME's draft as its `summary`, a past-tense account of a plan no push wrote, and the Lead
+  told the researcher the kinase step ran on GT1 while the tree kept ME49 and 11 genes.
+  `EditDelta.summary` is computed: "Nothing was applied: the strategy is unchanged." on
+  `needs_user` and `unbound`, empty on an applied edit, whose change the diff and the facts
+  part carry; a validator refuses an operation or a diff on an edit that applied nothing.
+  FRAME writes `notes`, which the Lead reads only as a `PendingPlan` (`domain/pending_plan.py`)
+  that renders "Not applied, waiting on your answer:" or "Not applied until the strategy is
+  built:". The site route is its own `route`, a stopped pass is a `pass_stopped` gap, an
+  unbound edit names its `refusal`, and `VerificationStopped.summary` is computed from its stop.
+
 * **An edit keeps the values it did not state.** A commit sends a value the edit did not
   move in the form WDK holds it, and the plan keeps its own typed value; before, an
   organism edit stored a step's other values as the site's wire text.

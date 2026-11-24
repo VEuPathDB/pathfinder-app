@@ -216,7 +216,7 @@ def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]
         )
         return FrameResult(
             disposition="spec_ready",
-            summary="expression profile moved to P. vivax P01",
+            notes="expression profile moved to P. vivax P01",
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)

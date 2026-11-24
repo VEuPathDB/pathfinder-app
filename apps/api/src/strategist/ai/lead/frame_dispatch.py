@@ -342,16 +342,15 @@ async def _accepted(
     route = state.portal_route or _another_site_route(deps, delta)
     found = deps.state.domain.spec_before_dispatch
     if route and draft == (found or OperationalSpec(goal=draft.goal)):
-        return FrameResult(disposition="needs_user", summary=route)
-    if route:
-        delta = delta.model_copy(update={"summary": f"{route} {delta.summary}"})
+        return FrameResult(disposition="needs_user", route=route)
+    delta = delta.model_copy(update={"route": route})
     if delta.disposition == "spec_ready" and not any(
         c.bound or c.pending_analysis for c in draft.criteria
     ):
         if deps.empty_frame_reported:
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
-        refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
+        refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.notes))
     draft = _without_what_an_unbound_question_moved(deps, delta, state)
     changes = derived_changes(found, draft, state.sets_the_site)
     return delta.model_copy(update={"changes": changes})

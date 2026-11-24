@@ -97,7 +97,7 @@ async def test_the_fourth_refused_pass_ends_the_edit_with_its_reason(
     assert len(calls) == 4
     assert returned == [
         EditDelta.model_validate(
-            {"diff": {"changes": []}, "disposition": "unbound", "summary": _UNBOUND}
+            {"diff": {"changes": []}, "disposition": "unbound", "refusal": _UNBOUND}
         )
     ]
     assert run.output == "The fold change could not be set."

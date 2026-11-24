@@ -122,7 +122,7 @@ def frame_lost_after_answering(monkeypatch: pytest.MonkeyPatch) -> Iterator[None
 @pytest.fixture
 def answering_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     model = final_result_model(
-        {"summary": "one criterion bound", "disposition": "needs_user"},
+        {"notes": "one criterion bound", "disposition": "needs_user"},
     )
     yield from _pinned(monkeypatch, model)
 
@@ -198,7 +198,7 @@ async def test_a_pass_that_ran_to_its_answer_names_no_stage() -> None:
     delta = await _dispatch(deps)
 
     assert isinstance(delta, FrameResult)
-    assert delta.summary == "one criterion bound"
+    assert delta.notes == "one criterion bound"
     assert deps.unanswered_stage is None
 
 

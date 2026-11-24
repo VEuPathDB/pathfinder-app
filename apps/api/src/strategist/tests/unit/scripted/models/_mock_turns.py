@@ -223,7 +223,7 @@ class _Tools:
         added = ADDED_SEARCH.model_dump(by_alias=True, mode="json")
         fixed: dict[str, object] = {
             "frame_problem": {
-                "summary": "The pass bound what it could.",
+                "pendingPlan": {"text": "The pass bound what it could."},
                 "disposition": "spec_ready",
             },
             "build_strategy": {

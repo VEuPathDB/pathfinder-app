@@ -206,7 +206,7 @@ def _stub_frame(monkeypatch: pytest.MonkeyPatch, after: OperationalSpec) -> None
     async def _fake(**kwargs: Any) -> FrameResult:
         agent_deps: AgentDeps = kwargs["agent_deps"]
         agent_deps.agent_state.operational_spec_draft = after.model_copy(deep=True)
-        return FrameResult(disposition="spec_ready", summary="organism swapped")
+        return FrameResult(disposition="spec_ready", notes="organism swapped")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 
@@ -304,7 +304,7 @@ async def test_edit_refuses_on_a_changed_revision(
         graph.steps["step_text"].parameters["organism"] = MultiPickValue(
             values=["Plasmodium falciparum 3D7"]
         )
-        return FrameResult(disposition="spec_ready", summary="swapped")
+        return FrameResult(disposition="spec_ready", notes="swapped")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 

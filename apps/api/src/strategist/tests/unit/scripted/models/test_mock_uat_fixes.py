@@ -146,7 +146,7 @@ def test_a_search_no_site_search_states_is_named(site_id: str) -> None:
     calls = play("frame", site_id, text, work_order=_ORDER, scene=listed)
 
     answer = calls[-1].args_as_dict()
-    assert (answer["summary"], answer["requirementProblems"]) == (
+    assert (answer["notes"], answer["requirementProblems"]) == (
         f"No search on {site_id} states: a predicted GPI anchor.",
         [{"requirement": "R2", "problem": "site_has_no_search"}],
     )
@@ -215,7 +215,10 @@ def test_no_own_search_at_all_reads_the_other_site_and_builds_nothing(
         {"note": f"No search on {site_id} matched the request."},
         {"otherSites": {"experiments": [{"datasetId": "DS_elsewhere"}]}},
     ]
-    unbound = {"summary": "It runs on another site.", "disposition": "needs_research"}
+    unbound = {
+        "pendingPlan": {"text": "It runs on another site."},
+        "disposition": "needs_research",
+    }
     text = "Upregulated after a blood meal [[arc:other-site-experiment]]"
 
     frame = play(

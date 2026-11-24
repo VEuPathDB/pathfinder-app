@@ -60,7 +60,7 @@ def test_a_refused_union_ends_the_frame_pass_on_the_refusal(site_id: str) -> Non
     )
 
     assert names(calls)[-2:] == ["set_structure", "final_result"]
-    assert _UNION_REFUSED in calls[-1].args_as_dict()["summary"]
+    assert _UNION_REFUSED in calls[-1].args_as_dict()["notes"]
 
 
 @pytest.mark.parametrize("site_id", SITES)

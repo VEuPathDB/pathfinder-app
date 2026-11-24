@@ -98,7 +98,7 @@ def _scripted(*calls: ToolCallPart) -> Script:
         if step < len(calls):
             return calls[step]
         return final_result_part(
-            {"summary": "c_protein binds ByIdList", "disposition": "spec_ready"}
+            {"notes": "c_protein binds ByIdList", "disposition": "spec_ready"}
         )
 
     return _next

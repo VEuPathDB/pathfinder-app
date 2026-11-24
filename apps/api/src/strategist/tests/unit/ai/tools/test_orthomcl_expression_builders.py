@@ -236,7 +236,7 @@ async def test_frame_reads_the_built_expression_as_its_tool_result() -> None:
             parts=[
                 ToolCallPart(
                     "final_result",
-                    {"summary": "Built the pattern.", "disposition": "needs_research"},
+                    {"notes": "Built the pattern.", "disposition": "needs_research"},
                 )
             ]
         )

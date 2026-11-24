@@ -233,7 +233,7 @@ async def test_a_question_that_names_no_requirement_goes_back_in_one_sentence(
 
     assert str(refused.value) == (
         "Change this reading, or ask nothing about it and say why in "
-        "summary: c_plas.phyletic_expression: name in the question's "
+        "notes: c_plas.phyletic_expression: name in the question's "
         "`requirements` the keys of the requirements its readings approximate, "
         "from R1."
     )
@@ -254,7 +254,7 @@ async def test_a_key_spelled_without_its_letter_goes_back_with_the_keys_held(
 
     assert str(refused.value) == (
         "Change this reading, or ask nothing about it and say why in "
-        "summary: c_plas.phyletic_expression: replace ['1'] in the question's "
+        "notes: c_plas.phyletic_expression: replace ['1'] in the question's "
         "`requirements` with keys the requirement list holds, from R1."
     )
 
@@ -442,7 +442,7 @@ async def test_a_reading_question_that_names_no_slot_is_named_by_its_words() -> 
         await _held(question, _criterion())
 
     assert (
-        "Change this reading, or ask nothing about it and say why in summary: "
+        "Change this reading, or ask nothing about it and say why in notes: "
         "the question 'Present in which genomes?' offers the readings ['Every one "
         "of the 61 genomes', 'Most of them']: name the `criterion_id` and "
         "`param_name` its readings set."

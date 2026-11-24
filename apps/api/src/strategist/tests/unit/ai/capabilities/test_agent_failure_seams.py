@@ -43,7 +43,7 @@ from strategist.tests._support.sub_agents import agent_tool_names
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _MISSING_GENE_SET = "d6edd975-f6d9-482e-bc50-3d666b55227f"
-_FRAME_OUTPUT = {"summary": "framed nothing"}
+_FRAME_OUTPUT = {"notes": "framed nothing"}
 _VERIFY_OUTPUT = {
     "digest": {
         "disposition": "awaiting_user",

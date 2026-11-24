@@ -95,7 +95,7 @@ def union_frame(messages: list[ModelMessage]) -> ToolCallPart:
     if refused is not None:
         return terminal_call(
             {
-                "summary": refused,
+                "notes": refused,
                 "disposition": "needs_research",
                 "openQuestions": [],
             }

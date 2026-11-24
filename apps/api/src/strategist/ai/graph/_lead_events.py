@@ -130,7 +130,8 @@ def _summarize_sub_agent_call_args(args: dict[str, Any]) -> str:
 def _framed(delta: FrameResult | EditDelta) -> str:
     if delta.disposition == "needs_user":
         return count_noun(len(delta.open_questions), "open question")
-    return _truncate_summary(delta.summary or "Framed")
+    plan = delta.pending_plan
+    return _truncate_summary(plan.text if plan is not None else "Framed")
 
 
 def _built(delta: ExecuteDelta) -> str:

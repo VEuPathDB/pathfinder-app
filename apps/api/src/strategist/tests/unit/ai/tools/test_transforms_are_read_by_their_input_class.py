@@ -171,7 +171,7 @@ async def test_a_role_refusal_names_the_transforms_the_listing_reads(
 def _absent_r3() -> FrameResult:
     return FrameResult(
         disposition="needs_user",
-        summary="No orthology transform is available on this site.",
+        notes="No orthology transform is available on this site.",
         requirement_problems=[
             RequirementReport(
                 requirement="R3", problem=RequirementProblem.SITE_HAS_NO_SEARCH

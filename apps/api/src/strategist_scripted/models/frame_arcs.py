@@ -56,7 +56,7 @@ def _unbound(summary: str, lacking: Sequence[str] = ()) -> ToolCallPart:
     return scripted_call(
         "final_result",
         {
-            "summary": summary,
+            "notes": summary,
             "disposition": "needs_research",
             "openQuestions": [],
             "requirementProblems": [
@@ -265,7 +265,7 @@ def portal_frame(messages: list[ModelMessage]) -> ToolCallPart:
     return scripted_call(
         "final_result",
         {
-            "summary": "Nothing was bound.",
+            "notes": "Nothing was bound.",
             "disposition": "spec_ready",
             "openQuestions": [],
         },

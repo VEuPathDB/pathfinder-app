@@ -379,7 +379,7 @@ async def test_the_stored_dispatch_arguments_drive_the_re_entry(
             model=lambda: call_then_final_model(
                 "bind_criterion",
                 {"criterion_id": "c1"},
-                {"summary": "bound one", "disposition": "spec_ready"},
+                {"notes": "bound one", "disposition": "spec_ready"},
             )
         ),
     )
@@ -420,7 +420,7 @@ async def test_the_stored_dispatch_arguments_drive_the_re_entry(
         )
 
     assert isinstance(resumed, FrameResult)
-    assert resumed.summary == "bound one"
+    assert resumed.notes == "bound one"
     assert bound_criteria == ["c1"]
     assert [c["toolCallId"] for c in collector.chunks_of("tool-output-available")] == [
         "call_bind_criterion",

@@ -253,7 +253,7 @@ async def test_a_frame_pass_that_disagrees_ends_on_the_operator_card(
     async def _frame(**kwargs: Any) -> FrameResult:
         agent_deps: AgentDeps = kwargs["agent_deps"]
         agent_deps.agent_state.operational_spec_draft = _spec()
-        return FrameResult(disposition="spec_ready", summary="two searches")
+        return FrameResult(disposition="spec_ready", notes="two searches")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _frame)
     use_decisions_transport(_Service(_RECORDED["response"]))

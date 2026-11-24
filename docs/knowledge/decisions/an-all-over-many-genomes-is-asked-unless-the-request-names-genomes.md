@@ -89,7 +89,7 @@ binds `phyletic_expression`.
   states against what the expression writes.
 - **Approximate single copy.** One protein in every genome has no share or
   species form in the help's recipes, so `L=NT AND L=N` binds as written and
-  FRAME's summary says it may return few groups.
+  FRAME's notes say it may return few groups.
 
 # What would prove this wrong
 

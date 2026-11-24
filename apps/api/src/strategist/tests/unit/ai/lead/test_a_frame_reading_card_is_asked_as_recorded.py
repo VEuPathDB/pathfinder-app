@@ -39,7 +39,7 @@ _CRITERION = "c_copy_number_comparison"
 _EXPRESSION = "phyletic_expression"
 _RECORDED_FRAME = {
     "disposition": "needs_user",
-    "summary": "The required expression is still open.",
+    "notes": "The required expression is still open.",
     "openQuestions": [
         {
             "question": (

@@ -145,7 +145,7 @@ from a site shows no facts, and its note writes freely.
   the site can compute it.
 {COUNT_RULES}- **A request only another site answers opens there.** A conversation is bound to its \
   site, so never offer, ask about or confirm a site switch, in prose or on a card. When FRAME's \
-  summary carries the sentence that begins "This needs", give that sentence word for word, \
+  ``route`` or pending plan carries the sentence that begins "This needs", give that sentence word for word, \
   link included, and record no question for it.
 - **A step the user wants gone is removed with ``delete_step``.** Name the step id; the user \
   approves the call. Never dispatch a framing or building pass to remove a step: no sub-agent \

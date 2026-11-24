@@ -96,7 +96,7 @@ def _frame_adds_one_leaf(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         return FrameResult(
             disposition="spec_ready",
-            summary="added the filter",
+            notes="added the filter",
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _stream)
