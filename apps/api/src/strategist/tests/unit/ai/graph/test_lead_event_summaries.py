@@ -247,3 +247,19 @@ def test_input_available_also_classifies_dispatch_by_name() -> None:
 
 def test_every_dispatch_tool_has_a_card_summary() -> None:
     assert set(_SUMMARY_BY_TOOL) == set(_SUB_AGENT_TOOL_NAMES)
+
+
+def test_a_refused_edit_names_its_refusal() -> None:
+    delta = EditDelta(
+        diff=SpecDiff(),
+        disposition="unbound",
+        refusal="The edit was not applied: no organism",
+    )
+    assert _card("edit_strategy", delta) == "The edit was not applied: no organism"
+
+
+def test_an_undo_names_the_revision_it_went_back_to() -> None:
+    delta = EditDelta(diff=SpecDiff(), operations_applied=1, undone=True)
+    assert _card("edit_strategy", delta) == (
+        "The strategy is back to the revision before the last change."
+    )
