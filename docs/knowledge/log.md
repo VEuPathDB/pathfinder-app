@@ -2,6 +2,12 @@
 
 ## 2026-11-24
 
+* **A typed organism the organism reader resolves is a named replacement.** On the organism
+  dimension a card answer's words replace the stated organism when the organism reader
+  (`organism_reader.site_entry`, the gate's own matcher) resolves them to exactly one site entry;
+  words it resolves to none or several replace nothing. "Plasmodium falciparum 7G8" replaces
+  3D7; "Plasmodium falciparum" and "proceed with defaults" keep it.
+
 * **A card question on a criterion answers only that criterion's requirements of its dimension.**
   `recommended_drops` resolves a criterion id to the requirements it links whose kind is the
   question's dimension, so a percentile question on a step that also links the organism may

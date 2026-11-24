@@ -10,7 +10,7 @@ from assistant_core.graph.turn_state import UserQuestionAnswer
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb_mcp.catalog import ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo, list_organisms
 
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.answer_requirements import answer_requirement
@@ -193,13 +193,15 @@ def apply_option_bindings(
     *,
     sheets: Mapping[str, Sequence[ParameterInfo]],
     replaced: Mapping[str, Sequence[str]] = _NO_STAND_INS,
+    organisms: Sequence[str] = (),
 ) -> None:
     """Apply what each picked option binds, with no model in between.
 
     A value binds, an operator rewires its combine and a withdrawal retires;
     typed words, a picked reading a framing pass named and the note, never
     another offered label, become a requirement on the dimension ``asked``
-    names, on a dimension of many values only. That requirement replaces
+    names on a dimension of many values, and on the organism dimension words
+    that name one of ``organisms``. That requirement replaces
     each one ``replaced`` holds under the question's prompt. Every picked label
     is kept as a card pick, which states a cut an EDA export rests on, and a
     picked tail is held as a rule that each later study's own edge meets.
@@ -232,7 +234,9 @@ def apply_option_bindings(
             if question is not None
             else dimensions.get(answer.prompt, ConstraintKind.UNTYPED)
         )
-        stated = answer_requirement(answer.prompt, words, answer.note, dimension)
+        stated = answer_requirement(
+            answer.prompt, words, answer.note, dimension, organisms
+        )
         if stated is not None:
             [held] = domain.record_requirements([stated])
             gone = set(replaced.get(answer.prompt, ())) - {held.id}
@@ -303,6 +307,17 @@ def _asked(questions: Sequence[CardQuestion]) -> list[OpenQuestion]:
         for q in questions
         if q.prompt
     ]
+
+
+async def _organisms_asked(
+    state: PipelineState, shown: Sequence[CardQuestion]
+) -> list[str]:
+    dimensions = {q.dimension for q in shown} | {
+        q.dimension for q in state.domain.open_questions
+    }
+    if ConstraintKind.ORGANISM not in dimensions:
+        return []
+    return await list_organisms(state.site_id)
 
 
 async def consult_user(
@@ -394,6 +409,7 @@ async def consult_user(
             shown,
             sheets=sheets,
             replaced=state.turn_markers.card_stand_ins.get(ctx.tool_call_id or "", {}),
+            organisms=await _organisms_asked(state, shown),
         )
         state.domain.answer_open_questions(answered, on_card=True)
         state.domain.record_answered(_asked(shown))

@@ -30,7 +30,7 @@ _WORDS = [
 @pytest.mark.parametrize("words", _WORDS)
 def test_free_words_state_no_requirement(dimension: ConstraintKind, words: str) -> None:
     stated = answer_requirement(
-        "Which value should replace this?", [], words, dimension
+        "Which value should replace this?", [], words, dimension, []
     )
 
     assert [stated] == [None]
@@ -38,7 +38,11 @@ def test_free_words_state_no_requirement(dimension: ConstraintKind, words: str) 
 
 def test_free_words_on_a_dimension_of_many_values_are_a_requirement() -> None:
     stated = answer_requirement(
-        "What else should the genes have?", [], "a GPI anchor", ConstraintKind.PROPERTY
+        "What else should the genes have?",
+        [],
+        "a GPI anchor",
+        ConstraintKind.PROPERTY,
+        [],
     )
 
     assert stated is not None

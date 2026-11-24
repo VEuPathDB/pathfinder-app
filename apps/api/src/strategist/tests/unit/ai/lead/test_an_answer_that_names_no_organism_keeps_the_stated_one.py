@@ -15,6 +15,7 @@ from strategist.domain.strategy.constraints import (
     OrganismValue,
 )
 from strategist.domain.strategy.questions import OpenQuestion
+from strategist.tests._support.site_organisms import recorded_organisms
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
 
 _REQUEST = "Find Plasmodium falciparum 3D7 genes with 30 to 99 transmembrane domains."
@@ -71,6 +72,7 @@ def _answered(note: str) -> PipelineState:
         [answer],
         [_CARD],
         sheets={},
+        organisms=recorded_organisms("plasmodb"),
     )
     return state
 
@@ -92,8 +94,17 @@ def test_an_answer_that_names_no_organism_keeps_the_stated_strain() -> None:
     assert state.domain.retired_requirements == []
 
 
-def test_an_organism_typed_as_words_does_not_replace_the_stated_one() -> None:
+def test_an_organism_typed_that_names_one_site_entry_replaces_it() -> None:
     state = _answered("Plasmodium falciparum 7G8")
+
+    assert _organisms(state) == [
+        ("Plasmodium falciparum 7G8", "Plasmodium falciparum 7G8")
+    ]
+    assert [r.constraint.id for r in state.domain.retired_requirements] == [_STRAIN.id]
+
+
+def test_an_ambiguous_typed_organism_replaces_nothing() -> None:
+    state = _answered("Plasmodium falciparum")
 
     assert _organisms(state) == [
         ("Plasmodium falciparum 3D7", "Plasmodium falciparum 3D7")
