@@ -53,7 +53,9 @@ The entry is compared by equality:
 - the organism check: a requirement whose organisms the strategy selects, by
   the entry itself or under an entry of the organism tree, carries the organism
   check on its own branch. A step that links it is read alone, and a row of
-  that step outside the entry fails it (a strain bound as its species). With no
+  that step outside the entries of the organism requirements that step links
+  fails it (a strain bound as its species), so one step on 3D7 and P01 that
+  links both requirements passes each. With no
   linking step, the result must hold records of the entry, and every record must
   be of an organism some requirement names (an organism's entry or an ortholog's
   target), so a UNION of 3D7 and P01, or 3D7 genes with their orthologs in

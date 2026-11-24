@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from pydantic_ai import ToolFailed
@@ -246,7 +246,7 @@ async def _paged_organisms(
     return CountedOrganisms(step=root.named, total=paged.total, rows=rows)
 
 
-def _organisms_named(requirements: Sequence[Constraint]) -> frozenset[str]:
+def _organisms_named(requirements: Iterable[Constraint]) -> frozenset[str]:
     """Every organism a requirement names: an organism's entry, an ortholog's targets."""
     found: set[str] = set()
     for c in requirements:
@@ -266,22 +266,28 @@ async def _asked_organism_check(
     c: Constraint,
     selected: SelectedOrganisms,
     counted: CountedOrganisms | UnreadOrganisms | None,
-    *,
-    named: frozenset[str],
+    requirements: Sequence[Constraint],
 ) -> SiteCheck:
     """The requirement against the records of the step that links it, else
     against the result."""
-    step = next(
+    linking = next(
         (
-            found
+            (k, found)
             for k in criteria
             if k.links(c.id) and (found := judged.steps.get(k.id)) is not None
         ),
         None,
     )
-    read = counted if step is None else await _counted_organisms(judged, step)
+    if linking is None:
+        read, allowed = counted, _organisms_named(requirements)
+    else:
+        k, step = linking
+        read = await _counted_organisms(judged, step)
+        allowed = _organisms_named(r for r in requirements if k.links(r.id))
     asked = OrganismAsked(
-        entry=c.organism or c.requested_value, named=named, linked=step is not None
+        entry=c.organism or c.requested_value,
+        named=allowed,
+        linked=linking is not None,
     )
     return organism_check(c.requested_value, c.id, selected, read, asked=asked)
 
@@ -304,7 +310,6 @@ async def _organism_checks(
         )
     )
     counted = None if selected is None else await _counted_organisms(judged, root)
-    named = _organisms_named(deps.state.domain.requirements)
     checks: list[SiteCheck] = []
     carried = False
     for held in asked:
@@ -317,7 +322,12 @@ async def _organism_checks(
         carried = carried or names
         checks.append(
             await _asked_organism_check(
-                judged, spec.criteria, c, selected, counted, named=named
+                judged,
+                spec.criteria,
+                c,
+                selected,
+                counted,
+                deps.state.domain.requirements,
             )
             if names and selected is not None and c.organism is not None
             else SiteCheck(

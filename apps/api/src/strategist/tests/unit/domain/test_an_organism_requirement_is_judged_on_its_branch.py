@@ -59,3 +59,28 @@ def test_a_record_no_requirement_names_fails_the_unlinked_check() -> None:
             "Plasmodium falciparum 7G8 (83)"
         ),
     )
+
+
+def test_one_step_linking_two_asked_strains_passes_each() -> None:
+    read = CountedOrganisms(
+        step="GenesByGoTerm",
+        total=400,
+        rows=[
+            OrganismCount(organism=PF3, count=150),
+            OrganismCount(organism=PV, count=250),
+        ],
+    )
+    linked_by_the_step = frozenset({PF3, PV})
+
+    checks = [
+        organism_check(
+            entry,
+            f"r_{entry}",
+            _BOTH,
+            read,
+            asked=OrganismAsked(entry=entry, named=linked_by_the_step, linked=True),
+        )
+        for entry in (PF3, PV)
+    ]
+
+    assert [c.status for c in checks] == ["pass", "pass"]

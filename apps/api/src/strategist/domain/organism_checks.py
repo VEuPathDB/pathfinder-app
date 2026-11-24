@@ -39,8 +39,9 @@ def _listed(rows: Sequence[OrganismCount]) -> str:
 
 
 class OrganismAsked(CamelModel):
-    """The organism requirement a check judges: its entry, every organism the
-    requirements name, and whether a step links it."""
+    """The organism requirement a check judges: its entry, the organisms the
+    requirements name (those its linking step links, or all when none links it),
+    and whether a step links it."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -50,7 +51,7 @@ class OrganismAsked(CamelModel):
 
     @property
     def allowed(self) -> frozenset[str]:
-        return frozenset({self.entry}) if self.linked else self.named
+        return self.named | {self.entry}
 
     @property
     def whose(self) -> str:

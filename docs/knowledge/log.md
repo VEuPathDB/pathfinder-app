@@ -2,6 +2,10 @@
 
 ## 2026-11-24
 
+* **One step that links two organism requirements passes each.** On a linked step, a
+  requirement's organism check allows its own entry and the entries of every other organism
+  requirement that step links, so GenesByGoTerm on 3D7 and P01 (150 and 250 records) passes both.
+
 * **A profile's genomes are derived when grounding needs them, never stored.**
   `Criterion.phyletic_genomes` is gone (and from the spec). Grounding decodes a phylogenetic
   profile step's own `included_species` codes through the search's phyletic tree, which the
