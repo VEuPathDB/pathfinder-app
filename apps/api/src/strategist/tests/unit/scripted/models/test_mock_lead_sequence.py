@@ -82,7 +82,7 @@ def _prose(seq: list[ToolCallPart]) -> str:
 def _verified(success: bool) -> list[ModelMessage]:
     return [
         _user(_BUILD),
-        *_exchange("frame_problem", {"summary": "framed"}, "f1"),
+        *_exchange("frame_problem", {"pendingPlan": {"rendered": "framed"}}, "f1"),
         *_exchange("build_strategy", {"outcome": {"nodeResults": []}}, "b1"),
         *_exchange("verify_strategy", {"digest": {"success": success}}, "v1"),
         *_exchange("get_live_strategy_state", {"rootCount": 479}, "l1"),
@@ -130,7 +130,7 @@ def test_the_feedback_prose_states_the_failure_and_not_the_success() -> None:
 def test_a_second_turn_plays_the_arc_its_own_message_names() -> None:
     second_turn: list[ModelMessage] = [
         _user(_BUILD),
-        *_exchange("frame_problem", {"summary": "framed"}, "f0"),
+        *_exchange("frame_problem", {"pendingPlan": {"rendered": "framed"}}, "f0"),
         _user("Change the range [[arc:edit-param]]"),
     ]
 
@@ -172,7 +172,7 @@ def test_a_refused_consult_resume_reports_the_refusal_too() -> None:
     msgs: list[ModelMessage] = [
         _user("Consult me first [[arc:consult]]"),
         *_exchange("consult_user", "answered", "c0"),
-        *_exchange("frame_problem", {"summary": "framed"}, "f1"),
+        *_exchange("frame_problem", {"pendingPlan": {"rendered": "framed"}}, "f1"),
         *_refused("build_strategy", build_would_replace_the_strategy(2), "b1"),
     ]
 

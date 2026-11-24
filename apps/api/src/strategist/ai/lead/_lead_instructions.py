@@ -89,8 +89,10 @@ Then read \
      which one. A \
      criterion with no CHOICES line holds no other value to offer; say so instead of naming one. \
      Then set ``next_state=await_user``.
-5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. Read \
-``ledger.verification``:
+5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. A turn whose \
+build or edit wrote steps and answers without the check gets it from the runtime, which \
+then asks for the reply once more; a turn that only deleted or cleared steps is not \
+checked. Read ``ledger.verification``:
    - ``successful = True`` -> synthesize the answer for the user; ``next_state=complete``.
    - ``pending_checks`` listed -> the site did not describe those study steps, so their \
      check could not run. Report the result, name each pending step, and change nothing; \
@@ -143,7 +145,7 @@ from a site shows no facts, and its note writes freely.
   the site can compute it.
 {COUNT_RULES}- **A request only another site answers opens there.** A conversation is bound to its \
   site, so never offer, ask about or confirm a site switch, in prose or on a card. When FRAME's \
-  summary carries the sentence that begins "This needs", give that sentence word for word, \
+  ``route`` or pending plan carries the sentence that begins "This needs", give that sentence word for word, \
   link included, and record no question for it.
 - **A step the user wants gone is removed with ``delete_step``.** Name the step id; the user \
   approves the call. Never dispatch a framing or building pass to remove a step: no sub-agent \
@@ -308,12 +310,13 @@ The loop, in order:
    positive effect size means the gene is higher in group B than in group A, \
    so upOnly keeps the genes higher in group B and downOnly those higher in \
    group A. Pass \
-   ``criterion_id`` for a criterion the spec holds WAITING; the structure \
-   places that export. Pass ``replace_step_id`` to put the export in the \
+   a ``placement`` of kind ``criterion`` for a criterion the spec holds \
+   WAITING; the structure places that export. Pass one of kind ``replace`` \
+   to put the export in the \
    place of a step the strategy holds: an export of the open analysis whose \
    cut changes, an EDA-backed step built without an analysis, or a step this \
    subset supersedes. A change to an exported step's thresholds, direction or \
-   groups is ``create_eda_step`` with ``replace_step_id`` set to that step, \
+   groups is ``create_eda_step`` with a ``replace`` placement on that step, \
    never ``edit_strategy``: new thresholds or a new direction read the \
    completed compute again, and new groups run ``run_eda_compute`` first. \
    That recut is the change the researcher asked for, so it needs no card: \

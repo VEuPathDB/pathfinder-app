@@ -11,6 +11,7 @@ from veupathdb.domain.strategy import StepValidation
 from veupathdb.wdk import WDKStepTree
 
 from strategist.domain.strategy.session import StrategySession
+from strategist.domain.unread import Unread
 
 
 @dataclass
@@ -29,6 +30,7 @@ class WDKSyncState:
     # The parameter each search of the last synced tree marks as its organism.
     organism_params: dict[str, str] = field(default_factory=dict)
     replaced_wdk_step_ids: list[int] = field(default_factory=list)
+    strategy_not_read: Unread | None = None
 
     @property
     def wdk_root_step_id(self) -> int | None:

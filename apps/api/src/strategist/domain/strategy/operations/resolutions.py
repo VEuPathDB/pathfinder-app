@@ -7,7 +7,7 @@ from strategist.domain.strategy.operations.types import (
     DeleteStepOp,
     OperationChoice,
 )
-from strategist.domain.strategy.session import StrategyGraph
+from strategist.domain.strategy.session import StrategyGraph, not_a_step
 
 
 def compute_delete_choices(graph: StrategyGraph, step_id: str) -> list[OperationChoice]:
@@ -36,7 +36,7 @@ def why_the_graph_refuses_the_delete(
     """
     target = graph.steps.get(op.step_id)
     if target is None:
-        return f"{op.step_id} is not a step of this strategy"
+        return not_a_step(op.step_id, sorted(graph.steps))
     has_parent = graph.parent_of(op.step_id) is not None
     if op.resolution is DeleteResolution.ORPHAN_SIBLING and not has_parent:
         return f"{op.step_id} is a root, so no step above it keeps another branch"

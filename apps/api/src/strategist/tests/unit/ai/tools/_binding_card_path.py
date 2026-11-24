@@ -8,7 +8,7 @@ from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.graph.state import StrategyDomainState
-from strategist.ai.lead import lead_consult
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.lead_consult import CardAnswer, consult_user
 from strategist.ai.lead.recorded_cards import card_questions
 from strategist.domain.strategy.operational_spec import OperationalSpec
@@ -62,7 +62,7 @@ async def card_pick(
         del site_id, search_names
         return {SEARCH: sheet_of(declared({}))}
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
     monkeypatch.setattr(sheet_params, "wdk_fetch_at", fetcher)
     wires = _card_wires(case, child)
     question = OpenQuestion(

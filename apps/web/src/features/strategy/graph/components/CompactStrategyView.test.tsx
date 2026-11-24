@@ -355,3 +355,21 @@ describe("disconnected steps", () => {
     expect(removed).toHaveBeenCalledWith(["step_x"]);
   });
 });
+
+describe("CompactStrategyView of an unreadable strategy", () => {
+  it("names the strategy unreadable instead of building", () => {
+    render(
+      <CompactStrategyView
+        strategy={{
+          ...SIMPLE_STRATEGY,
+          steps: [],
+          strategyUnreadable: "root: one step twice",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("compact-strategy-unreadable").textContent).toBe(
+      "This strategy could not be read: root: one step twice",
+    );
+  });
+});

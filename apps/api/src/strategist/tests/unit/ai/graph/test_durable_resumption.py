@@ -227,6 +227,7 @@ def _both_reported() -> list[DurableTaskResult]:
             status="success",
             result={
                 "variants": [],
+                "best": None,
                 "objective": "f1",
                 "searchName": "GenesByTaxon",
                 "controlSet": SAVED_SET.model_dump(),
@@ -294,7 +295,7 @@ async def test_each_parked_call_is_answered_once_on_the_completion_turn(
     ) -> SubAgentOutcome:
         del deps, approval
         handed.append(resume.results)
-        return FrameResult(summary="verified")
+        return FrameResult(notes="verified")
 
     monkeypatch.setattr(_lead_turn, "resume_sub_agent", _resume)
 
@@ -309,6 +310,7 @@ async def test_each_parked_call_is_answered_once_on_the_completion_turn(
         "status": "success",
         "result": {
             "variants": [],
+            "best": None,
             "objective": "f1",
             "searchName": "GenesByTaxon",
             "controlSet": SAVED_SET.model_dump(),

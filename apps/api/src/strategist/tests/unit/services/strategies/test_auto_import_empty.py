@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 from assistant_core.persistence.models import Conversation
 
-from strategist.domain.strategy.revision import answer_revision, parse_strategy_ast
+from strategist.domain.strategy.revision import answer_revision_of_raw
 from strategist.persistence.models import ConversationStrategyView
 from strategist.persistence.repositories.conversation_update import (
     ConversationUpdate,
@@ -142,7 +142,7 @@ async def test_non_empty_result_imports_and_latches() -> None:
 
     assert len(created) == 1
     assert [(gs.id, gs.answer_revision) for gs in saved] == [
-        (created[0].id, answer_revision(parse_strategy_ast(thread[1].strategy_ast)))
+        (created[0].id, answer_revision_of_raw(thread[1].strategy_ast))
     ]
     assert len(repo.updates) == 1
     conversation_id, upd = repo.updates[0]

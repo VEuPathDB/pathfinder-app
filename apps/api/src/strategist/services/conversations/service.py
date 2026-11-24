@@ -32,7 +32,7 @@ from strategist.persistence.repositories import (
     ConversationRepository,
     ConversationUpdate,
 )
-from strategist.platform.errors import ErrorCode, NotFoundError
+from strategist.platform.errors import ErrorCode, NotFoundError, SiteUnavailableError
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.conversations import strategy_ops
 from strategist.services.conversations.authz import get_owned_thread
@@ -53,6 +53,7 @@ from strategist.services.conversations.update_input import (
     ConversationUpdateInput,
     strategy_write_of,
 )
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.insert_saved import (
     InsertSavedResult,
 )
@@ -63,7 +64,7 @@ from strategist.services.strategies.save_substrategy import (
 )
 from strategist.services.strategies.wdk_sync import (
     lazy_fetch_wdk_detail,
-    sync_is_saved_to_wdk,
+    set_the_saved_mark,
 )
 
 logger = get_logger(__name__)
@@ -165,19 +166,22 @@ class ConversationService:
         user_id: UUID,
         patch: ConversationUpdateInput,
     ) -> ConversationResponse:
-        await get_owned_conversation(self._repo, conversation_id, user_id)
+        owned = await get_owned_conversation(self._repo, conversation_id, user_id)
         if patch.name is not None:
             await rename_strategy_everywhere(
                 conversation_id, patch.name, session_factory=async_session_factory
             )
             patch = replace(patch, name=None)
 
+        held = await self._repo.get_strategy(conversation_id)
+        if patch.is_saved is not None and held.wdk_strategy_id and owned.site_id:
+            await set_the_saved_mark(
+                site_id=owned.site_id,
+                wdk_strategy_id=held.wdk_strategy_id,
+                is_saved=patch.is_saved,
+            )
         await self._repo.update_conversation(
-            conversation_id,
-            strategy_write_of(
-                patch,
-                held=await self._repo.get_strategy(conversation_id),
-            ),
+            conversation_id, strategy_write_of(patch, held=held)
         )
         found = await self._repo.get_with_strategy(conversation_id)
         if not found:
@@ -186,8 +190,6 @@ class ConversationService:
                 title="Strategy not found",
             )
         updated, strategy = found
-        if patch.is_saved is not None and strategy.wdk_strategy_id:
-            await sync_is_saved_to_wdk(conversation=updated, strategy=strategy)
         return build_conversation_response(
             updated,
             strategy,
@@ -262,6 +264,11 @@ class ConversationService:
                     wdk_strategy_id=wdk_id,
                     error=str(e),
                 )
+                raise SiteUnavailableError(
+                    conversation.site_id,
+                    "the strategy on the site was not deleted, so the "
+                    f"conversation is kept: {site_words(e)}",
+                ) from e
         await stop_turn_before_delete(conversation_id)
         await self._repo.delete(conversation_id, cascade=cascade)
         await self._session.commit()

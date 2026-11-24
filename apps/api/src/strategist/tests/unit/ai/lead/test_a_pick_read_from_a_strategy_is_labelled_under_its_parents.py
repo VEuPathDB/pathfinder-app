@@ -19,7 +19,6 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
-from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
@@ -34,8 +33,10 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.session import StrategyGraph
+from strategist.platform.errors import SiteUnavailableError
 from strategist.services.strategies import sheet_params
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.narrowing_refused import the_site_refuses_to_narrow
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.sheets import visible_sheet
@@ -140,9 +141,7 @@ class _Reads:
         return fetch
 
 
-@pytest.fixture
-def reads(monkeypatch: pytest.MonkeyPatch) -> _Reads:
-    served = _Reads()
+def _serve_published_sheets(monkeypatch: pytest.MonkeyPatch) -> None:
     published = {_DOMAINS: _PUBLISHED, _TEXT: visible_sheet(["text_expression"])}
 
     async def _sheets(
@@ -157,7 +156,13 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> _Reads:
     for module in (answered_strategy, pre_turn):
         monkeypatch.setattr(module, "sheet_params_for_searches", _sheets)
         monkeypatch.setattr(module, "organism_parameters", _marks)
-    monkeypatch.setattr(sheet_params, "wdk_fetch_at", served.fetch_at)
+
+
+@pytest.fixture
+def reads(monkeypatch: pytest.MonkeyPatch) -> _Reads:
+    served = _Reads()
+    _serve_published_sheets(monkeypatch)
+    monkeypatch.setattr(sheet_params, "wdk_fetch_under_parents_at", served.fetch_at)
     return served
 
 
@@ -271,24 +276,24 @@ async def test_a_step_with_no_dependent_parameter_reads_no_vocabulary(
     assert reads.contexts == []
 
 
-async def test_a_step_the_site_cannot_read_is_labelled_on_the_published_sheet(
-    monkeypatch: pytest.MonkeyPatch, reads: _Reads
+async def test_a_step_the_site_cannot_read_under_its_parents_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def _unreadable(_site_id: str, _record_type: str, search_name: str) -> ParamFetcher:
-        async def fetch(_context: dict[str, str]) -> list[WDKParameter]:
-            msg = f"{search_name} is unreachable"
-            raise WDKError(msg, 503)
-
-        return fetch
-
-    monkeypatch.setattr(sheet_params, "wdk_fetch_at", _unreadable)
-
-    stated = await stated_spec_of(
-        _ast(_domain_step()), site_id="plasmodb", goal="genes with a KH domain"
+    _serve_published_sheets(monkeypatch)
+    the_site_refuses_to_narrow(
+        monkeypatch, suite_search("search_genes_by_interpro_domain")
     )
 
-    assert _label(stated) == ""
-    assert reads.contexts == []
+    with pytest.raises(SiteUnavailableError) as refused:
+        await stated_spec_of(
+            _ast(_domain_step()), site_id="plasmodb", goal="genes with a KH domain"
+        )
+
+    assert refused.value.detail == (
+        "Could not connect to plasmodb (dom: the vocabulary under the values it "
+        "holds was not read: HTTP 503: VEuPathDB service error: Request failed "
+        "after retries: Service Unavailable)."
+    )
 
 
 async def test_a_step_under_the_published_parents_reads_no_vocabulary(

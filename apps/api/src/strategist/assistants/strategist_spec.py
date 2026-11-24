@@ -46,7 +46,7 @@ from strategist.services.conversations.turns import turn_start_revision_id
 from strategist.services.memory_setting import the_researchers_store
 from strategist.services.strategies.session_factory import (
     build_strategy_session,
-    persisted_graph,
+    thread_strategy_session,
 )
 from strategist.services.wdk_identity import require_registered_wdk_login
 
@@ -86,13 +86,10 @@ async def build_turn_context(request: TurnContextRequest) -> Context:
     return Context(
         site_id=request.site_id,
         user_id=request.user_id,
-        strategy_session=build_strategy_session(
-            site_id=request.site_id,
-            strategy_graph=(
-                None
-                if conversation is None or strategy is None
-                else persisted_graph(conversation, strategy)
-            ),
+        strategy_session=(
+            build_strategy_session(site_id=request.site_id, strategy_graph=None)
+            if conversation is None or strategy is None
+            else thread_strategy_session(request.site_id, conversation, strategy)
         ),
         db_session_factory=async_session_factory,
         tool_sources=dict(request.tool_sources),

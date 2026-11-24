@@ -40,11 +40,8 @@ from strategist.ai.lead.edit_messages import (
     edit_moves_nothing_message,
     edit_operation_refused_message,
     edit_work_order,
-    no_earlier_revision_message,
     no_strategy_to_edit_message,
-    nothing_to_undo_message,
     removal_is_the_cards_message,
-    undo_moves_nothing_message,
     unsupported_edit_message,
 )
 from strategist.ai.lead.edit_refused_values import refused_values_message
@@ -53,6 +50,12 @@ from strategist.ai.lead.intent_gate import tools_the_turn_offers
 from strategist.ai.lead.pre_turn import hydrate_spec_from_the_strategy, stated_spec_of
 from strategist.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.undo_messages import (
+    no_earlier_revision_message,
+    nothing_to_undo_message,
+    undo_moves_nothing_message,
+    unreadable_revision_message,
+)
 from strategist.ai.lead.unsaved_set import result_not_saved
 from strategist.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from strategist.ai.tools.standalone.stream_parts import graph_snapshot_chunk
@@ -81,6 +84,7 @@ from strategist.domain.strategy.spec_to_operations import (
     operations_for,
 )
 from strategist.domain.strategy.step_words import added_searches
+from strategist.domain.unread import Unread
 from strategist.services.eda.export import open_analysis_exports
 from strategist.services.strategies.commit import (
     apply_operations_and_commit,
@@ -90,8 +94,6 @@ from strategist.services.strategies.graph_outcome import live_outcome
 from strategist.services.strategies.revision_ops import previous_revision
 
 __all__ = ["edit_strategy", "run_edit"]
-
-_UNDONE = "The strategy is back to the revision before the last change."
 
 
 @dataclass(frozen=True)
@@ -172,7 +174,8 @@ async def run_edit(
         return EditDelta(
             diff=SpecDiff(),
             disposition="needs_user",
-            summary=frame.summary,
+            pending_plan=frame.pending_plan,
+            route=frame.route,
             open_questions=[
                 q for q in deps.state.domain.open_questions if q.question in asked
             ],
@@ -215,7 +218,12 @@ async def _undo(*, deps: LeadDeps, base: _EditBase) -> EditDelta:
         )
     stored = None if revision is None else parse_strategy_ast(revision.strategy_ast)
     live = base.graph.to_strategy_ast()
-    if revision is None or stored is None or live is None:
+    match stored:
+        case Unread(reason=reason):
+            raise CallRefused(unreadable_revision_message(reason))
+        case None:
+            raise CallRefused(no_earlier_revision_message())
+    if revision is None or live is None:
         raise CallRefused(no_earlier_revision_message())
     if revision.revision == base.revision:
         raise CallRefused(nothing_to_undo_message())
@@ -320,7 +328,7 @@ async def _push_the_edit(
     refusal = wdk_refused_the_edit(commit)
     return EditDelta(
         diff=diff,
-        summary=_UNDONE if undo and refusal is None else "",
+        undone=undo and refusal is None,
         description=commit.description if refusal is None else refusal.message,
         operations_applied=len(ops),
         added_step_ids=added,
@@ -372,7 +380,7 @@ def _unbound(deps: LeadDeps, reason: str, refusal: str) -> EditDelta:
         f"The edit was not applied: {reason} The planning pass refused it: {refusal}"
     )
     deps.state.turn_markers.unbound_edit = unbound
-    return EditDelta(diff=SpecDiff(), disposition="unbound", summary=unbound)
+    return EditDelta(diff=SpecDiff(), disposition="unbound", refusal=unbound)
 
 
 def _emit_graph_snapshot(agent_deps: AgentDeps) -> None:
@@ -403,9 +411,10 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     criterion framed on an earlier turn and built here reads as added in both.
     A claim about what the whole turn did to the spec it started from is read
     from ``ledger.frame.diff`` instead. Disposition ``needs_user`` pushed
-    nothing: its ``diff`` is empty and ``pending_step_ids`` names the criteria
-    the plan moved, which the strategy does not hold until the answer. Disposition
-    ``unbound`` ends the edit: nothing was applied, and the reply names what
+    nothing: its ``diff`` is empty, ``pending_step_ids`` names the criteria
+    the plan moved, which the strategy does not hold until the answer, and
+    ``pending_plan`` is the plan that waits on it. Disposition ``unbound`` ends
+    the edit: nothing was applied, and the reply names what ``refusal`` says
     could not be bound.
     """
     tool_call_id = dispatch_call_id(ctx)

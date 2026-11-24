@@ -1,7 +1,7 @@
 """In-memory working state for a strategy that is under construction during a
 chat session."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 
 from veupathdb import get_logger
 from veupathdb.domain.strategy import (
@@ -18,8 +18,14 @@ from veupathdb.model import CamelModel
 from strategist.domain.strategy.analysis_binding import AnalysisKind
 from strategist.domain.strategy.step_words import StampedKind, StepWords
 from strategist.domain.strategy.types import SyncStateProtocol
+from strategist.domain.unread import Unread
 
 logger = get_logger(__name__)
+
+
+def not_a_step(named: object, held: Iterable[object]) -> str:
+    listed = ", ".join(str(step) for step in held) or "no step yet"
+    return f"Step {named} is not a step of this strategy. It holds {listed}."
 
 
 class StrategyHistoryEntry(CamelModel):
@@ -216,6 +222,7 @@ class StrategySession:
         self.site_id = site_id
         self.graph: StrategyGraph | None = None
         self.sync_state: SyncStateProtocol | None = None
+        self.unreadable: Unread | None = None
 
     def add_graph(self, graph: StrategyGraph) -> None:
         """Register a graph in the session. A session holds one graph, so a

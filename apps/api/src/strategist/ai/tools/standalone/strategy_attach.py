@@ -22,6 +22,7 @@ from strategist.ai.tools.standalone._validation_helpers import (
     get_graph_and_step,
 )
 from strategist.ai.tools.standalone.graph_helpers import step_ok_response
+from strategist.ai.tools.standalone.strategy_refusals import _graph_missing
 from strategist.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 
@@ -39,20 +40,6 @@ def _step_updated_return(
         summary,
         ctx=ctx,
         extra=[graph_snapshot_chunk(session, graph)],
-    )
-
-
-def _step_missing(
-    ctx: RunContext[AgentDeps],
-    payload: ToolErrorPayload,
-    step_id: str,
-) -> ToolReturn[StepOkResponse | ToolErrorPayload]:
-    """The attachment named a step the graph does not hold."""
-    return with_summary(
-        payload,
-        f"No step {step_id} in the strategy",
-        ctx=ctx,
-        status="warn",
     )
 
 
@@ -82,7 +69,7 @@ async def add_step_filter(
 
     result = get_graph_and_step(session, graph_id, step_id)
     if isinstance(result, ToolErrorPayload):
-        return _step_missing(ctx, result, step_id)
+        return _graph_missing(ctx, result)
     graph, step = result
 
     existing = [f for f in step.filters if f.name != filter_name]

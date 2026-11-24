@@ -33,6 +33,18 @@ export function CompactStrategyView({
 }: CompactStrategyViewProps) {
   if (strategy == null) return null;
 
+  const unreadable = strategy.strategyUnreadable ?? null;
+  if (unreadable !== null) {
+    return (
+      <div
+        className="px-3 py-3 text-xs text-muted-foreground"
+        data-testid="compact-strategy-unreadable"
+      >
+        This strategy could not be read: {unreadable}
+      </div>
+    );
+  }
+
   const tree =
     strategy.steps.length === 0 ||
     strategy.rootStepId == null ||

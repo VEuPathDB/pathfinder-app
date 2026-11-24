@@ -8,14 +8,13 @@ from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 
 from strategist.ai.capabilities.site_reads import read_in_time
 from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.tools.standalone._result_models import MAX_SAMPLE_LIMIT
 from strategist.ai.tools.standalone._sample_page import sample_page
-from strategist.ai.tools.standalone._step_read import read_as
+from strategist.ai.tools.standalone._step_read import held_wdk_step, read_as
 from strategist.ai.tools.standalone.results import (
     READ_DEADLINE_SECONDS,
     named_or_root,
@@ -52,14 +51,6 @@ class StepGeneIds(CamelModel):
     complete: bool
 
 
-def _no_such_step(wdk_step_id: int, live: list[int]) -> str:
-    held = ", ".join(str(step) for step in live) or "none"
-    return (
-        f"wdk_step_id {wdk_step_id} names no built step of this conversation's "
-        f"strategy. The built steps: {held}."
-    )
-
-
 async def _sampled_ids(deps: StepIdsReader, wdk_step_id: int, limit: int) -> StepIds:
     """The ids ``get_sample_records`` reads at the same limit, in its order."""
     session = deps.strategy_session
@@ -94,11 +85,9 @@ async def read_step_ids(
             over the step; leave it out for the first 5000 in the site's order.
             ``complete`` says whether the ids are every gene the step holds.
     """
-    sync_state = ctx.deps.strategy_session.sync_state
-    wdk_step_id = named_or_root(sync_state, wdk_step_id)
-    live = sorted(set(sync_state.wdk_step_ids.values())) if sync_state else []
-    if wdk_step_id not in live:
-        raise ModelRetry(_no_such_step(wdk_step_id, live))
+    session = ctx.deps.strategy_session
+    wdk_step_id = named_or_root(session.sync_state, wdk_step_id)
+    held_wdk_step(session, wdk_step_id)
     subject = f"step {wdk_step_id}"
     if limit is None:
         read = await read_in_time(

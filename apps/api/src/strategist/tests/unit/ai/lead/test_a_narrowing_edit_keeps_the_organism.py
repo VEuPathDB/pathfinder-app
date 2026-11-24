@@ -85,7 +85,7 @@ async def test_a_tighten_edit_that_moves_the_organism_commits_nothing(
 
     async def _frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = _one_way(held)
-        return FrameResult(disposition="spec_ready", summary="one-way transform")
+        return FrameResult(disposition="spec_ready", notes="one-way transform")
 
     async def _commit(**kwargs: Any) -> CommitResult:
         committed.extend(kwargs["ops"])

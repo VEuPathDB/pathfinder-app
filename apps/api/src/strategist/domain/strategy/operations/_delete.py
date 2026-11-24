@@ -162,7 +162,7 @@ def _promote_primary(
 
 
 def _apply_delete_edge(graph: StrategyGraph, op: DeleteEdgeOp) -> ApplyResult:
-    target = _require(graph, op.target_id, "step")
+    target = _require(graph, op.target_id)
 
     if op.resolution == DeleteEdgeResolution.COLLAPSE:
         return _apply_delete_step(

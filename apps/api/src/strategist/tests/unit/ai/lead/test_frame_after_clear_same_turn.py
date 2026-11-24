@@ -101,7 +101,7 @@ class FrameSpy:
         draft.structure = SpecStructure(
             root=StructureNode(kind="leaf", criterion_id=_FRESH)
         )
-        return FrameResult(disposition="spec_ready", summary="bound the domain")
+        return FrameResult(disposition="spec_ready", notes="bound the domain")
 
 
 def _frame_spy(monkeypatch: pytest.MonkeyPatch) -> FrameSpy:

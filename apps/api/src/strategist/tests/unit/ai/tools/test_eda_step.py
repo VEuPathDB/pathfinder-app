@@ -9,12 +9,13 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.eda import EdaAnalysisDetail
 from veupathdb.errors import ValidationError
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import IntoSlot, VolcanoCut
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -127,8 +128,7 @@ async def test_a_compute_export_uses_the_viz_with_compute_search(
 
     answer = await eda_step.create_eda_step(
         lead_ctx,
-        effect_size_threshold=1.0,
-        significance_threshold=0.05,
+        volcano=VolcanoCut(effect_size_threshold=1.0, significance_threshold=0.05),
     )
 
     step = applied[0][0].step
@@ -172,8 +172,13 @@ async def test_the_export_writes_the_search_its_cut_decides(
 
     await eda_step.create_eda_step(
         lead_ctx,
-        effect_size_threshold=None if significance is None else 1.0,
-        significance_threshold=significance,
+        volcano=(
+            None
+            if significance is None
+            else VolcanoCut(
+                effect_size_threshold=1.0, significance_threshold=significance
+            )
+        ),
     )
 
     assert [op.step.search_name for op in applied[0]] == [search]
@@ -191,7 +196,8 @@ async def test_the_thresholds_are_written_into_the_analysis_not_into_a_parameter
     )
 
     await eda_step.create_eda_step(
-        lead_ctx, effect_size_threshold=2.0, significance_threshold=0.01
+        lead_ctx,
+        volcano=VolcanoCut(effect_size_threshold=2.0, significance_threshold=0.01),
     )
 
     step = applied[0][0].step
@@ -203,8 +209,16 @@ async def test_attaching_into_a_slot_builds_the_slot_attach_point(
 ) -> None:
     applied: list[Any] = []
     _wire(monkeypatch, detail=phenotype_subset(), commit=recording_commit(applied))
+    graph = lead_ctx.deps.runtime.strategy_session.graph
+    assert graph is not None
+    graph.steps.update(
+        flatten_tree(StrategyStepNode(id="s1", search_name="GenesByTaxon"))
+    )
 
-    await eda_step.create_eda_step(lead_ctx, attach_to_step_id="s1", slot="secondary")
+    await eda_step.create_eda_step(
+        lead_ctx,
+        placement=IntoSlot(kind="into_slot", attach_to_step_id="s1", slot="secondary"),
+    )
 
     attach = applied[0][0].attach
     assert attach.mode == "into-slot"
@@ -223,30 +237,6 @@ async def test_a_step_with_no_attach_point_becomes_a_new_root(
     assert applied[0][0].attach.mode == "new-root"
 
 
-async def test_a_compute_export_without_thresholds_raises_a_model_retry(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    """The plugin throws unless the volcano carries both thresholds."""
-    _wire(monkeypatch, detail=_COMPUTED)
-
-    with pytest.raises(ModelRetry) as excinfo:
-        await eda_step.create_eda_step(lead_ctx, effect_size_threshold=1.0)
-
-    assert "significance_threshold" in str(excinfo.value)
-
-
-async def test_a_significance_threshold_alone_raises_a_model_retry(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    """The mirror of the pair guard: neither threshold may travel alone."""
-    _wire(monkeypatch, detail=_COMPUTED)
-
-    with pytest.raises(ModelRetry) as excinfo:
-        await eda_step.create_eda_step(lead_ctx, significance_threshold=0.05)
-
-    assert "effect_size_threshold" in str(excinfo.value)
-
-
 async def test_a_compute_export_with_no_computation_names_the_compute_tool(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
@@ -254,7 +244,8 @@ async def test_a_compute_export_with_no_computation_names_the_compute_tool(
 
     with pytest.raises(ModelRetry) as excinfo:
         await eda_step.create_eda_step(
-            lead_ctx, effect_size_threshold=1.0, significance_threshold=0.05
+            lead_ctx,
+            volcano=VolcanoCut(effect_size_threshold=1.0, significance_threshold=0.05),
         )
 
     assert "run_eda_compute" in str(excinfo.value)
@@ -269,28 +260,6 @@ async def test_a_step_with_no_open_analysis_raises_a_model_retry(
         await eda_step.create_eda_step(lead_ctx)
 
     assert "open_eda_analysis" in str(excinfo.value)
-
-
-async def test_a_slot_without_a_target_step_raises_a_model_retry(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    _wire(monkeypatch, detail=phenotype_subset())
-
-    with pytest.raises(ModelRetry) as excinfo:
-        await eda_step.create_eda_step(lead_ctx, slot="secondary")
-
-    assert "attach_to_step_id" in str(excinfo.value)
-
-
-async def test_a_target_step_without_a_slot_raises_a_model_retry(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    _wire(monkeypatch, detail=phenotype_subset())
-
-    with pytest.raises(ModelRetry) as excinfo:
-        await eda_step.create_eda_step(lead_ctx, attach_to_step_id="s1")
-
-    assert "slot" in str(excinfo.value)
 
 
 async def test_a_session_with_no_graph_fails_loudly(

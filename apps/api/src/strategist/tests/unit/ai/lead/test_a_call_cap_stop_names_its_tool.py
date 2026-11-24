@@ -14,9 +14,8 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead import sub_agent_stream
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.dispatch_context import agent_deps_for
-from strategist.ai.lead.dispatch_messages import stop_phrase
 from strategist.ai.lead.frame_dispatch import frame_work_order
-from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason, stop_phrase
 from strategist.ai.lead.sub_agent_stream import PhaseRun, stream_sub_agent
 from strategist.ai.lead.turn_contract import reconcile
 from strategist.ai.lead.turn_record import turn_record

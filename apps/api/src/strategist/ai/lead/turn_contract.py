@@ -16,7 +16,6 @@ from strategist.ai.lead.contract_messages import (
     eda_criterion_not_built_message,
     off_topic_essay_message,
     unsaved_controls_message,
-    unverified_build_message,
 )
 from strategist.ai.lead.limit_messages import (
     unfollowed_reach_message,
@@ -50,14 +49,6 @@ class LeadResponse(CamelModel):
         ),
     )
     next_state: LeadTurnState = "await_user"
-    unverified_reason: str = Field(
-        default="",
-        description=(
-            "Only when this turn changed the strategy and verify_strategy cannot "
-            "run right now: why, in one sentence the reply also states. Empty "
-            "otherwise."
-        ),
-    )
     asked_questions: Annotated[list[AskedQuestion], list_clipped_to(_ASKED_LIMIT)] = (
         Field(
             default_factory=list,
@@ -72,7 +63,6 @@ class LeadResponse(CamelModel):
 
 
 MismatchKind = Literal[
-    "unverified_build",
     "unbuilt_eda_criterion",
     "open_value_in_prose",
     "unsaved_controls",
@@ -89,26 +79,6 @@ class Mismatch(CamelModel):
 
     kind: MismatchKind
     sentence: str
-
-
-def _unverified_build(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A turn that built and reached no check answers for work nothing saw.
-
-    The facts state the status, never the prose. A typed reply states in
-    ``unverified_reason`` why a check that stopped or was refused could not
-    finish.
-    """
-    if not record.build_unverified or record.ends_on_a_card:
-        return None
-    if record.turn_builds and record.eda_criterion_pending is not None:
-        return None
-    if report.unverified_reason.strip() and record.check_could_not_finish:
-        return None
-    return unverified_build_message(
-        record.build_outcome,
-        record.facts.root_count,
-        could_not_finish=record.check_could_not_finish,
-    )
 
 
 def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -168,7 +138,6 @@ def _unmet_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
 type _Rule = tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]]
 
 _RULES: tuple[_Rule, ...] = (
-    ("unverified_build", _unverified_build),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("open_value_in_prose", _open_value_in_prose),
     ("unsaved_controls", _unsaved_controls),

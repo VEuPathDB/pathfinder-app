@@ -13,6 +13,7 @@ from veupathdb_mcp import ToolErrorPayload
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import VolcanoCut
 from strategist.domain.strategy.build_outcome import StepPushFailure, built_counts
 from strategist.domain.strategy.constraints import (
     Constraint,
@@ -176,9 +177,11 @@ async def test_the_export_records_what_the_case_remembers(
 
     answer = await eda_step.create_eda_step(
         lead_ctx,
-        effect_size_threshold=1.5,
-        significance_threshold=0.01,
-        effect_direction="upOnly",
+        volcano=VolcanoCut(
+            effect_size_threshold=1.5,
+            significance_threshold=0.01,
+            effect_direction="upOnly",
+        ),
     )
 
     export = lead_ctx.deps.state.turn_markers.eda_export
@@ -257,7 +260,8 @@ async def test_the_export_reads_the_assay_of_its_study(
     )
 
     await eda_step.create_eda_step(
-        lead_ctx, effect_size_threshold=1.5, significance_threshold=0.01
+        lead_ctx,
+        volcano=VolcanoCut(effect_size_threshold=1.5, significance_threshold=0.01),
     )
 
     [grounded] = derive_ledger(state, None).constraints.grounded

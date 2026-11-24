@@ -268,7 +268,7 @@ async def test_an_answered_card_pushes_the_minus_with_no_model_in_between(
     state = await _framed_by_the_mock_model()
 
     held = hold_the_genome_reading_to_a_question(
-        frame_ctx(state), FrameResult(summary="framed")
+        frame_ctx(state), FrameResult(notes="framed")
     )
 
     assert isinstance(held, FrameResult)

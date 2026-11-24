@@ -15,6 +15,10 @@ from veupathdb.eda import (
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import (
+    BesideRoot,
+    WaitingCriterion,
+)
 from strategist.ai.tools.standalone._eda_step_write import ExportJoin
 from strategist.domain.eda_thread import ConversationAnalysisView
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
@@ -149,7 +153,9 @@ def _planned(*essential: str) -> StructureNode:
 async def _exported(
     ctx: RunContext[LeadDeps], criterion_id: str
 ) -> eda_step.EdaStepCreated:
-    answer = await eda_step.create_eda_step(ctx, criterion_id=criterion_id)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=criterion_id)
+    )
     return returned(answer, eda_step.EdaStepCreated)
 
 
@@ -259,7 +265,9 @@ async def test_the_first_input_of_a_minus_is_the_first_input_of_its_combine(
     plan = spec_joined(CombineOp.MINUS, spec_leaf(_WAITING), spec_leaf("step_k1"))
     ctx = _thread(monkeypatch, leaf("step_k1"), _spec(plan, _WAITING))
 
-    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)
@@ -287,7 +295,9 @@ async def test_an_export_stated_first_beside_a_group_takes_the_secondary_side(
     )
     ctx = _thread(monkeypatch, held, _spec(plan, _WAITING))
 
-    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)
@@ -314,7 +324,9 @@ async def test_a_join_below_the_root_keeps_the_root_and_names_the_joined_step(
     )
     ctx = _thread(monkeypatch, held, _spec(plan, _WAITING))
 
-    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)
@@ -337,7 +349,9 @@ async def test_combine_with_root_joins_the_one_root(
     held = combine("step_c1", leaf("step_k1"), leaf("step_k2"))
     ctx = _thread(monkeypatch, held, _spec(spec_leaf("step_k1")))
 
-    answer = await eda_step.create_eda_step(ctx, combine_with_root=CombineOp.MINUS)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=BesideRoot(kind="beside_root", operator=CombineOp.MINUS)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)
@@ -362,7 +376,9 @@ async def test_combine_with_root_needs_one_root(
     graph.recompute_roots()
 
     with pytest.raises(ModelRetry) as raised:
-        await eda_step.create_eda_step(ctx, combine_with_root=CombineOp.INTERSECT)
+        await eda_step.create_eda_step(
+            ctx, placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT)
+        )
 
     assert "this strategy has 2: ['step_k1', 'step_loose']" in str(raised.value)
     assert sorted(graph.steps) == ["step_k1", "step_loose"]
@@ -404,7 +420,9 @@ async def test_a_place_the_strategy_does_not_hold_is_refused_and_nothing_written
     ctx = _thread(monkeypatch, held, spec)
 
     with pytest.raises(ModelRetry) as raised:
-        await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+        await eda_step.create_eda_step(
+            ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+        )
 
     assert str(raised.value) == refusal
     assert shape(_graph(ctx)) == "((step_k1 INTERSECT step_k2) UNION step_k3)"

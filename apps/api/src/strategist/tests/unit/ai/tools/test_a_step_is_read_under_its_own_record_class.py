@@ -122,7 +122,10 @@ async def test_a_group_step_in_a_strategy_recorded_as_genes_reads_as_groups() ->
         ),
         (
             227284999,
-            "Step 227284999 is not a step of this strategy, so it cannot be read.",
+            (
+                "Step 227284999 is not a step of this strategy. It holds "
+                "227284870, 227284890, 227284900."
+            ),
         ),
     ],
 )

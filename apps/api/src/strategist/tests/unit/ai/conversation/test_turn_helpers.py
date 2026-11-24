@@ -9,6 +9,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 from pydantic_ai.ui.vercel_ai.request_types import DataUIPart, UIMessage
 
 from strategist.ai.conversation._turn_helpers import (
@@ -123,4 +124,17 @@ def test_resolve_treats_whitespace_as_empty() -> None:
             chat_site_id="   ",
             body_site_id="\t",
             conversation_id=uuid4(),
+        )
+
+
+def test_a_card_answer_part_that_does_not_parse_refuses_the_request() -> None:
+    part = DataUIPart(
+        type="data-user-question-answers",
+        data={"toolCallId": "call_42", "answers": "2-fold"},
+    )
+
+    with pytest.raises(ValidationError, match="answers"):
+        ChatRequestBody(
+            conversation_id=uuid4(),
+            messages=[UIMessage(id="m1", role="assistant", parts=[part])],
         )

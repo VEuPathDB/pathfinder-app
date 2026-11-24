@@ -8767,6 +8767,17 @@
             "title": "Strategyrevision",
             "default": ""
           },
+          "strategyUnreadable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategyunreadable"
+          },
           "mode": {
             "anyOf": [
               {
@@ -23033,6 +23044,7 @@
           "WDK_IDENTITY_MISMATCH",
           "STRATEGY_NOT_FOUND",
           "STRATEGY_AST_CORRUPT",
+          "STRATEGY_NOT_SAVED",
           "INVALID_STRATEGY",
           "STEP_NOT_FOUND",
           "INCOMPATIBLE_STEPS",
@@ -23893,6 +23905,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/OrganismChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notRead": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Unread"
               },
               {
                 "type": "null"
@@ -29043,6 +29065,9 @@
                 "type": "number"
               },
               {
+                "$ref": "#/components/schemas/Unread"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -29052,6 +29077,9 @@
             "anyOf": [
               {
                 "type": "number"
+              },
+              {
+                "$ref": "#/components/schemas/Unread"
               },
               {
                 "type": "null"
@@ -29065,6 +29093,9 @@
                 "type": "number"
               },
               {
+                "$ref": "#/components/schemas/Unread"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -29076,6 +29107,9 @@
                 "type": "number"
               },
               {
+                "$ref": "#/components/schemas/Unread"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -29085,6 +29119,9 @@
             "anyOf": [
               {
                 "type": "number"
+              },
+              {
+                "$ref": "#/components/schemas/Unread"
               },
               {
                 "type": "null"
@@ -29104,11 +29141,18 @@
             "title": "Error"
           },
           "controlHits": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Controlhits",
-            "type": "array"
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "$ref": "#/components/schemas/Unread"
+              }
+            ],
+            "title": "Controlhits"
           }
         },
         "required": [
@@ -30460,7 +30504,8 @@
           "result_count",
           "expression_fit",
           "tally",
-          "step_columns"
+          "step_columns",
+          "records_read"
         ],
         "type": "string"
       },
@@ -31851,6 +31896,19 @@
           "sentence"
         ],
         "title": "UnmeasuredValueCaveat",
+        "type": "object"
+      },
+      "Unread": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "Unread",
         "type": "object"
       },
       "UnrevisableSubsetCaveat": {

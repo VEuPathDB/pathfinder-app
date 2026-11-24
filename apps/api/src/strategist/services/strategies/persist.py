@@ -17,6 +17,8 @@ from strategist.persistence.repositories import ConversationRepository
 from strategist.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
+from strategist.platform.errors import AppError, ErrorCode
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import ensure_sync_state
@@ -84,6 +86,16 @@ async def persist_strategy_ast_to_conversation(
             conversation_id=str(deps.conversation_id),
             error=str(exc),
         )
+        raise _not_saved(exc) from exc
+
+
+def _not_saved(exc: Exception) -> AppError:
+    return AppError(
+        code=ErrorCode.STRATEGY_NOT_SAVED,
+        title="The strategy was not saved",
+        status=503,
+        detail=f"The strategy was not saved: {site_words(exc)}",
+    )
 
 
 def _minted(sync_result: SyncResult | None) -> bool:
@@ -117,6 +129,7 @@ async def _clear_persisted_strategy(deps: StrategyMutationContext) -> None:
             conversation_id=str(deps.conversation_id),
             error=str(exc),
         )
+        raise _not_saved(exc) from exc
 
 
 def _merge_agent_ast_into_current(

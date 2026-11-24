@@ -19,8 +19,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import VEuPathDBError
 
 from strategist.domain.eda_thread import ConversationAnalysisView
+from strategist.domain.unread import Unread
 from strategist.persistence.repositories.conversation_analysis import read_analysis_row
 from strategist.services.eda.binding import read_analysis
+from strategist.services.site_errors import site_words
 
 __all__ = [
     "AnalysisDrift",
@@ -53,6 +55,7 @@ class AnalysisDrift(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     dataset_id: str
+    not_read: Unread | None = None
 
 
 class ThreadActivity(BaseModel):
@@ -62,6 +65,7 @@ class ThreadActivity(BaseModel):
 
     finished_tasks: list[FinishedTask] = Field(default_factory=list)
     analysis: AnalysisDrift | None = None
+    site_not_read: Unread | None = None
 
 
 class _ShownAnalysis(BaseModel):
@@ -137,12 +141,18 @@ async def _analysis_drift(
     if bound is None:
         return None
     shown = await _shown_analysis(session, conversation_id)
-    if not await _moved_past(bound, shown):
-        return None
-    return AnalysisDrift(dataset_id=bound.dataset_id)
+    match await _moved_past(bound, shown):
+        case Unread() as unread:
+            return AnalysisDrift(dataset_id=bound.dataset_id, not_read=unread)
+        case True:
+            return AnalysisDrift(dataset_id=bound.dataset_id)
+        case _:
+            return None
 
 
-async def _moved_past(bound: ConversationAnalysisView, shown: _ShownAnalysis) -> bool:
+async def _moved_past(
+    bound: ConversationAnalysisView, shown: _ShownAnalysis
+) -> bool | Unread:
     """A card of another document, a mutation it has not shown, or a new stamp.
 
     The document is read only when the binding alone cannot tell.
@@ -153,12 +163,15 @@ async def _moved_past(bound: ConversationAnalysisView, shown: _ShownAnalysis) ->
         return True
     if shown.modification_time is None:
         return False
-    stamped = await _modification_time(bound)
-    return stamped is not None and stamped != shown.modification_time
+    match await _modification_time(bound):
+        case Unread() as unread:
+            return unread
+        case stamped:
+            return stamped is not None and stamped != shown.modification_time
 
 
-async def _modification_time(bound: ConversationAnalysisView) -> str | None:
-    """The stamp the service holds on the document, or None when it cannot answer."""
+async def _modification_time(bound: ConversationAnalysisView) -> str | Unread | None:
+    """The stamp the service holds on the document, or why it could not be read."""
     try:
         document = await read_analysis(bound.site_id, analysis_id=bound.analysis_id)
     except (VEuPathDBError, httpx.HTTPError) as exc:
@@ -167,7 +180,7 @@ async def _modification_time(bound: ConversationAnalysisView) -> str | None:
             analysis_id=bound.analysis_id,
             error=str(exc),
         )
-        return None
+        return Unread(reason=site_words(exc))
     return document.modification_time or None
 
 

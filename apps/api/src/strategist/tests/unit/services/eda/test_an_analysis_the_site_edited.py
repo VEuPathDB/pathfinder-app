@@ -22,7 +22,7 @@ from veupathdb.eda import (
 )
 
 from strategist.ai.tools.standalone._eda_step_guard import (
-    refuse_a_direction_without_a_volcano,
+    refuse_a_direction_without_a_comparison,
 )
 from strategist.domain.eda_parts import EdaComparison, EdaComputeSummary
 from strategist.domain.eda_thread import ConversationAnalysisView
@@ -430,17 +430,13 @@ async def test_a_compute_write_appends_the_comparison_beside_a_pass(
 
 def test_a_direction_needs_a_comparison_and_a_pass_is_none() -> None:
     with pytest.raises(ModelRetry) as refusal:
-        refuse_a_direction_without_a_volcano(
-            _pass_only(), effect_direction="upOnly", has_thresholds=True
-        )
+        refuse_a_direction_without_a_comparison(_pass_only(), "upOnly")
     assert "the open analysis holds 0 comparisons" in str(refusal.value)
 
 
 def test_a_direction_beside_a_pass_and_a_comparison_passes() -> None:
-    refuse_a_direction_without_a_volcano(
-        EdaAnalysisDetail.model_validate(_RECORDED),
-        effect_direction="upOnly",
-        has_thresholds=True,
+    refuse_a_direction_without_a_comparison(
+        EdaAnalysisDetail.model_validate(_RECORDED), "upOnly"
     )
 
 

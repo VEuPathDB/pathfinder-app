@@ -66,7 +66,7 @@ async def test_a_spec_that_only_waits_for_analyses_routes_to_the_eda_tools(
     with pytest.raises(ModelRetry) as excinfo:
         await thread.build()
 
-    assert f'criterion_id="{_WAITING}"' in str(excinfo.value)
+    assert f'"criterion_id": "{_WAITING}"' in str(excinfo.value)
     assert thread.graph.steps == {}
 
 

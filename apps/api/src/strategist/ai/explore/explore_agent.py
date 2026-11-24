@@ -120,6 +120,17 @@ def _explore_may_call(ctx: RunContext[LeadDeps], tool_def: ToolDefinition) -> bo
     return tool_def.name in _SHARED_TOOLS
 
 
+def pinned_unreadable_strategy(ctx: RunContext[LeadDeps]) -> str | None:
+    unreadable = ctx.deps.runtime.strategy_session.unreadable
+    if unreadable is None:
+        return None
+    return (
+        "The stored strategy of this conversation could not be read, so it is "
+        f"shown as unreadable and no step of it can be read or built on: "
+        f"{unreadable.reason}"
+    )
+
+
 def pinned_off_topic_redirect(ctx: RunContext[LeadDeps]) -> str | None:
     return EXPLORE_OFF_TOPIC_REDIRECT if turn_is_off_topic(ctx.deps) else None
 
@@ -185,6 +196,7 @@ def build_explore_agent() -> ExploreAgent:
         pinned_eda_sheet,
         pinned_research_reads,
         pinned_gene_record_rule,
+        pinned_unreadable_strategy,
         pinned_off_topic_redirect,
     ):
         agent.instructions(fn)

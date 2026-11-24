@@ -42,8 +42,15 @@ the strategy is synced again once (`gene_set_refresh`).
 the message names wins; otherwise the newest snapshot written no later than
 the message. The two rules agree in practice, because a user message row
 predates the turn's strategy writes and an assistant message row postdates
-them. `finalize_turn` names the turn's newest snapshot with the assistant
-message it just wrote, so the exact rule is available where it matters most.
+them. Every snapshot a turn writes carries the turn's assistant message id in
+the same insert (`writes_named_by` around the turn's graph run), so no snapshot
+of a turn exists unnamed; a write outside a turn, from the canvas, stays
+unnamed. An undo returns to the last snapshot before the change that reached the
+current tree (`before_the_last_change`): the change is the turn, or the write
+outside a turn, that wrote the oldest snapshot of the newest run holding that
+tree, so a turn's undo target is the last snapshot of the turn before it, never
+one from its middle, and a save that repeats the tree moves nothing. The Lead's
+last-change fact reads the same function.
 
 **Fork materializes; it no longer duplicates.** A fork resolves the anchor's
 snapshot and pushes that tree to WDK as a strategy of its own through the

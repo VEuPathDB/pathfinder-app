@@ -1,0 +1,72 @@
+{
+  "provenance": "cedar ~/proto/d-before/runs/d3: the GenesByOrthologPattern criterion of state/frame.json, the step create wdk/16-POST-steps.json and the step read wdk/24-GET-227357790.json; the search is veupathdb's recorded search_genes_by_ortholog_pattern",
+  "boundParameters": {
+    "profile_pattern": {
+      "type": "string",
+      "value": "%hsap:N%padl:Y%pbbi:Y%pber:Y%pbil:Y%pblg:Y%pccb:Y%pcha:Y%pcoa:Y%pcym:Y%pcyn:Y%pfac:Y%pfad:Y%pfag:Y%pfai:Y%pfal:Y%pfga:Y%pfgb:Y%pfgn:Y%pfhb:Y%pfke:Y%pfkh:Y%pfkt:Y%pfml:Y%pfnc:Y%pfnf:Y%pfng:Y%pfra:Y%pfsd:Y%pfsg:Y%pfsn:Y%pftg:Y%pgab:Y%pgal:Y%pgas:Y%pinu:Y%pkah:Y%pkno:Y%pknp:Y%pmal:Y%pova:Y%powp:Y%ppra:Y%preg:Y%prei:Y%prel:Y%pvbd:Y%pvce:Y%pvcr:Y%pvin:Y%pvip:Y%pviv:Y%pvld:Y%pvlk:Y%pvpc:Y%pvpv:Y%pvpw:Y%pvvc:Y%pyoe:Y%pyoy:Y%pyxn:Y%pyyx:Y%"
+    },
+    "included_species": {
+      "type": "string",
+      "value": "padl, pbbi, pber, pbil, pblg, pccb, pcha, pcoa, pcym, pcyn, pfac, pfad, pfag, pfai, pfal, pfga, pfgb, pfgn, pfhb, pfke, pfkh, pfkt, pfml, pfnc, pfnf, pfng, pfra, pfsd, pfsg, pfsn, pftg, pgab, pgal, pgas, pinu, pkah, pkno, pknp, pmal, pova, powp, ppra, preg, prei, prel, pvbd, pvce, pvcr, pvin, pvip, pviv, pvld, pvlk, pvpc, pvpv, pvpw, pvvc, pyoe, pyoy, pyxn, pyyx"
+    },
+    "excluded_species": {
+      "type": "string",
+      "value": "hsap"
+    },
+    "organism": {
+      "type": "multi-pick-vocabulary",
+      "values": [
+        "Plasmodium"
+      ]
+    }
+  },
+  "pushed": {
+    "searchName": "GenesByOrthologPattern",
+    "searchConfig": {
+      "parameters": {
+        "profile_pattern": "%hsap:N%padl:Y%pbbi:Y%pber:Y%pbil:Y%pblg:Y%pccb:Y%pcha:Y%pcoa:Y%pcym:Y%pcyn:Y%pfac:Y%pfad:Y%pfag:Y%pfai:Y%pfal:Y%pfga:Y%pfgb:Y%pfgn:Y%pfhb:Y%pfke:Y%pfkh:Y%pfkt:Y%pfml:Y%pfnc:Y%pfnf:Y%pfng:Y%pfra:Y%pfsd:Y%pfsg:Y%pfsn:Y%pftg:Y%pgab:Y%pgal:Y%pgas:Y%pinu:Y%pkah:Y%pkno:Y%pknp:Y%pmal:Y%pova:Y%powp:Y%ppra:Y%preg:Y%prei:Y%prel:Y%pvbd:Y%pvce:Y%pvcr:Y%pvin:Y%pvip:Y%pviv:Y%pvld:Y%pvlk:Y%pvpc:Y%pvpv:Y%pvpw:Y%pvvc:Y%pyoe:Y%pyoy:Y%pyxn:Y%pyyx:Y%",
+        "included_species": "padl, pbbi, pber, pbil, pblg, pccb, pcha, pcoa, pcym, pcyn, pfac, pfad, pfag, pfai, pfal, pfga, pfgb, pfgn, pfhb, pfke, pfkh, pfkt, pfml, pfnc, pfnf, pfng, pfra, pfsd, pfsg, pfsn, pftg, pgab, pgal, pgas, pinu, pkah, pkno, pknp, pmal, pova, powp, ppra, preg, prei, prel, pvbd, pvce, pvcr, pvin, pvip, pviv, pvld, pvlk, pvpc, pvpv, pvpw, pvvc, pyoe, pyoy, pyxn, pyyx",
+        "excluded_species": "hsap",
+        "organism": "[\"Plasmodium adleri G01\", \"Plasmodium berghei ANKA\", \"Plasmodium billcollinsi G01\", \"Plasmodium blacklocki G01\", \"Plasmodium brasilianum strain Bolivian I\", \"Plasmodium chabaudi chabaudi\", \"Plasmodium chabaudi chabaudi CB\", \"Plasmodium coatneyi Hackeri\", \"Plasmodium cynomolgi strain B\", \"Plasmodium cynomolgi strain M\", \"Plasmodium falciparum 3D7\", \"Plasmodium falciparum 7G8\", \"Plasmodium falciparum 7G8 2019\", \"Plasmodium falciparum CD01\", \"Plasmodium falciparum Dd2\", \"Plasmodium falciparum GA01\", \"Plasmodium falciparum GB4\", \"Plasmodium falciparum GN01\", \"Plasmodium falciparum HB3\", \"Plasmodium falciparum IT\", \"Plasmodium falciparum KE01\", \"Plasmodium falciparum KH01\", \"Plasmodium falciparum KH02\", \"Plasmodium falciparum ML01\", \"Plasmodium falciparum NF135.C10\", \"Plasmodium falciparum NF166\", \"Plasmodium falciparum NF54\", \"Plasmodium falciparum SD01\", \"Plasmodium falciparum SN01\", \"Plasmodium falciparum TG01\", \"Plasmodium fragile strain nilgiri\", \"Plasmodium gaboni strain G01\", \"Plasmodium gaboni strain SY75\", \"Plasmodium gallinaceum 8A\", \"Plasmodium inui San Antonio 1\", \"Plasmodium knowlesi strain A1H1\", \"Plasmodium knowlesi strain H\", \"Plasmodium knowlesi strain Malayan Strain Pk1 A\", \"Plasmodium malariae UG01\", \"Plasmodium ovale curtisi GH01\", \"Plasmodium ovale wallikeri PowCR01\", \"Plasmodium praefalciparum strain G01\", \"Plasmodium reichenowi CDC\", \"Plasmodium reichenowi G01\", \"Plasmodium relictum SGS1-like\", \"Plasmodium vinckei brucechwatti DA\", \"Plasmodium vinckei Cameroon EL\", \"Plasmodium vinckei lentum DE\", \"Plasmodium vinckei petteri CR 2020\", \"Plasmodium vinckei petteri strain CR\", \"Plasmodium vinckei vinckei CY\", \"Plasmodium vinckei vinckei strain vinckei\", \"Plasmodium vivax P01\", \"Plasmodium vivax PAM\", \"Plasmodium vivax PvW1\", \"Plasmodium vivax Sal-1\", \"Plasmodium vivax-like Pvl01\", \"Plasmodium yoelii yoelii 17X\", \"Plasmodium yoelii yoelii 17XNL\", \"Plasmodium yoelii yoelii 17XNL 2023\", \"Plasmodium yoelii yoelii YM\"]"
+      }
+    },
+    "customName": "Orthology Phylogenetic Profile: Plasmodium adleri G01, Plasmodium brasilianum strain..."
+  },
+  "siteStep": {
+    "id": 227357790,
+    "searchName": "GenesByOrthologPattern",
+    "recordClassName": "transcript",
+    "estimatedSize": 60326,
+    "searchConfig": {
+      "wdkWeight": 0,
+      "columnFilters": {},
+      "filters": [
+        {
+          "name": "matched_transcript_filter_array",
+          "disabled": false,
+          "value": {
+            "values": [
+              "Y"
+            ]
+          }
+        }
+      ],
+      "parameters": {
+        "profile_pattern": "%hsap:N%padl:Y%pbbi:Y%pber:Y%pbil:Y%pblg:Y%pccb:Y%pcha:Y%pcoa:Y%pcym:Y%pcyn:Y%pfac:Y%pfad:Y%pfag:Y%pfai:Y%pfal:Y%pfga:Y%pfgb:Y%pfgn:Y%pfhb:Y%pfke:Y%pfkh:Y%pfkt:Y%pfml:Y%pfnc:Y%pfnf:Y%pfng:Y%pfra:Y%pfsd:Y%pfsg:Y%pfsn:Y%pftg:Y%pgab:Y%pgal:Y%pgas:Y%pinu:Y%pkah:Y%pkno:Y%pknp:Y%pmal:Y%pova:Y%powp:Y%ppra:Y%preg:Y%prei:Y%prel:Y%pvbd:Y%pvce:Y%pvcr:Y%pvin:Y%pvip:Y%pviv:Y%pvld:Y%pvlk:Y%pvpc:Y%pvpv:Y%pvpw:Y%pvvc:Y%pyoe:Y%pyoy:Y%pyxn:Y%pyyx:Y%",
+        "excluded_species": "hsap",
+        "included_species": "padl, pbbi, pber, pbil, pblg, pccb, pcha, pcoa, pcym, pcyn, pfac, pfad, pfag, pfai, pfal, pfga, pfgb, pfgn, pfhb, pfke, pfkh, pfkt, pfml, pfnc, pfnf, pfng, pfra, pfsd, pfsg, pfsn, pftg, pgab, pgal, pgas, pinu, pkah, pkno, pknp, pmal, pova, powp, ppra, preg, prei, prel, pvbd, pvce, pvcr, pvin, pvip, pviv, pvld, pvlk, pvpc, pvpv, pvpw, pvvc, pyoe, pyoy, pyxn, pyyx",
+        "phyletic_term_map": "[]",
+        "phyletic_indent_map": "[]",
+        "organism": "[\"Plasmodium adleri G01\",\"Plasmodium berghei ANKA\",\"Plasmodium billcollinsi G01\",\"Plasmodium blacklocki G01\",\"Plasmodium brasilianum strain Bolivian I\",\"Plasmodium chabaudi chabaudi\",\"Plasmodium chabaudi chabaudi CB\",\"Plasmodium coatneyi Hackeri\",\"Plasmodium cynomolgi strain B\",\"Plasmodium cynomolgi strain M\",\"Plasmodium falciparum 3D7\",\"Plasmodium falciparum 7G8\",\"Plasmodium falciparum 7G8 2019\",\"Plasmodium falciparum CD01\",\"Plasmodium falciparum Dd2\",\"Plasmodium falciparum GA01\",\"Plasmodium falciparum GB4\",\"Plasmodium falciparum GN01\",\"Plasmodium falciparum HB3\",\"Plasmodium falciparum IT\",\"Plasmodium falciparum KE01\",\"Plasmodium falciparum KH01\",\"Plasmodium falciparum KH02\",\"Plasmodium falciparum ML01\",\"Plasmodium falciparum NF135.C10\",\"Plasmodium falciparum NF166\",\"Plasmodium falciparum NF54\",\"Plasmodium falciparum SD01\",\"Plasmodium falciparum SN01\",\"Plasmodium falciparum TG01\",\"Plasmodium fragile strain nilgiri\",\"Plasmodium gaboni strain G01\",\"Plasmodium gaboni strain SY75\",\"Plasmodium gallinaceum 8A\",\"Plasmodium inui San Antonio 1\",\"Plasmodium knowlesi strain A1H1\",\"Plasmodium knowlesi strain H\",\"Plasmodium knowlesi strain Malayan Strain Pk1 A\",\"Plasmodium malariae UG01\",\"Plasmodium ovale curtisi GH01\",\"Plasmodium ovale wallikeri PowCR01\",\"Plasmodium praefalciparum strain G01\",\"Plasmodium reichenowi CDC\",\"Plasmodium reichenowi G01\",\"Plasmodium relictum SGS1-like\",\"Plasmodium vinckei brucechwatti DA\",\"Plasmodium vinckei Cameroon EL\",\"Plasmodium vinckei lentum DE\",\"Plasmodium vinckei petteri CR 2020\",\"Plasmodium vinckei petteri strain CR\",\"Plasmodium vinckei vinckei CY\",\"Plasmodium vinckei vinckei strain vinckei\",\"Plasmodium vivax P01\",\"Plasmodium vivax PAM\",\"Plasmodium vivax PvW1\",\"Plasmodium vivax Sal-1\",\"Plasmodium vivax-like Pvl01\",\"Plasmodium yoelii yoelii 17X\",\"Plasmodium yoelii yoelii 17XNL\",\"Plasmodium yoelii yoelii 17XNL 2023\",\"Plasmodium yoelii yoelii YM\"]"
+      }
+    },
+    "validation": {
+      "level": "RUNNABLE",
+      "isValid": true
+    },
+    "displayName": "Orthology Phylogenetic Profile",
+    "customName": "Orthology Phylogenetic Profile: Plasmodium adleri G01, Plasmodium brasilianum strain...",
+    "expanded": false,
+    "strategyId": 214672350
+  }
+}

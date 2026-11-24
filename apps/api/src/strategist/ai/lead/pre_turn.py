@@ -71,6 +71,7 @@ from strategist.services.strategies.revision_ops import last_change
 from strategist.services.strategies.search_sheets import radio_pairs_of
 from strategist.services.strategies.sheet_params import (
     published_parameters_of_searches,
+    read_or_refuse,
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
@@ -103,7 +104,10 @@ async def strategist_pre_turn(
     attach_change_at_arrival(refreshed, context, change)
     briefed = attach_turn_briefing(refreshed, context, activity, answered=answered)
     return await attach_open_eda_analysis(
-        briefed, context, changed_after_the_card=activity.analysis is not None
+        briefed,
+        context,
+        changed_after_the_card=activity.analysis is not None
+        and activity.analysis.not_read is None,
     )
 
 
@@ -134,7 +138,7 @@ def attach_turn_briefing(
     """
     spec = state.domain.operational_spec
     state.domain.turn_briefing = compose_turn_briefing(
-        activity,
+        activity.model_copy(update={"site_not_read": state.domain.site_not_read}),
         requirements=state.domain.requirements,
         answered=answered,
         live=live_tree(context.strategy_session.get_graph(None)),
@@ -181,11 +185,13 @@ async def refresh_live_strategy_state(
     working_state = state.model_copy(deep=True)
     # The site's own edits reach the stored graph first, so the replay below
     # plays them onto the spec like any change written outside the thread.
-    live = await read_the_site_into_the_thread(
+    site = await read_the_site_into_the_thread(
         session=context.strategy_session,
         conversation_id=state.conversation_id,
         db_session_factory=context.db_session_factory,
     )
+    live = site.live
+    working_state.domain.site_not_read = site.not_read
     if live is None:
         await forget_the_verdict_of_a_dropped_strategy(
             working_state.domain, context.strategy_session
@@ -425,10 +431,11 @@ async def stated_spec_of(
         site_id=site_id,
         search_names=search_names,
     )
-    under_parents = await sheets_under_their_parents(
-        site_id=site_id,
-        steps=steps_stated_by(hydrated, ast),
-        sheets=sheets,
+    under_parents = read_or_refuse(
+        site_id,
+        await sheets_under_their_parents(
+            site_id=site_id, steps=steps_stated_by(hydrated, ast), sheets=sheets
+        ),
     )
     marks = await organism_parameters(site_id, search_names)
     pairs = await radio_pairs_of(site_id, search_names)

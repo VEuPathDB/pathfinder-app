@@ -9,7 +9,7 @@ from assistant_core.graph.tool_summary import summary_chunks
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
@@ -19,7 +19,7 @@ from veupathdb_mcp.controls import ControlTargetData, ControlTestResult
 from strategist.ai.graph.turn_records import ControlTestRun
 from strategist.ai.lead.card_reply import CardReply
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone._step_read import graph_step_id, read_as
+from strategist.ai.tools.standalone._step_read import held_wdk_step, read_as
 from strategist.ai.tools.standalone.saved_control_sets import (
     unattached_set,
 )
@@ -28,6 +28,7 @@ from strategist.domain.evidence import (
     ControlTestEvidence,
     NamedControlSet,
 )
+from strategist.domain.unread import Unread
 from strategist.platform.durable_worker import durable_agent_tool
 from strategist.services.evidence.optimization import tunable_parameters_of_search
 from strategist.services.experiment.metrics import metrics_from_control_result
@@ -39,36 +40,9 @@ from strategist.services.parameter_optimization.config import (
     SWEEP_BUDGET,
     SWEEP_BUDGET_MAX,
     SWEEP_BUDGET_MIN,
+    SweepResult,
     SweepVariantResult,
 )
-
-
-class _SweepBest(CamelModel):
-    """The winning trial's score, as the sweep reports it."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    score: float = 0.0
-
-    @field_validator("score", mode="before")
-    @classmethod
-    def _absent_is_zero(cls, value: object) -> object:
-        return 0.0 if value is None else value
-
-
-class _SweepOutcome(CamelModel):
-    """What a finished sweep says about the settings it tried."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    variants: list[dict[str, Any]] = Field(default_factory=list)
-    best: _SweepBest = Field(default_factory=_SweepBest)
-    objective: str = "score"
-
-    @field_validator("best", mode="before")
-    @classmethod
-    def _no_winner_scores_zero(cls, value: object) -> object:
-        return {} if value is None else value
 
 
 class _SweepTrials(CamelModel):
@@ -115,13 +89,6 @@ def sweep_control_runs(
     return runs
 
 
-class _SweepTable(_SweepTrials):
-    """A finished sweep as its table reads it: the search and the objective."""
-
-    search_name: str
-    objective: str
-
-
 def _varied(variants: list[SweepVariantResult]) -> list[str]:
     """The parameters whose value differs between the settings."""
     names = sorted({name for variant in variants for name in variant.params})
@@ -164,12 +131,11 @@ def _scored(variant: SweepVariantResult, label: str, search: str) -> ScoredVaria
     )
 
 
-def sweep_comparison(result: dict[str, Any]) -> ScoredComparison:
+def sweep_comparison(sweep: SweepResult) -> ScoredComparison:
     """The settings a sweep scored, best first, each named by what it varied."""
-    table = _SweepTable.model_validate(result)
-    varied = _varied(table.variants)
+    varied = _varied(sweep.variants)
     ranked = sorted(
-        table.variants,
+        sweep.variants,
         key=lambda v: (v.status != "success", -(v.score or 0.0)),
     )
     labels = {
@@ -179,9 +145,9 @@ def sweep_comparison(result: dict[str, Any]) -> ScoredComparison:
     }
     winner = next((v for v in ranked if v.status == "success"), None)
     return ScoredComparison(
-        variants=[_scored(v, labels[v.variant_id], table.search_name) for v in ranked],
+        variants=[_scored(v, labels[v.variant_id], sweep.search_name) for v in ranked],
         winner_label=None if winner is None else labels[winner.variant_id],
-        objective=table.objective,
+        objective=sweep.ranked_by,
     )
 
 
@@ -194,19 +160,23 @@ def _sweep_chunks_from_result(
     outcome = DurableOutcome.model_validate(resumed)
     if not outcome.succeeded:
         return []
-    sweep = _SweepOutcome.model_validate(outcome.result)
+    sweep = SweepResult.model_validate(outcome.result)
     table = DataChunk(
         type="data-scored-comparison",
-        data=sweep_comparison(outcome.result).model_dump(by_alias=True, mode="json"),
+        data=sweep_comparison(sweep).model_dump(by_alias=True, mode="json"),
     )
-    return [
-        table,
-        *summary_chunks(
-            tool_call_id,
-            f"{len(sweep.variants)} settings tried, "
-            f"best {sweep.objective} {sweep.best.score:.3f}",
-        ),
-    ]
+    return [table, *summary_chunks(tool_call_id, sweep_summary(sweep))]
+
+
+def sweep_summary(sweep: SweepResult) -> str:
+    tried = f"{len(sweep.variants)} settings tried"
+    best = sweep.best
+    if best is None or best.score is None:
+        return f"{tried}, none scored"
+    said = f"{tried}, best {sweep.ranked_by} {best.score:.3f}"
+    if sweep.false_positives_measured:
+        return said
+    return f"{said}; no negative controls: false positives not measured"
 
 
 NO_SET_ATTACHED: Final = (
@@ -232,27 +202,32 @@ async def sweep_can_run(
 ) -> None:
     """Refuse a sweep call the worker would refuse, before its card is drawn."""
     del reply, budget
-    held = ctx.deps.runtime.strategy_session.wdk_step_ids()
-    if held and wdk_step_id not in held:
-        msg = (
-            f"Step {wdk_step_id} is no step of this strategy on the site. Its steps "
-            f"are {', '.join(str(i) for i in held)}. Nothing was started and no card "
-            "was shown."
-        )
-        raise ModelRetry(msg)
+    session = ctx.deps.runtime.strategy_session
+    try:
+        held_wdk_step(session, wdk_step_id)
+    except ModelRetry as exc:
+        msg = f"{exc} Nothing was started and no card was shown."
+        raise ModelRetry(msg) from exc
     refused = unattached_set(control_set_id, ctx.deps.state.domain.control_sets)
     if refused is not None:
         msg = f"{refused} {NO_SET_ATTACHED} Nothing was started and no card was shown."
         raise ModelRetry(msg)
-    session = ctx.deps.runtime.strategy_session
-    if not parameters or graph_step_id(session, wdk_step_id) is None:
+    if not parameters:
         return
     record_class, search_name = await read_as(session, wdk_step_id)
     if search_name is None:
         return
-    tunable = await tunable_parameters_of_search(
+    match await tunable_parameters_of_search(
         ctx.deps.runtime.site_id, record_class, search_name
-    )
+    ):
+        case Unread(reason=reason):
+            msg = (
+                f"The parameters {search_name} can vary were not read ({reason}). "
+                "Nothing was started and no card was shown."
+            )
+            raise ModelRetry(msg)
+        case read:
+            tunable = read
     unknown = [name for name in parameters if name not in tunable]
     if tunable and unknown:
         msg = (

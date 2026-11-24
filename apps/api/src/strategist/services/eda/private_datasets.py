@@ -25,6 +25,7 @@ from veupathdb.wdk import (
     get_vdi_client,
 )
 
+from strategist.domain.unread import Unread
 from strategist.services.eda.catalog import (
     OWN_SOURCE_TYPE,
     StudyCard,
@@ -32,6 +33,7 @@ from strategist.services.eda.catalog import (
     refresh_permissions,
     resolve_dataset,
 )
+from strategist.services.site_errors import site_words
 
 logger = get_logger(__name__)
 
@@ -163,16 +165,14 @@ async def _readable(
 
 async def own_dataset_cards(
     site_id: str, query: str, limit: int = 5
-) -> list[StudyCard]:
-    """The researcher's installed uploads as study cards, the names matching the query first.
-
-    VDI answering with an error leaves the site's own ranking to stand alone.
-    """
+) -> list[StudyCard] | Unread:
+    """The researcher's installed uploads as study cards, the names matching the
+    query first, or why VDI did not list them."""
     try:
         found = await own_datasets(site_id)
     except VdiServiceError as exc:
         logger.warning("The researcher's datasets were not read", error=str(exc))
-        return []
+        return Unread(reason=site_words(exc))
     needle = query.strip().lower()
     cards = [
         StudyCard(

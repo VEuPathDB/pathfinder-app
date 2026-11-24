@@ -21,7 +21,6 @@ from strategist.domain.strategy.genome_group_steps import (
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    ValueSource,
 )
 from strategist.domain.strategy.outside_changes import OutsideChanges
 from strategist.domain.strategy.spec_hydration import (
@@ -34,6 +33,7 @@ from strategist.domain.strategy.spec_hydration import (
     spec_stating_the_live_tree,
 )
 from strategist.domain.strategy.spec_reconciliation import spec_without_steps
+from strategist.domain.strategy.stated_source import StatedSource, UnstatedSource
 from strategist.domain.strategy.value_binding import bind_values
 
 __all__ = [
@@ -50,7 +50,7 @@ def criterion_restated(
     value: ParamValue | None,
     *,
     sheet: Sequence[ParameterInfo],
-    source: ValueSource = "held",
+    source: UnstatedSource | StatedSource = "held",
     basis: str = "",
 ) -> Criterion:
     """The criterion stating this value, and saying nothing else about the name.

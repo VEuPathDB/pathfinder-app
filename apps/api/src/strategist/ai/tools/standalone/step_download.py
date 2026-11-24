@@ -14,6 +14,7 @@ from veupathdb_mcp.wdk import step_download_url
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._result_models import WdkStepId
+from strategist.ai.tools.standalone._step_read import held_wdk_step
 from strategist.platform.errors import ErrorCode
 
 
@@ -33,6 +34,7 @@ async def get_download_url(
         output_format: Download format: csv, tab, or json.
         attributes: Specific attributes to include in the download.
     """
+    held_wdk_step(ctx.deps.strategy_session, wdk_step_id)
     site_id = ctx.deps.strategy_session.site_id
     try:
         url = await step_download_url(

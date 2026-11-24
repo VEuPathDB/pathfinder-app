@@ -23,7 +23,10 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
-from strategist.domain.strategy.value_source import value_source
+from strategist.domain.strategy.value_source import (
+    source_kind,
+    value_source,
+)
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
 
@@ -272,12 +275,14 @@ class TestAnOpenSlotIsBoundInItsKind:
 class TestTheSourceOfACardValue:
     def test_a_rebound_value_the_card_set_is_the_cards(self) -> None:
         assert (
-            value_source(
-                NumberValue(value=1),
-                placeholder=False,
-                unset=False,
-                request_texts=["cysteine proteases expressed in trophozoites"],
-                card_value=NumberValue(value=1),
+            source_kind(
+                value_source(
+                    NumberValue(value=1),
+                    placeholder=False,
+                    unset=False,
+                    request_texts=["cysteine proteases expressed in trophozoites"],
+                    card_value=NumberValue(value=1),
+                )
             )
             == "card"
         )
@@ -286,12 +291,14 @@ class TestTheSourceOfACardValue:
         organisms = ["Entamoeba histolytica HM-1:IMSS", "Entamoeba dispar SAW760"]
 
         assert (
-            value_source(
-                MultiPickValue(values=organisms),
-                placeholder=False,
-                unset=False,
-                request_texts=["cysteine proteases"],
-                card_value=MultiPickValue(values=organisms[::-1]),
+            source_kind(
+                value_source(
+                    MultiPickValue(values=organisms),
+                    placeholder=False,
+                    unset=False,
+                    request_texts=["cysteine proteases"],
+                    card_value=MultiPickValue(values=organisms[::-1]),
+                )
             )
             == "card"
         )

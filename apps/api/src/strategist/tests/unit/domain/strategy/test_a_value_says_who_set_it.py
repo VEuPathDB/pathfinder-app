@@ -13,10 +13,17 @@ from strategist.domain.strategy.operational_spec import (
     Measurement,
 )
 from strategist.domain.strategy.spec_replay import criterion_rebound, criterion_restated
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
-from strategist.domain.strategy.value_source import stated_run, value_source
+from strategist.domain.strategy.value_source import (
+    source_kind,
+    stated_run,
+    value_source,
+)
 
 from ._builders import text_leaf
+
+_STATED = StatedSource(words="")
 
 _PERCENTILE = "min_expression_percentile"
 _REQUEST = (
@@ -62,11 +69,14 @@ def test_the_step_parameters_carry_the_bound_values() -> None:
 
 
 def test_bind_values_gives_every_value_one_source() -> None:
-    bound = bind_values({"organism": StringValue(value="Pf3D7")}, "stated", [], "held")
+    stated = StatedSource(words="the message names Pf3D7")
+    bound = bind_values({"organism": StringValue(value="Pf3D7")}, stated, [])
 
     assert bound == {
         "organism": BoundValue(
-            value=StringValue(value="Pf3D7"), source="stated", basis="held"
+            value=StringValue(value="Pf3D7"),
+            source="stated",
+            basis="the message names Pf3D7",
         )
     }
 
@@ -110,79 +120,93 @@ class TestTheSourceOfAValue:
 
     def test_a_value_the_request_states_is_stated(self) -> None:
         assert (
-            value_source(
-                StringValue(value="blood stages"),
-                placeholder=False,
-                unset=False,
-                request_texts=[_REQUEST],
+            source_kind(
+                value_source(
+                    StringValue(value="blood stages"),
+                    placeholder=False,
+                    unset=False,
+                    request_texts=[_REQUEST],
+                )
             )
             == "stated"
         )
 
     def test_a_stated_value_at_the_default_is_stated(self) -> None:
         assert (
-            value_source(
-                StringValue(value="blood stages"),
-                placeholder=False,
-                unset=True,
-                request_texts=[_REQUEST],
+            source_kind(
+                value_source(
+                    StringValue(value="blood stages"),
+                    placeholder=False,
+                    unset=True,
+                    request_texts=[_REQUEST],
+                )
             )
             == "stated"
         )
 
     def test_a_value_an_answered_card_set_is_card(self) -> None:
         assert (
-            value_source(
-                NumberValue(value=50),
-                placeholder=False,
-                unset=False,
-                request_texts=[_REQUEST],
-                card_value=NumberValue(value=50),
+            source_kind(
+                value_source(
+                    NumberValue(value=50),
+                    placeholder=False,
+                    unset=False,
+                    request_texts=[_REQUEST],
+                    card_value=NumberValue(value=50),
+                )
             )
             == "card"
         )
 
     def test_a_card_on_another_value_does_not_set_this_one(self) -> None:
         assert (
-            value_source(
-                NumberValue(value=50),
-                placeholder=False,
-                unset=False,
-                request_texts=[_REQUEST],
-                card_value=NumberValue(value=60),
+            source_kind(
+                value_source(
+                    NumberValue(value=50),
+                    placeholder=False,
+                    unset=False,
+                    request_texts=[_REQUEST],
+                    card_value=NumberValue(value=60),
+                )
             )
             == "chosen"
         )
 
     def test_an_unstated_value_at_the_initial_display_value_is_default(self) -> None:
         assert (
-            value_source(
-                NumberValue(value=80),
-                placeholder=False,
-                unset=True,
-                request_texts=[_REQUEST],
+            source_kind(
+                value_source(
+                    NumberValue(value=80),
+                    placeholder=False,
+                    unset=True,
+                    request_texts=[_REQUEST],
+                )
             )
             == "default"
         )
 
     def test_any_other_value_is_chosen(self) -> None:
         assert (
-            value_source(
-                StringValue(value="pfal3D7_Blood"),
-                placeholder=False,
-                unset=False,
-                request_texts=[_REQUEST],
+            source_kind(
+                value_source(
+                    StringValue(value="pfal3D7_Blood"),
+                    placeholder=False,
+                    unset=False,
+                    request_texts=[_REQUEST],
+                )
             )
             == "chosen"
         )
 
     def test_a_multi_word_value_is_stated_by_a_run_of_its_words(self) -> None:
         assert (
-            value_source(
-                MultiPickValue(values=["Plasmodium falciparum 3D7"]),
-                placeholder=False,
-                unset=False,
-                request_texts=["an earlier message", _REQUEST],
+            source_kind(
+                value_source(
+                    MultiPickValue(values=["Plasmodium falciparum 3D7"]),
+                    placeholder=False,
+                    unset=False,
+                    request_texts=["an earlier message", _REQUEST],
+                )
             )
             == "stated"
         )

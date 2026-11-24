@@ -105,7 +105,10 @@ async def test_deleting_a_step_on_a_thread_with_no_strategy_names_the_step(
     body = response.json()
     assert body["code"] == "VALIDATION_ERROR"
     assert body["title"] == "the strategy cannot place this delete"
-    assert body["detail"] == "s1 is not a step of this strategy"
+    assert (
+        body["detail"]
+        == "Step s1 is not a step of this strategy. It holds no step yet."
+    )
 
 
 async def test_a_corrupt_stored_ast_is_refused_and_the_row_is_left_alone(

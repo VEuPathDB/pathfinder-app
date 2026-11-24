@@ -168,7 +168,7 @@ def _eda_section() -> str:
 
 
 def test_the_export_can_take_the_place_of_a_step_already_held() -> None:
-    assert "replace_step_id" in _flat(_eda_section())
+    assert "Pass one of kind ``replace``" in _flat(_eda_section())
 
 
 def test_an_eda_backed_criterion_never_reaches_the_framing_tools() -> None:
@@ -181,7 +181,10 @@ def test_a_waiting_criterion_is_exported_by_its_id_and_kept_once_bound() -> None
     section = _flat(_eda_section())
 
     assert "records the criterion as WAITING for its analysis" in section
-    assert "``criterion_id`` for a criterion the spec holds WAITING" in section
+    assert (
+        "a ``placement`` of kind ``criterion`` for a criterion the spec holds WAITING"
+        in section
+    )
     assert "only ``delete_step`` removes it" in section
 
 

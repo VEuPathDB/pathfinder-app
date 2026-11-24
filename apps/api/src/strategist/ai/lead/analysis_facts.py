@@ -12,7 +12,11 @@ from strategist.domain.log2_scale import fold_label
 from strategist.domain.strategy.analysis_binding import AnalysisBinding, CutTallies
 from strategist.domain.strategy.operational_spec import ValueSource
 from strategist.domain.strategy.value_binding import plain_value
-from strategist.domain.strategy.value_source import value_source
+from strategist.domain.strategy.value_source import (
+    ParamSheet,
+    source_kind,
+    value_source,
+)
 from strategist.domain.turn_facts import ParameterFact
 from strategist.services.eda.direction import direction_sentence
 
@@ -124,12 +128,14 @@ def analysis_parameters(
     facts: list[ParameterFact] = []
     for name, shown, value, label in _analysis_values(binding):
         based = _subset_source(binding) if name == "subset" else None
-        source = based or value_source(
-            value,
-            placeholder=False,
-            unset=False,
-            request_texts=said,
-            display_name=shown,
+        source = based or source_kind(
+            value_source(
+                value,
+                placeholder=False,
+                unset=False,
+                request_texts=said,
+                sheet=ParamSheet(display_name=shown),
+            )
         )
         written = plain_value(value)
         note = _cut_note(

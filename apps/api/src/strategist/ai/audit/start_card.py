@@ -16,7 +16,6 @@ from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import get_site
 
 from strategist.ai.audit.run_tools import NOTHING_STARTED, START_TOOL, planner_refusal
-from strategist.ai.capabilities.site_reads import site_words
 from strategist.domain.audit.planning import (
     START_LABEL,
     AuditStartCard,
@@ -25,7 +24,7 @@ from strategist.domain.audit.planning import (
     start_card,
 )
 from strategist.services.audit.planning import propose_scope
-from strategist.services.site_errors import site_status
+from strategist.services.site_errors import site_status, site_words
 
 _SIGN_IN_REFUSALS = frozenset({401, 403})
 

@@ -15,7 +15,7 @@ from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, StringV
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.graph.state import StrategyDomainState
-from strategist.ai.lead import lead_consult
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.intent import IntentClassification, UserIntent
 from strategist.ai.lead.lead_consult import consult_user
@@ -60,7 +60,7 @@ def _no_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del site_id, search_names
         return {}
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
 
 
 def _interpro() -> Criterion:

@@ -9,6 +9,7 @@ import pytest
 from assistant_core.platform.db import DBSessionFactory
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy import StrategyStepNode
 
 from strategist.ai.lead.verification_scope import verification_scope
 from strategist.ai.tools.standalone import (
@@ -25,6 +26,7 @@ from strategist.ai.tools.standalone.optimization import sweep_can_run
 from strategist.ai.tools.standalone.saved_control_sets import ControlSetSummary
 from strategist.ai.tools.standalone.scored_comparison import compare_variants_scored
 from strategist.domain.evidence import NamedControlSet
+from strategist.domain.strategy.session import StrategySession
 from strategist.services.control_sets import ControlSetResponse, NewControlSet
 from strategist.services.evidence.control_sets import (
     SavedControls,
@@ -36,6 +38,7 @@ from strategist.tests._support.durable_dispatch import capture_durable_dispatch
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from strategist.tests.unit.ai.tools._strategy_edit_stubs import session_with
 from strategist.tests.unit.ai.tools.conftest import (
     agent_run_context,
     detached_lead_context,
@@ -267,8 +270,15 @@ async def test_the_search_test_refuses_a_set_that_is_not_attached(
     assert saved == []
 
 
+def _holding_the_step() -> StrategySession:
+    return session_with(
+        StrategyStepNode(id="step_sp", search_name="GenesWithSignalPeptide"),
+        {"step_sp": _STEP},
+    )
+
+
 async def test_a_sweep_on_a_set_that_is_not_attached_is_refused() -> None:
-    ctx = lead_run_context()
+    ctx = lead_run_context(strategy_session=_holding_the_step())
     ctx.deps.state.domain.attach_control_set(_KINASES_NAMED)
 
     with pytest.raises(ModelRetry) as refused:
@@ -290,7 +300,7 @@ async def test_a_sweep_on_a_set_that_is_not_attached_is_refused() -> None:
 
 
 async def test_a_sweep_on_an_attached_set_passes_the_check() -> None:
-    ctx = lead_run_context()
+    ctx = lead_run_context(strategy_session=_holding_the_step())
     ctx.deps.state.domain.attach_control_set(_KINASES_NAMED)
 
     await sweep_can_run(

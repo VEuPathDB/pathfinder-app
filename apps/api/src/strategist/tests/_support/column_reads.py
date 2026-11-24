@@ -25,6 +25,7 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.recorded_columns import (
@@ -35,6 +36,8 @@ from strategist.tests._support.recorded_columns import (
     recorded_body,
 )
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
+
+_STATED = StatedSource(words="")
 
 TM_TEXT = "two or more transmembrane domains"
 
@@ -128,7 +131,7 @@ def column_context(
         id="c_one",
         text=TM_TEXT,
         search_name=search_name,
-        resolved_params=bind_values(params, "stated", []),
+        resolved_params=bind_values(params, _STATED, []),
     )
     state = AgentToolState(operational_spec_draft=OperationalSpec(criteria=[criterion]))
     return agent_run_context(strategy_session=session, agent_state=state)

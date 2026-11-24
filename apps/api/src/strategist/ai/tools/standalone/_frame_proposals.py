@@ -42,6 +42,7 @@ from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.lead.site_routes import portal_route_sentence
 from strategist.ai.tools.standalone._catalog_elsewhere import (
+    INDEX_DOWN,
     joined,
     reach_sentence,
     tree_tops,
@@ -50,6 +51,7 @@ from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.genome_group_steps import criterion_as_stated
 from strategist.domain.strategy.operational_spec import BoundValue
 from strategist.domain.strategy.value_binding import pick_terms
+from strategist.domain.unread import Unread
 from strategist.platform.library_refusals import (
     FaultRow,
     library_problems,
@@ -159,9 +161,13 @@ async def _elsewhere(
     first = next((row for row in rows if row.value), None)
     if first is None:
         return problems
-    others = await _other_sites_holding(site_id, definition, first.param, first.value)
-    if not others:
-        return problems
+    match await _other_sites_holding(site_id, definition, first.param, first.value):
+        case Unread(reason=reason):
+            return _beside(problems, first.param, f"Other sites not read: {reason}.")
+        case []:
+            return problems
+        case others:
+            pass
     state.portal_route = portal_route_sentence(site_id)
     route = (
         f"{reach_sentence(definition, first.param, site_id, first.value)} "
@@ -169,10 +175,14 @@ async def _elsewhere(
         f"bind nothing for this criterion, ask no question about it, and write this "
         f"in the summary word for word, link included: {state.portal_route}"
     )
+    return _beside(problems, first.param, route)
+
+
+def _beside(problems: Problems, param: str, said: str) -> Problems:
     return Problems(
         found=tuple(
-            Problem(key=p.key, sentence=f"{p.sentence} {route}")
-            if p.key.parameter == first.param
+            Problem(key=p.key, sentence=f"{p.sentence} {said}")
+            if p.key.parameter == param
             else p
             for p in problems.found
         )
@@ -240,7 +250,7 @@ def left_to_the_site(
 
 async def _other_sites_holding(
     site_id: str, definition: WDKSearch, param_name: str, value: str
-) -> list[str]:
+) -> list[str] | Unread:
     """The other sites that hold an organism this transform cannot reach.
 
     Only a transform's organism tree names organisms, so nothing else asks.
@@ -252,7 +262,7 @@ async def _other_sites_holding(
     try:
         holders = await catalog.sites_holding_organism(value)
     except SemanticIndexUnavailableError:
-        return []
+        return INDEX_DOWN
     return [held for held in holders if held != site_id]
 
 

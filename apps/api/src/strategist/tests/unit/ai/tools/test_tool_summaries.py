@@ -324,12 +324,14 @@ _RESUMED: dict[str, dict[str, Any]] = {
                     }
                 },
                 "score": score,
+                "recall": 0.9,
+                "falsePositiveRate": 0.1,
             }
             for index, (version, score) in enumerate(
                 [("SignalP-6.0", 0.4), ("SignalP-4.1", 0.5)]
             )
         ],
-        "best": {"score": 0.5},
+        "best": None,
         "objective": "mcc",
         "searchName": "GenesWithSignalPeptide",
         "controlSet": {"id": SAVED_SET_ID, "name": "Saved controls"},

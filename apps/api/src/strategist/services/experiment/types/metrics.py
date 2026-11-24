@@ -3,6 +3,12 @@
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
 from pydantic import ConfigDict
 
+from strategist.domain.unread import Unread
+
+type Measured = RoundedFloat | Unread
+
+NOT_STORED = Unread(reason="not stored with this run")
+
 
 class ConfusionMatrix(CamelModel):
     """2x2 confusion matrix counts."""
@@ -21,18 +27,16 @@ class ExperimentMetrics(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     confusion_matrix: ConfusionMatrix
-    sensitivity: RoundedFloat
-    specificity: RoundedFloat
-    precision: RoundedFloat
-    f1_score: RoundedFloat
-    mcc: RoundedFloat
-    balanced_accuracy: RoundedFloat
-    # Fields below may be absent in older persisted data.
-    negative_predictive_value: RoundedFloat = 0.0
-    false_positive_rate: RoundedFloat = 0.0
-    false_negative_rate: RoundedFloat = 0.0
-    youdens_j: RoundedFloat = 0.0
-    total_results: int = 0
+    sensitivity: Measured
+    specificity: Measured
+    precision: Measured
+    f1_score: Measured
+    mcc: Measured
+    balanced_accuracy: Measured
+    negative_predictive_value: Measured = NOT_STORED
+    false_positive_rate: Measured = NOT_STORED
+    false_negative_rate: Measured = NOT_STORED
+    youdens_j: Measured = NOT_STORED
     total_positives: int = 0
     total_negatives: int = 0
 

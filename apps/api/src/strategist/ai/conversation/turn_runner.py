@@ -52,7 +52,7 @@ from strategist.ai.conversation.turn_failure import (
 from strategist.ai.conversation.turn_stop import watch_for_cancel
 from strategist.ai.conversation.turn_title import write_turn_name
 from strategist.platform.log_ids import LogIds, log_ids_scope
-from strategist.services.conversations.turns import load_conversation
+from strategist.services.conversations.turns import load_conversation, writes_named_by
 from strategist.services.search_waits import researcher_search_turn
 
 logger = get_logger(__name__)
@@ -347,18 +347,19 @@ async def _drive_graph(
     }
     cancel_event: asyncio.Event = runtime_context.cancel_event
 
-    consume_task = asyncio.create_task(
-        _consume_graph_stream(
-            _StreamConsumerCtx(
-                compiled_graph=compiled_graph,
-                graph_input=graph_input,
-                thread_config=thread_config,
-                runtime_context=runtime_context,
-                writer=tracked,
-                result=result,
+    with writes_named_by(turn_message_id):
+        consume_task = asyncio.create_task(
+            _consume_graph_stream(
+                _StreamConsumerCtx(
+                    compiled_graph=compiled_graph,
+                    graph_input=graph_input,
+                    thread_config=thread_config,
+                    runtime_context=runtime_context,
+                    writer=tracked,
+                    result=result,
+                ),
             ),
-        ),
-    )
+        )
 
     async def _kill_on_cancel() -> None:
         await cancel_event.wait()

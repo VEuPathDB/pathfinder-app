@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 
 from pydantic_ai.tools import RunContext
-from veupathdb.domain.strategy import StrategyStep
+from veupathdb.domain.strategy import StepValidationErrors, StrategyStep
 
 from strategist.ai.agents.criterion_lines import criterion_label, criterion_runs
 from strategist.ai.agents.param_vocab_render import render_param_vocab
@@ -165,6 +165,17 @@ def _render_step_header(step_id: str, step: StrategyStep) -> list[str]:
     return parts
 
 
+def _refusals(errors: StepValidationErrors | None) -> str:
+    if errors is None:
+        return ""
+    keyed = [
+        f"{param}: {message}"
+        for param, messages in errors.by_key.items()
+        for message in messages
+    ]
+    return "; ".join([*errors.general, *keyed])
+
+
 def _render_step_suffix(
     step_id: str,
     sync_state: SyncStateProtocol | None,
@@ -184,13 +195,10 @@ def _render_step_suffix(
     if is_root:
         suffix_parts.append("root")
     if push_error:
-        suffix_parts.append(f"ERROR: {push_error[:60]}")
+        suffix_parts.append(f"ERROR: {push_error}")
     if validation and not validation.is_valid:
-        general = validation.errors.general if validation.errors else []
-        if general:
-            suffix_parts.append(f"INVALID: {str(general[0])[:60]}")
-        else:
-            suffix_parts.append("INVALID")
+        refused = _refusals(validation.errors)
+        suffix_parts.append(f"INVALID: {refused}" if refused else "INVALID")
     if suffix_parts:
         return f"-> {', '.join(suffix_parts)}"
     return ""

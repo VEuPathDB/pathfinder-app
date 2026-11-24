@@ -73,7 +73,7 @@ async def _edit(monkeypatch: pytest.MonkeyPatch, root_count: int) -> EditDelta:
 
     async def _frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = after
-        return FrameResult(disposition="spec_ready", summary="reframed")
+        return FrameResult(disposition="spec_ready", notes="reframed")
 
     async def _commit(**_kwargs: Any) -> CommitResult:
         session.sync_state = WDKSyncState(

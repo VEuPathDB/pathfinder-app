@@ -26,7 +26,10 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.tests._support.bound_values import bound
-from strategist.tests._support.organism_reads import serve_organism_reads
+from strategist.tests._support.organism_reads import (
+    serve_organism_reads,
+    serve_universe_counts,
+)
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 from strategist.tests._support.site_organisms import recorded_organisms
@@ -51,6 +54,7 @@ _ORGANISM = Constraint(
     value=OrganismValue(organism=PEST),
 )
 _PINNED = Scene(instructions=f"- R1 (organism): {PEST}")
+_PEST_GENES = 13_845
 
 
 @pytest.fixture(autouse=True)
@@ -141,10 +145,14 @@ async def test_the_real_structure_drops_the_organism_criterion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_organism_reads(monkeypatch, recorded_organisms("vectorbase"))
+    serve_universe_counts(monkeypatch, {(PEST,): _PEST_GENES})
     calls = play("frame", "vectorbase", _MESSAGE, scene=_PINNED)
     state = AgentToolState(stated_requirements=[_ORGANISM])
+    counts = {"organism_genes": _PEST_GENES, "signal_peptide": 627}
     for call in _bindings(calls):
-        criterion = _bound(call)
+        criterion = _bound(call).model_copy(
+            update={"result_count": counts[str(call["criterion_id"])]}
+        )
         state.frame_set_criterion(criterion)
         state.register_search(
             criterion.search_name,
@@ -168,7 +176,7 @@ async def test_the_real_structure_drops_the_organism_criterion(
 
     assert result.criteria_combined == 1
     assert [(d.criterion_id, d.met) for d in result.dropped] == [
-        ("organism_genes", True)
+        ("organism_genes", False)
     ]
     assert [c.id for c in state.operational_spec_draft.criteria] == ["signal_peptide"]
 

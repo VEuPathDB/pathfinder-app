@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from pydantic_ai import Tool
 
 from strategist.ai.lead.lead_agent import build_lead_toolset
-from strategist.ai.tools.toolsets import eda, verification
+from strategist.ai.tools.toolsets import eda, execution, verification
 from strategist.tests.unit.ai.tools.conftest import unwrap_function_toolset
 
 _SET = "6b1d5a52-4f0e-4c3f-9a3c-8e1f6d2b7a10"
@@ -28,6 +28,10 @@ def _lead(name: str) -> Tool[Any]:
 
 def _check(name: str) -> Tool[Any]:
     return unwrap_function_toolset(verification.build_toolset()).tools[name]
+
+
+def _build(name: str) -> Tool[Any]:
+    return unwrap_function_toolset(execution.build_toolset()).tools[name]
 
 
 def _eda(name: str) -> Tool[Any]:
@@ -169,4 +173,79 @@ def test_a_strategist_id_is_a_uuid_and_says_a_wdk_id_is_not_one(
     assert "A WDK strategy or step id is a different id" in declared["description"]
     assert (argument, "Input should be a valid UUID") in [
         (where, said.split(",")[0]) for where, said in refused
+    ]
+
+
+def test_a_batch_holds_one_operation_at_least() -> None:
+    batch = _build("apply_operations")
+
+    assert _property(batch, "operations")["minItems"] == 1
+    assert _refused(batch, {"base_revision": "", "operations": []}) == [
+        ("operations", "List should have at least 1 item after validation, not 0")
+    ]
+
+
+@pytest.mark.parametrize(
+    ("placement", "refusal"),
+    [
+        (
+            {"kind": "replace", "replace_step_id": "step_k2", "slot": "secondary"},
+            ("placement.replace.slot", "Extra inputs are not permitted"),
+        ),
+        (
+            {"kind": "beside_root", "operator": "UNION", "attach_to_step_id": "s1"},
+            (
+                "placement.beside_root.attach_to_step_id",
+                "Extra inputs are not permitted",
+            ),
+        ),
+        (
+            {"kind": "criterion", "criterion_id": "c_eda", "operator": "UNION"},
+            ("placement.criterion.operator", "Extra inputs are not permitted"),
+        ),
+        (
+            {"kind": "into_slot", "slot": "secondary"},
+            ("placement.into_slot.attach_to_step_id", "Field required"),
+        ),
+        (
+            {"kind": "into_slot", "attach_to_step_id": "s1"},
+            ("placement.into_slot.slot", "Field required"),
+        ),
+    ],
+)
+def test_an_export_names_one_placement_whole(
+    placement: dict[str, Any], refusal: tuple[str, str]
+) -> None:
+    export = _eda("create_eda_step")
+
+    assert _property(export, "placement")["anyOf"][0]["discriminator"] == {
+        "mapping": {
+            "beside_root": "#/$defs/BesideRoot",
+            "criterion": "#/$defs/WaitingCriterion",
+            "into_slot": "#/$defs/IntoSlot",
+            "replace": "#/$defs/InPlaceOf",
+        },
+        "propertyName": "kind",
+    }
+    assert _refused(export, {"placement": placement}) == [refusal]
+
+
+@pytest.mark.parametrize(
+    ("volcano", "missing"),
+    [
+        ({"effect_size_threshold": 1.0}, ["volcano.significance_threshold"]),
+        ({"significance_threshold": 0.05}, ["volcano.effect_size_threshold"]),
+        (
+            {"effect_direction": "upOnly"},
+            ["volcano.effect_size_threshold", "volcano.significance_threshold"],
+        ),
+    ],
+)
+def test_a_volcano_export_states_both_thresholds(
+    volcano: dict[str, Any], missing: list[str]
+) -> None:
+    export = _eda("create_eda_step")
+
+    assert _refused(export, {"volcano": volcano}) == [
+        (where, "Field required") for where in missing
     ]

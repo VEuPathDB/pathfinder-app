@@ -13,7 +13,6 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo
 from veupathdb import JSONObject
 from veupathdb.domain.parameters import PhyleticExpression
-from veupathdb.wdk import get_site
 from veupathdb_mcp import MAX_CALL_SECONDS_META_KEY
 from veupathdb_mcp.catalog import PhyleticPattern
 from veupathdb_mcp.server import TOOLS
@@ -42,7 +41,6 @@ from strategist.tests._support.tool_returns import returned
 from .conftest import agent_run_context, summary_of
 
 _PATTERN: TypeAdapter[PhyleticPattern] = TypeAdapter(PhyleticPattern)
-_COUNT_REPORT = "/record-types/group/searches/GroupsByPhyleticPattern/reports/standard"
 _MORE_IN_TGON: JSONObject = {
     "kind": "compare",
     "left": {"kind": "codes", "codes": ["tgon"]},
@@ -172,8 +170,6 @@ async def test_the_site_comes_from_the_turn_and_the_model_states_only_the_patter
 
 
 async def test_a_count_report_the_site_fails_is_a_failed_call_the_model_reads() -> None:
-    report = f"{get_site(SITE).service_url}{_COUNT_REPORT}"
-
     with (
         replayed_counts(LADDER, status=503) as replay,
         pytest.raises(ToolFailed) as failed,
@@ -182,10 +178,8 @@ async def test_a_count_report_the_site_fails_is_a_failed_call_the_model_reads() 
 
     assert str(failed.value) == (
         "build_phyletic_expression got no answer from the site (HTTP 503: "
-        "VEuPathDB service error: Request failed after retries: Server error "
-        f"'503 Service Unavailable' for url '{report}'\nFor more "
-        "information check: "
-        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503). Nothing "
+        "VEuPathDB service error: Request failed after retries: Service "
+        "Unavailable). Nothing "
         "was read and the strategy is unchanged. Say that the site did not answer "
         "this read, and answer from what the turn already holds."
     )
@@ -236,7 +230,7 @@ async def test_frame_reads_the_built_expression_as_its_tool_result() -> None:
             parts=[
                 ToolCallPart(
                     "final_result",
-                    {"summary": "Built the pattern.", "disposition": "needs_research"},
+                    {"notes": "Built the pattern.", "disposition": "needs_research"},
                 )
             ]
         )

@@ -82,11 +82,10 @@ carries `names_no_requirement`: its caveat and the line VERIFY and the Lead read
 say the pick replaces none, so each requirement is judged on its words. Past the budget, or on a second
 answer after the one correction, the contract still runs `reconcile` and marks any
 mismatch it finds.
-A reply to a build no check saw is not a mismatch when it states the reason in
-`LeadResponse.unverified_reason` beside a recorded stop or refusal of the check, or
-when it is a card's reply, so the answer the refusal asks for is not marked. The
-facts state that nothing verified the build; no rule reads the word in the prose
-(`decisions/a-built-turn-is-asked-to-verify-once.md`).
+A reply to a build no check saw is never a mismatch: the Lead node makes the check
+and resumes the Lead once with the verdict, and the facts state any stop; no rule
+reads the word in the prose
+(`decisions/the-runtime-checks-a-changed-strategy-then-the-lead-answers.md`).
 VERIFY takes each unbacked item out of the review
 (an unread sampled gene, a source no read returned or that carries no identifier, a
 row naming a message the request lacks, an answer naming a step the strategy lacks)

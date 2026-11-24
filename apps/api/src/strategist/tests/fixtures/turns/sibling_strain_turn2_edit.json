@@ -1,0 +1,71 @@
+{
+  "provenance": "cedar ~/proto/replay/runs/dafter-evals/runs/evals/an-edit-to-a-sibling-strain-binds-it: turn-1 events.jsonl data-graph-snapshot and the turn-2 edit_strategy return in llm/0013-lead-request.json",
+  "turn2Request": "Switch the organism to Toxoplasma gondii GT1 on both steps.",
+  "turn1Graph": {
+    "strategyId": "271a3407-b39b-426e-b6f3-a295a291054b",
+    "geneCount": 11,
+    "detachedStepCount": 0,
+    "nodes": [
+      {
+        "id": "step_b0b96012",
+        "searchName": "__combine__",
+        "estimatedSize": 11
+      },
+      {
+        "id": "step_69d06847",
+        "searchName": "GenesByInterproDomain",
+        "estimatedSize": 130
+      },
+      {
+        "id": "step_136b4156",
+        "searchName": "GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRC",
+        "estimatedSize": 836
+      }
+    ],
+    "edges": [
+      {
+        "source": "step_69d06847",
+        "target": "step_b0b96012",
+        "operator": "INTERSECT"
+      },
+      {
+        "source": "step_136b4156",
+        "target": "step_b0b96012",
+        "operator": "INTERSECT"
+      }
+    ]
+  },
+  "editStrategyReturn": {
+    "diff": {
+      "changes": [],
+      "structureChanged": false,
+      "keptCount": 0,
+      "changedCount": 0,
+      "addedCount": 0,
+      "droppedCount": 0
+    },
+    "disposition": "needs_user",
+    "summary": "Changes: the Pfam protein-kinase criterion was changed, with `organism` moved to Toxoplasma gondii GT1; every other Pfam value was preserved. The bradyzoite-versus-tachyzoite criterion was requested as changed, but its search has no `organism` parameter and remains tied to the ME49 experiment, so that organism change could not be recorded. The existing INTERSECT could not be rebuilt because it would combine GT1 and ME49 gene scopes. No orthology transform is available on this site to carry the ME49 expression results into GT1. The nearest available expression search is the existing ME49 tissue-cyst-versus-tachyzoite RNA-seq search, which is not a GT1 search. Therefore the requested two-step GT1 strategy is not realizable here without a GT1-compatible expression search or an external orthology mapping. The Pfam edit returned 128 genes. Supporting note: n-c9e74b.",
+    "openQuestions": [],
+    "cardQuestions": [],
+    "reported": [
+      {
+        "requirement": "Toxoplasma gondii GT1",
+        "problem": "site_has_no_search",
+        "whatToDo": "The site has no search for it. The card asks whether to drop it; say what the site lacks."
+      }
+    ],
+    "gaps": [],
+    "description": "",
+    "operationsApplied": 0,
+    "addedStepIds": [],
+    "addedSearches": [],
+    "unsavedGeneSet": null,
+    "preservedStepIds": [],
+    "droppedStepIds": [],
+    "pendingStepIds": [
+      "step_69d06847"
+    ],
+    "failedStepIds": []
+  }
+}

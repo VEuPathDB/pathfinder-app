@@ -10,8 +10,8 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from strategist.ai.agents.criterion_lines import criterion_label, criterion_runs
-from strategist.ai.lead.deltas import FrameResult
-from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from strategist.ai.lead.deltas import FrameResult, PassGap
+from strategist.ai.lead.phase_stop import PhaseStop, stop_phrase
 from strategist.domain.strategy.expression_handles import stated_text
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -36,39 +36,23 @@ def frame_result_from_draft(
     bound = [c for c in (spec.criteria if spec else []) if c.bound]
     if not bound:
         told = f" It was told: {stop.refusal}" if stop and stop.refusal else ""
-        return FrameResult(
-            disposition="needs_user",
-            summary=f"FRAME {why} with no criteria bound.{told}",
-        )
+        return _stopped(f"FRAME {why} with no criteria bound.{told}")
     names = ", ".join(c.id for c in bound)
+    return _stopped(
+        f"FRAME {why} after binding {len(bound)} "
+        f"criteria ({names}). They are kept. Ask it to continue with the "
+        f"rest rather than starting again."
+    )
+
+
+def _stopped(sentence: str) -> FrameResult:
     return FrameResult(
         disposition="needs_user",
-        summary=(
-            f"FRAME {why} after binding {len(bound)} "
-            f"criteria ({names}). They are kept. Ask it to continue with the "
-            f"rest rather than starting again."
-        ),
+        gaps=[PassGap(kind="pass_stopped", sentence=sentence)],
     )
 
 
 _CONTINUE = "Continue it; this is not a fresh frame."
-
-
-def stop_phrase(stop: PhaseStop) -> str:
-    """Why a pass stopped, as the predicate of a sentence about the pass."""
-    match stop.reason:
-        case PhaseStopReason.BUDGET:
-            return "ran out of its tool budget"
-        case PhaseStopReason.TOOL_RETRIES:
-            return f"stopped when {stop.tool_name} refused every attempt"
-        case (
-            PhaseStopReason.REPEATED_CALL
-            | PhaseStopReason.CALL_CAP
-            | PhaseStopReason.OUTPUT_RETRIES
-            | PhaseStopReason.PROVIDER
-            | PhaseStopReason.SEARCH_NOT_SERVED
-        ):
-            return stop.phrase()
 
 
 def stop_heading(stop: PhaseStop) -> str:
@@ -245,30 +229,27 @@ def _resumed_work_order(
     return "\n".join(lines)
 
 
-def frame_claimed_more_than_it_bound(summary: str) -> str:
+def frame_claimed_more_than_it_bound(notes: str) -> str:
     """Why a ``spec_ready`` over a draft with no bound criterion is refused.
 
-    A summary changes no state, so a pass that wrote one and nothing else has
+    Notes change no state, so a pass that wrote them and nothing else has
     framed nothing.
     """
     return (
-        f"FRAME reported spec_ready with the summary {summary[:200]!r}, and the "
+        f"FRAME reported spec_ready with the notes {notes[:200]!r}, and the "
         "spec holds no bound criterion, so the pass recorded nothing. Dispatch "
-        "frame_problem again and tell it to record its work in the spec; a "
-        "summary alone binds no search."
+        "frame_problem again and tell it to record its work in the spec; "
+        "notes alone bind no search."
     )
 
 
 def frame_bound_nothing_result() -> FrameResult:
     """Report a second pass that claimed a ready spec and bound nothing."""
-    return FrameResult(
-        disposition="needs_user",
-        summary=(
-            "FRAME reported a ready spec twice over a draft with no bound "
-            "criterion, so nothing is framed. Ask the user which filters the "
-            "strategy must carry, or state fewer criteria and dispatch "
-            "frame_problem again."
-        ),
+    return _stopped(
+        "FRAME reported a ready spec twice over a draft with no bound "
+        "criterion, so nothing is framed. Ask the user which filters the "
+        "strategy must carry, or state fewer criteria and dispatch "
+        "frame_problem again."
     )
 
 

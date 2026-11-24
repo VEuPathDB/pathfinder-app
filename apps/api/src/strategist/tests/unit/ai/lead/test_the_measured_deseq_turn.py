@@ -10,6 +10,7 @@ from veupathdb_mcp.catalog import COMPUTE_QUERY
 from strategist.ai.lead.deltas import EditDelta
 from strategist.ai.lead.intent import IntentClassification
 from strategist.ai.lead.lead_pins import eda_route_blocks
+from strategist.ai.tools.standalone._eda_step_arguments import WaitingCriterion
 from strategist.ai.tools.standalone._eda_step_write import ExportJoin
 from strategist.domain.eda_parts import EdaComparison
 from strategist.domain.strategy.operational_spec import SpecStructure
@@ -91,8 +92,9 @@ async def test_the_route_names_the_waiting_comparison_by_its_id(
         "2. set_eda_filters - once for the sheet, once with the filters array",
         "3. preview_eda_subset, and run_eda_compute when it compares groups",
         (
-            f'4. create_eda_step(criterion_id="{WAITING}") - the structure places '
-            f"the step, so name no other placement."
+            f'4. create_eda_step(placement={{"kind": "criterion", "criterion_id": '
+            f'"{WAITING}"}}) - the structure places the step, so name no other '
+            "placement."
         ),
     ]
 
@@ -105,7 +107,11 @@ async def test_both_comparisons_are_deseq2_branches_with_a_significance_cut(
     thread.frames(with_the_waiting_comparison(first.step_id))
     await thread.edit()
 
-    second = await export(thread, reference="36h", criterion_id=WAITING)
+    second = await export(
+        thread,
+        reference="36h",
+        placement=WaitingCriterion(kind="criterion", criterion_id=WAITING),
+    )
 
     root = thread.graph.steps[thread.graph.primary_root_id() or ""]
     assert second.join == ExportJoin(

@@ -37,7 +37,7 @@ async def test_the_result_carries_the_card_that_asks_the_recorded_question(
         )
         return FrameResult(
             disposition="needs_user",
-            summary="which dataset?",
+            notes="which dataset?",
             open_questions=[
                 SlotQuestion(
                     question="Which gametocyte RNA-seq study?",

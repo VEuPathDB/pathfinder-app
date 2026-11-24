@@ -9,6 +9,7 @@ from strategist.ai.lead.build_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
 )
+from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.dispatch_messages import (
     frame_result_from_draft,
     stopped_pass_work_order,
@@ -113,21 +114,27 @@ def test_the_build_refusal_names_the_tool_that_starts_over() -> None:
     assert "clear_strategy" in build_would_replace_the_strategy(3)
 
 
+def _said(result: FrameResult) -> str:
+    [gap] = result.gaps
+    assert gap.kind == "pass_stopped"
+    return gap.sentence
+
+
 class TestABoundCriterionIsReported:
     def test_the_disposition_asks_for_another_pass(self) -> None:
         result = frame_result_from_draft(_draft("a", "b"), _BUDGET_STOP)
 
         assert result.disposition == "needs_user"
 
-    def test_the_summary_counts_what_was_bound(self) -> None:
+    def test_the_stop_counts_what_was_bound(self) -> None:
         result = frame_result_from_draft(_draft("a", "b", "c"), _BUDGET_STOP)
 
-        assert "3" in result.summary
+        assert "3" in _said(result)
 
-    def test_the_summary_names_the_budget_rather_than_a_failure(self) -> None:
+    def test_the_stop_names_the_budget_rather_than_a_failure(self) -> None:
         result = frame_result_from_draft(_draft("a"), _BUDGET_STOP)
 
-        assert "budget" in result.summary.lower()
+        assert "budget" in _said(result).lower()
 
     def test_a_refused_tool_is_named_rather_than_a_budget(self) -> None:
         stop = PhaseStop(
@@ -141,7 +148,7 @@ class TestABoundCriterionIsReported:
 
         result = frame_result_from_draft(_draft("c_sp"), stop)
 
-        assert result.summary == (
+        assert _said(result) == (
             "FRAME stopped when set_criterion refused every attempt after binding "
             "1 criteria (c_sp). They are kept. Ask it to continue with the rest "
             "rather than starting again."
@@ -150,14 +157,14 @@ class TestABoundCriterionIsReported:
     def test_a_criterion_is_named_so_the_work_is_identifiable(self) -> None:
         result = frame_result_from_draft(_draft("kinases"), _BUDGET_STOP)
 
-        assert "kinases" in result.summary
+        assert "kinases" in _said(result)
 
 
 class TestNothingBoundIsStillNothing:
     def test_an_empty_draft_says_so(self) -> None:
         result = frame_result_from_draft(OperationalSpec(goal="g"), _BUDGET_STOP)
 
-        assert "no criteria" in result.summary.lower()
+        assert "no criteria" in _said(result).lower()
 
     def test_a_missing_draft_says_so(self) -> None:
         result = frame_result_from_draft(None, _BUDGET_STOP)
@@ -173,7 +180,7 @@ class TestNothingBoundIsStillNothing:
 
         result = frame_result_from_draft(None, stop)
 
-        assert result.summary == (
+        assert _said(result) == (
             "FRAME stopped on an answer that had the wrong shape every time with no "
             "criteria bound. It was told: requirement_problems names R9, and the "
             "list holds R1."

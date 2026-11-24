@@ -13,7 +13,9 @@ from strategist.ai.tools.standalone._eda_models import (
     EdaStudyDescription,
     EdaStudySearchResult,
 )
+from strategist.domain.unread import Unread
 from strategist.services.eda.catalog import (
+    StudyCard,
     StudySearch,
     UnknownEdaDatasetError,
     get_study_detail_for_dataset,
@@ -112,20 +114,32 @@ async def search_eda_studies(
     """
     site_id = ctx.deps.runtime.site_id
     found = await search_studies(site_id, query, limit=limit)
-    own = await own_dataset_cards(site_id, query)
+    match await own_dataset_cards(site_id, query):
+        case Unread(reason=reason):
+            own: list[StudyCard] = []
+            unread = ["your own datasets were not read"]
+            not_read = [f"Your own datasets were not read: {reason}."]
+        case cards:
+            own, unread, not_read = cards, [], []
     if not found.cards and not own:
         return with_summary(
             EdaStudySearchResult(
-                guidance=(
-                    f"No EDA study on this site matches {query!r}. EDA covers "
-                    f"sample-level expression, phenotype and antibody-array "
-                    f"datasets only. A question about gene attributes is answered "
-                    f"by the site's searches, not by EDA."
+                guidance=" ".join(
+                    [
+                        (
+                            f"No EDA study on this site matches {query!r}. EDA "
+                            f"covers sample-level expression, phenotype and "
+                            f"antibody-array datasets only. A question about gene "
+                            f"attributes is answered by the site's searches, not "
+                            f"by EDA."
+                        ),
+                        *not_read,
+                    ]
                 ),
             ),
-            f"No study matched {query}",
+            "; ".join([f"No study matched {query}", *unread]),
             ctx=ctx,
-            status="empty",
+            status="warn" if unread else "empty",
         )
     result = EdaStudySearchResult(
         studies=[
@@ -134,6 +148,7 @@ async def search_eda_studies(
         ],
         guidance=" ".join(
             [
+                *not_read,
                 _ranking_guidance(found),
                 _DESCRIPTION_GUIDANCE,
                 *([_OWN_GUIDANCE] if own else []),
@@ -147,11 +162,12 @@ async def search_eda_studies(
     )
     summary = ", ".join(
         [
+            *unread,
             *([f"{len(own)} of your own studies"] if own else []),
             *([_ranking_summary(found, query)] if found.cards else []),
         ]
     )
-    return with_summary(result, summary, ctx=ctx)
+    return with_summary(result, summary, ctx=ctx, status="warn" if unread else "ok")
 
 
 async def describe_eda_study(

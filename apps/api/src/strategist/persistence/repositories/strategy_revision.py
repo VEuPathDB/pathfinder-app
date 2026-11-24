@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, desc, select, update
+from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy import StrategyAst
 
 from strategist.domain.strategy.revision import (
     parse_strategy_ast,
@@ -21,6 +23,11 @@ from strategist.persistence.models import (
 from strategist.persistence.rows import rows_changed
 
 __all__ = ["StrategyRevisionRepository"]
+
+
+THE_TURNS_MESSAGE: ContextVar[UUID | None] = ContextVar(
+    "the_turns_message", default=None
+)
 
 
 class StrategyRevisionRepository:
@@ -39,7 +46,11 @@ class StrategyRevisionRepository:
         """Append the strategy's current state. A repeat of the newest row is
         not appended twice."""
         revision = strategy_revision_of_raw(strategy.strategy_ast)
-        ast = parse_strategy_ast(strategy.strategy_ast)
+        match parse_strategy_ast(strategy.strategy_ast):
+            case StrategyAst(name=named):
+                name = named
+            case _:
+                name = None
         latest = await self.latest(conversation_id)
         if (
             latest is not None
@@ -59,33 +70,12 @@ class StrategyRevisionRepository:
             wdk_strategy_id=strategy.wdk_strategy_id,
             wdk_strategy_created_here=strategy.wdk_strategy_created_here,
             is_saved=strategy.is_saved,
-            name=ast.name if ast is not None else None,
-            message_id=message_id,
+            name=name,
+            message_id=message_id or THE_TURNS_MESSAGE.get(),
         )
         self.session.add(row)
         await self.session.flush()
         return StrategyRevisionView.model_validate(row)
-
-    async def name_latest(
-        self,
-        conversation_id: UUID,
-        *,
-        message_id: UUID,
-    ) -> None:
-        """Record which message the thread's newest snapshot belongs to."""
-        newest = await self.session.scalar(
-            select(StrategyRevision.id)
-            .where(StrategyRevision.conversation_id == conversation_id)
-            .order_by(desc(StrategyRevision.id))
-            .limit(1),
-        )
-        if newest is None:
-            return
-        await self.session.execute(
-            update(StrategyRevision)
-            .where(StrategyRevision.id == newest)
-            .values(message_id=message_id),
-        )
 
     async def named_by(
         self,
@@ -113,27 +103,49 @@ class StrategyRevisionRepository:
         )
         return None if row is None else StrategyRevisionView.model_validate(row)
 
-    async def newest_turn_end_unlike(
-        self,
-        conversation_id: UUID,
-        *,
-        before_row_id: int,
-        revision: str,
+    async def before_the_last_change(
+        self, conversation_id: UUID
     ) -> StrategyRevisionView | None:
-        """The newest snapshot older than ``before_row_id`` that a turn ended on
-        and whose tree differs from ``revision``."""
-        row = await self.session.scalar(
+        """The snapshot the thread held before the change that reached its tree.
+
+        The change is the turn, or the write outside a turn, that wrote the oldest
+        snapshot of the newest run holding the current tree; the result is the
+        last snapshot written before any snapshot of that change.
+        """
+        rows = (
+            await self.session.execute(
+                select(
+                    StrategyRevision.id,
+                    StrategyRevision.revision,
+                    StrategyRevision.message_id,
+                )
+                .where(StrategyRevision.conversation_id == conversation_id)
+                .order_by(desc(StrategyRevision.id))
+            )
+        ).all()
+        if not rows:
+            return None
+        reached = rows[0]
+        for row in rows:
+            if row.revision != rows[0].revision:
+                break
+            reached = row
+        change = [
+            row.id
+            for row in rows
+            if row.id == reached.id
+            or (reached.message_id is not None and row.message_id == reached.message_id)
+        ]
+        found = await self.session.scalar(
             select(StrategyRevision)
             .where(
                 StrategyRevision.conversation_id == conversation_id,
-                StrategyRevision.id < before_row_id,
-                StrategyRevision.message_id.is_not(None),
-                StrategyRevision.revision != revision,
+                StrategyRevision.id < min(change),
             )
             .order_by(desc(StrategyRevision.id))
             .limit(1),
         )
-        return None if row is None else StrategyRevisionView.model_validate(row)
+        return None if found is None else StrategyRevisionView.model_validate(found)
 
     async def newest(
         self,

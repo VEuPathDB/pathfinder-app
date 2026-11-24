@@ -23,6 +23,7 @@ from strategist.domain.last_change import LastChange
 from strategist.domain.membership_facts import MembershipFact
 from strategist.domain.read_facts import ReadFact
 from strategist.domain.record_facts import OrthologFact, SourceFact
+from strategist.domain.records_read import SampleReads
 from strategist.domain.refusal import Closing, Problems, RefusalLedger
 from strategist.domain.strategy.constraints import StoredConstraint
 from strategist.domain.strategy.questions import OpenQuestion
@@ -234,6 +235,7 @@ class TurnMarkers(CamelModel):
     records_read: dict[str, list[str]] = Field(default_factory=dict)
     # The genes a sample of this turn returned, whose records a check may read.
     sampled_gene_ids: list[str] = Field(default_factory=list)
+    sample_reads: dict[str, SampleReads] = Field(default_factory=dict)
     # The gene ids each listing or sample of this turn returned, by WDK step,
     # once each and in the order they came.
     listings: dict[int, list[str]] = Field(default_factory=dict)
@@ -443,6 +445,16 @@ class TurnMarkers(CamelModel):
     def record_membership(self, membership: MembershipFact) -> None:
         """Keep which of the asked genes one membership check found held."""
         self.memberships.append(membership)
+
+    def sample_tried(self, check_id: str) -> None:
+        held = self.sample_reads.get(check_id, SampleReads())
+        self.sample_reads[check_id] = held.model_copy(update={"tried": held.tried + 1})
+
+    def sample_answered(self, check_id: str) -> None:
+        held = self.sample_reads.get(check_id, SampleReads())
+        self.sample_reads[check_id] = held.model_copy(
+            update={"answered": held.answered + 1}
+        )
 
     def record_sampled_genes(self, gene_ids: Iterable[str]) -> None:
         """Record each gene a sample returned, once."""

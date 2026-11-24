@@ -9,7 +9,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.domain.strategy.operational_spec import BoundValue
-from strategist.domain.strategy.value_source import stated_by_labels
+from strategist.domain.strategy.value_source import stated_by_labels, stated_source
 from strategist.services.strategies.dataset_sources import id_list, saved_dataset
 
 _IDS: TypeAdapter[list[str]] = TypeAdapter(list[str])
@@ -54,5 +54,6 @@ def with_typed_ids(
     for name, ids in typed.items():
         held = bound[name].model_copy(update={"label": ", ".join(ids)})
         run = stated_by_labels(ids, (), request_texts)
-        labelled[name] = held.sourced("stated", run) if run else held
+        source = stated_source(held.value, run, request_texts, ())
+        labelled[name] = held.sourced(source, held.basis) if run else held
     return labelled

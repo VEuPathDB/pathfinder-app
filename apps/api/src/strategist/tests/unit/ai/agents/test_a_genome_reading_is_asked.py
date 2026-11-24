@@ -80,7 +80,7 @@ def _held(criterion: Criterion) -> tuple[FrameResult, list[OpenQuestion]]:
         ),
     )
     ctx.deps.agent_state.operational_spec_draft = draft
-    held = hold_the_genome_reading_to_a_question(ctx, FrameResult(summary="framed"))
+    held = hold_the_genome_reading_to_a_question(ctx, FrameResult(notes="framed"))
     assert isinstance(held, FrameResult)
     return held, held.questions(ctx.deps.agent_state.operational_spec_draft)
 
@@ -122,7 +122,7 @@ def test_the_strict_binding_stays_while_it_waits() -> None:
         ),
     )
 
-    hold_the_genome_reading_to_a_question(ctx, FrameResult(summary="framed"))
+    hold_the_genome_reading_to_a_question(ctx, FrameResult(notes="framed"))
 
     [held] = ctx.deps.agent_state.operational_spec_draft.criteria
     assert held.param_values == criterion.param_values

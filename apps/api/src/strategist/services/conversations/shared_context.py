@@ -30,6 +30,7 @@ CONVERSATION_SHOWN: Final[frozenset[str]] = frozenset(
         "step_count",
         "estimated_size",
         "strategy_revision",
+        "strategy_unreadable",
         "mode",
     }
 )

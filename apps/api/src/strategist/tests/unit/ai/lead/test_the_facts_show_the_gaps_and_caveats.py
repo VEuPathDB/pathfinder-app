@@ -161,7 +161,7 @@ def _framed_nothing(
     async def _no_search(**_: Any) -> FrameResult:
         return FrameResult(
             disposition="needs_research",
-            summary=(
+            notes=(
                 "No search on this site states a predicted GPI anchor; the "
                 "nearest is the text search, which reads annotation words."
             ),

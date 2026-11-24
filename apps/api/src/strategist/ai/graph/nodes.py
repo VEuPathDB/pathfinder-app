@@ -14,7 +14,6 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.scratchpad.compactor import compact_scratchpad
 from langgraph.runtime import Runtime
 from langgraph.types import Command
-from sqlalchemy.exc import SQLAlchemyError
 
 from strategist.ai.agents.compactor import build_compactor_agent
 from strategist.ai.capabilities.metering import SpendMeter, charge_spend
@@ -28,28 +27,10 @@ from strategist.services.conversations.message_ratings import (
     TurnMemories,
     write_turn_memories,
 )
-from strategist.services.conversations.turns import name_turn_strategy_revision
 
 logger = get_logger(__name__)
 
 _END: Literal["__end__"] = "__end__"
-
-
-async def _name_strategy_revision(
-    *,
-    context: Context,
-    conversation_id: UUID,
-    message_id: UUID,
-) -> None:
-    """Name the turn's strategy snapshot. A database refusal does not fail the turn."""
-    try:
-        await name_turn_strategy_revision(
-            context.db_session_factory,
-            conversation_id=conversation_id,
-            message_id=message_id,
-        )
-    except SQLAlchemyError:
-        logger.warning("failed to name the turn's strategy revision")
 
 
 async def _compact_the_notes(
@@ -132,12 +113,6 @@ async def finalize_turn_node(
             context=runtime.context,
             state=state,
         )
-        if turn_message_id is not None:
-            await _name_strategy_revision(
-                context=runtime.context,
-                conversation_id=state.conversation_id,
-                message_id=turn_message_id,
-            )
 
     notes_written = False
     if runtime.context is not None and verdict is not None and verdict.passed:

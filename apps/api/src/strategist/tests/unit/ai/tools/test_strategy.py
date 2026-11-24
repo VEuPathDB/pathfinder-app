@@ -170,21 +170,6 @@ class TestRevisionPrecondition:
             )
 
 
-class TestOperationListValidation:
-    async def test_an_empty_operation_list_is_refused(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        graph = graph_with(leaf("step_a"))
-        committed: list[list[GraphOperation]] = []
-        ctx, commit = context_and_commit(graph, committed)
-        pin_apply(monkeypatch, commit)
-
-        with pytest.raises(ModelRetry):
-            await apply_operations(ctx, base_revision=revision_of(graph), operations=[])
-
-        assert committed == []
-
-
 class TestBuildStrategyNoLongerClobbersSilently:
     async def test_replacing_a_non_empty_strategy_needs_the_revision(
         self, monkeypatch: pytest.MonkeyPatch

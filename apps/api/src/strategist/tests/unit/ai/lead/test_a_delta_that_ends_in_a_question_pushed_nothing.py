@@ -86,7 +86,7 @@ async def _edit_that_stops_on_a_question(monkeypatch: pytest.MonkeyPatch) -> Edi
         )
         return FrameResult(
             disposition="needs_user",
-            summary="stopped on the TM step",
+            notes="stopped on the TM step",
             reported=[_REPORTED],
             gaps=[_GAP],
         )

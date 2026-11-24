@@ -30,7 +30,6 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.sync_state import WDKSyncState
-from strategist.tests._support.held_answers import refused_once
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -136,7 +135,10 @@ class TestTheRouteThePinPrints:
         assert f'open_eda_analysis(dataset_id="{_DATASET}"' in pinned
         assert "set_eda_filters" in pinned
         assert "preview_eda_subset" in pinned
-        assert 'create_eda_step(criterion_id="c_essential")' in pinned
+        assert (
+            'create_eda_step(placement={"kind": "criterion", "criterion_id": "c_essential"})'
+            in pinned
+        )
         assert "Never ask the user for an analysis specification document" in pinned
         assert (
             "A cut that neither the researcher's words nor one of the study's "
@@ -158,8 +160,14 @@ class TestTheRouteThePinPrints:
         blocks = eda_route_blocks(run_context_for(_deps(_session(), spec=spec)))
 
         assert len(blocks) == 2
-        assert 'create_eda_step(criterion_id="c_essential")' in blocks[0]
-        assert 'create_eda_step(criterion_id="c_24h_vs_36_up")' in blocks[1]
+        assert (
+            'create_eda_step(placement={"kind": "criterion", "criterion_id": "c_essential"})'
+            in blocks[0]
+        )
+        assert (
+            'create_eda_step(placement={"kind": "criterion", "criterion_id": "c_24h_vs_36_up"})'
+            in blocks[1]
+        )
 
     def test_a_waiting_criterion_inside_a_branch_is_routed_by_its_id(self) -> None:
         """The structure places the export at any depth, so the route is one."""
@@ -185,8 +193,9 @@ class TestTheRouteThePinPrints:
 
         assert [block.splitlines()[5] for block in blocks] == [
             (
-                f'4. create_eda_step(criterion_id="{waiting}") - the structure '
-                f"places the step, so name no other placement."
+                f'4. create_eda_step(placement={{"kind": "criterion", '
+                f'"criterion_id": "{waiting}"}}) - the structure places the '
+                f"step, so name no other placement."
             )
             for waiting in ("c_essential", "c_essential_toxo")
         ]
@@ -255,7 +264,7 @@ class TestTheStepsOutsideTheStrategy:
         assert pinned is not None
         assert pinned.startswith("Steps outside the strategy: step_da5a2302")
         assert "delete_step(step_id)" in pinned
-        assert "create_eda_step(replace_step_id=...)" in pinned
+        assert "create_eda_step placement of kind replace" in pinned
 
     def _with_a_loose_component(self, session: StrategySession) -> StrategySession:
         graph = session.graph
@@ -366,6 +375,6 @@ def test_no_route_is_pinned_while_the_turn_withholds_its_tools() -> None:
     )
     markers = deps.state.turn_markers
     markers.built = True
-    markers.answer_ledger = refused_once("unverified_build")
+    markers.verification_dispatched = True
 
     assert eda_route_blocks(run_context_for(deps)) == []

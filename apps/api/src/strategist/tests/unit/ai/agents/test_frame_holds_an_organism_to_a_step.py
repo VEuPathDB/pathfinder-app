@@ -28,7 +28,7 @@ from strategist.tests._support.orthomcl_counts import CLADE_ONLY, replayed_count
 from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
-_READY = {"summary": "Bound the ME49 proteins.", "disposition": "spec_ready"}
+_READY = {"notes": "Bound the ME49 proteins.", "disposition": "spec_ready"}
 _REMEDY = (
     "R1 asks for Toxoplasma gondii ME49 (organism), and no step of the draft "
     "limits its records to an organism. A unit of a phyletic expression or the "

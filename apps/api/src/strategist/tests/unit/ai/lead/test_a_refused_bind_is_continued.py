@@ -96,7 +96,7 @@ def _next_call(messages: list[ModelMessage]) -> ToolCallPart:
     """Bind the signal peptide, then the transmembrane criterion, then answer."""
     if _bound_transmembrane(messages):
         return final_result_part(
-            {"summary": "both criteria bound", "disposition": "spec_ready"}
+            {"notes": "both criteria bound", "disposition": "spec_ready"}
         )
     name = (
         "bind_transmembrane"

@@ -152,7 +152,7 @@ async def open_the_sheet(
         return wait_for_the_analysis(
             ctx, stated, described, definition, record_type, None, early=early
         )
-    await search_stage(ctx, stated, definition, record_type, early)
+    await search_stage(ctx, stated, definition, early)
     register_search(ctx.deps.agent_state, definition, record_type)
     return criterion_return(
         ctx,

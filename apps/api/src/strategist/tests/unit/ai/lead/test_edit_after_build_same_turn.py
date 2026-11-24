@@ -162,7 +162,7 @@ class EditSeams:
         deps: LeadDeps = kwargs["deps"]
         assert self.draft is not None
         deps.state.domain.operational_spec = self.draft
-        return FrameResult(disposition="spec_ready", summary="reframed")
+        return FrameResult(disposition="spec_ready", notes="reframed")
 
     async def commit(self, **kwargs: Any) -> CommitResult:
         if self.refuse:

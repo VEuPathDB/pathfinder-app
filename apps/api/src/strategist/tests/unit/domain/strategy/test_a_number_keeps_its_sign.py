@@ -3,16 +3,22 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters import NumberValue, ParamValue, from_wire
 
-from strategist.domain.strategy.value_source import value_source
+from strategist.domain.strategy.value_source import (
+    ParamSheet,
+    source_kind,
+    value_source,
+)
 
 
 def _source(value: ParamValue, said: str) -> str:
-    return value_source(
-        value,
-        placeholder=False,
-        unset=False,
-        request_texts=[said],
-        display_name="Fitness score",
+    return source_kind(
+        value_source(
+            value,
+            placeholder=False,
+            unset=False,
+            request_texts=[said],
+            sheet=ParamSheet(display_name="Fitness score"),
+        )
     )
 
 

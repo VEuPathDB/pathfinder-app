@@ -247,7 +247,7 @@ def test_the_cross_organism_intersect_ends_on_its_refusal() -> None:
         "set_structure",
         "final_result",
     ]
-    assert calls[-1].args_as_dict()["summary"].startswith(_STRUCTURE_REFUSAL)
+    assert calls[-1].args_as_dict()["notes"].startswith(_STRUCTURE_REFUSAL)
     organisms = [
         a["params"]["organism"]
         for a in args_of(calls, "set_criterion")
@@ -300,7 +300,7 @@ def test_the_edit_moves_the_domain_minimum_and_copies_the_rest(
         "max_tm": None,
     }
     assert calls[-1].args_as_dict() == {
-        "summary": "Moved min_tm on tm_domains; the rest are unchanged.",
+        "notes": "Moved min_tm on tm_domains; the rest are unchanged.",
         "disposition": "spec_ready",
         "openQuestions": [],
     }

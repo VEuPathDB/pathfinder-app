@@ -217,8 +217,7 @@ def _nudge_deps(
 
 
 def _answering_script(deps: LeadDeps) -> RetryRecordingScript:
-    """An answer that reports the change the turn made, so only the
-    verification nudge can refuse it."""
+    """An answer that reports the change the turn made."""
     return RetryRecordingScript(
         ToolCallPart(
             tool_name="final_result",
@@ -254,21 +253,12 @@ def _run(deps: LeadDeps) -> RetryRecordingScript:
     return script
 
 
-def test_a_built_turn_that_never_verified_is_asked_once() -> None:
+def test_a_built_turn_that_never_verified_is_not_refused() -> None:
+    """The check is the runtime's; the answer passes on the first attempt."""
     deps = _nudge_deps(built=True)
 
-    script = _run(deps)
-
-    assert len(script.retries) == 1
-    assert "verify_strategy" in script.retries[0]
-    assert "1 step(s) on VEuPathDB" in script.retries[0]
-    assert "root count 1543" in script.retries[0]
-    assert charged(deps.state.turn_markers.answer_ledger) == ["unverified_build"]
-
-
-def test_the_second_answer_goes_through_even_when_it_still_declines() -> None:
-    """The nudge compels the attempt, not the outcome."""
-    assert len(_run(_nudge_deps(built=True)).retries) == 1
+    assert _run(deps).retries == []
+    assert charged(deps.state.turn_markers.answer_ledger) == []
 
 
 def test_a_verified_turn_is_never_asked() -> None:

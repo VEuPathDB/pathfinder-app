@@ -4,15 +4,27 @@ title: A contextualized param view is an enrichment, and it has one owner
 description: Six call sites asked WDK for a search's params under a context, with four exception types caught and five recoveries between them. The two with no policy at all are exactly where three separate bugs landed.
 tags: [wdk-alignment, parameters, resilience, architecture]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-11-24T00:00:00Z }
 status: stable
 ---
 
 # What was decided
 
 `get_search_params_under_context` owns the operation. It narrows a search's
-parameters by a context when WDK can narrow them, falls back to the static view
-when WDK cannot, and raises only when the static view is unreachable too.
+parameters by a context when WDK can narrow them, and otherwise returns one of
+two types, each holding the static view and a note a caller states:
+`NarrowingFailed` when the site did not answer (a 5xx after retries, a timeout),
+and `NarrowingUnsupported` when the context is one WDK refuses for any value
+(organism with a phyletic pattern on `GenesByOrthologPattern`, measured below),
+which is read from the parameter pair and never sent. It raises only when the
+static view is unreachable too. The binding walk (`wdk_fetch_at`) reads the
+static view; `read_parameter_options` returns it with
+`ParameterInfo.not_narrowed`, which `get_parameter_options` states; a reader
+that labels a held value under its parents (`wdk_fetch_under_parents_at`, used
+by `sheet_params._sheet_under`) raises, so a failed read is `Unread` and the
+turn is refused with the site's reason. No published view stands in silently.
+No parameter of the recorded `GenesByOrthologPattern` depends on another, so its
+sheet is never narrowed and its step reads the published sheet as it is.
 
 # Why: the seam had no owner
 
@@ -65,6 +77,13 @@ not why WDK refused. Serving the step editor's parameter panel, that route
 turned a refusal into a 500 and the panel reported the search as having no
 parameters. It now tries the site, then the portal, then the static view, and
 raises only when the static view fails too.
+
+# Why a label does not fall back
+
+A label read from the static view names a value from a vocabulary its parents
+may not give, so the step would show a wrong label with nothing to say so. The
+walk only binds, and the run endpoint checks what it binds; a label has no such
+check.
 
 # Evidence it works
 

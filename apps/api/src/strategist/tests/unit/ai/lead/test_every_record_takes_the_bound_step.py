@@ -12,6 +12,7 @@ from veupathdb.domain.strategy import CombineOp
 
 from strategist.ai.lead.deltas import EditDelta
 from strategist.ai.lead.sub_agent_stream import SubAgentResume
+from strategist.ai.tools.standalone._eda_step_arguments import WaitingCriterion
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -48,7 +49,11 @@ async def _bound(thread: DisagreementThread) -> tuple[str, str]:
     first = await _a_comparison_waits(thread)
     thread.frames(lambda found: found)
     assert isinstance(await thread.edit(), EditDelta)
-    second = await export(thread, reference="36h", criterion_id=WAITING)
+    second = await export(
+        thread,
+        reference="36h",
+        placement=WaitingCriterion(kind="criterion", criterion_id=WAITING),
+    )
     return first, second.step_id
 
 

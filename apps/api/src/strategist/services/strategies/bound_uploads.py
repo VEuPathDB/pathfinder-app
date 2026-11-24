@@ -11,6 +11,8 @@ from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import EDA_USER_DATASET_PREFIX, WDKSearch, eda_dataset_id
 
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
+from strategist.domain.unread import Unread
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.user_dataset_searches import (
     OwnedUpload,
     dataset_parameter,
@@ -57,18 +59,21 @@ async def uploads_the_specs_run_on(
     site_id: str,
     specs: Sequence[OperationalSpec | None],
     sheets: Mapping[str, WDKSearch],
-) -> dict[str, OwnedUpload]:
+) -> dict[str, OwnedUpload | Unread]:
     """Each criterion's upload, with the uploads read once from the site under
-    the researcher's token. A listing the site does not answer names no upload."""
+    the researcher's token. A listing the site does not answer leaves each
+    criterion that reads an upload unread."""
     held = [spec for spec in specs if spec is not None]
-    if not any(_bound_ids(c, sheets) for spec in held for c in spec.criteria):
+    bound = [c.id for spec in held for c in spec.criteria if _bound_ids(c, sheets)]
+    if not bound:
         return {}
     try:
         uploads = await owned_uploads(site_id)
     except (VEuPathDBError, OSError) as exc:
         logger.warning("uploads unreadable", site_id=site_id, error=str(exc))
-        return {}
-    found: dict[str, OwnedUpload] = {}
+        unread = Unread(reason=f"your uploads were not read: {site_words(exc)}")
+        return dict.fromkeys(bound, unread)
+    found: dict[str, OwnedUpload | Unread] = {}
     for spec in held:
         found |= uploads_run_on(spec, sheets, uploads)
     return found

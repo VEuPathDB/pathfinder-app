@@ -161,7 +161,7 @@ async def test_an_edit_that_binds_a_saved_comparison_notes_the_strategy(
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = after
-        return FrameResult(disposition="spec_ready", summary="reframed")
+        return FrameResult(disposition="spec_ready", notes="reframed")
 
     async def _fake_apply(**kwargs: Any) -> CommitResult:
         batches.append(kwargs["ops"])

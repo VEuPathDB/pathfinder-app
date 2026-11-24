@@ -39,9 +39,9 @@ async def test_a_later_pass_keeps_the_scopes_an_earlier_pass_stated(
     _passes(
         monkeypatch,
         [
-            FrameResult(summary="bound one", group_scopes=[_WHOLE]),
-            FrameResult(summary="bound two", group_scopes=[_NAMED]),
-            FrameResult(summary="bound three"),
+            FrameResult(notes="bound one", group_scopes=[_WHOLE]),
+            FrameResult(notes="bound two", group_scopes=[_NAMED]),
+            FrameResult(notes="bound three"),
         ],
     )
     deps = _deps()

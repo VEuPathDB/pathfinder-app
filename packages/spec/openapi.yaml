@@ -5546,6 +5546,11 @@ components:
           type: string
           title: Strategyrevision
           default: ''
+        strategyUnreadable:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Strategyunreadable
         mode:
           anyOf:
           - $ref: '#/components/schemas/ThreadMode'
@@ -15056,6 +15061,7 @@ components:
       - WDK_IDENTITY_MISMATCH
       - STRATEGY_NOT_FOUND
       - STRATEGY_AST_CORRUPT
+      - STRATEGY_NOT_SAVED
       - INVALID_STRATEGY
       - STEP_NOT_FOUND
       - INCOMPATIBLE_STEPS
@@ -15662,6 +15668,10 @@ components:
         organismChange:
           anyOf:
           - $ref: '#/components/schemas/OrganismChange'
+          - type: 'null'
+        notRead:
+          anyOf:
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
       title: BuildOutcome
       type: object
@@ -19393,26 +19403,31 @@ components:
         mcc:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Mcc
         balancedAccuracy:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Balancedaccuracy
         f1:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: F1
         sensitivity:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Sensitivity
         precision:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Precision
         error:
@@ -19421,10 +19436,12 @@ components:
           - type: 'null'
           title: Error
         controlHits:
-          items:
-            type: string
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - $ref: '#/components/schemas/Unread'
           title: Controlhits
-          type: array
       required:
       - label
       - searchName
@@ -20432,6 +20449,7 @@ components:
       - expression_fit
       - tally
       - step_columns
+      - records_read
       type: string
     StepFact:
       description: 'One step of the strategy, or of the draft while nothing is built.
@@ -21391,6 +21409,15 @@ components:
       - reading
       - sentence
       title: UnmeasuredValueCaveat
+      type: object
+    Unread:
+      properties:
+        reason:
+          title: Reason
+          type: string
+      required:
+      - reason
+      title: Unread
       type: object
     UnrevisableSubsetCaveat:
       properties:

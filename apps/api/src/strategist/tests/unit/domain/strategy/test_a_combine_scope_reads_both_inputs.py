@@ -214,6 +214,9 @@ def _leaf(criterion_id: str) -> StructureNode:
     return StructureNode(kind="leaf", criterion_id=criterion_id)
 
 
+_GENES = 5_720
+
+
 def _joined(operator: CombineOp, *inputs: StructureNode) -> StructureNode:
     return StructureNode(kind="combine", operator=operator, inputs=list(inputs))
 
@@ -254,8 +257,13 @@ def _organism(organism: str) -> Constraint:
 
 
 def _organism_leaf(*requirements: Constraint) -> Criterion:
+    organisms = [c.organism for c in requirements if c.organism is not None]
     return _criterion("c_named", _PF).model_copy(
-        update={"answers": [RequirementLink(requirement=c.id) for c in requirements]}
+        update={
+            "answers": [RequirementLink(requirement=c.id) for c in requirements],
+            "resolved_params": bound({"organism": MultiPickValue(values=organisms)}),
+            "result_count": _GENES,
+        }
     )
 
 
@@ -271,7 +279,11 @@ def test_an_organism_leaf_beside_a_wider_union_stays() -> None:
     )
 
     folded = fold_organism_universe(
-        spec, SpecStructure(root=root), (_PF, _PV), (pf,), {}, live_step_ids=()
+        spec,
+        SpecStructure(root=root),
+        (_PF, _PV),
+        {"c_named": _GENES},
+        live_step_ids=(),
     )
 
     assert (folded.structure.root, folded.dropped) == (root, ())
@@ -289,16 +301,20 @@ def test_a_union_that_carries_both_organisms_names_both_carriers() -> None:
     )
 
     folded = fold_organism_universe(
-        spec, SpecStructure(root=root), (_PF, _PV), (pf, pv), {}, live_step_ids=()
+        spec,
+        SpecStructure(root=root),
+        (_PF, _PV),
+        {"c_named": _GENES},
+        live_step_ids=(),
     )
 
     assert [(d.criterion_id, d.carrier_ids) for d in folded.dropped] == [
         ("c_named", ("c_pf", "c_pv"))
     ]
     assert folded.dropped[0].fate == (
-        f"c_named ('signal peptide in {_PF}') is dropped: it links only the "
-        f"organism {_PF}, {_PV}, which c_pf, c_pv already run on, so that "
-        f"organism value meets it."
+        f"c_named ('signal peptide in {_PF}') is dropped: it matches all 5,720 "
+        f"genes of {_PF}, {_PV}, which c_pf, c_pv already run on, so it narrows "
+        f"nothing."
     )
 
 
@@ -314,7 +330,11 @@ def test_a_reversed_minus_is_carried_by_its_secondary_input() -> None:
     )
 
     folded = fold_organism_universe(
-        spec, SpecStructure(root=root), (_PF, _PV), (pf,), {}, live_step_ids=()
+        spec,
+        SpecStructure(root=root),
+        (_PF, _PV),
+        {"c_named": _GENES},
+        live_step_ids=(),
     )
 
     assert [(d.criterion_id, d.carrier_ids) for d in folded.dropped] == [

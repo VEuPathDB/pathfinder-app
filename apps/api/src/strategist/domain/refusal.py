@@ -32,6 +32,7 @@ Sentence = Annotated[str, BeforeValidator(_one_line), StringConstraints(min_leng
 
 
 class Check(StrEnum):
+    AN_ABSENCE_TO_A_READ = "an_absence_to_a_read"
     AN_OPTION_TO_A_HELD_EXPRESSION = "an_option_to_a_held_expression"
     AN_OPTION_TO_ITS_PARAMETER = "an_option_to_its_parameter"
     AN_ORGANISM_TO_A_STEP = "an_organism_to_a_step"
@@ -66,6 +67,7 @@ class Check(StrEnum):
     REQUIREMENTS = "requirements"
     RESOLVE = "resolve"
     ROLE = "role"
+    SAME_NAMED_SUBSET = "same_named_subset"
     SAVED_STRATEGY = "saved_strategy"
     SEARCH = "search"
     SOURCES = "sources"
@@ -94,7 +96,6 @@ class Check(StrEnum):
     UNMET_REQUIREMENT = "unmet_requirement"
     UNSAVED_CONTROLS = "unsaved_controls"
     UNSERVED = "unserved"
-    UNVERIFIED_BUILD = "unverified_build"
     UPLOAD = "upload"
     VALIDATION = "validation"
     VARIANT_PARAMETERS = "variant_parameters"

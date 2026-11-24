@@ -155,7 +155,7 @@ async def offered_where_the_taxonomy_is(
     try:
         served = await serves_ortho_taxonomy(ctx.deps.site_id)
     except VEuPathDBError:
-        return None
+        return tool_def
     return tool_def if served else None
 
 

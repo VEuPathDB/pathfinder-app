@@ -219,7 +219,7 @@ def _exported(messages: list[ModelMessage]) -> ToolCallPart:
     if text_return(messages, "create_eda_step") is None:
         return scripted_call(
             "create_eda_step",
-            {"effect_size_threshold": 1.0, "significance_threshold": 0.05},
+            {"volcano": {"effect_size_threshold": 1.0, "significance_threshold": 0.05}},
         )
     if text_return(messages, "verify_strategy") is None:
         return scripted_call("verify_strategy", {"reason": "check the exported step"})

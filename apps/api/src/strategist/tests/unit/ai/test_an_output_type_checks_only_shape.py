@@ -137,7 +137,7 @@ _READING = {"label": "At most 3 genomes", "value": "MICR>=1T AND MICR<=3T"}
 
 
 def _framed(**fields: object) -> dict[str, object]:
-    return {"disposition": "needs_user", "summary": "s"} | fields
+    return {"disposition": "needs_user", "notes": "s"} | fields
 
 
 def _digest(**fields: object) -> dict[str, object]:

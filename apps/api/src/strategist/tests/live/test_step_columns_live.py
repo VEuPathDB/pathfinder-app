@@ -17,7 +17,10 @@ from strategist.domain.column_fit import ColumnFit
 from strategist.domain.strategy.operational_spec import (
     Criterion,
 )
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
+
+_STATED = StatedSource(words="")
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -89,7 +92,7 @@ async def _fits(
         id="c_live",
         text="the step's own values",
         search_name=search,
-        resolved_params=bind_values(params, "stated", []),
+        resolved_params=bind_values(params, _STATED, []),
     )
     parameters = (await read_search_definition(_SITE, "transcript", search)).parameters
     bounds = column_bounds(

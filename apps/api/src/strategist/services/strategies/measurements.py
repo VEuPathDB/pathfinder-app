@@ -23,9 +23,9 @@ from veupathdb.wdk import SiteSearchResponse, get_site_router
 from veupathdb_mcp.catalog import ParameterInfo
 from veupathdb_mcp.wdk import count_search_answer
 
+from strategist.domain.strategy.measurement_kinds import CountedKind
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
-    CountedKind,
     Measurement,
 )
 from strategist.domain.strategy.text_expression import TextExpression

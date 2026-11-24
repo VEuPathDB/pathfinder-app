@@ -66,6 +66,7 @@ from strategist.domain.strategy.requirement_reports import (
 )
 from strategist.domain.strategy.site_set_reads import searches_holding_values
 from strategist.domain.strategy.spec_diff import CriterionChange, diff_specs
+from strategist.services.strategies.data_marks import read_data_marks
 from strategist.services.strategies.sheet_params import (
     published_parameters_of_searches,
 )
@@ -223,6 +224,9 @@ async def run_frame(
             domain.operational_spec = await read_the_operators(
                 domain.operational_spec, deps
             )
+        domain.data_marks = await read_data_marks(
+            deps.runtime.site_id, [domain.operational_spec]
+        )
         lacking = requirements_the_site_lacks(deps, result)
         asked = questions_for_the_card(deps, result, lacking)
         if domain.operational_spec is not None:
@@ -338,16 +342,15 @@ async def _accepted(
     route = state.portal_route or _another_site_route(deps, delta)
     found = deps.state.domain.spec_before_dispatch
     if route and draft == (found or OperationalSpec(goal=draft.goal)):
-        return FrameResult(disposition="needs_user", summary=route)
-    if route:
-        delta = delta.model_copy(update={"summary": f"{route} {delta.summary}"})
+        return FrameResult(disposition="needs_user", route=route)
+    delta = delta.model_copy(update={"route": route})
     if delta.disposition == "spec_ready" and not any(
         c.bound or c.pending_analysis for c in draft.criteria
     ):
         if deps.empty_frame_reported:
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
-        refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
+        refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.notes))
     draft = _without_what_an_unbound_question_moved(deps, delta, state)
     changes = derived_changes(found, draft, state.sets_the_site)
     return delta.model_copy(update={"changes": changes})

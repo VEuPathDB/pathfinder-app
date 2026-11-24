@@ -80,7 +80,7 @@ async def _grown(
         Criterion(id=c.criterion_id, text=c.text, search_name=c.search_name)
         for c in _growth(arc, values).criteria
     ]
-    delta = FrameResult(disposition="spec_ready", summary="grew the strategy")
+    delta = FrameResult(disposition="spec_ready", notes="grew the strategy")
 
     async def _framed(**kwargs: Any) -> FrameResult:
         agent_deps: AgentDeps = kwargs["agent_deps"]
@@ -116,7 +116,7 @@ async def test_the_added_step_is_stated_by_its_request(
     result, delta = await _grown(monkeypatch, site_id, arc)
 
     assert isinstance(result, FrameResult)
-    assert (result.disposition, result.summary) == (delta.disposition, delta.summary)
+    assert (result.disposition, result.notes) == (delta.disposition, delta.notes)
 
 
 @pytest.mark.parametrize("arc", ["add-step", "replace-subtree"])
@@ -126,4 +126,4 @@ async def test_the_organism_a_site_adds_is_stated_by_its_request(
     result, delta = await _grown(monkeypatch, "trichdb", arc)
 
     assert isinstance(result, FrameResult)
-    assert (result.disposition, result.summary) == (delta.disposition, delta.summary)
+    assert (result.disposition, result.notes) == (delta.disposition, delta.notes)

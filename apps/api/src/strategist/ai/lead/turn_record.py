@@ -12,7 +12,6 @@ from strategist.ai.lead.intent import (
     NamedControls,
 )
 from strategist.ai.lead.intent_gate import (
-    tools_the_turn_offers,
     turn_builds,
     turn_is_classified,
     turn_is_off_topic,
@@ -22,26 +21,15 @@ from strategist.ai.lead.ledger_sections import (
     FrameSection,
     VerificationSection,
 )
-from strategist.ai.lead.phase_stop import PhaseStop
-from strategist.ai.lead.proposal import OFFER_TOOLS
-from strategist.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
+from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_facts import turn_facts
 from strategist.domain.column_reach import StepReach
-from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.constraints import is_blocking
 from strategist.domain.strategy.operational_spec import (
     Criterion,
 )
 from strategist.domain.strategy.pending_analyses import pending_analyses
 from strategist.domain.turn_facts import TurnFacts
-
-# The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
-# sub-agent, and an accepted offer runs an edit or a build; each is refused the
-# same way the dispatches are.
-DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
-    "build_strategy",
-    *OFFER_TOOLS,
-}
 
 
 class TurnRecord(CamelModel):
@@ -50,15 +38,11 @@ class TurnRecord(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     changed_strategy: bool
-    build_unverified: bool
-    build_outcome: BuildOutcome | None
     eda_criterion_pending: Criterion | None
     eda_workflow_started: bool
     turn_builds: bool
     framed: bool
     off_topic: bool
-    last_phase_stop: PhaseStop | None
-    refused_dispatches: tuple[str, ...]
     build_section: BuildSection
     verification_section: VerificationSection
     created_control_sets: tuple[CreatedControlSet, ...]
@@ -77,17 +61,19 @@ class TurnRecord(CamelModel):
     unfollowed_reach: StepReach | None = None
     unmet_requirements: tuple[str, ...] = ()
 
-    @property
-    def check_could_not_finish(self) -> bool:
-        stop = self.last_phase_stop
-        return (
-            stop is not None and stop.role == "verification"
-        ) or "verify_strategy" in self.refused_dispatches
-
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
     """The first criterion no step exports yet, or None."""
     return next(iter(pending_analyses(deps.state.domain.operational_spec)), None)
+
+
+def owes_a_check(deps: LeadDeps) -> bool:
+    """Whether the turn built steps, no check of them was dispatched, and no
+    criterion of the build waits on its analysis. A turn that only deleted or
+    cleared steps owes none."""
+    if not deps.build_unverified or deps.state.turn_markers.verification_dispatched:
+        return False
+    return not (turn_builds(deps) and _pending_eda_criterion(deps) is not None)
 
 
 def _eda_workflow_started(deps: LeadDeps) -> bool:
@@ -98,17 +84,6 @@ def _eda_workflow_started(deps: LeadDeps) -> bool:
         opened.add(analysis.dataset_id)
     waiting = pending_analyses(deps.state.domain.operational_spec)
     return any(criterion.needs_analysis_on in opened for criterion in waiting)
-
-
-def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
-    """The dispatch tools this run refused and never ran again.
-
-    The run drops a tool from its retry record as soon as one call of it
-    returns, so what is left is work the turn asked for and never did. A tool
-    this turn never offered is a name the run did not know, not work it owes.
-    """
-    offered = tools_the_turn_offers(ctx.deps, DISPATCH_TOOLS)
-    return tuple(sorted(name for name in ctx.retries if name in offered))
 
 
 def _frame_open_questions(deps: LeadDeps, frame: FrameSection) -> tuple[str, ...]:
@@ -137,15 +112,11 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     ledger = derive_ledger(deps.state, deps.intent)
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
-        build_unverified=deps.build_unverified,
-        build_outcome=deps.state.domain.last_build_outcome,
         eda_criterion_pending=_pending_eda_criterion(deps),
         eda_workflow_started=_eda_workflow_started(deps),
         turn_builds=turn_builds(deps),
         framed=markers.framed,
         off_topic=turn_is_off_topic(deps),
-        last_phase_stop=deps.last_phase_stop,
-        refused_dispatches=_refused_dispatches(ctx),
         build_section=ledger.build,
         verification_section=ledger.verification,
         created_control_sets=tuple(markers.created_control_sets),

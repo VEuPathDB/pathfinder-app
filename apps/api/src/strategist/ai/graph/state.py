@@ -51,6 +51,7 @@ from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.domain.strategy.staleness import StaleBuild
 from strategist.domain.unmet_requirements import unmet_requirement_ids
+from strategist.domain.unread import Unread
 
 PhaseName = Literal[
     "frame",
@@ -167,6 +168,7 @@ class StrategyDomainState(ThreadRequirements):
     # strategy against ``last_build_outcome``. Never persisted: an edit that
     # was stale last turn is not stale after the next build.
     stale_build: StaleBuild | None = None
+    site_not_read: Unread | None = None
     created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
     built_expressions: dict[str, BuiltPattern] = Field(default_factory=dict)
     computed_comparisons: dict[str, HeldComparison] = Field(default_factory=dict)

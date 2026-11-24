@@ -24,7 +24,6 @@ from strategist.domain.eda_thread import OpenEdaAnalysis
 from strategist.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.session import StrategySession
-from strategist.tests._support.held_answers import refused_once
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests._support.streamed_model import streamed
 from strategist.tests.unit.ai.lead.conftest import (
@@ -144,22 +143,6 @@ def test_a_saved_set_is_served_on_a_building_turn() -> None:
     assert _offered(deps) >= _SAVED_SET_TOOLS
 
 
-def test_a_saved_set_is_served_while_a_build_waits_for_its_check() -> None:
-    """The refusal withholds what writes the strategy, and nothing else."""
-    deps = _deps(
-        classification=IntentClassification.NEW_STRATEGY,
-        domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
-        with_steps=True,
-    )
-    deps.state.turn_markers.built = True
-    deps.state.turn_markers.answer_ledger = refused_once("unverified_build")
-
-    offered = _offered(deps)
-
-    assert offered >= _SAVED_SET_TOOLS
-    assert offered & BUILDING_TOOLS == {"verify_strategy"}
-
-
 def test_a_verification_that_ran_and_failed_keeps_the_gate_closed() -> None:
     """A dispatch that reported failure is a check the build did not pass."""
     deps = _deps(
@@ -168,7 +151,6 @@ def test_a_verification_that_ran_and_failed_keeps_the_gate_closed() -> None:
         with_steps=True,
     )
     deps.state.turn_markers.built = True
-    deps.state.turn_markers.answer_ledger = refused_once("unverified_build")
     deps.state.turn_markers.verification_dispatched = True
 
     assert _offered(deps) & BUILDING_TOOLS == {"verify_strategy"}
@@ -354,53 +336,8 @@ def _classify_args(classification: IntentClassification) -> dict[str, Any]:
     }
 
 
-def _replies_twice(seen: OfferedTools) -> FunctionModel:
-    """A model that answers, is refused, and answers again."""
-
-    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        del messages
-        seen.record(info)
-        return ModelResponse(
-            parts=[
-                ToolCallPart(
-                    tool_name="final_result",
-                    args={
-                        "prose": _PROSE,
-                        "nextState": "await_user",
-                    },
-                    tool_call_id=f"call_final_{len(seen.steps)}",
-                ),
-            ],
-        )
-
-    return streamed(_fn, model_name="scripted")
-
-
-def _unverified_build_deps() -> LeadDeps:
-    deps = _deps(
-        classification=IntentClassification.NEW_STRATEGY,
-        domain=StrategyDomainState(last_build_outcome=_zero_build()),
-        with_steps=True,
-    )
-    deps.state.turn_markers.built = True
-    return deps
-
-
-def test_a_refused_reply_leaves_verification_as_the_only_building_tool() -> None:
-    """The turn built and never verified, so the retry offers one way on."""
-    seen = OfferedTools()
-    deps = _unverified_build_deps()
-
-    result = asyncio.run(
-        build_lead_agent().run(_PROMPT, deps=deps, model=_replies_twice(seen)),
-    )
-
-    assert isinstance(result.output, LeadResponse)
-    assert seen.steps[1] & BUILDING_TOOLS == {"verify_strategy"}
-
-
 def test_a_refusal_for_an_unbuilt_eda_criterion_keeps_the_tools_that_build_it() -> None:
-    """Only a refusal for a missing check narrows the turn to the check."""
+    """A refusal of the reply narrows no tool the turn reaches."""
     deps = _deps(
         classification=IntentClassification.NEW_STRATEGY,
         domain=StrategyDomainState(last_build_outcome=BuildOutcome()),

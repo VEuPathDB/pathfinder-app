@@ -305,7 +305,6 @@ async def _bind_the_search(
         call,
         infos,
         definition,
-        record_type,
         early=early.plus(handles).plus(why_problems(ctx, call, why)),
         reading=reading,
     )

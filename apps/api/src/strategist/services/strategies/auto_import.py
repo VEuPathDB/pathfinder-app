@@ -14,7 +14,7 @@ from sqlalchemy import text
 from veupathdb.errors import VEuPathDBError
 
 from strategist.domain.gene_homes import holds_genes
-from strategist.domain.strategy.revision import answer_revision, parse_strategy_ast
+from strategist.domain.strategy.revision import answer_revision_of_raw
 from strategist.persistence.models import ConversationStrategyView
 from strategist.persistence.repositories import (
     ConversationRepository,
@@ -141,7 +141,7 @@ async def auto_import_gene_set(
         )
     ):
         return None
-    revision = answer_revision(parse_strategy_ast(strategy.strategy_ast))
+    revision = answer_revision_of_raw(strategy.strategy_ast)
 
     # Only a set an earlier import made is linked; a set the researcher saved
     # on the same strategy stays theirs.

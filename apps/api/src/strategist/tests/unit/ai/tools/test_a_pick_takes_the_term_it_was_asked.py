@@ -62,6 +62,7 @@ def _state(message: str, term: str, values: list[str]) -> AgentToolState:
                 PhrasingMatch(term=term, phrasing=term, reach="phrase", values=values)
             ],
         ),
+        (),
     )
     return state
 

@@ -53,6 +53,12 @@ from strategist.ai.graph._lead_durable import (
     statistics_answered,
 )
 from strategist.ai.graph._lead_facts import show_the_links
+from strategist.ai.graph._lead_memory import (
+    indexed,
+    memory_index,
+    recalled,
+    retrieve_memories,
+)
 from strategist.ai.graph._lead_model import LeadModelContext
 from strategist.ai.graph._lead_reading import MessageNotReadError, classify_the_words
 from strategist.ai.graph._lead_stops import (
@@ -64,7 +70,6 @@ from strategist.ai.graph._lead_stops import (
     run_stop_reply,
     strategy_change,
 )
-from strategist.ai.graph._lead_turn import memory_index, retrieve_memories
 from strategist.ai.graph.rebuild import rebuilt_state
 from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import PipelineState
@@ -110,10 +115,11 @@ class _ExploreRun:
 async def _recalled(
     state: PipelineState, runtime: Runtime[Context], writer: Any
 ) -> list[MemoryValue]:
-    stored, index = await asyncio.gather(
+    read, index = await asyncio.gather(
         retrieve_memories(state, runtime), memory_index(state, runtime)
     )
-    state.domain.memory_index = index
+    stored = recalled(read, state.domain)
+    state.domain.memory_index = indexed(index, state.domain)
     fresh = state.domain.memories_to_show(stored)
     if fresh:
         emit_chunk(writer, recalled_memories_event(memories=fresh))

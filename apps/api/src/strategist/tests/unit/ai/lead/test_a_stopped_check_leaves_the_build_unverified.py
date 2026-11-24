@@ -19,8 +19,7 @@ from strategist.ai.lead.deltas import VerificationDelta, VerificationStopped
 from strategist.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from strategist.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.lead.turn_contract import LeadResponse, hold_the_turn_contract
-from strategist.ai.lead.turn_record import turn_record
+from strategist.ai.lead.turn_record import owes_a_check, turn_record
 from strategist.ai.lead.verify_dispatch import run_verification, verify_strategy
 from strategist.ai.tools.toolsets import verification
 from strategist.domain.turn_facts import UNVERIFIED_BUILD
@@ -38,9 +37,6 @@ from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
 )
-
-_WHY = "the verification pass stopped before it finished"
-_REPLY = f"I added the step. It is not checked yet, because {_WHY}."
 
 
 def _built_this_turn() -> LeadDeps:
@@ -104,7 +100,7 @@ def _unverified(deps: LeadDeps) -> str:
         (_misshapen, PhaseStopReason.OUTPUT_RETRIES),
     ],
 )
-async def test_a_stopped_check_leaves_the_status_and_takes_a_reason(
+async def test_a_stopped_check_leaves_the_status_and_owes_no_second_check(
     monkeypatch: pytest.MonkeyPatch,
     collector: ChunkCollector,
     model: Any,
@@ -114,17 +110,11 @@ async def test_a_stopped_check_leaves_the_status_and_takes_a_reason(
     deps = _built_this_turn()
 
     result = await _verify_on(monkeypatch, deps, model())
-    answer = LeadResponse(prose=_REPLY, unverified_reason=_WHY)
 
     assert isinstance(result, VerificationStopped)
     assert result.stop == PhaseStop(role="verification", reason=reason)
-    assert result.summary.endswith(
-        "Set `unverifiedReason` to why the check did not finish."
-    )
-    assert _unverified(deps) == UNVERIFIED_BUILD
-    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
-    markers = deps.state.turn_markers
-    assert (markers.answer_ledger.uses, markers.unchecked_reply) == ((), False)
+    assert result.summary.endswith("ask whether to run it again.")
+    assert (_unverified(deps), owes_a_check(deps)) == (UNVERIFIED_BUILD, False)
 
 
 @pytest.mark.parametrize(

@@ -160,7 +160,7 @@ class _Thread:
             agent_deps.agent_state.operational_spec_draft = _with_the_open_criterion(
                 found, value
             )
-            return FrameResult(disposition=disposition, summary="framed")
+            return FrameResult(disposition=disposition, notes="framed")
 
         self.monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _pass)
 

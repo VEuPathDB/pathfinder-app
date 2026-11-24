@@ -179,7 +179,16 @@ def patch_search_details(
 
     monkeypatch.setattr(search_inspection, "resolve_search_record_type", _resolve)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
+
+    async def _under(
+        _site_id: str, record_type: str, search_name: str, context: dict[str, str]
+    ) -> WDKSearchResponse:
+        return await client.get_search_details_with_params(
+            record_type, search_name, context
+        )
+
     monkeypatch.setattr(search_inspection, "wdk_fetch_at", _fetch_at)
+    monkeypatch.setattr(search_inspection, "read_search_under", _under)
     return client
 
 

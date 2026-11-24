@@ -48,7 +48,7 @@ def _two_groups(
 
 def _exported_at_the_stated_cut(messages: list[ModelMessage]) -> ToolCallPart:
     if text_return(messages, "create_eda_step") is None:
-        return scripted_call("create_eda_step", STATED_CUT)
+        return scripted_call("create_eda_step", {"volcano": STATED_CUT})
     if text_return(messages, "verify_strategy") is None:
         return scripted_call("verify_strategy", {"reason": "check the exported step"})
     return lead_final(f"{_EXPORTED_PROSE}{FACTS_BESIDE}", "complete")

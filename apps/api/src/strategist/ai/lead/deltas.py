@@ -5,13 +5,14 @@ from types import MappingProxyType
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from strategist.ai.graph.state import VerificationDigest
 from strategist.ai.lead.card_question import CardQuestion
-from strategist.ai.lead.phase_stop import PhaseStop
+from strategist.ai.lead.phase_stop import PhaseStop, stop_phrase
 from strategist.ai.tools.standalone.graph_helpers import counted_noun
 from strategist.domain.omitted_from_input import OmittedFromInput
+from strategist.domain.pending_plan import PendingPlan
 from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.chosen_reading import ChosenReading
 from strategist.domain.strategy.constraints import Constraint
@@ -39,8 +40,12 @@ _ADDED_SEARCHES = (
 
 
 _NO_READINGS: Mapping[str, str] = MappingProxyType({})
+_NOTHING_APPLIED = "Nothing was applied: the strategy is unchanged."
+_UNDONE = "The strategy is back to the revision before the last change."
+_MOVED_NOTHING = "an edit that applied nothing carries no operation and no diff"
 
 PassGapKind = Literal[
+    "absence_not_read",
     "reading_left_out",
     "question_without_readings",
     "readings_name_no_requirement",
@@ -58,6 +63,7 @@ PassGapKind = Literal[
     "structure_names_unbound",
     "option_not_a_value",
     "refusal_spent",
+    "pass_stopped",
 ]
 
 
@@ -70,9 +76,17 @@ class PassGap(CamelModel):
 
 class FrameResult(CamelModel):
     """FRAME sub-agent output. The OperationalSpec is committed to agent_state
-    via tools (not re-typed here); this delta is a light summary + disposition."""
+    via tools (not re-typed here); this delta is a disposition and FRAME's notes,
+    which the Lead reads only as a pending plan."""
 
-    summary: str = ""
+    notes: str = Field(
+        default="",
+        exclude=True,
+        description=(
+            "What the Lead must tell the researcher about the plan you drafted "
+            "that no other field states. Nothing you draft is applied."
+        ),
+    )
     disposition: Literal["spec_ready", "needs_user", "needs_research"] = "spec_ready"
     open_questions: list[SlotQuestion] = Field(
         default_factory=list,
@@ -142,6 +156,14 @@ class FrameResult(CamelModel):
     )
 
     gaps: Annotated[list[PassGap], OmittedFromInput] = Field(default_factory=list)
+    route: Annotated[str, OmittedFromInput] = ""
+
+    @computed
+    def pending_plan(self) -> PendingPlan | None:
+        if not self.notes:
+            return None
+        waits_on = "answer" if self.disposition == "needs_user" else "build"
+        return PendingPlan(text=self.notes, waits_on=waits_on)
 
     def with_gaps(self, gaps: Sequence[PassGap]) -> FrameResult:
         return self.model_copy(update={"gaps": [*self.gaps, *gaps]})
@@ -210,10 +232,13 @@ class EditDelta(CamelModel):
     """
 
     diff: SpecDiff
-    # ``unbound``: every framing pass of the edit was refused, and the summary
+    # ``unbound``: every framing pass of the edit was refused, and ``refusal``
     # says why; nothing was applied.
     disposition: Literal["applied", "needs_user", "unbound"] = "applied"
-    summary: str = ""
+    refusal: str = ""
+    route: str = ""
+    undone: bool = False
+    pending_plan: PendingPlan | None = None
     open_questions: list[OpenQuestion] = Field(default_factory=list)
     # The open questions as the question card asks them, option by option.
     card_questions: list[CardQuestion] = Field(default_factory=list)
@@ -248,6 +273,20 @@ class EditDelta(CamelModel):
         ),
     )
     failed_step_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _nothing_applied_moves_nothing(self) -> EditDelta:
+        if self.disposition != "applied" and (
+            self.operations_applied or self.diff.changes
+        ):
+            raise ValueError(_MOVED_NOTHING)
+        return self
+
+    @computed
+    def summary(self) -> str:
+        if self.disposition != "applied":
+            return _NOTHING_APPLIED
+        return _UNDONE if self.undone else ""
 
 
 class RecoveryDelta(CamelModel):
@@ -284,4 +323,16 @@ class VerificationStopped(CamelModel):
     and no evidence card, so the strategy stays unverified."""
 
     stop: PhaseStop | None
-    summary: str
+
+    @computed
+    def summary(self) -> str:
+        why = (
+            "stopped before it finished"
+            if self.stop is None
+            else stop_phrase(self.stop)
+        )
+        return (
+            f"VERIFY {why}, so it recorded no verdict and the strategy is not "
+            "verified. Tell the user the check did not finish and why, and ask "
+            "whether to run it again."
+        )

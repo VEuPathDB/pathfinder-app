@@ -79,7 +79,6 @@ def _build_verify_then_reply(messages: list[ModelMessage]) -> ToolCallPart:
         {
             "prose": _REPLY,
             "nextState": "await_user",
-            "unverifiedReason": "the verification pass stopped before it finished",
         }
     )
 
@@ -120,7 +119,13 @@ def _verify_returns(messages: list[ModelMessage]) -> list[object]:
 def test_a_check_whose_answer_is_out_of_shape_ends_in_the_leads_reply(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    lead_model = scripted_model(_build_verify_then_reply)
+    seen: list[list[ModelMessage]] = []
+
+    def _recorded(messages: list[ModelMessage]) -> Any:
+        seen.append(list(messages))
+        return _build_verify_then_reply(messages)
+
+    lead_model = scripted_model(_recorded)
     read_as(monkeypatch, "extend_strategy")
     monkeypatch.setattr(
         _lead_model, "scripted", scripted_with(model=lambda: lead_model)
@@ -171,7 +176,7 @@ def test_a_check_whose_answer_is_out_of_shape_ends_in_the_leads_reply(
     )
     assert [
         VerificationStopped.model_validate(content).stop
-        for content in _verify_returns(capture.new_messages)
+        for content in _verify_returns(seen[-1])
     ] == [stop]
 
 

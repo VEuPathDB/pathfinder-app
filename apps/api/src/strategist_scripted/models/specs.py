@@ -323,7 +323,7 @@ def frame_result(spec: SpecPlan, replies: list[CriterionReply]) -> dict[str, Any
     ]
     summary = f"Framed {len(spec.criteria)} criterion(s) for {spec.title}."
     return {
-        "summary": " ".join([summary, *(f"{clause}." for clause in measured)]),
+        "notes": " ".join([summary, *(f"{clause}." for clause in measured)]),
         "disposition": "spec_ready",
         "openQuestions": [],
     }

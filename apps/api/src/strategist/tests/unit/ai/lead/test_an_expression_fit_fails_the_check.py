@@ -22,6 +22,7 @@ from strategist.domain.site_checks import SiteCheck, SiteCheckGap
 from strategist.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.services.strategies.site_counts import SiteCounts
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -30,6 +31,8 @@ from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
 )
+
+_STATED = StatedSource(words="")
 
 _ROOT = 227284080
 _STRATEGY = 214644930
@@ -71,7 +74,7 @@ def _spec(expression: str) -> OperationalSpec:
                 text=_ASKED,
                 search_name=PHYLETIC_EXPRESSION_SEARCH,
                 resolved_params=bind_values(
-                    {PHYLETIC_EXPRESSION_PARAM: value}, "stated", []
+                    {PHYLETIC_EXPRESSION_PARAM: value}, _STATED, []
                 ),
             )
         ],

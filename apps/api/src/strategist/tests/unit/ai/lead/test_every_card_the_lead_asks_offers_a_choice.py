@@ -151,7 +151,7 @@ async def test_a_requirement_the_site_lacks_is_asked_to_drop_or_keep(
             )
         )
         return FrameResult(
-            summary="The signal peptide search is bound; no search states spores.",
+            notes="The signal peptide search is bound; no search states spores.",
             requirement_problems=site_lacks("R1"),
         )
 
@@ -240,7 +240,7 @@ async def test_a_pass_that_asks_about_a_requirement_the_site_lacks_is_not_refuse
         draft.criteria.append(_signal_peptide())
         return FrameResult(
             disposition="needs_user",
-            summary="No search states a GPI anchor.",
+            notes="No search states a GPI anchor.",
             open_questions=[
                 SlotQuestion(
                     question=_GPI_QUESTION,
@@ -289,7 +289,7 @@ async def test_a_pass_that_asks_about_a_slot_it_lacks_keeps_what_it_bound(
         draft.criteria.append(_signal_peptide())
         return FrameResult(
             disposition="needs_user",
-            summary="Which location?",
+            notes="Which location?",
             open_questions=[
                 SlotQuestion(
                     question="Which chromosome holds the region?",

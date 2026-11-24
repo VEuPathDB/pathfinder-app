@@ -29,6 +29,6 @@ def test_the_frame_summary_names_each_measurement_of_its_bindings() -> None:
         measurements=[_CLAUSE],
     )
 
-    summary = frame_result(spec, [bound])["summary"]
+    summary = frame_result(spec, [bound])["notes"]
 
     assert summary == f"Framed 1 criterion(s) for expressed genes. {_CLAUSE}."

@@ -6,7 +6,11 @@ from typing import NamedTuple
 
 from pydantic_ai.exceptions import ModelRetry
 
-from strategist.ai.tools.standalone._eda_step_write import AskedPlacement, StepJoin
+from strategist.ai.tools.standalone._eda_step_arguments import (
+    ExportPlacement,
+    WaitingCriterion,
+)
+from strategist.ai.tools.standalone._eda_step_write import StepJoin
 from strategist.domain.strategy.join_point import branch_step, join_point
 from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
@@ -30,18 +34,17 @@ class WaitingPlacement(NamedTuple):
 def export_placement(
     spec: OperationalSpec | None,
     graph: StrategyGraph,
-    criterion_id: str | None,
+    placement: ExportPlacement | None,
     *,
     dataset_id: str,
-    asked: AskedPlacement,
 ) -> WaitingPlacement | None:
     """The waiting criterion this export binds and where, or None for none."""
-    if criterion_id is None:
-        refuse_an_export_that_names_no_waiting_criterion(spec, dataset_id)
-        return None
-    return waiting_placement(
-        spec, graph, criterion_id, dataset_id=dataset_id, named=asked.named()
-    )
+    match placement:
+        case WaitingCriterion(criterion_id=criterion_id):
+            return waiting_placement(spec, graph, criterion_id, dataset_id=dataset_id)
+        case _:
+            refuse_an_export_that_names_no_waiting_criterion(spec, dataset_id)
+            return None
 
 
 def refuse_an_export_that_names_no_waiting_criterion(
@@ -59,9 +62,9 @@ def refuse_an_export_that_names_no_waiting_criterion(
         return
     msg = (
         f"The spec holds {waiting} waiting for an analysis on dataset "
-        f'{dataset_id}, and this export names none of them. Pass criterion_id="'
-        f"{waiting[0]}\" so the export takes that criterion's place in the "
-        f"structure."
+        f"{dataset_id}, and this export names none of them. Pass placement="
+        f'{{"kind": "criterion", "criterion_id": "{waiting[0]}"}} so the export '
+        f"takes that criterion's place in the structure."
     )
     raise ModelRetry(msg)
 
@@ -72,20 +75,8 @@ def waiting_placement(
     criterion_id: str,
     *,
     dataset_id: str,
-    named: list[str],
 ) -> WaitingPlacement:
-    """Where the export for this waiting criterion goes, or why it cannot.
-
-    ``named`` are the placement arguments the call also sent. The structure
-    places the step, so a call that names another place is refused.
-    """
-    if named:
-        msg = (
-            f"criterion_id={criterion_id!r} puts the export where the structure "
-            f"places that criterion, so {named} name a second place. Send "
-            f"criterion_id alone."
-        )
-        raise ModelRetry(msg)
+    """Where the export for this waiting criterion goes, or why it cannot."""
     waiting = next((c for c in pending_analyses(spec) if c.id == criterion_id), None)
     if spec is None or waiting is None:
         held = [c.id for c in pending_analyses(spec)]

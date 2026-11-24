@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Literal, Self
 
-from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
+from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat, computed
 from pydantic import ConfigDict, Field, model_validator
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.wdk import WDKParameter
@@ -135,6 +135,18 @@ class SweepResult(CamelModel):
     objective: OptimizationObjective
     # The saved set every setting was scored on.
     control_set: NamedControlSet
+
+    @computed
+    def false_positives_measured(self) -> bool:
+        return any(
+            v.false_positive_rate is not None
+            for v in self.variants
+            if v.status == "success"
+        )
+
+    @computed
+    def ranked_by(self) -> OptimizationObjective:
+        return self.objective if self.false_positives_measured else "recall"
 
     @model_validator(mode="after")
     def _select_best(self) -> Self:

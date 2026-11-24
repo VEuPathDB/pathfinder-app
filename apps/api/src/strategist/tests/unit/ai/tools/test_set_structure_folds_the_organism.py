@@ -171,7 +171,7 @@ def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
     return agent_run_context(site_id="vectorbase", agent_state=state)
 
 
-async def test_a_leaf_linking_only_the_organism_leaves_the_tree_and_the_criteria(
+async def test_a_leaf_counting_its_organisms_genes_leaves_the_tree_and_the_criteria(
     site: list[str], universe: list[tuple[str, str, str, tuple[str, ...]]]
 ) -> None:
     del universe
@@ -190,8 +190,8 @@ async def test_a_leaf_linking_only_the_organism_leaves_the_tree_and_the_criteria
     assert [c.id for c in draft.criteria] == ["c_signal"]
     assert result.criteria_combined == 1
     fate = (
-        f"c_pest ('{PEST} genes') is dropped: it links only the organism {PEST}, "
-        f"which c_signal already runs on, so that organism value meets it."
+        f"c_pest ('{PEST} genes') is dropped: it matches all 13,845 genes of {PEST}, "
+        f"which c_signal already runs on, so it narrows nothing."
     )
     assert [d.fate for d in result.dropped] == [fate]
     assert [(d.text, d.reason) for d in draft.dropped] == [(f"{PEST} genes", fate)]

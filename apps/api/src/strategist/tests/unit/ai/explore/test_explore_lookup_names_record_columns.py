@@ -118,7 +118,7 @@ async def test_no_close_column_adds_no_block(
     assert returned(result, list[JSONObject]) == [{"name": "GenesByTaxon"}]
 
 
-async def test_an_index_that_does_not_answer_adds_no_block(
+async def test_an_index_that_does_not_answer_says_the_columns_were_not_read(
     ranked: list[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def down(site_id: str, query: str, top_k: int = 5) -> list[ColumnMatch]:
@@ -129,4 +129,12 @@ async def test_an_index_that_does_not_answer_adds_no_block(
 
     result = await _lookup(lead_run_context(site_id="plasmodb"))
 
-    assert returned(result, list[JSONObject]) == [{"name": "GenesByTaxon"}]
+    assert returned(result, list[JSONObject]) == [
+        {"name": "GenesByTaxon"},
+        {
+            "recordColumns": {
+                "note": "Record columns not read: the search index did not answer.",
+                "columns": [],
+            }
+        },
+    ]

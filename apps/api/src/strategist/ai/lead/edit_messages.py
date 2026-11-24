@@ -42,12 +42,9 @@ __all__ = [
     "edit_moves_nothing_message",
     "edit_operation_refused_message",
     "edit_work_order",
-    "no_earlier_revision_message",
     "no_strategy_to_edit_message",
-    "nothing_to_undo_message",
     "recut_call",
     "removal_is_the_cards_message",
-    "undo_moves_nothing_message",
     "unsupported_edit_message",
     "wdk_refused_the_written_step_message",
 ]
@@ -309,10 +306,10 @@ def edit_bound_nothing_message() -> str:
 
 def recut_call(exports: Sequence[str]) -> str:
     """The call that recuts one of the strategy's analysis exports."""
-    ids = " or ".join(f"'{step_id}'" for step_id in exports)
-    if len(exports) == 1:
-        return f"create_eda_step(replace_step_id={ids})"
-    return f"create_eda_step(replace_step_id=<one of {ids}>)"
+    ids = " or ".join(f'"{step_id}"' for step_id in exports)
+    named = ids if len(exports) == 1 else f"<one of {ids}>"
+    placement = f'{{"kind": "replace", "replace_step_id": {named}}}'
+    return f"create_eda_step(placement={placement})"
 
 
 def edit_moves_nothing_message(exports: Sequence[str]) -> str:
@@ -431,29 +428,4 @@ def removal_is_the_cards_message(removed: Mapping[str, NamedStep]) -> str:
         f"researcher's to approve. {held} Call delete_step once for each of "
         f"step_id {ids}, one card at a time; each card names its step and the "
         f"researcher approves it. {rule}"
-    )
-
-
-def nothing_to_undo_message() -> str:
-    """The failure of an undo over a strategy already at its previous revision."""
-    return (
-        "Nothing to undo: the strategy is the one before the last change. Tell "
-        "the researcher so, and change nothing."
-    )
-
-
-def no_earlier_revision_message() -> str:
-    """The failure of an undo on a thread with no strategy before the last change."""
-    return (
-        "Nothing to undo: the conversation holds no strategy before the last change. "
-        "Removing the strategy is clear_strategy, on the researcher's word."
-    )
-
-
-def undo_moves_nothing_message() -> str:
-    """The failure of an undo whose previous revision no criterion can state."""
-    return (
-        "Nothing to undo that an edit can state: the strategy before the last "
-        "change differs from this one only in values no criterion states. Tell "
-        "the researcher so, and change nothing."
     )

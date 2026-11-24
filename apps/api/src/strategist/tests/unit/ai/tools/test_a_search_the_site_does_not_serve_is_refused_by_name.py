@@ -175,7 +175,7 @@ async def test_the_report_of_the_refused_search_is_held(
     await _name_it(ctx, 1)
     report = FrameResult(
         disposition="needs_user",
-        summary="The site refused the protein search.",
+        notes="The site refused the protein search.",
         requirement_problems=[
             RequirementReport(
                 requirement="R1",
@@ -221,7 +221,7 @@ async def test_a_report_of_an_unlisted_name_is_sent_back_naming_it(
         )
     report = FrameResult(
         disposition="needs_user",
-        summary="The site refused the protein search.",
+        notes="The site refused the protein search.",
         requirement_problems=[
             RequirementReport(
                 requirement="R1",

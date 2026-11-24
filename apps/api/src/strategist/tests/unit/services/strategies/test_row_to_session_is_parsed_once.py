@@ -7,7 +7,6 @@ never reach a user. Both callers go through ``persisted_graph``.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from types import ModuleType
 from typing import Any
 from uuid import UUID, uuid4
@@ -17,6 +16,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.spec import TurnContextRequest
 
 from strategist.assistants import strategist_spec
+from strategist.domain.unread import Unread
 from strategist.jobs import runtime
 from strategist.persistence.models import ConversationStrategyView
 from strategist.platform.errors import ErrorCode, StrategyAstCorruptError
@@ -122,10 +122,6 @@ async def test_both_callers_build_the_same_session(
     assert worker_sync.wdk_step_ids == {"step_root": 990001}
 
 
-async def _spec_context() -> None:
-    await strategist_spec.build_turn_context(_turn_request())
-
-
 async def _worker_context() -> None:
     await runtime.build_worker_runtime_context(
         conversation_id=_CONVERSATION_ID,
@@ -133,19 +129,38 @@ async def _worker_context() -> None:
     )
 
 
-@pytest.mark.parametrize("caller", [_spec_context, _worker_context])
-async def test_a_corrupt_row_stops_both_callers_by_name(
+async def test_a_corrupt_row_stops_the_worker_by_name(
     monkeypatch: pytest.MonkeyPatch,
-    caller: Callable[[], Awaitable[None]],
 ) -> None:
-    """Neither caller answers a corrupt row with an empty strategy."""
+    """A durable job does not answer a corrupt row with an empty strategy."""
     _install(monkeypatch, _CORRUPT_AST)
 
     with pytest.raises(StrategyAstCorruptError) as excinfo:
-        await caller()
+        await _worker_context()
 
     assert excinfo.value.code is ErrorCode.STRATEGY_AST_CORRUPT
     assert str(_CONVERSATION_ID) in (excinfo.value.detail or "")
+
+
+async def test_a_corrupt_row_opens_the_turn_as_unreadable_by_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A turn opens on a corrupt row with no graph and the reason it holds none."""
+    _install(monkeypatch, _CORRUPT_AST)
+
+    context = await strategist_spec.build_turn_context(_turn_request())
+
+    session = context.strategy_session
+    assert (session.get_graph(None), session.unreadable) == (
+        None,
+        Unread(
+            reason=(
+                f"conversation {_CONVERSATION_ID} holds a strategy_ast that does "
+                "not parse: recordType: Field required; root: Input should be a "
+                "valid dictionary or instance of StrategyStepNode"
+            )
+        ),
+    )
 
 
 def _module_attr(module: ModuleType, name: str) -> object:
@@ -154,7 +169,9 @@ def _module_attr(module: ModuleType, name: str) -> object:
 
 
 def test_the_row_to_session_parse_has_one_owner() -> None:
-    """Only ``persisted_graph`` turns a stored row into a graph."""
-    owner = session_factory.persisted_graph
-    assert _module_attr(strategist_spec, "persisted_graph") is owner
-    assert _module_attr(runtime, "persisted_graph") is owner
+    """Only ``persisted_graph`` turns a stored row into a graph; a turn reads it
+    through ``thread_strategy_session``."""
+    assert (
+        _module_attr(strategist_spec, "thread_strategy_session"),
+        _module_attr(runtime, "persisted_graph"),
+    ) == (session_factory.thread_strategy_session, session_factory.persisted_graph)

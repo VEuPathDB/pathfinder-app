@@ -124,7 +124,7 @@ async def _run_the_refused_edit(
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = after
-        return FrameResult(disposition="spec_ready", summary="reframed")
+        return FrameResult(disposition="spec_ready", notes="reframed")
 
     monkeypatch.setattr(edit_dispatch, "run_frame", _fake_frame)
     monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", commit)

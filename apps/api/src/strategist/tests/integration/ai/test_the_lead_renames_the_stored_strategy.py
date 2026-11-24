@@ -127,9 +127,13 @@ async def test_the_rename_is_read_back_from_the_store_and_reaches_wdk(
     site: _Site,
 ) -> None:
     conv_id = await _seed(db_session)
+    session = _session()
+    assert session.graph is not None
+    assert isinstance(session.sync_state, WDKSyncState)
+    site.holds(session.graph.steps, session.sync_state, root_id="step_a", name=_OLD)
     ctx = lead_run_context(
         conversation_id=conv_id,
-        strategy_session=_session(),
+        strategy_session=session,
         db_session_factory=session_maker,
         tool_call_id="call_rename",
     )

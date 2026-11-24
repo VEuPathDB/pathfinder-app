@@ -15,6 +15,7 @@ from strategist.domain.strategy.named_taxa import NamedTaxon
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
 )
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values, read_again
 from strategist.services.strategies.parameter_rules import text_query
 from strategist.tests._support.param_infos import sheet_of
@@ -22,6 +23,8 @@ from strategist.tests._support.recorded_searches import client_search, suite_sea
 from strategist.tests.unit.domain.strategy.test_a_taxon_the_message_names_takes_its_organisms import (
     BABESIA_LEAVES,
 )
+
+_STATED = StatedSource(words="")
 
 # plasmodb GenesByText as WDK publishes it: text_expression starts at "*reductase".
 _TEXT = sheet_of(list(suite_search("search_genes_by_text").parameters or []))
@@ -120,8 +123,8 @@ def test_a_value_is_judged_against_the_published_sheet_not_a_context_read() -> N
     ]
     value = {"text_expression": StringValue(value=_PHRASE)}
 
-    published = bind_values(value, "stated", _TEXT)["text_expression"]
-    under_context = bind_values(value, "stated", echoed)["text_expression"]
+    published = bind_values(value, _STATED, _TEXT)["text_expression"]
+    under_context = bind_values(value, _STATED, echoed)["text_expression"]
     info = _info(_TEXT, "text_expression")
 
     assert (

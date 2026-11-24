@@ -67,18 +67,12 @@ def _rows(
         return latest
 
     async def _previous(
-        _repo: StrategyRevisionRepository,
-        _conversation_id: UUID,
-        *,
-        before_row_id: int,
-        revision: str,
+        _repo: StrategyRevisionRepository, _conversation_id: UUID
     ) -> StrategyRevisionView | None:
-        assert latest is not None
-        assert (before_row_id, revision) == (latest.id, latest.revision)
         return previous
 
     monkeypatch.setattr(StrategyRevisionRepository, "latest", _latest)
-    monkeypatch.setattr(StrategyRevisionRepository, "newest_turn_end_unlike", _previous)
+    monkeypatch.setattr(StrategyRevisionRepository, "before_the_last_change", _previous)
 
 
 async def test_a_delete_reads_both_counts_from_the_two_revisions(
