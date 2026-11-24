@@ -29,6 +29,8 @@ from veupathdb_mcp.wdk import (
 )
 
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
+from strategist.domain.unread import Unread
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -102,15 +104,29 @@ def _settings_of_a_step(step: WDKStep) -> StepSettings:
 
 
 def held_by_id(
-    live: WDKStrategyDetails | None, sync_state: WDKSyncState
-) -> dict[str, StepSettings]:
-    if live is None:
-        return {}
+    live: WDKStrategyDetails, sync_state: WDKSyncState
+) -> dict[str, StepSettings] | Unread:
     try:
         return _held_in(live, sync_state)
     except VEuPathDBError as exc:
         logger.warning("The held strategy did not read back", error=str(exc))
-        return {}
+        return Unread(reason=f"the strategy did not read back: {site_words(exc)}")
+
+
+def held_after_the_put(
+    live: WDKStrategyDetails | Unread | None, sync_state: WDKSyncState
+) -> dict[str, StepSettings]:
+    match live:
+        case WDKStrategyDetails():
+            read = held_by_id(live, sync_state)
+        case _:
+            return {}
+    match read:
+        case Unread():
+            sync_state.strategy_not_read = read
+            return {}
+        case held:
+            return held
 
 
 def _held_in(

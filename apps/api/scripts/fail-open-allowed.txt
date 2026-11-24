@@ -91,7 +91,6 @@ services/strategies/organism_params.py:organism_parameters:1 an unread mark leav
 services/strategies/organism_params.py:organism_taxa:1 the unread tree is recorded as unread before continue (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
 services/strategies/organism_params.py:_site_organisms:1 an empty list places no entry, so the checks abstain (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
 services/strategies/reading_check.py:site_spelling:1 None is an unanswered check; the reading keeps its own spelling
-services/strategies/reconcile.py:held_by_id:1 a read-back that does not parse holds no settings, so no departure is claimed
 services/strategies/search_sheets.py:_definition:1 a definition the catalog did not read leaves the search sheet-less, never read as empty
 services/strategies/session_factory.py:_restore_wdk_tree:1 a tree that does not compile is held as unknown, so the next push writes it
 services/strategies/sheet_params.py:_parameters_read:1 records Unread before continue (test_a_card_pick_on_an_unread_sheet_binds_nothing)
