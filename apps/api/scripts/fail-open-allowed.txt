@@ -4,7 +4,6 @@ ai/agents/frame_reading_checks.py:_spelled:ValidationError:continue the refusal 
 ai/audit/review.py:_synthesize:SynthesisStoppedError:return a stopped synthesis records its stop as the run's progress before return
 ai/capabilities/metering.py:charge_spend:SQLAlchemyError:log best effort: a usage row the database refused changes no answer
 ai/conversation/_turn_helpers.py:_extract_chunk:ValidationError:returnNone a writer payload that is no chunk envelope carries no chunk
-ai/conversation/_turn_helpers.py:_extract_user_question_answers:ValidationError:continue a data part of another shape is not a card answer
 ai/conversation/title_generator.py:title_model_id:LookupError:returnNone no model to title with means no title; the thread keeps its name
 ai/conversation/turn_stop.py:watch_for_cancel:Exception:return the cancel watcher stops polling on a failed poll; the turn runs to its end
 ai/conversation/turn_stop.py:watch_for_cancel:asyncio.CancelledError:return a cancelled watcher ends

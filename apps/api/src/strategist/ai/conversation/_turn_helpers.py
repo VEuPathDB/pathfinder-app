@@ -6,7 +6,6 @@ from uuid import UUID
 
 from assistant_core.graph.turn_state import DurableTaskResult, UserQuestionAnswer
 from assistant_core.platform.observability import current_trace_id
-from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.spec import TurnStart
 from pydantic import BaseModel, ValidationError
 from pydantic_ai.ui.vercel_ai._utils import iter_tool_approval_responses
@@ -15,7 +14,11 @@ from pydantic_ai.ui.vercel_ai.request_types import (
     ToolApprovalResponded,
 )
 
-from strategist.ai.conversation.request_body import ChatRequestBody
+from strategist.ai.conversation.request_body import (
+    USER_QUESTION_ANSWERS_TYPE,
+    ChatRequestBody,
+    UserQuestionAnswersPayload,
+)
 
 
 def resolve_site_id(
@@ -41,22 +44,6 @@ def _extract_approval_responses(
     return dict(iter_tool_approval_responses(incoming.messages))
 
 
-_USER_QUESTION_ANSWERS_TYPE = "data-user-question-answers"
-
-
-class _UserQuestionAnswersPayload(CamelModel):
-    """Shape of a ``data-user-question-answers`` UI part's ``data`` field.
-
-    The frontend question carousel sends this on the assistant message
-    carrying the ``approval-responded`` part for ``consult_user``, with
-    camelCase keys (``toolCallId``) - so this MUST be a CamelModel. Paired by
-    ``tool_call_id``.
-    """
-
-    tool_call_id: str
-    answers: list[UserQuestionAnswer]
-
-
 def _extract_user_question_answers(
     incoming: ChatRequestBody,
 ) -> dict[str, list[UserQuestionAnswer]]:
@@ -72,12 +59,9 @@ def _extract_user_question_answers(
         for part in msg.parts:
             if not isinstance(part, DataUIPart):
                 continue
-            if part.type != _USER_QUESTION_ANSWERS_TYPE:
+            if part.type != USER_QUESTION_ANSWERS_TYPE:
                 continue
-            try:
-                payload = _UserQuestionAnswersPayload.model_validate(part.data)
-            except ValidationError:
-                continue
+            payload = UserQuestionAnswersPayload.model_validate(part.data)
             out[payload.tool_call_id] = payload.answers
     return out
 

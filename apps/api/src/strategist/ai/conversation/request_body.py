@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
+from assistant_core.graph.turn_state import UserQuestionAnswer
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import ReasoningEffort
 from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai.ui.vercel_ai._utils import iter_tool_approval_responses
 from pydantic_ai.ui.vercel_ai.request_types import (
+    DataUIPart,
     FileUIPart,
     TextUIPart,
     UIMessage,
@@ -36,6 +38,22 @@ def _without_stream_facts(entry: dict[str, object]) -> dict[str, object]:
             for part in parts
         ]
     return cleaned
+
+
+USER_QUESTION_ANSWERS_TYPE = "data-user-question-answers"
+
+
+class UserQuestionAnswersPayload(CamelModel):
+    """Shape of a ``data-user-question-answers`` UI part's ``data`` field.
+
+    The frontend question carousel sends this on the assistant message
+    carrying the ``approval-responded`` part for ``consult_user``, with
+    camelCase keys (``toolCallId``) - so this MUST be a CamelModel. Paired by
+    ``tool_call_id``.
+    """
+
+    tool_call_id: str
+    answers: list[UserQuestionAnswer]
 
 
 class ChatRequestBody(CamelModel):
@@ -78,6 +96,20 @@ class ChatRequestBody(CamelModel):
             _without_stream_facts(entry) if isinstance(entry, dict) else entry
             for entry in value
         ]
+
+    @field_validator("messages")
+    @classmethod
+    def _card_answers_parse(cls, value: list[UIMessage]) -> list[UIMessage]:
+        for message in value:
+            for part in message.parts:
+                match part:
+                    case DataUIPart(type=kind, data=data) if (
+                        kind == USER_QUESTION_ANSWERS_TYPE
+                    ):
+                        UserQuestionAnswersPayload.model_validate(data)
+                    case _:
+                        pass
+        return value
 
     @field_validator("messages")
     @classmethod
