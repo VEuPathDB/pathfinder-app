@@ -16,6 +16,7 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.answers_text import answers_text
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.card_reply import CardReply
+from strategist.ai.lead.card_sheets import card_sheets, picks_on_unread_sheets
 from strategist.ai.lead.readings import picks_their_criteria_refuse, refused_picks
 from strategist.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from strategist.ai.lead.sub_agent_tools import LeadDeps
@@ -53,12 +54,6 @@ from strategist.domain.strategy.questions import (
 )
 from strategist.domain.strategy.readings import ReadingChooser, ReadValues
 from strategist.domain.strategy.requirement_reports import numbered_requirements
-from strategist.domain.unread import Unread
-from strategist.services.strategies.sheet_params import (
-    criterion_sheets,
-    parameters_of_searches,
-    read_sheets,
-)
 
 _LABEL_LIMIT = 120
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
@@ -253,63 +248,6 @@ def apply_option_bindings(
     domain.operational_spec = domain.follow_readings(entry, domain.operational_spec)
 
 
-async def _card_sheets(
-    state: PipelineState, answers: Sequence[UserQuestionAnswer]
-) -> tuple[dict[str, list[ParameterInfo]], dict[str, Unread]]:
-    """Every published parameter of each criterion a picked option binds a value
-    on, the ones the site sets included, with each dependent vocabulary read
-    under the values that criterion holds, by criterion id; and the sheet of
-    each other such criterion, which the site did not answer."""
-    spec = state.domain.operational_spec
-    recorded = {q.question: q for q in state.domain.open_questions}
-    bound = {
-        values.criterion_id
-        for answer in answers
-        if (question := recorded.get(answer.prompt)) is not None
-        for option in question.options
-        if option.label in answer.chosen_labels
-        and (values := option.values_bound()) is not None
-    }
-    criteria = [] if spec is None else [c for c in spec.criteria if c.id in bound]
-    searches = {c.search_name for c in criteria if c.search_name}
-    if not searches:
-        return {}, {}
-    reads = await parameters_of_searches(site_id=state.site_id, search_names=searches)
-    unread: dict[str, Unread] = {}
-    for c in criteria:
-        match reads.get(c.search_name):
-            case Unread() as failed:
-                unread[c.id] = failed
-            case _:
-                pass
-    sheets = await criterion_sheets(
-        state.site_id, [c for c in criteria if c.id not in unread], read_sheets(reads)
-    )
-    return sheets, unread
-
-
-def _picks_on_unread_sheets(
-    state: PipelineState,
-    answers: Sequence[UserQuestionAnswer],
-    unread: Mapping[str, Unread],
-) -> dict[str, str]:
-    recorded = {q.question: q for q in state.domain.open_questions}
-    spec = state.domain.operational_spec
-    searches = {} if spec is None else {c.id: c.search_name for c in spec.criteria}
-    return {
-        option.label: (
-            f"the sheet of {searches[values.criterion_id]} was not read, so "
-            f"{option.label!r} binds nothing: {unread[values.criterion_id].reason}"
-        )
-        for answer in answers
-        if (question := recorded.get(answer.prompt)) is not None
-        for option in question.options
-        if option.label in answer.chosen_labels
-        and (values := option.values_bound()) is not None
-        and values.criterion_id in unread
-    }
-
-
 def _picks_that_are_no_value(
     state: PipelineState,
     answers: Sequence[UserQuestionAnswer],
@@ -406,8 +344,8 @@ async def consult_user(
     pending = state.pending_approval
     card = "" if pending is None else pending.tool_call_id
     answers = answered_on_the_card(state.user_question_answers.get(card, []), shown)
-    sheets, unread = await _card_sheets(state, answers)
-    unread_picks = _picks_on_unread_sheets(state, answers, unread)
+    sheets, unread = await card_sheets(state, answers)
+    unread_picks = picks_on_unread_sheets(state, answers, unread)
     no_values = _picks_that_are_no_value(
         state, _without_picks(answers, unread_picks), sheets
     )

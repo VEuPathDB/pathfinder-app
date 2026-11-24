@@ -16,7 +16,7 @@ from veupathdb_mcp.catalog import ParameterInfo, ValidatedParams
 
 from strategist.ai.graph._lead_card_hold import CardHold
 from strategist.ai.graph.state import StrategyDomainState
-from strategist.ai.lead import lead_consult
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.lead_consult import (
@@ -189,7 +189,7 @@ def no_site(monkeypatch: pytest.MonkeyPatch) -> None:
         del callbacks
         return ValidatedParams(params=dict(stated))
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
 
 

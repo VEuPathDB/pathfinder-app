@@ -17,7 +17,7 @@ from veupathdb_mcp.catalog import ParameterInfo, ValidatedParams
 from strategist.ai.agents.frame_answer import hold_the_frame_answer
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.graph.state import StrategyDomainState
-from strategist.ai.lead import lead_consult
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.lead_consult import consult_user
 from strategist.ai.lead.recorded_cards import card_questions
@@ -62,7 +62,7 @@ def _no_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del site_id, search_names
         return {}
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
 
 
 @pytest.fixture

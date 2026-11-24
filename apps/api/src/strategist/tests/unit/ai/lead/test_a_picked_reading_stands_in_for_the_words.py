@@ -18,7 +18,7 @@ from strategist.ai.agents.verification import (
 from strategist.ai.graph.runtime import AgentDeps, VerificationScope
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.graph.turn_records import AnsweredQuestions
-from strategist.ai.lead import frame_dispatch, lead_consult
+from strategist.ai.lead import card_sheets, frame_dispatch
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.dispatch_context import agent_deps_for
 from strategist.ai.lead.frame_dispatch import run_frame
@@ -117,7 +117,7 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
 
         return fetch_at
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
     monkeypatch.setattr(reading_check, "validate_parameters", _validate)
     monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
 

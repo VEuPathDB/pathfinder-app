@@ -13,7 +13,7 @@ from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from strategist.ai.graph.state import StrategyDomainState
-from strategist.ai.lead import lead_consult
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.lead_consult import consult_user
 from strategist.ai.lead.parameter_facts import _parameter
 from strategist.ai.lead.recorded_cards import card_questions
@@ -88,7 +88,7 @@ async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
 
         return fetch_at
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
     monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
     deps = lead_deps(
         pipeline_state(

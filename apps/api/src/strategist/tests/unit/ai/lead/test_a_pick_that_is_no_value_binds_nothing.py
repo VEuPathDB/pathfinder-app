@@ -11,7 +11,7 @@ from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from strategist.ai.graph.state import StrategyDomainState
-from strategist.ai.lead import lead_consult
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.lead_consult import CardAnswer, consult_user
 from strategist.ai.lead.recorded_cards import card_questions
 from strategist.ai.lead.sub_agent_tools import LeadDeps
@@ -64,7 +64,7 @@ def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         del site_id
         return dict.fromkeys(search_names, sheet)
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _sheets)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
     monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
 
 
