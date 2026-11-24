@@ -116,7 +116,7 @@ def recorded(monkeypatch: pytest.MonkeyPatch, two_by_two: list[httpx.Response]) 
         assert analysis_id == detail.analysis_id
         return detail
 
-    monkeypatch.setattr(eda_statistics, "bound_analysis", bound)
+    monkeypatch.setattr(eda_statistics, "open_analysis", bound)
     monkeypatch.setattr(eda_statistics, "read_analysis", read)
     monkeypatch.setattr(eda_statistics, "get_study_detail_for_dataset", de_study)
 
@@ -327,27 +327,4 @@ async def test_a_color_on_a_statistic_that_has_none_is_refused(
     assert str(refused.value) == (
         "color_by_variable groups a boxplot; a contingency has none. Nothing was "
         "computed."
-    )
-
-
-async def test_a_thread_with_no_open_analysis_names_the_tool_that_opens_one(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    async def unbound(_ctx: object) -> None:
-        return None
-
-    monkeypatch.setattr(eda_statistics, "bound_analysis", unbound)
-
-    with pytest.raises(ModelRetry) as refused:
-        await eda_statistics.read_eda_statistics(
-            lead_ctx,
-            kind="contingency",
-            x_variable=_GENOTYPE,
-            y_variable=_CONDITION,
-            output_entity_id=SAMPLE_ENTITY,
-        )
-
-    assert str(refused.value) == (
-        "This conversation has no study open, so there is no subset to compute "
-        "on. Call open_eda_analysis first."
     )

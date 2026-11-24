@@ -352,7 +352,7 @@ def _open(monkeypatch: pytest.MonkeyPatch, dataset_id: str) -> None:
     async def bound(_ctx: RunContext[LeadDeps]) -> ConversationAnalysisView:
         return view
 
-    monkeypatch.setattr(eda_cut, "bound_analysis", bound)
+    monkeypatch.setattr(eda_cut, "open_analysis", bound)
 
 
 async def test_asking_a_cut_records_the_card_of_the_studys_own_cuts(

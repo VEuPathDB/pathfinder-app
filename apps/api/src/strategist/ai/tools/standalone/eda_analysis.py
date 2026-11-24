@@ -26,6 +26,7 @@ from strategist.ai.tools.standalone._eda_models import (
     EdaFiltersResult,
     EdaSubsetPreviewResult,
 )
+from strategist.ai.tools.standalone._eda_open import dataset_study, open_analysis
 from strategist.ai.tools.standalone._eda_sheet import open_sheet
 from strategist.ai.tools.standalone.eda_stream_parts import (
     analysis_state_chunks_if_changed,
@@ -42,13 +43,10 @@ from strategist.services.eda.authoring import (
 from strategist.services.eda.binding import (
     apply_filters,
     bind_analysis,
-    bound_conversation_analysis,
     read_analysis,
     record_subset_preview,
 )
 from strategist.services.eda.catalog import (
-    UnknownEdaDatasetError,
-    get_study_detail_for_dataset,
     study_description,
 )
 from strategist.services.eda.description import (
@@ -64,12 +62,7 @@ async def _study(
     site_id: str,
     dataset_id: str,
 ) -> tuple[EdaPermissionFacts, EdaStudyDetail]:
-    """The study behind a dataset id, or the retry that names the right tool."""
-    try:
-        entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    except UnknownEdaDatasetError as exc:
-        msg = f"{exc.guidance} Call search_eda_studies to find a real dataset id."
-        raise ModelRetry(msg) from exc
+    entry, study = await dataset_study(site_id, dataset_id)
     return permission_facts(entry), study
 
 
@@ -142,15 +135,6 @@ async def open_eda_analysis(
         f"Opened {state.display_name}",
         ctx=ctx,
         extra=analysis_state_chunks_if_changed(state, domain=ctx.deps.state.domain),
-    )
-
-
-async def bound_analysis(
-    ctx: RunContext[LeadDeps],
-) -> ConversationAnalysisView | None:
-    """The analysis this conversation has open, or None when it has none."""
-    return await bound_conversation_analysis(
-        conversation_id=ctx.deps.state.conversation_id
     )
 
 
@@ -265,13 +249,7 @@ async def _bound_or_retry(
     dataset_id: str,
 ) -> ConversationAnalysisView:
     """The open analysis, or the retry that tells the model to open one."""
-    bound = await bound_analysis(ctx)
-    if bound is None:
-        msg = (
-            f"This conversation has no study open. Call open_eda_analysis on "
-            f"dataset {dataset_id!r} first."
-        )
-        raise ModelRetry(msg)
+    bound = await open_analysis(ctx)
     if bound.dataset_id != dataset_id:
         msg = (
             f"The open analysis is {bound.analysis_id} on dataset "
@@ -342,13 +320,7 @@ async def preview_eda_subset(
         caption: One sentence describing what the distribution shows.
     """
     site_id = ctx.deps.runtime.site_id
-    bound = await bound_analysis(ctx)
-    if bound is None:
-        msg = (
-            "This conversation has no study open, so there is no subset to "
-            "count. Call open_eda_analysis first."
-        )
-        raise ModelRetry(msg)
+    bound = await open_analysis(ctx)
     analysis = await read_analysis(site_id, analysis_id=bound.analysis_id)
     filters = analysis.descriptor.subset.descriptor
     try:

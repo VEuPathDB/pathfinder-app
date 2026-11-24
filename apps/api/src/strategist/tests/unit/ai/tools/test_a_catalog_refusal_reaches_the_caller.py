@@ -86,7 +86,7 @@ async def test_create_eda_step_answers_with_the_refusal(
     async def _refuse(**_kwargs: Any) -> None:
         raise _refusal()
 
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
+    monkeypatch.setattr(eda_step, "open_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
     wire_gene_count(monkeypatch)
     monkeypatch.setattr(eda_step, "apply_operations_and_commit", _refuse)

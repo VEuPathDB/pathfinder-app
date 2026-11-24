@@ -47,7 +47,7 @@ _GOAL = "essential kinases"
 
 
 def _wire(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
+    monkeypatch.setattr(eda_step, "open_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
     wire_gene_count(monkeypatch)
 

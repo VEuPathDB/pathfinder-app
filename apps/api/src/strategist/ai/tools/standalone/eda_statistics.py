@@ -18,7 +18,7 @@ from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.eda import EdaVariableSpec
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone.eda_analysis import bound_analysis
+from strategist.ai.tools.standalone._eda_open import open_analysis
 from strategist.ai.tools.standalone.eda_compute import EdaVariableSpecIn
 from strategist.ai.tools.standalone.eda_stream_parts import eda_statistics_chunk
 from strategist.domain.statistic_facts import StatisticFact, statistics_fact
@@ -176,13 +176,7 @@ async def read_eda_statistics(
         caption: One sentence describing what the statistic shows.
     """
     site_id = ctx.deps.runtime.site_id
-    bound = await bound_analysis(ctx)
-    if bound is None:
-        msg = (
-            "This conversation has no study open, so there is no subset to "
-            "compute on. Call open_eda_analysis first."
-        )
-        raise ModelRetry(msg)
+    bound = await open_analysis(ctx)
     analysis = await read_analysis(site_id, analysis_id=bound.analysis_id)
     _entry, study = await get_study_detail_for_dataset(site_id, bound.dataset_id)
     request = StatisticsRequest(

@@ -43,7 +43,7 @@ from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
 
 
 def _wire(monkeypatch: pytest.MonkeyPatch, *, commit: object | None = None) -> None:
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
+    monkeypatch.setattr(eda_step, "open_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
     wire_gene_count(monkeypatch)
     if commit is not None:

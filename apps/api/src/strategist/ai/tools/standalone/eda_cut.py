@@ -9,8 +9,8 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.eda import EdaStudyDetail
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.tools.standalone._eda_open import open_analysis
 from strategist.ai.tools.standalone._eda_sheet import sheet_entries
-from strategist.ai.tools.standalone.eda_analysis import bound_analysis
 from strategist.domain.eda_cut import TailEdge
 from strategist.domain.strategy.question_options import TailRule
 from strategist.domain.strategy.questions import OpenQuestion
@@ -96,10 +96,7 @@ async def ask_eda_cut(
         variable_id: The variable the cut reads, from the filter sheet.
     """
     site_id = ctx.deps.runtime.site_id
-    bound = await bound_analysis(ctx)
-    if bound is None:
-        msg = "This conversation has no study open. Call open_eda_analysis first."
-        raise ModelRetry(msg)
+    bound = await open_analysis(ctx)
     _entry, study = await get_study_detail_for_dataset(site_id, bound.dataset_id)
     entries = sheet_entries(study)
     entry = next((e for e in entries if e.variable_id == variable_id), None)

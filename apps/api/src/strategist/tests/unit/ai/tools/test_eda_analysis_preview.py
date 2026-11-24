@@ -7,7 +7,6 @@ from uuid import UUID
 
 import pytest
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.eda import (
     EdaAnalysisDetail,
@@ -19,7 +18,7 @@ from veupathdb.eda import (
 
 from strategist.ai.lead.intent_gate import unmet_preconditions
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_analysis
+from strategist.ai.tools.standalone import _eda_open, eda_analysis
 from strategist.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
 from strategist.domain.eda_parts import EdaAnalysisState
 from strategist.domain.eda_thread import ConversationAnalysisView
@@ -78,10 +77,6 @@ async def _bound(_ctx: object) -> ConversationAnalysisView:
     )
 
 
-async def _unbound(_ctx: object) -> ConversationAnalysisView | None:
-    return None
-
-
 def _preview(
     *, count: int, distribution: EdaDistributionResponse | None
 ) -> SubsetPreview:
@@ -133,10 +128,10 @@ async def _genes_counted(
 
 def _wire(monkeypatch: pytest.MonkeyPatch, preview: object) -> None:
     monkeypatch.setattr(eda_analysis, "record_subset_preview", _record_preview)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "read_analysis", read_analysis_detail)
     monkeypatch.setattr(eda_analysis, "preview_subset", preview)
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "gene_count", _genes_counted)
 
 
@@ -264,15 +259,6 @@ async def test_a_preview_reports_the_records_with_no_value_for_the_variable(
     assert "12 records" in result.guidance
 
 
-async def test_a_preview_with_no_open_analysis_raises_a_model_retry(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _unbound)
-    with pytest.raises(ModelRetry) as excinfo:
-        await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
-    assert "open_eda_analysis" in str(excinfo.value)
-
-
 async def test_a_preview_records_the_count_on_the_thread_s_analysis(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
@@ -393,9 +379,9 @@ def _wire_de(
         return DE_GENES
 
     _wire(monkeypatch, preview)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", bound_to)
+    monkeypatch.setattr(eda_analysis, "open_analysis", bound_to)
     monkeypatch.setattr(eda_analysis, "read_analysis", read)
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", de_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", de_study)
     monkeypatch.setattr(eda_analysis, "gene_count", genes)
     return genes_counted
 

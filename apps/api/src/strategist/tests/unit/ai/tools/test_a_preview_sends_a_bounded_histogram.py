@@ -8,7 +8,7 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.eda import EdaDistributionResponse, EdaStudyDetail
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_analysis
+from strategist.ai.tools.standalone import _eda_open, eda_analysis
 from strategist.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
 from strategist.domain.eda_thread import ConversationAnalysisView
 from strategist.services.eda import binding
@@ -72,10 +72,10 @@ def _wire(monkeypatch: pytest.MonkeyPatch, preview: SubsetPreview) -> None:
 
     monkeypatch.setattr(binding, "subset_entity_counts", recorded_entity_counts)
     monkeypatch.setattr(eda_analysis, "record_subset_preview", _record_preview)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "read_analysis", read_analysis_detail)
     monkeypatch.setattr(eda_analysis, "preview_subset", previewed)
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "gene_count", _genes_counted)
 
 
