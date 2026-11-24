@@ -116,7 +116,8 @@ DISCOVERY_CALL_CAPS: dict[str, int] = {
 
 
 def build_tool_repetition_guard() -> ToolRepetitionGuard:
-    """A repetition guard that watches Strategist's read-only tools."""
+    """A repetition guard that watches Strategist's read-only tools. A repeat
+    ``ReadOnce`` holds joins the same streak and spends no cap."""
     return ToolRepetitionGuard(
         read_only_tools=READ_ONLY_TOOLS,
         call_caps=DISCOVERY_CALL_CAPS,

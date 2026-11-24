@@ -6,6 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
+from assistant_core.capabilities.repetition_guard import (
+    RepetitionGuard,
+    ToolRepetitionGuard,
+)
 from assistant_core.conversation.history import elide_consumed
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.capabilities import ProcessHistory
@@ -27,6 +31,7 @@ from strategist.ai.agents.tool_vocabulary import (
     CHECK_READS,
     READ_ONLY_TOOLS,
     RECORD_READS,
+    build_tool_repetition_guard,
 )
 from strategist.ai.agents.verification import build_verification_agent
 from strategist.ai.capabilities.read_once import ReadOnce
@@ -48,6 +53,9 @@ _SAMPLE = [
 class _Deps:
     reads: list[str] = field(default_factory=list)
     turn_markers: TurnMarkers = field(default_factory=TurnMarkers)
+    tool_repetition_guard: ToolRepetitionGuard = field(
+        default_factory=build_tool_repetition_guard
+    )
 
 
 def read_gene_record(ctx: RunContext[_Deps], gene_id: str) -> str:
@@ -275,3 +283,49 @@ async def test_an_answer_the_next_request_elides_is_carried_again() -> None:
         + "parameter " * 60
         + '"'
     )
+
+
+async def _guarded(
+    calls: list[tuple[str, dict[str, str]]], guard: ToolRepetitionGuard
+) -> tuple[_Deps, list[ToolReturnPart]]:
+    deps = _Deps(tool_repetition_guard=guard)
+    agent = Agent(
+        _scripted(calls),
+        deps_type=_Deps,
+        toolsets=[_TOOLS],
+        capabilities=[_reading()],
+    )
+    result = await agent.run(
+        "x", deps=deps, capabilities=[RepetitionGuard(guard=guard)]
+    )
+    return deps, [
+        part
+        for message in result.all_messages()
+        for part in message.parts
+        if isinstance(part, ToolReturnPart)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_a_held_repeat_spends_no_call_of_a_tools_cap() -> None:
+    guard = ToolRepetitionGuard(call_caps={"get_search_overview": 2})
+
+    deps, parts = await _guarded(_overviews("S0", "S1", "S0"), guard)
+
+    assert (deps.reads, [p.outcome for p in parts]) == (
+        ["S0", "S1"],
+        ["success", "success", "failed"],
+    )
+    assert parts[-1].content.startswith("get_search_overview answered these arguments")
+
+
+@pytest.mark.asyncio
+async def test_a_loop_of_held_repeats_is_warned_then_stops_the_run() -> None:
+    guard = build_tool_repetition_guard()
+
+    _, parts = await _guarded(_overviews("S0", "S0", "S0", "S0"), guard)
+
+    assert [p.outcome for p in parts] == ["success", "failed", "failed", "failed"]
+    assert "This is a loop" in parts[2].content
+    assert "The run stops here." in parts[3].content
+    assert guard.stopped_call_id == "call_3"

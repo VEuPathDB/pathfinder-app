@@ -17,7 +17,7 @@ agent of the turn, counts one write on `TurnMarkers.writes`, so an EDA export, a
 build or a note releases every held read but the `lasting` ones, whose answer no call of the
 run changes: `RECORD_READS` for the Lead, Explore and the passes that write, and
 `CHECK_READS` for a check, which writes no step. A read taken while a write of the same batch
-ran is held under the count it started with, so it runs again after that write. The same read again fails as a refused call: it runs nothing,
+ran is held under the count it started with, so it runs again after that write. The same read again fails as a refused call before the run's repetition guard counts it, so it spends no call cap; it joins the guard's identical-arguments streak (`ToolRepetitionGuard.check_repeat`), which warns on the third identical call and stops the run on the next request's repeat, the one loop rule of a turn. It runs nothing,
 spends no retry, and is not counted in the run's `tool_calls_limit` (pydantic-ai counts a
 call only when it succeeds). When the history the next request shows (the elision and the compaction run over the history that holds this response's calls) still holds the first answer whole,
 the refusal names that call; when the runtime's elision digested it

@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Protocol, Self
 
 from assistant_core.capabilities.refused_calls import CallRefused
+from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from assistant_core.conversation.history import (
     compact_history,
     elide_consumed,
@@ -39,6 +40,9 @@ from strategist.ai.graph.turn_records import TurnMarkers
 class HoldsTurnMarkers(Protocol):
     @property
     def turn_markers(self) -> TurnMarkers: ...
+
+    @property
+    def tool_repetition_guard(self) -> ToolRepetitionGuard: ...
 
 
 def _arguments(tool_args: dict[str, Any]) -> str:
@@ -104,8 +108,9 @@ class ReadOnce[DepsT: HoldsTurnMarkers](AbstractCapability[DepsT]):
     any other; one in ``lasting`` is held for the run. The same read sent again
     runs nothing and fails, so it spends no tool call of the budget and no site
     request: it names the call that answered while the model still sees that
-    answer, and carries the answer again once the history elided it. Every call
-    outside the listed reads counts one write. A read that failed is not held.
+    answer, and carries the answer again once the history elided it. A held
+    repeat is the guard's identical-arguments streak, and a call outside the
+    listed reads counts one write. A read that failed is not held.
     """
 
     reads: frozenset[str] = frozenset()
@@ -155,7 +160,11 @@ class ReadOnce[DepsT: HoldsTurnMarkers](AbstractCapability[DepsT]):
                 if _shown(ctx.messages, first.call_id)
                 else f"That answer is no longer shown above; it is: {first.text}"
             )
-            raise _refused(call, f"{said} {again}")
+            loop = ctx.deps.tool_repetition_guard.check_repeat(
+                name, args, tool_call_id=call.tool_call_id, run_step=ctx.run_step
+            )
+            warned = "" if loop is None else f" {loop.message}"
+            raise _refused(call, f"{said} {again}{warned}")
         writes = markers.writes
         result = await handler(args)
         self.answered[key] = _Answer(

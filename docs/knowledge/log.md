@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **A held repeat spends no call cap and is the one loop rule.** `ReadOnce` is a capability of
+  the agent, outside the run's repetition guard, so a repeat it holds never reaches the guard's
+  per-tool cap; it joins the guard's identical-arguments streak through `check_repeat`, which
+  warns on the third identical call and stops the run on a later repeat.
+
 * **Take assistant-core 0.9.0b7.** `ToolRepetitionGuard.check_repeat` counts a repeat the host
   holds in the guard's identical-arguments streak without spending a call cap.
 

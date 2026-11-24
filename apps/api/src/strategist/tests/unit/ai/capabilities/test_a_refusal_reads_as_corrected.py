@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 from assistant_core.capabilities.refused_calls import CallRefused, MarkRefusedCalls
+from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from pydantic_ai import Agent, RunContext, ToolFailed
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import (
@@ -20,6 +21,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
+from strategist.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from strategist.ai.capabilities.read_once import ReadOnce
 from strategist.ai.capabilities.site_reads import failed_read
 from strategist.ai.graph.turn_records import TurnMarkers
@@ -30,6 +32,9 @@ from strategist.platform.refusals import agent_capabilities
 @dataclass
 class _Deps:
     turn_markers: TurnMarkers = field(default_factory=TurnMarkers)
+    tool_repetition_guard: ToolRepetitionGuard = field(
+        default_factory=build_tool_repetition_guard
+    )
 
 
 def read_gene_record(ctx: RunContext[_Deps], gene_id: str) -> str:
