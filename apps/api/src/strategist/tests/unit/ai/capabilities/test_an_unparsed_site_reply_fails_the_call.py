@@ -54,6 +54,12 @@ def _toolset(retries_seen: list[int]) -> FunctionToolset[None]:
         ).search_data.url_segment
 
     @toolset.tool_plain
+    def write_search() -> str:
+        return WDKSearchResponse.model_validate(
+            _without_the_search_name()
+        ).search_data.url_segment
+
+    @toolset.tool_plain
     def read_window(start: int, end: int) -> int:
         return _Window(start=start, end=end).end
 
@@ -84,7 +90,12 @@ def _agent(retries_seen: list[int]) -> Agent[None, str]:
         deps_type=type(None),
         toolsets=toolsets,
         capabilities=agent_capabilities(
-            [SiteReadFailures[None](reads=frozenset())], toolsets=toolsets
+            [
+                SiteReadFailures[None](
+                    reads=frozenset(), writes_nothing=frozenset({"read_search"})
+                )
+            ],
+            toolsets=toolsets,
         ),
     )
 
@@ -135,3 +146,24 @@ async def test_a_model_built_from_the_arguments_keeps_its_retry() -> None:
 
     [(outcome, said)] = _returns(result.all_messages(), "read_window")
     assert (outcome, "end must not come before start" in said) == ("retried", True)
+
+
+async def test_a_writing_call_whose_reply_does_not_parse_leaves_the_site_unknown() -> (
+    None
+):
+    result = await _agent([]).run(
+        "write", model=_calls(ToolCallPart(tool_name="write_search", args={}))
+    )
+
+    assert _returns(result.all_messages(), "write_search") == [
+        (
+            "failed",
+            (
+                "write_search got a reply from the site that did not parse "
+                "(WDKSearchResponse). The call writes, so part of its change may "
+                "already hold on the site and what the site holds is not known. "
+                "Read the strategy from the site again before you say what it "
+                "holds."
+            ),
+        )
+    ]

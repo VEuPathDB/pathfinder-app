@@ -19,6 +19,7 @@ from veupathdb.errors import DataParsingError, ExternalServiceError, WDKError
 from veupathdb.jbrowse import JBrowseError
 from veupathdb.wdk import WDKModel
 
+from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
 from strategist.services.site_errors import site_status, site_words, unreached
 
 # An account the request does not have is no outage; the error path reports it.
@@ -52,11 +53,18 @@ def site_data_failure(tool_name: str, said: str) -> ToolFailed:
     )
 
 
-def site_reply_failure(tool_name: str, model: str) -> ToolFailed:
+def site_reply_failure(tool_name: str, model: str, *, writes: bool) -> ToolFailed:
+    said = f"{tool_name} got a reply from the site that did not parse ({model}). "
+    if writes:
+        return ToolFailed(
+            f"{said}The call writes, so part of its change may already hold on the "
+            "site and what the site holds is not known. Read the strategy from the "
+            "site again before you say what it holds."
+        )
     return ToolFailed(
-        f"{tool_name} got a reply from the site that did not parse ({model}). "
-        "Nothing was read and the strategy is unchanged. Say that the site's reply "
-        "to this read did not parse, and answer from what the turn already holds."
+        f"{said}Nothing was read and the strategy is unchanged. Say that the site's "
+        "reply to this read did not parse, and answer from what the turn already "
+        "holds."
     )
 
 
@@ -141,6 +149,7 @@ class SiteReadFailures(AbstractCapability[AgentDepsT]):
     propagates to the turn's error path or the refusal seam."""
 
     reads: frozenset[str] = frozenset()
+    writes_nothing: frozenset[str] = READ_ONLY_TOOLS
 
     async def on_tool_execute_error(
         self,
@@ -153,7 +162,8 @@ class SiteReadFailures(AbstractCapability[AgentDepsT]):
     ) -> Any:
         del ctx, call, args
         if (model := unparsed_site_reply(error)) is not None:
-            raise site_reply_failure(tool_def.name, model) from error
+            writes = tool_def.name not in self.writes_nothing
+            raise site_reply_failure(tool_def.name, model, writes=writes) from error
         if tool_def.name not in self.reads:
             raise error
         match error:
