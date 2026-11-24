@@ -32,10 +32,12 @@ from strategist.ai.lead.turn_budget import lead_token_budget
 from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.ai.lead.turn_record import owes_a_check
 
+CHECK_ORDER = "Check the strategy this turn changed."
 RUNTIME_CHECK = (
-    "The runtime checks the strategy this turn changed before the reply. Write "
-    "the reply from this check's verdict and its stops."
+    "The runtime checked the strategy this turn changed before the reply. Write "
+    "the reply from that check's verdict and its stops."
 )
+_RUNTIME_CALL = "call_runtime_check_"
 
 
 def the_runtime_check(
@@ -51,14 +53,25 @@ def the_runtime_check(
                     parts=[
                         ToolCallPart(
                             tool_name="verify_strategy",
-                            args={"reason": RUNTIME_CHECK},
-                            tool_call_id=f"call_runtime_check_{uuid4().hex[:12]}",
+                            args={"reason": CHECK_ORDER},
+                            tool_call_id=f"{_RUNTIME_CALL}{uuid4().hex[:12]}",
                         )
                     ]
                 ),
             ]
         case _:
             return None
+
+
+def resume_context(history: list[ModelMessage] | None) -> str | None:
+    """The instruction for a run that resumes from the runtime's check."""
+    last = next(
+        (m for m in reversed(history or []) if isinstance(m, ModelResponse)), None
+    )
+    calls = [] if last is None else last.tool_calls
+    if any(call.tool_call_id.startswith(_RUNTIME_CALL) for call in calls):
+        return RUNTIME_CHECK
+    return None
 
 
 def stream_ends_after(
@@ -105,6 +118,7 @@ class LeadRuns:
             deps=deps,
             message_history=history,
             deferred_tool_results=results,
+            instructions=resume_context(history),
             capabilities=[RepetitionGuard(guard=guard), lead_token_budget()],
             usage_limits=self.limits,
             usage=self.usage,

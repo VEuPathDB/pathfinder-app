@@ -16,7 +16,10 @@ this turn was dispatched (`TurnMarkers.verification_dispatched`), and no criteri
 build waits on its analysis. A reply that ends on a card is a `DeferredToolRequests`,
 so it is never checked. When a check is owed, `ai/graph/_lead_runs.py::the_runtime_check`
 appends a `verify_strategy` call (id `call_runtime_check_...`) to the answered run's
-history and the node runs the Lead once more from it. pydantic-ai executes the pending
+history and the node runs the Lead once more from it. The call's `reason` is VERIFY's work
+order ("Check the strategy this turn changed."); the rule for the Lead's reply rides as
+the resumed run's instructions (`resume_context`), on the node's resume and on the
+completion turn's, and never in the call's arguments. pydantic-ai executes the pending
 call through the Lead's own toolset, so the check streams, parks and resumes as a call
 the Lead made: a check that defers parks through `ai/graph/_lead_durable.py` and the
 completion turn resumes the Lead with the verdict; a check that stops on its budget

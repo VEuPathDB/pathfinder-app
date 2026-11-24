@@ -14,6 +14,7 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelMessagesTypeAdapter,
     ModelRequest,
+    ModelResponse,
     ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
@@ -22,6 +23,7 @@ from veupathdb.domain.strategy import StrategyStepNode
 
 from strategist.ai.graph import _lead_model
 from strategist.ai.graph._lead_capture import LeadRunCapture
+from strategist.ai.graph._lead_runs import CHECK_ORDER, RUNTIME_CHECK
 from strategist.ai.graph.lead_node import _drive_lead_stream
 from strategist.ai.graph.state import VerificationDigest
 from strategist.ai.lead import (
@@ -269,3 +271,32 @@ def test_a_check_that_defers_parks_the_turn_on_the_runtimes_call(
         "verify_strategy",
     )
     assert parked.tool_call_id.startswith("call_runtime_check_")
+
+
+def _runtime_calls(messages: list[ModelMessage]) -> list[ToolCallPart]:
+    return [
+        part
+        for message in messages
+        if isinstance(message, ModelResponse)
+        for part in message.parts
+        if isinstance(part, ToolCallPart)
+        and part.tool_call_id.startswith("call_runtime_check_")
+    ]
+
+
+def _last_instructions(messages: list[ModelMessage]) -> str:
+    requests = [m for m in messages if isinstance(m, ModelRequest)]
+    return requests[-1].instructions or ""
+
+
+def test_the_checker_gets_a_work_order_and_the_lead_gets_the_reply_rule(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lead = _Lead()
+
+    _turn(monkeypatch, lead, _reviewed)
+
+    [call] = _runtime_calls(lead.seen[-1])
+    assert call.args_as_dict() == {"reason": CHECK_ORDER}
+    assert RUNTIME_CHECK in _last_instructions(lead.seen[-1])
+    assert RUNTIME_CHECK not in _last_instructions(lead.seen[0])
