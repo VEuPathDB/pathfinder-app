@@ -18,7 +18,6 @@ from strategist.domain.private_inputs import (
     PRIVATE_INPUT_KINDS,
     PUBLIC_INPUT_KINDS,
     inputs_for_viewer,
-    is_account_dataset,
 )
 from strategist.domain.strategy.step_rationale import (
     AnalysisRationale,
@@ -76,10 +75,6 @@ def test_a_step_input_is_withheld_either_way(include_account_reads: bool) -> Non
     )
 
     assert (read.shown, read.withheld) == ({}, [])
-
-
-def test_an_uploaded_study_is_account_data_and_a_curated_one_is_not() -> None:
-    assert (is_account_dataset(UPLOAD), is_account_dataset(CURATED)) == (True, False)
 
 
 def test_a_step_on_an_uploaded_study_withholds_its_inputs() -> None:

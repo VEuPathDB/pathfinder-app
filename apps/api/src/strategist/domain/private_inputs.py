@@ -6,7 +6,8 @@ from typing import Final
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 from veupathdb.domain.parameters import ParamValue, to_wire
-from veupathdb.wdk import EDA_USER_DATASET_PREFIX
+
+from strategist.domain.account_datasets import account_datasets_in, is_account_dataset
 
 PRIVATE_INPUT_KINDS: Final[frozenset[str]] = frozenset({"input-dataset", "held"})
 OWNER_HANDLE_KINDS: Final[frozenset[str]] = frozenset({"input-step"})
@@ -35,7 +36,7 @@ class ViewerInputs(BaseModel):
 
     def names_account_data(self, text: str) -> bool:
         return any(value in text for value in self.hidden_values) or (
-            not self.account_reads and EDA_USER_DATASET_PREFIX in text
+            not self.account_reads and bool(account_datasets_in(text))
         )
 
     def untyped[T: JsonValue](self, value: T, *, withheld: T) -> T:
@@ -50,10 +51,6 @@ class _StudyInput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     eda_dataset_id: str = ""
-
-
-def is_account_dataset(dataset_id: str) -> bool:
-    return dataset_id.startswith(EDA_USER_DATASET_PREFIX)
 
 
 def _private_names(readable: Mapping[str, ParamValue]) -> set[str]:

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.types import ASGIApp
 
 from strategist.tests._support.shared_strategy import (
+    BUILT_AST,
     PRIVATE_DATASET_ID,
     STATE,
     UPLOAD_AST,
@@ -99,7 +100,7 @@ async def test_the_viewer_reads_the_strategy_without_the_private_list(
     session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
     thread = await seed_thread(session_maker, authed_user_id)
-    await seed_strategy(session_maker, thread)
+    await seed_strategy(session_maker, thread, BUILT_AST)
     token = await _shared(authed_client, thread)
 
     async with anonymous(app) as viewer:

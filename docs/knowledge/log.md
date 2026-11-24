@@ -273,7 +273,8 @@
   clears "Include the strategy and its context" (`conversation_shares.include_context`; a link
   made before the box keeps it out). `GET /api/v1/shared/{token}/context` serves the strategy and
   the bound study redacted once on the server (`services/conversations/shared_context.py`), with
-  the account-data rule in `domain/private_inputs.py`. See
+  the input rule in `domain/private_inputs.py` and the upload predicate in
+  `domain/account_datasets.py`. See
   [decisions/a-conversation-is-shared-by-a-link.md](decisions/a-conversation-is-shared-by-a-link.md).
 
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of

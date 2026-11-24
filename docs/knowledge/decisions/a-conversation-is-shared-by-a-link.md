@@ -31,7 +31,7 @@ opens `/shared/<token>`, inside the website that frames Strategist.
   dataset input (an uploaded list, a gene set, a basket, a file) and a value whose kind was never
   read are withheld and named in `privateInputs`, and a step input (an owner step id) is
   withheld always. A study on the owner's own upload (an `EDAUD_` dataset) is account data by
-  the same rule. Every field derived from the inputs follows it, against the values withheld
+  the one predicate the snapshot uses (`domain/account_datasets.py`). Every field derived from the inputs follows it, against the values withheld
   anywhere in the strategy, not only on the step itself: a step's reason is cleared when it
   names a withheld value or an upload (`for_viewer` on each reason type), and keeps only the
   shown inputs it was derived from; a filter or step-analysis value has no parameter kind, so it

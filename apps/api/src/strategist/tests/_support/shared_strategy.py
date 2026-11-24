@@ -87,6 +87,8 @@ SHARED_AST = StrategyAst.model_validate(
     }
 )
 
+BUILT_AST = SHARED_AST.model_copy(update={"wdk_push_errors": None})
+
 UPLOAD_AST = StrategyAst.model_validate(
     {
         "recordType": "transcript",

@@ -8,12 +8,9 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict
 
+from strategist.domain.account_datasets import is_account_dataset
 from strategist.domain.eda_parts import EdaAnalysisState
-from strategist.domain.private_inputs import (
-    ViewerInputs,
-    inputs_for_viewer,
-    is_account_dataset,
-)
+from strategist.domain.private_inputs import ViewerInputs, inputs_for_viewer
 from strategist.services.conversations.responses import ConversationResponse
 from strategist.services.strategies.schemas import StepResponse
 
@@ -63,6 +60,7 @@ STEP_SHOWN: Final[frozenset[str]] = frozenset(
         "status",
         "is_filtered",
         "expanded_name",
+        "wdk_weight",
     }
 )
 STEP_CLEARED: Final[Mapping[str, object]] = {

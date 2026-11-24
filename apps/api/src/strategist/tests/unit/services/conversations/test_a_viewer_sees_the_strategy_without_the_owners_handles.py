@@ -27,6 +27,7 @@ from strategist.services.conversations.shared_context import (
 )
 from strategist.services.strategies.schemas import StepResponse
 from strategist.tests._support.shared_strategy import (
+    BUILT_AST,
     PRIVATE_DATASET_ID,
     SHARED_AST,
     STATE,
@@ -137,7 +138,11 @@ def test_the_viewer_gets_no_wdk_handle_or_spend() -> None:
 
 
 def test_a_private_list_is_named_and_not_carried() -> None:
-    shown, private = viewer_strategy(DETAIL, token="tok-1", include_account_reads=False)
+    built = DETAIL.model_copy(
+        update={"steps": derive_steps_from_strategy_ast(BUILT_AST)}
+    )
+
+    shown, private = viewer_strategy(built, token="tok-1", include_account_reads=False)
 
     by_id = {s.id: s for s in shown.steps}
     assert private == {"s-list": ["ds_gene_ids"]}
