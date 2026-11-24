@@ -180,12 +180,24 @@ def refused_requirements(
     ]
 
 
-def unknown_requirement_ids(
-    reports: Sequence[RequirementReport], requirements: Sequence[Constraint]
+def unlisted_numbers(
+    named: Sequence[str], requirements: Sequence[Constraint]
 ) -> list[str]:
-    """The numbers the reports name that the list does not hold."""
     numbered = numbered_requirements(requirements)
-    return [r.requirement for r in reports if r.requirement not in numbered]
+    return [number for number in named if number not in numbered]
+
+
+def unlisted_numbers_sentence(
+    argument: str, named: Sequence[str], requirements: Sequence[Constraint]
+) -> str | None:
+    unlisted = unlisted_numbers(named, requirements)
+    if not unlisted:
+        return None
+    holds = ", ".join(numbered_requirements(requirements)) or "none"
+    return (
+        f"{argument} names {unlisted}, which 'Requirements the researcher stated' "
+        f"does not hold. It holds {holds}."
+    )
 
 
 def resolved_reports(

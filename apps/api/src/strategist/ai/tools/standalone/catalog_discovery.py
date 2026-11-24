@@ -33,7 +33,10 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._catalog_elsewhere import joined
 from strategist.ai.tools.standalone._catalog_models import register_search
 from strategist.ai.tools.standalone._stated_values import typed_context_read
-from strategist.domain.strategy.requirement_reports import numbered_requirements
+from strategist.domain.strategy.requirement_reports import (
+    numbered_requirements,
+    unlisted_numbers_sentence,
+)
 
 
 async def get_search_overview(
@@ -205,12 +208,11 @@ def _requirement_words(state: AgentToolState, number: str | None) -> list[str]:
     if number is None:
         return []
     held = numbered_requirements(state.stated_requirements)
-    if number not in held:
-        msg = (
-            f"requirement {number!r} is no number of 'Requirements the researcher "
-            f"stated'; it holds {', '.join(held) or 'none'}. Pass one of those, or "
-            "no requirement."
-        )
+    unlisted = unlisted_numbers_sentence(
+        "requirement", [number], state.stated_requirements
+    )
+    if unlisted is not None:
+        msg = f"{unlisted} Pass one of those, or no requirement."
         raise ModelRetry(msg)
     stated = held[number]
     return list(dict.fromkeys(filter(None, [stated.quote, stated.requested_value])))

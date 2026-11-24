@@ -53,7 +53,10 @@ from strategist.domain.strategy.questions import (
     requirement_choices,
 )
 from strategist.domain.strategy.readings import ReadingChooser, ReadValues
-from strategist.domain.strategy.requirement_reports import numbered_requirements
+from strategist.domain.strategy.requirement_reports import (
+    numbered_requirements,
+    unlisted_numbers_sentence,
+)
 
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
 
@@ -67,12 +70,9 @@ def card_stand_ins(
 ) -> dict[str, list[str]]:
     numbered = numbered_requirements(requirements)
     named = [n for q in questions for n in q.replaces]
-    unknown = [n for n in named if n not in numbered]
-    if unknown:
-        msg = (
-            f"replaces names {unknown}, which the requirement list does not hold. "
-            f"The list holds {', '.join(numbered) or 'none'}; name only those."
-        )
+    unlisted = unlisted_numbers_sentence("replaces", named, requirements)
+    if unlisted is not None:
+        msg = f"{unlisted} Name only those."
         raise ModelRetry(msg)
     scopes = [n for n in named if numbered[n].kind in STRATEGY_SCOPES]
     if scopes:

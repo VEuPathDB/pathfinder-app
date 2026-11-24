@@ -16,7 +16,7 @@ from strategist.domain.strategy.requirement_reports import (
     reported_requirements,
     requirements_block,
     resolved_reports,
-    unknown_requirement_ids,
+    unlisted_numbers,
 )
 
 
@@ -106,7 +106,7 @@ def test_a_number_the_list_lacks_resolves_to_nothing_and_is_named() -> None:
     assert reported_requirements(
         reports, _HELD, RequirementProblem.SITE_HAS_NO_SEARCH
     ) == [_GPI]
-    assert unknown_requirement_ids(reports, _HELD) == ["R7"]
+    assert unlisted_numbers([r.requirement for r in reports], _HELD) == ["R7"]
 
 
 def test_the_lead_reads_each_report_in_the_held_words() -> None:
