@@ -104,6 +104,5 @@ services/strategies/sheet_params.py:_parameters_read:(VEuPathDBError,OSError):co
 services/strategies/site_counts.py:read_site_strategy:VEuPathDBError:returnNone None makes every site check unchecked ('the site did not answer the strategy read')
 services/strategies/sync.py:step_tree_is_current:StrategyCompilationError:returnFalse a tree that does not compile is not current, so it is pushed
 services/strategies/wdk_sync.py:lazy_fetch_wdk_detail:(VEuPathDBError,RuntimeError):log best effort: the thread shows what it holds
-services/strategies/wdk_sync.py:sync_is_saved_to_wdk:VEuPathDBError:log best effort: WDK keeps its saved mark; the thread's is written
 services/user_data.py:_purge_wdk_strategies._delete_one:(VEuPathDBError,OSError,RuntimeError):returnFalse reports the strategy as not deleted
 services/user_data.py:_purge_wdk_strategies:(VEuPathDBError,OSError,RuntimeError):continue a site that does not answer keeps its WDK copies; the purge of the rest goes on

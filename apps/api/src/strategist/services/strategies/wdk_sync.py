@@ -31,8 +31,9 @@ from strategist.persistence.repositories.conversation_strategy import (
 from strategist.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
-from strategist.platform.errors import InternalError
+from strategist.platform.errors import InternalError, SiteUnavailableError
 from strategist.services.eda.analysis_kinds import analysis_kinds_of
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.naming import placeholder_strategy_name
 
 logger = get_logger(__name__)
@@ -246,28 +247,16 @@ async def lazy_fetch_wdk_detail(
     return conversation, strategy
 
 
-async def sync_is_saved_to_wdk(
-    *,
-    conversation: Conversation,
-    strategy: ConversationStrategyView,
+async def set_the_saved_mark(
+    *, site_id: str, wdk_strategy_id: int, is_saved: bool
 ) -> None:
-    """Sends the isSaved flag from a chat to WDK. A chat with no WDK strategy id or
-    site id is skipped, and a failure is logged only."""
-    wdk_id = strategy.wdk_strategy_id
-    if not wdk_id:
-        return
-
-    site_id = conversation.site_id
-    if not site_id:
-        return
-
+    """Set the saved mark on the WDK strategy, or refuse the change."""
     try:
-        api = get_strategy_api(site_id)
-        await api.set_saved(wdk_id, is_saved=strategy.is_saved)
+        await get_strategy_api(site_id).set_saved(wdk_strategy_id, is_saved=is_saved)
     except VEuPathDBError as exc:
         logger.warning(
-            "Failed to sync isSaved to WDK",
-            conversation_id=str(conversation.id),
-            wdk_id=wdk_id,
-            error=str(exc),
+            "Failed to sync isSaved to WDK", wdk_id=wdk_strategy_id, error=str(exc)
         )
+        raise SiteUnavailableError(
+            site_id, f"the saved mark was not set: {site_words(exc)}"
+        ) from exc
