@@ -56,6 +56,52 @@ export async function seedStrategy(
   return { conversationId: conversation.id, rootStepId };
 }
 
+export const PRIVATE_LIST_ID = "330713643";
+
+/** Kinases intersected with a saved list, stored through the api on `siteId`. */
+export async function seedStrategyWithAList(
+  api: ApiClient,
+  siteId: string,
+): Promise<SeededStrategy> {
+  const resp = await api.post("api/v1/conversations", {
+    data: {
+      name: "Kinases in a saved list",
+      siteId,
+      strategyAst: {
+        recordType: "transcript",
+        root: {
+          operator: "INTERSECT",
+          primaryInput: {
+            searchName: "GeneByLocusTag",
+            parameters: {
+              ds_gene_ids: { type: "input-dataset", datasetId: PRIVATE_LIST_ID },
+            },
+            displayName: "Gene set: 3D7 strain gaps",
+          },
+          secondaryInput: {
+            searchName: "GenesByText",
+            parameters: {
+              text_expression: { type: "string", value: "kinase" },
+              text_fields: {
+                type: "string",
+                value: '["primary_key","gene_product"]',
+              },
+              document_type: { type: "string", value: "gene" },
+              max_pvalue: { type: "number", value: 0.5 },
+            },
+            displayName: "All kinase transcripts",
+          },
+        },
+      },
+    },
+  });
+  expect(resp.status(), `seed ${await resp.text()}`).toBe(201);
+  const conversation = (await resp.json()) as ConversationResponse;
+  const rootStepId = conversation.rootStepId ?? "";
+  expect(rootStepId).not.toBe("");
+  return { conversationId: conversation.id, rootStepId };
+}
+
 /** The one node running `searchName`. */
 export function nodeBySearch(nodes: readonly AstNode[], searchName: string): AstNode {
   const matches = nodes.filter((node) => node.searchName === searchName);
