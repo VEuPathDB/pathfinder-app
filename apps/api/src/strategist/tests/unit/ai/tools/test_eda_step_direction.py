@@ -9,6 +9,7 @@ from pydantic_ai import RunContext
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import VolcanoCut
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.tests._support.eda_step_doubles import (
     DE_GENES,
@@ -73,9 +74,11 @@ async def test_an_up_only_export_keeps_group_b(
 
     answer = await eda_step.create_eda_step(
         lead_ctx,
-        effect_size_threshold=1.0,
-        significance_threshold=0.05,
-        effect_direction="upOnly",
+        volcano=VolcanoCut(
+            effect_size_threshold=1.0,
+            significance_threshold=0.05,
+            effect_direction="upOnly",
+        ),
     )
 
     result = returned(answer, eda_step.EdaStepCreated)
@@ -93,9 +96,11 @@ async def test_the_step_is_named_by_the_direction(
 
     answer = await eda_step.create_eda_step(
         lead_ctx,
-        effect_size_threshold=1.0,
-        significance_threshold=0.05,
-        effect_direction="downOnly",
+        volcano=VolcanoCut(
+            effect_size_threshold=1.0,
+            significance_threshold=0.05,
+            effect_direction="downOnly",
+        ),
     )
 
     assert applied[0][0].step.display_name == (
@@ -114,7 +119,8 @@ async def test_a_two_sided_export_keeps_both_sides(
     _wire(monkeypatch, recording_commit(applied))
 
     answer = await eda_step.create_eda_step(
-        lead_ctx, effect_size_threshold=1.0, significance_threshold=0.05
+        lead_ctx,
+        volcano=VolcanoCut(effect_size_threshold=1.0, significance_threshold=0.05),
     )
 
     assert returned(answer, eda_step.EdaStepCreated).selection == (

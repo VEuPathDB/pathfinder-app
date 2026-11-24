@@ -9,6 +9,10 @@ from veupathdb.domain.strategy import CombineOp
 from strategist.ai.lead.deltas import EditDelta
 from strategist.ai.lead.intent import IntentClassification
 from strategist.ai.lead.lead_pins import eda_route_blocks
+from strategist.ai.tools.standalone._eda_step_arguments import (
+    BesideRoot,
+    WaitingCriterion,
+)
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -55,7 +59,9 @@ async def test_an_edit_of_another_step_writes_that_step_alone(
 ) -> None:
     thread = _built_thread(monkeypatch)
     exported = await export(
-        thread, reference="18h", combine_with_root=CombineOp.INTERSECT
+        thread,
+        reference="18h",
+        placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT),
     )
     before = thread.spec.model_copy(deep=True)
     written = len(thread.committed)
@@ -85,7 +91,9 @@ async def test_only_the_researchers_delete_takes_the_analysis_off(
 ) -> None:
     thread = _built_thread(monkeypatch)
     exported = await export(
-        thread, reference="18h", combine_with_root=CombineOp.INTERSECT
+        thread,
+        reference="18h",
+        placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT),
     )
 
     await thread.delete(exported.step_id)
@@ -130,12 +138,20 @@ async def test_two_comparisons_on_one_dataset_each_wait_and_each_are_built(
 
     assert isinstance(delta, EditDelta)
     assert delta.operations_applied == 0
-    assert [route.count('criterion_id="c_') for route in routes] == [1, 1]
-    assert 'create_eda_step(criterion_id="c_36")' in routes[0]
-    assert 'create_eda_step(criterion_id="c_12")' in routes[1]
+    assert [route.count('"criterion_id": "c_') for route in routes] == [1, 1]
+    assert '"kind": "criterion", "criterion_id": "c_36"}' in routes[0]
+    assert '"kind": "criterion", "criterion_id": "c_12"}' in routes[1]
 
-    thirty_six = await export(thread, reference="36h", criterion_id="c_36")
-    twelve = await export(thread, reference="12h", criterion_id="c_12")
+    thirty_six = await export(
+        thread,
+        reference="36h",
+        placement=WaitingCriterion(kind="criterion", criterion_id="c_36"),
+    )
+    twelve = await export(
+        thread,
+        reference="12h",
+        placement=WaitingCriterion(kind="criterion", criterion_id="c_12"),
+    )
 
     assert sorted(bindings(thread)) == sorted(
         [first.step_id, thirty_six.step_id, twelve.step_id]
@@ -179,7 +195,11 @@ async def test_binding_a_waiting_criterion_is_a_change_of_that_criterion(
     thread = bare_thread(monkeypatch)
     exported = await _a_comparison_waits(thread)
 
-    second = await export(thread, reference="36h", criterion_id=WAITING)
+    second = await export(
+        thread,
+        reference="36h",
+        placement=WaitingCriterion(kind="criterion", criterion_id=WAITING),
+    )
 
     diff = thread.ledger_diff()
     assert [(c.criterion_id, c.disposition) for c in diff.changes] == [

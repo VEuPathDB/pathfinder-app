@@ -20,6 +20,7 @@ from veupathdb.eda import (
 
 from strategist.ai.graph.thread_requirements import ThreadRequirements
 from strategist.ai.tools.standalone._eda_sheet import sheet_entries
+from strategist.ai.tools.standalone._eda_step_arguments import VolcanoCut
 from strategist.ai.tools.standalone.eda_cut import (
     ask_sentence,
     cut_card,
@@ -46,13 +47,10 @@ from strategist.services.eda.description import display_names, filter_summaries
 from strategist.services.eda.export import exported_dataset
 
 
-def refuse_a_direction_without_a_volcano(
-    analysis: EdaAnalysisDetail,
-    *,
-    effect_direction: EdaEffectDirection | None,
-    has_thresholds: bool,
+def refuse_a_direction_without_a_comparison(
+    analysis: EdaAnalysisDetail, effect_direction: EdaEffectDirection | None
 ) -> None:
-    """A direction selects a side of a computed volcano, so it needs both."""
+    """A direction selects a side of a computed volcano."""
     if effect_direction is None:
         return
     if not differential_expression_computations(analysis.descriptor):
@@ -60,16 +58,7 @@ def refuse_a_direction_without_a_volcano(
             f'effect_direction="{effect_direction}" selects a side of a '
             f"comparison, and the open analysis holds 0 comparisons. Nothing "
             f"was written. Call run_eda_compute to run the comparison, then "
-            f"export with effect_size_threshold, significance_threshold and "
-            f"effect_direction."
-        )
-        raise ModelRetry(msg)
-    if not has_thresholds:
-        msg = (
-            f'effect_direction="{effect_direction}" selects a side of the '
-            f"volcano, so it needs effect_size_threshold and "
-            f"significance_threshold. Send both, or leave effect_direction unset "
-            f"to export the subset. Nothing was written."
+            f"export with the volcano cut and its effect_direction."
         )
         raise ModelRetry(msg)
 
@@ -83,46 +72,17 @@ def compared_groups(
     return analysis_comparison(analysis)
 
 
-def refuse_half_a_cut(
-    effect_size_threshold: float | None,
-    significance_threshold: float | None,
-) -> None:
-    """Both thresholds or neither. The bridge plugin requires both keys."""
-    if effect_size_threshold is not None and significance_threshold is None:
-        msg = (
-            "A volcano export needs significance_threshold as well as "
-            "effect_size_threshold. Send both, or send neither to export the "
-            "whole subset."
-        )
-        raise ModelRetry(msg)
-    if significance_threshold is not None and effect_size_threshold is None:
-        msg = (
-            "A volcano export needs effect_size_threshold as well as "
-            "significance_threshold. Send both, or send neither to export the "
-            "whole subset."
-        )
-        raise ModelRetry(msg)
-
-
 def volcano_thresholds(
-    analysis: EdaAnalysisDetail,
-    effect_size_threshold: float | None,
-    significance_threshold: float | None,
-    effect_direction: EdaEffectDirection | None,
+    analysis: EdaAnalysisDetail, cut: VolcanoCut | None
 ) -> VolcanoThresholds | None:
     """The volcano cut this call names, or None for the subset export."""
-    has_thresholds = (
-        effect_size_threshold is not None and significance_threshold is not None
-    )
-    refuse_a_direction_without_a_volcano(
-        analysis, effect_direction=effect_direction, has_thresholds=has_thresholds
-    )
-    if effect_size_threshold is None or significance_threshold is None:
+    if cut is None:
         return None
+    refuse_a_direction_without_a_comparison(analysis, cut.effect_direction)
     return VolcanoThresholds(
-        effect_size_threshold=effect_size_threshold,
-        significance_threshold=significance_threshold,
-        effect_direction=effect_direction or "upAndDown",
+        effect_size_threshold=cut.effect_size_threshold,
+        significance_threshold=cut.significance_threshold,
+        effect_direction=cut.effect_direction or "upAndDown",
     )
 
 

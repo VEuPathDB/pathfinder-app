@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
-from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
 from pydantic import Field
@@ -12,21 +11,24 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
 from strategist.ai.lead.answered_strategy import the_strategy_now_answers_to
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.tools.standalone._eda_step_arguments import (
+    ExportPlacement,
+    VolcanoCut,
+    replaced_step,
+)
 from strategist.ai.tools.standalone._eda_step_criterion import (
     WaitingPlacement,
     export_placement,
 )
-from strategist.ai.tools.standalone._eda_step_cut import VolcanoAsk, the_cut
+from strategist.ai.tools.standalone._eda_step_cut import the_cut
 from strategist.ai.tools.standalone._eda_step_guard import (
     compared_groups,
     refuse_a_recut_of_another_dataset,
-    refuse_half_a_cut,
 )
 from strategist.ai.tools.standalone._eda_step_spec import (
     bind_the_export,
@@ -37,7 +39,6 @@ from strategist.ai.tools.standalone._eda_step_spec import (
     structure_states_the_graph,
 )
 from strategist.ai.tools.standalone._eda_step_write import (
-    AskedPlacement,
     ExportJoin,
     export_write,
 )
@@ -218,14 +219,8 @@ def _guidance(wdk_strategy_id: int | None, *, is_compute_backed: bool) -> str:
 async def create_eda_step(
     ctx: RunContext[LeadDeps],
     *,
-    criterion_id: str | None = None,
-    attach_to_step_id: str | None = None,
-    slot: Literal["primary", "secondary"] | None = None,
-    replace_step_id: str | None = None,
-    combine_with_root: CombineOp | None = None,
-    effect_size_threshold: float | None = None,
-    significance_threshold: float | None = None,
-    effect_direction: EdaEffectDirection | None = None,
+    placement: ExportPlacement | None = None,
+    volcano: VolcanoCut | None = None,
 ) -> ToolReturn[EdaStepCreated | ToolErrorPayload]:
     """Export the open EDA analysis into the researcher's strategy as a step.
 
@@ -233,22 +228,23 @@ async def create_eda_step(
     nests and saves like any other, and it appears in the strategy graph the
     researcher is looking at.
 
-    Two exports, and the arguments decide which:
+    Two exports, and ``volcano`` decides which:
 
-    - The SUBSET's genes: call with no thresholds. Every gene in the filtered
+    - The SUBSET's genes: leave ``volcano`` unset. Every gene in the filtered
       subset becomes a step. The subset needs a filter on the gene entity
       (``has_gene_id`` in describe_eda_study); a subset of samples selects no
       gene and is refused.
-    - The genes passing a VOLCANO's thresholds: pass ``effect_size_threshold``
-      AND ``significance_threshold``. The compute must already be complete -
-      call run_eda_compute first and read its summary, so you know how many
-      genes you are about to export. ``effect_direction`` selects a side by
-      its group: a positive effect size is higher in group B (the comparison
-      group) than in group A (the reference). ``upOnly`` keeps the genes
-      higher in group B, ``downOnly`` the genes higher in group A, and
-      ``upAndDown`` (the default) both. A direction without both thresholds,
-      or on an analysis with no computation, is refused. The step is named by the genes it keeps, and the
-      result's ``selection`` says it in the groups' labels: repeat it.
+    - The genes passing a VOLCANO's thresholds: pass ``volcano`` with
+      ``effect_size_threshold`` and ``significance_threshold``. The compute
+      must already be complete - call run_eda_compute first and read its
+      summary, so you know how many genes you are about to export.
+      ``effect_direction`` selects a side by its group: a positive effect size
+      is higher in group B (the comparison group) than in group A (the
+      reference). ``upOnly`` keeps the genes higher in group B, ``downOnly``
+      the genes higher in group A, and ``upAndDown`` (the default) both. A
+      direction on an analysis with no computation is refused. The step is
+      named by the genes it keeps, and the result's ``selection`` says it in
+      the groups' labels: repeat it.
 
     A gene passes when the absolute effect size is at or above
     ``effect_size_threshold`` and the p-value is at or below
@@ -257,36 +253,35 @@ async def create_eda_step(
     its log2, and ``guidance`` says so. Those are the same comparisons the plot uses, so
     the step's count matches the number you told the researcher.
 
-    Set ``criterion_id`` to the id of a criterion the pinned route names as
-    waiting for this analysis: the export becomes that criterion and takes the
-    place the structure gives it, at any depth, so it travels with no other
-    placement. It joins the steps the strategy already holds of the smallest
-    branch that names the criterion, under that branch's operator and in the
-    structure's order; ``join`` in the result names that step, the operator,
-    the new combine and whether the export is its first input. An export on a
-    dataset a criterion waits on without it is refused.
+    ``placement`` names where the step goes, by its ``kind``. Leave it unset to
+    add the step as a new root.
 
-    Leave ``attach_to_step_id`` unset to add the step as a new root. Set it,
-    with ``slot``, to wire the step into an existing combine. The slot must be
-    free: a slot that already holds a step is refused, because the export would
-    take that step off the strategy. Delete it first, or name the free slot.
-
-    Set ``replace_step_id`` to put the export in the place of a step the
-    strategy already holds: it takes that step's slot in its parent combine, or
-    becomes the root when it replaces the root, and the replaced subtree leaves
-    the strategy. Use it to recut an export of the open analysis: new
-    thresholds or a new direction read the completed compute again, and new
-    groups run ``run_eda_compute`` first. That recut is the change the
-    researcher asked for, so it needs no card. Use it also for a step this
-    analysis states better. It never travels with ``attach_to_step_id`` or
-    ``slot``, which name another target.
-
-    Set ``combine_with_root`` to join the export to the strategy the researcher
-    already has: the export is added and a new combine over the old root and
-    the export becomes the root, which is how a step is added to a result.
-    INTERSECT keeps the genes both hold, UNION keeps either, MINUS drops the
-    export's genes from the result. It needs a strategy with one root, and it
-    names the whole placement, so it travels with none of the three above.
+    - ``{"kind": "criterion", "criterion_id": ...}``: a criterion the pinned
+      route names as waiting for this analysis. The export becomes that
+      criterion and takes the place the structure gives it, at any depth. It
+      joins the steps the strategy already holds of the smallest branch that
+      names the criterion, under that branch's operator and in the
+      structure's order; ``join`` in the result names that step, the
+      operator, the new combine and whether the export is its first input. An
+      export on a dataset a criterion waits on without it is refused.
+    - ``{"kind": "into_slot", "attach_to_step_id": ..., "slot": ...}``: wire
+      the step into an existing combine. The slot must be free: a slot that
+      already holds a step is refused, because the export would take that step
+      off the strategy. Delete it first, or name the free slot.
+    - ``{"kind": "replace", "replace_step_id": ...}``: put the export in the
+      place of a step the strategy already holds: it takes that step's slot in
+      its parent combine, or becomes the root when it replaces the root, and
+      the replaced subtree leaves the strategy. Use it to recut an export of
+      the open analysis: new thresholds or a new direction read the completed
+      compute again, and new groups run ``run_eda_compute`` first. That recut
+      is the change the researcher asked for, so it needs no card. Use it also
+      for a step this analysis states better.
+    - ``{"kind": "beside_root", "operator": ...}``: join the export to the
+      strategy the researcher already has: the export is added and a new
+      combine over the old root and the export becomes the root, which is how
+      a step is added to a result. INTERSECT keeps the genes both hold, UNION
+      keeps either, MINUS drops the export's genes from the result. It needs a
+      strategy with one root.
 
     Available once ``preview_eda_subset`` has counted the open analysis, on
     this message or an earlier one, so the number you export is one the conversation
@@ -294,14 +289,8 @@ async def create_eda_step(
 
     Args:
         ctx: Agent run context.
-        criterion_id: The waiting criterion this export realizes.
-        attach_to_step_id: The combine step to wire this into.
-        slot: Which input of that combine to fill. It must be empty.
-        replace_step_id: The step this export takes the place of.
-        combine_with_root: The operator to join the export to the root with.
-        effect_size_threshold: Minimum absolute effect size to keep.
-        significance_threshold: Maximum p-value to keep.
-        effect_direction: upOnly keeps group B's side, downOnly group A's.
+        placement: Where the step goes; unset adds it as a new root.
+        volcano: The volcano cut to export; unset exports the subset.
     """
     binding = await bound_analysis(ctx)
     if binding is None:
@@ -310,34 +299,37 @@ async def create_eda_step(
             "the dataset you want, filter it with set_eda_filters, then export it."
         )
         raise ModelRetry(msg)
-    refuse_half_a_cut(effect_size_threshold, significance_threshold)
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
-    direction: EdaEffectDirection = effect_direction or "upAndDown"
     thresholds, plan, rescaled = await the_cut(
         binding,
         analysis,
-        VolcanoAsk(effect_size_threshold, significance_threshold, effect_direction),
+        volcano,
         ctx.deps.state.researcher_messages(),
         ctx.deps.state.domain,
+    )
+    direction: EdaEffectDirection = (
+        "upAndDown" if thresholds is None else thresholds.effect_direction
     )
     comparison = compared_groups(analysis, thresholds)
     node = plan.node
 
     session = ctx.deps.runtime.strategy_session
     graph = _the_graph(session)
+    replace_step_id = replaced_step(placement)
     if replace_step_id is not None:
         refuse_a_recut_of_another_dataset(graph, replace_step_id, binding.dataset_id)
     spec = ctx.deps.state.domain.operational_spec
-    asked = AskedPlacement(attach_to_step_id, slot, replace_step_id, combine_with_root)
-    waiting = export_placement(
-        spec, graph, criterion_id, dataset_id=binding.dataset_id, asked=asked
-    )
+    waiting = export_placement(spec, graph, placement, dataset_id=binding.dataset_id)
     if waiting is not None:
         plan = replace(plan, node=node.model_copy(update={"id": waiting.criterion_id}))
         node = plan.node
     write = export_write(
-        ctx, graph, node, asked=asked, join=None if waiting is None else waiting.join
+        ctx,
+        graph,
+        node,
+        placement=placement,
+        join=None if waiting is None else waiting.join,
     )
 
     restate = structure_states_the_graph(ctx, graph)
@@ -382,7 +374,9 @@ async def create_eda_step(
         analysis_id=binding.analysis_id,
         is_compute_backed=plan.is_compute_backed,
         effect_size_threshold=plan.binding.effect_size_threshold,
-        significance_threshold=significance_threshold,
+        significance_threshold=(
+            None if thresholds is None else thresholds.significance_threshold
+        ),
         effect_direction=direction if plan.is_compute_backed else None,
         wdk_strategy_id=wdk_strategy_id,
         wdk_url=sync.wdk_url if sync is not None else None,

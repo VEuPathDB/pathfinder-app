@@ -156,7 +156,7 @@ def _no_gene_filter(subset: GeneSubset, comparisons: int) -> NoGeneSubsetError:
                 f"filter on {gene}."
             ),
             retry=(
-                f"{held} {named} Send effect_size_threshold and "
+                f"{held} {named} Send a volcano with effect_size_threshold and "
                 f"significance_threshold to export the genes that pass them, or "
                 f"call set_eda_filters with a filter on {gene}."
             ),

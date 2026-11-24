@@ -2,6 +2,20 @@
 
 ## 2026-11-24
 
+* **An export names its place and its cut as typed arguments.** `create_eda_step` takes one
+  `placement`, a union by `kind` (`criterion`, `into_slot`, `replace`, `beside_root`; unset adds
+  a new root), and one `volcano` that holds both thresholds and the direction. Pydantic refuses
+  a second place, a slot without its combine and a threshold alone before the body runs, and
+  the refusal is charged per key like every argument shape; the body checks that read the
+  arguments are gone.
+
+* **A step of the strategy has one definition.** Every tool that names a step, by its id or by
+  its WDK id, refuses one the strategy does not hold through `_step_read.held_step` or
+  `held_wdk_step`, in the one sentence `session.not_a_step` writes; a step edit no longer
+  answers a missing step with an error payload, and a sweep is refused on a strategy with no
+  built step. A plan departure is turned into its refusal by one `departures_refused`, and
+  `apply_operations` states a batch of one operation at least on its argument type.
+
 * **An edit keeps the values it did not state.** A commit sends a value the edit did not
   move in the form WDK holds it, and the plan keeps its own typed value; before, an
   organism edit stored a step's other values as the site's wire text.

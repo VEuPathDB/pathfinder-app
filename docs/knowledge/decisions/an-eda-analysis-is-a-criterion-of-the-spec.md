@@ -138,7 +138,7 @@ every other criterion; `run_edit` plans against the spec without waiting
 criteria and records that spec as the answer, while the plan keeps them, and
 no later edit owes a disposition for one (`the_edit_the_strategy_owes`). The
 Lead's pinned route and the turn contract name the criterion's id, and
-`create_eda_step(criterion_id=...)` binds it: the id must name a waiting
+a `create_eda_step` placement of kind `criterion` binds it: the id must name a waiting
 criterion on the analysis's dataset, the step joins the built part of the
 smallest branch of the structure that names the criterion, under that branch's
 operator and at any depth (`domain/strategy/join_point.py::join_point`, and

@@ -14,6 +14,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import IntoSlot
 from strategist.ai.tools.standalone._stated_values import (
     StatedAddCombineOp,
     StatedAddLeafOp,
@@ -95,7 +96,10 @@ class TestAnEdaExportIntoASlot:
 
         with pytest.raises(ModelRetry) as excinfo:
             await eda_step.create_eda_step(
-                run_ctx, attach_to_step_id="step_c1", slot="secondary"
+                run_ctx,
+                placement=IntoSlot(
+                    kind="into_slot", attach_to_step_id="step_c1", slot="secondary"
+                ),
             )
 
         message = str(excinfo.value)
@@ -139,7 +143,10 @@ class TestAnEdaExportIntoASlot:
         assert graph is not None
 
         answer = await eda_step.create_eda_step(
-            run_ctx, attach_to_step_id="step_c1", slot="secondary"
+            run_ctx,
+            placement=IntoSlot(
+                kind="into_slot", attach_to_step_id="step_c1", slot="secondary"
+            ),
         )
 
         result = returned(answer, eda_step.EdaStepCreated)

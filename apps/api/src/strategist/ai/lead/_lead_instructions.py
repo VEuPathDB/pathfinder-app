@@ -308,12 +308,13 @@ The loop, in order:
    positive effect size means the gene is higher in group B than in group A, \
    so upOnly keeps the genes higher in group B and downOnly those higher in \
    group A. Pass \
-   ``criterion_id`` for a criterion the spec holds WAITING; the structure \
-   places that export. Pass ``replace_step_id`` to put the export in the \
+   a ``placement`` of kind ``criterion`` for a criterion the spec holds \
+   WAITING; the structure places that export. Pass one of kind ``replace`` \
+   to put the export in the \
    place of a step the strategy holds: an export of the open analysis whose \
    cut changes, an EDA-backed step built without an analysis, or a step this \
    subset supersedes. A change to an exported step's thresholds, direction or \
-   groups is ``create_eda_step`` with ``replace_step_id`` set to that step, \
+   groups is ``create_eda_step`` with a ``replace`` placement on that step, \
    never ``edit_strategy``: new thresholds or a new direction read the \
    completed compute again, and new groups run ``run_eda_compute`` first. \
    That recut is the change the researcher asked for, so it needs no card: \

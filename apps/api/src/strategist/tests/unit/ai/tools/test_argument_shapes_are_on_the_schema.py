@@ -183,3 +183,69 @@ def test_a_batch_holds_one_operation_at_least() -> None:
     assert _refused(batch, {"base_revision": "", "operations": []}) == [
         ("operations", "List should have at least 1 item after validation, not 0")
     ]
+
+
+@pytest.mark.parametrize(
+    ("placement", "refusal"),
+    [
+        (
+            {"kind": "replace", "replace_step_id": "step_k2", "slot": "secondary"},
+            ("placement.replace.slot", "Extra inputs are not permitted"),
+        ),
+        (
+            {"kind": "beside_root", "operator": "UNION", "attach_to_step_id": "s1"},
+            (
+                "placement.beside_root.attach_to_step_id",
+                "Extra inputs are not permitted",
+            ),
+        ),
+        (
+            {"kind": "criterion", "criterion_id": "c_eda", "operator": "UNION"},
+            ("placement.criterion.operator", "Extra inputs are not permitted"),
+        ),
+        (
+            {"kind": "into_slot", "slot": "secondary"},
+            ("placement.into_slot.attach_to_step_id", "Field required"),
+        ),
+        (
+            {"kind": "into_slot", "attach_to_step_id": "s1"},
+            ("placement.into_slot.slot", "Field required"),
+        ),
+    ],
+)
+def test_an_export_names_one_placement_whole(
+    placement: dict[str, Any], refusal: tuple[str, str]
+) -> None:
+    export = _eda("create_eda_step")
+
+    assert _property(export, "placement")["anyOf"][0]["discriminator"] == {
+        "mapping": {
+            "beside_root": "#/$defs/BesideRoot",
+            "criterion": "#/$defs/WaitingCriterion",
+            "into_slot": "#/$defs/IntoSlot",
+            "replace": "#/$defs/InPlaceOf",
+        },
+        "propertyName": "kind",
+    }
+    assert _refused(export, {"placement": placement}) == [refusal]
+
+
+@pytest.mark.parametrize(
+    ("volcano", "missing"),
+    [
+        ({"effect_size_threshold": 1.0}, ["volcano.significance_threshold"]),
+        ({"significance_threshold": 0.05}, ["volcano.effect_size_threshold"]),
+        (
+            {"effect_direction": "upOnly"},
+            ["volcano.effect_size_threshold", "volcano.significance_threshold"],
+        ),
+    ],
+)
+def test_a_volcano_export_states_both_thresholds(
+    volcano: dict[str, Any], missing: list[str]
+) -> None:
+    export = _eda("create_eda_step")
+
+    assert _refused(export, {"volcano": volcano}) == [
+        (where, "Field required") for where in missing
+    ]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
@@ -15,6 +15,12 @@ from veupathdb.domain.strategy import (
 from veupathdb.model import CamelModel
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.tools.standalone._eda_step_arguments import (
+    BesideRoot,
+    ExportPlacement,
+    InPlaceOf,
+    IntoSlot,
+)
 from strategist.ai.tools.standalone._eda_step_spec import criterion_note
 from strategist.ai.tools.standalone._step_read import held_step
 from strategist.domain.strategy.combine_order import flat_join, wired_in_place
@@ -26,22 +32,9 @@ from strategist.domain.strategy.operations import (
 from strategist.domain.strategy.operations.types import (
     AttachIntoSlot,
     AttachNewRoot,
-    AttachPoint,
     ReplaceSubtreeOp,
 )
 from strategist.domain.strategy.session import StrategyGraph
-
-
-class AskedPlacement(NamedTuple):
-    """The placement arguments one export call sent."""
-
-    attach_to_step_id: str | None
-    slot: Literal["primary", "secondary"] | None
-    replace_step_id: str | None
-    combine_with_root: CombineOp | None
-
-    def named(self) -> list[str]:
-        return [name for name, value in self._asdict().items() if value is not None]
 
 
 class StepJoin(NamedTuple):
@@ -69,37 +62,14 @@ class ExportWrite(NamedTuple):
     join: ExportJoin | None = None
 
 
-def _attach_point(
-    attach_to_step_id: str | None,
-    slot: Literal["primary", "secondary"] | None,
-) -> AttachPoint:
-    if attach_to_step_id is None and slot is None:
-        return AttachNewRoot()
-    if attach_to_step_id is None:
-        msg = (
-            f"slot={slot!r} names an input of a combine step, so it needs "
-            f"attach_to_step_id. Leave both unset to add the step as a new root."
-        )
-        raise ModelRetry(msg)
-    if slot is None:
-        msg = (
-            f"attach_to_step_id={attach_to_step_id!r} needs a slot: 'primary' or "
-            f"'secondary' names which input of that combine to fill."
-        )
-        raise ModelRetry(msg)
-    return AttachIntoSlot(target_step_id=attach_to_step_id, slot=slot)
-
-
 def _refuse_an_occupied_slot(
-    ctx: RunContext[LeadDeps], graph: StrategyGraph, attach: AttachPoint
+    ctx: RunContext[LeadDeps], graph: StrategyGraph, attach: AttachIntoSlot
 ) -> None:
     """An export fills a free slot, never one that already holds a step.
 
     A new step holds nothing, so filling an occupied slot would take the step
     that slot holds off the strategy with no delete and no record of the loss.
     """
-    if attach.mode != "into-slot":
-        return
     target = graph.get_step(attach.target_step_id)
     if target is None:
         return
@@ -119,36 +89,11 @@ def _refuse_an_occupied_slot(
     raise ModelRetry(msg)
 
 
-def _refuse_a_second_target(
-    attach_to_step_id: str | None,
-    slot: Literal["primary", "secondary"] | None,
-    replace_step_id: str | None,
-) -> None:
-    """A join to the root is the whole placement, so nothing else names one."""
-    named = [
-        name
-        for name, value in (
-            ("attach_to_step_id", attach_to_step_id),
-            ("slot", slot),
-            ("replace_step_id", replace_step_id),
-        )
-        if value is not None
-    ]
-    if not named:
-        return
-    msg = (
-        f"combine_with_root puts the export beside the strategy's root, so it "
-        f"names the whole placement and {named} name a second one. Send "
-        f"combine_with_root alone, or send one of {named} alone."
-    )
-    raise ModelRetry(msg)
-
-
 def _root_join(graph: StrategyGraph, operator: CombineOp) -> StepJoin:
     roots = sorted(graph.roots)
     if len(roots) != 1:
         msg = (
-            f"combine_with_root joins the export to one root, and this "
+            f'A "beside_root" placement joins the export to one root, and this '
             f"strategy has {len(roots)}: {roots}. Build the strategy first, "
             f"or name the step to replace or the free slot to fill."
         )
@@ -202,31 +147,25 @@ def export_write(
     graph: StrategyGraph,
     node: StrategyStepNode,
     *,
-    asked: AskedPlacement,
+    placement: ExportPlacement | None,
     join: StepJoin | None,
 ) -> ExportWrite:
     """Add the export as a new step, join it to a step, or replace one.
 
-    ``join`` is where the structure places the export, and ``asked`` names a
-    place only when the structure places none.
+    ``join`` is where the structure places the export, and ``placement`` names
+    a place only when the structure places none.
     """
-    attach_to_step_id, slot, replace_step_id, combine_with_root = asked
-    if combine_with_root is not None:
-        _refuse_a_second_target(attach_to_step_id, slot, replace_step_id)
-        join = _root_join(graph, combine_with_root)
     if join is not None:
         return join_write(graph, node, join)
-    if replace_step_id is None:
-        attach = _attach_point(attach_to_step_id, slot)
-        _refuse_an_occupied_slot(ctx, graph, attach)
-        return ExportWrite(ops=[AddLeafOp(step=node, attach=attach)])
-    if attach_to_step_id is not None or slot is not None:
-        msg = (
-            f"replace_step_id={replace_step_id!r} puts the export in that "
-            f"step's place, so attach_to_step_id and slot name a second "
-            f"target. Send replace_step_id alone, or attach_to_step_id with "
-            f"slot alone."
-        )
-        raise ModelRetry(msg)
-    held_step(graph, replace_step_id)
-    return ExportWrite(ops=[ReplaceSubtreeOp(step_id=replace_step_id, subtree=node)])
+    match placement:
+        case BesideRoot(operator=operator):
+            return join_write(graph, node, _root_join(graph, operator))
+        case IntoSlot(attach_to_step_id=target, slot=slot):
+            attach = AttachIntoSlot(target_step_id=target, slot=slot)
+            _refuse_an_occupied_slot(ctx, graph, attach)
+            return ExportWrite(ops=[AddLeafOp(step=node, attach=attach)])
+        case InPlaceOf(replace_step_id=replaced):
+            held_step(graph, replaced)
+            return ExportWrite(ops=[ReplaceSubtreeOp(step_id=replaced, subtree=node)])
+        case _:
+            return ExportWrite(ops=[AddLeafOp(step=node, attach=AttachNewRoot())])

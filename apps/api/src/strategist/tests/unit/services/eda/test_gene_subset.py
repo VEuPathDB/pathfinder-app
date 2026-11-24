@@ -259,8 +259,8 @@ async def test_a_sample_subset_beside_a_computation_names_the_volcano_cut(
         "pfal3D7 htseq counts."
     )
     assert refusal.retry == (
-        f"{held} The gene entity is pfal3D7 htseq counts (ENT_fd574cd6). Send "
-        "effect_size_threshold and significance_threshold to export the genes "
+        f"{held} The gene entity is pfal3D7 htseq counts (ENT_fd574cd6). Send a "
+        "volcano with effect_size_threshold and significance_threshold to export the genes "
         "that pass them, or call set_eda_filters with a filter on pfal3D7 "
         "htseq counts."
     )

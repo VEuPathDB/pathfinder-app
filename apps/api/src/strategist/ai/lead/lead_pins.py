@@ -239,8 +239,9 @@ def _eda_route_block(waiting: Criterion, unbuilt: list[str]) -> str:
             "2. set_eda_filters - once for the sheet, once with the filters array",
             "3. preview_eda_subset, and run_eda_compute when it compares groups",
             (
-                f'4. create_eda_step(criterion_id="{waiting.id}") - the structure '
-                f"places the step, so name no other placement."
+                f'4. create_eda_step(placement={{"kind": "criterion", '
+                f'"criterion_id": "{waiting.id}"}}) - the structure places the '
+                f"step, so name no other placement."
             ),
             (
                 "Never ask the user for an analysis specification document, and "
@@ -270,7 +271,8 @@ def eda_route_blocks(ctx: RunContext[LeadDeps]) -> list[str]:
 
 
 _WIRE_OR_CLEAR = (
-    "wire one in with create_eda_step(replace_step_id=...)/attach and build, "
+    "wire one in with a create_eda_step placement of kind replace or "
+    "into_slot and build, "
     "or call clear_strategy to start the conversation over."
 )
 
@@ -325,7 +327,7 @@ def pinned_detached_steps(ctx: RunContext[LeadDeps]) -> str | None:
     return (
         f"Steps outside the strategy: {_named(graph, loose)}. Remove one with "
         f"delete_step(step_id) (the user approves), or wire it in with "
-        f"create_eda_step(replace_step_id=...)/attach."
+        f"a create_eda_step placement of kind replace or into_slot."
     )
 
 

@@ -43,7 +43,9 @@ def test_the_arc_exports_the_upload_at_the_stated_cut(site_id: str) -> None:
     assert opened["dataset_id"] == "EDAUD_sF88g1cwo00gw"
     (exported,) = args_of(calls, "create_eda_step")
     assert exported == {
-        "effect_size_threshold": 5.0,
-        "significance_threshold": 1e-10,
-        "effect_direction": "upOnly",
+        "volcano": {
+            "effect_size_threshold": 5.0,
+            "significance_threshold": 1e-10,
+            "effect_direction": "upOnly",
+        }
     }

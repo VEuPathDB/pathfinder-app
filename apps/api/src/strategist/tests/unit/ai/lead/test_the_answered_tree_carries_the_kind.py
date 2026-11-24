@@ -8,6 +8,7 @@ from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from strategist.ai.lead.deltas import EditDelta
+from strategist.ai.tools.standalone._eda_step_arguments import BesideRoot
 from strategist.domain.strategy.analysis_binding import AnalysisKind
 from strategist.domain.strategy.step_words import StampedKind, StepWords
 from strategist.tests.unit.ai.lead._analysis_thread import bare_thread, export
@@ -47,7 +48,9 @@ async def test_an_edit_a_turn_entry_and_a_second_export_keep_every_kind(
     await thread.next_turn()
 
     second = await export(
-        thread, reference="36h", combine_with_root=CombineOp.INTERSECT
+        thread,
+        reference="36h",
+        placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT),
     )
 
     expected = {
@@ -70,7 +73,9 @@ async def test_a_delete_takes_the_kind_off_with_its_step(
     thread = bare_thread(monkeypatch)
     first = await export(thread, reference="18h")
     second = await export(
-        thread, reference="36h", combine_with_root=CombineOp.INTERSECT
+        thread,
+        reference="36h",
+        placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT),
     )
 
     await thread.delete(second.step_id)

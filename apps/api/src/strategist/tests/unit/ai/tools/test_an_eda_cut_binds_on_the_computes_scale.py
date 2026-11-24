@@ -10,6 +10,7 @@ import pytest
 from veupathdb.eda import EdaVolcanoConfiguration, VolcanoStatsResponse
 
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import VolcanoCut
 from strategist.domain.strategy.analysis_binding import AnalysisKind
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.eda.compute import retained_summary
@@ -63,9 +64,11 @@ async def _exported_cut(
 
     answer = await eda_step.create_eda_step(
         ctx,
-        effect_size_threshold=threshold,
-        significance_threshold=0.05,
-        effect_direction="upOnly",
+        volcano=VolcanoCut(
+            effect_size_threshold=threshold,
+            significance_threshold=0.05,
+            effect_direction="upOnly",
+        ),
     )
 
     created = returned(answer, eda_step.EdaStepCreated)

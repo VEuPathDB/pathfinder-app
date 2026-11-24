@@ -18,6 +18,10 @@ from veupathdb.eda import EdaAnalysisDetail
 from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import (
+    ExportPlacement,
+    VolcanoCut,
+)
 from strategist.ai.tools.standalone.eda_step import EdaStepCreated
 from strategist.domain.eda_thread import ConversationAnalysisView
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
@@ -88,8 +92,7 @@ async def export(
     thread: DisagreementThread,
     *,
     reference: str,
-    criterion_id: str | None = None,
-    combine_with_root: CombineOp | None = None,
+    placement: ExportPlacement | None = None,
 ) -> EdaStepCreated:
     """Export the genes higher at 24h than at ``reference``, at p 0.05."""
     detail = deseq(reference)
@@ -115,11 +118,12 @@ async def export(
     wire_export_reads(thread.monkeypatch)
     answer = await eda_step.create_eda_step(
         run_context_for(thread.deps, f"t_export_{reference}"),
-        criterion_id=criterion_id,
-        combine_with_root=combine_with_root,
-        effect_size_threshold=1.0,
-        significance_threshold=0.05,
-        effect_direction="upOnly",
+        placement=placement,
+        volcano=VolcanoCut(
+            effect_size_threshold=1.0,
+            significance_threshold=0.05,
+            effect_direction="upOnly",
+        ),
     )
     thread.assert_invariants()
     return returned(answer, EdaStepCreated)

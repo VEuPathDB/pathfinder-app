@@ -10,11 +10,11 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.eda import EdaAnalysisDetail
 
 from strategist.ai.graph.thread_requirements import ThreadRequirements
+from strategist.ai.tools.standalone._eda_step_arguments import VolcanoCut
 from strategist.ai.tools.standalone._eda_step_guard import (
     the_subset_basis,
     volcano_thresholds,
 )
-from strategist.domain.eda_parts import EdaEffectDirection
 from strategist.domain.eda_thread import ConversationAnalysisView
 from strategist.domain.log2_scale import in_the_sites_scale, on_scale, scale_of
 from strategist.services.eda.compute import NoComputationError, VolcanoThresholds
@@ -76,12 +76,12 @@ class Rescaled(NamedTuple):
 
 
 def _on_the_computes_scale(
-    label: str, threshold: float | None, said: list[str]
+    label: str, threshold: float, said: list[str]
 ) -> Rescaled | None:
     """The cut a number the researcher wrote on the other scale stands for on
     the scale the compute names its effect size on, or None."""
     site = scale_of(label)
-    stated = None if threshold is None else in_the_sites_scale(threshold, label, said)
+    stated = in_the_sites_scale(threshold, label, said)
     if stated is None or site is None:
         return None
     cut = on_scale(stated.number, stated.scale, site)
@@ -90,18 +90,10 @@ def _on_the_computes_scale(
     )
 
 
-class VolcanoAsk(NamedTuple):
-    """The cut one export call names."""
-
-    effect_size: float | None
-    significance: float | None
-    direction: EdaEffectDirection | None
-
-
 async def the_cut(
     binding: ConversationAnalysisView,
     analysis: EdaAnalysisDetail,
-    ask: VolcanoAsk,
+    cut: VolcanoCut | None,
     said: list[str],
     thread: ThreadRequirements,
 ) -> tuple[VolcanoThresholds | None, EdaStepPlan, Rescaled | None]:
@@ -109,21 +101,24 @@ async def the_cut(
     the rescaling a number the researcher wrote on the other scale took. A
     subset cut that no message states, no card picked and no picked tail rule
     meets is refused before the export is planned."""
-    thresholds = volcano_thresholds(analysis, *ask)
+    thresholds = volcano_thresholds(analysis, cut)
     bases = await the_subset_basis(
         binding.site_id, binding.dataset_id, analysis, said=said, thread=thread
     )
     plan = await _planned_export(binding, analysis, thresholds=thresholds)
-    rescaled = _on_the_computes_scale(
-        plan.binding.effect_size_label, ask.effect_size, said
-    )
-    if rescaled is not None:
-        thresholds = volcano_thresholds(
-            analysis, rescaled.cut, ask.significance, ask.direction
+    rescaled = (
+        None
+        if cut is None
+        else _on_the_computes_scale(
+            plan.binding.effect_size_label, cut.effect_size_threshold, said
         )
+    )
+    if cut is not None and rescaled is not None:
+        rescaled_cut = cut.model_copy(update={"effect_size_threshold": rescaled.cut})
+        thresholds = volcano_thresholds(analysis, rescaled_cut)
         plan = await _planned_export(binding, analysis, thresholds=thresholds)
     based = plan.binding.model_copy(update={"subset_basis": bases})
     return thresholds, replace(plan, binding=based), rescaled
 
 
-__all__ = ["Rescaled", "VolcanoAsk", "the_cut"]
+__all__ = ["Rescaled", "the_cut"]
