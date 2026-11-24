@@ -2,6 +2,12 @@
 
 ## 2026-11-24
 
+* **A phylogenetic profile meets an ortholog requirement through its included species.** When
+  it binds, a step's `included_species` codes are decoded through the search's own phyletic tree
+  (`phyletic_tree_for_search`, the library's reader) into `Criterion.phyletic_genomes`; an unlinked
+  ortholog requirement is met when those genomes hold every organism it asks. The step's organism
+  parameter, which names the seed's organism, no longer counts.
+
 * **A typed organism the organism reader resolves is a named replacement.** On the organism
   dimension a card answer's words replace the stated organism when the organism reader
   (`organism_reader.site_entry`, the gate's own matcher) resolves them to exactly one site entry;

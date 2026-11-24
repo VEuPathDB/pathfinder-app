@@ -22,7 +22,8 @@ and a check compares a requirement only through what the strategy binds for it:
   `no_value_to_compare`.
 - A text or property requirement no criterion links gives `unchecked` with
   `no_step_states_it`; an ortholog requirement no criterion links is met by any
-  transform or phyletic-pattern step that reaches its organisms. A linked property shows "answered by step" and the
+  transform, or phylogenetic profile through its included genomes, that reaches
+  its organisms. A linked property shows "answered by step" and the
   step's title; a linked text or ortholog is compared with the value the site
   holds.
 
@@ -53,8 +54,10 @@ build or an edit writes a step (`requirement_coverage.requirements_no_step_meets
 a `Problems` keyed `unmet_requirement` per requirement number), and the reply
 contract refuses a reply that ends the turn complete over it; the reply says "The
 requirement '<words>' is not met by any step." An ortholog requirement no
-criterion links is met by any transform, or phyletic-pattern step, whose organisms
-hold every organism it asks, with `isSyntenic` as stated on such a transform;
+criterion links is met by any transform whose targets, or phylogenetic profile
+whose included genomes (`Criterion.phyletic_genomes`, its included species codes
+decoded through the search's own `PhyleticTree` when it binds), hold every
+organism it asks, with `isSyntenic` as stated on such a transform;
 with no such step, no step carries the records to orthologs there, which is
 unmet. So an adopted separation offer or an EDA
 export, whose steps carry no links, is judged by what its steps hold. A

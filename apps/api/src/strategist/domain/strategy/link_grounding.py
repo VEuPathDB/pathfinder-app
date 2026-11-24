@@ -154,20 +154,17 @@ def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
     return _synteny(c, linked, shown, syntenic=asked.syntenic)
 
 
-_PATTERN = "GenesByOrthologPattern"
-
-
 def _ground_unlinked_ortholog(
     c: Constraint, asked: OrthologValue, realized: RealizedSpec
 ) -> GroundedConstraint:
-    """Met by any transform or phyletic-pattern step whose organisms hold every
-    asked one, with the stated synteny; unmet when no such step exists."""
+    """Met by any transform whose targets, or phylogenetic profile whose included
+    genomes, hold every asked organism, with the stated synteny on a transform."""
     wanted = set(asked.organisms)
     reaching = [
         k
         for k in realized.criteria
-        if (k.role == "transform" or k.search_name == _PATTERN)
-        and wanted <= selected_organisms(k)
+        if (k.role == "transform" and wanted <= selected_organisms(k))
+        or wanted <= set(k.phyletic_genomes)
     ]
     shown = ", ".join(asked.organisms)
     if not reaching:

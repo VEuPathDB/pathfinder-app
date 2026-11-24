@@ -194,6 +194,7 @@ def test_orthologs_no_step_carries_the_records_to_block() -> None:
 
 
 _TG = "Toxoplasma gondii ME49"
+PF3D7 = "Plasmodium falciparum 3D7"
 _PV = "Plasmodium vivax P01"
 
 
@@ -239,11 +240,17 @@ def test_two_unlinked_ortholog_steps_meet_each_their_own_requirement() -> None:
     assert requirements_no_step_meets(held, spec).found == ()
 
 
-def test_a_phyletic_pattern_step_on_the_organism_meets_it() -> None:
+def test_a_phyletic_pattern_step_meets_it_through_its_included_species() -> None:
+    sal1 = "Plasmodium vivax Sal-1"
+    pattern = _step_to("c_pattern", PF3D7, "GenesByOrthologPattern", "seed")
     spec = OperationalSpec(
-        criteria=[_step_to("c_pattern", _PV, "GenesByOrthologPattern", "seed")]
+        criteria=[pattern.model_copy(update={"phyletic_genomes": [sal1]})]
     )
 
-    [grounded] = ground_against_spec([_orthologs_in(_PV)], spec)
+    [met] = ground_against_spec([_orthologs_in(sal1)], spec)
+    [unmet] = ground_against_spec([_orthologs_in(_TG)], spec)
 
-    assert (grounded.status, grounded.blocks) == (ConstraintStatus.GROUNDED, False)
+    assert [(g.status, g.blocks) for g in (met, unmet)] == [
+        (ConstraintStatus.GROUNDED, False),
+        (ConstraintStatus.SUBSTITUTED, True),
+    ]
