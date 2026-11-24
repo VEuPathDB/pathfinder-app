@@ -10,13 +10,14 @@ from assistant_core.graph.turn_state import UserQuestionAnswer
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb_mcp.catalog import ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo, list_organisms
 
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.answers_text import answers_text
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.card_reply import CardReply
 from strategist.ai.lead.card_sheets import card_sheets, picks_on_unread_sheets
+from strategist.ai.lead.organism_reader import site_entry
 from strategist.ai.lead.readings import picks_their_criteria_refuse, refused_picks
 from strategist.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from strategist.ai.lead.sub_agent_tools import LeadDeps
@@ -31,6 +32,7 @@ from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    OrganismValue,
 )
 from strategist.domain.strategy.genome_group_steps import spec_read_on_genomes
 from strategist.domain.strategy.operator_reading import with_operator
@@ -98,21 +100,38 @@ async def consult_can_ask(
 
 
 def _answer_requirement(
-    prompt: str, labels: list[str], note: str, dimension: ConstraintKind
+    prompt: str,
+    labels: list[str],
+    note: str,
+    dimension: ConstraintKind,
+    organisms: Sequence[str],
 ) -> Constraint | None:
     """The words an answer states as a requirement on the question's
-    dimension, or None when it states none."""
+    dimension, or None when it states none. Words on the organism dimension
+    state the one organism of the site they name, and none otherwise."""
     stated = "; ".join(labels) if labels else note
     if not stated:
         return None
+    label = clipped_text(prompt or stated, _LABEL_LIMIT)
+    if dimension is not ConstraintKind.ORGANISM:
+        return Constraint(
+            kind=dimension,
+            requested_value=stated,
+            label=label,
+            source=ConstraintSource.USER_EXPLICIT,
+            hard=True,
+        )
+    entry = site_entry(stated, organisms)
+    if entry is None:
+        return None
     return Constraint(
         kind=dimension,
-        requested_value=stated,
-        # A question carries the label. An unlabelled one falls back to the
-        # answer, because a requirement is always named.
-        label=clipped_text(prompt or stated, _LABEL_LIMIT),
+        requested_value=entry,
+        label=label,
         source=ConstraintSource.USER_EXPLICIT,
+        quote=stated,
         hard=True,
+        value=OrganismValue(organism=entry),
     )
 
 
@@ -200,12 +219,15 @@ def apply_option_bindings(
     *,
     sheets: Mapping[str, Sequence[ParameterInfo]],
     replaced: Mapping[str, Sequence[str]] = _NO_STAND_INS,
+    organisms: Sequence[str] = (),
 ) -> None:
     """Apply what each picked option binds, with no model in between.
 
     A value binds, an operator rewires its combine and a withdrawal retires;
     typed words, a picked reading a framing pass named and the note, never
-    another offered label, become a requirement on the dimension ``asked`` names. That requirement replaces
+    another offered label, become a requirement on the dimension ``asked``
+    names; on the organism dimension only words that name one of ``organisms``
+    do. That requirement replaces
     each one ``replaced`` holds under the question's prompt. Every picked label
     is kept as a card pick, which states a cut an EDA export rests on, and a
     picked tail is held as a rule that each later study's own edge meets.
@@ -238,7 +260,9 @@ def apply_option_bindings(
             if question is not None
             else dimensions.get(answer.prompt, ConstraintKind.UNTYPED)
         )
-        stated = _answer_requirement(answer.prompt, words, answer.note, dimension)
+        stated = _answer_requirement(
+            answer.prompt, words, answer.note, dimension, organisms
+        )
         if stated is not None:
             [held] = domain.record_requirements([stated])
             gone = set(replaced.get(answer.prompt, ())) - {held.id}
@@ -304,6 +328,17 @@ def _asked(questions: Sequence[CardQuestion]) -> list[OpenQuestion]:
         for q in questions
         if q.prompt
     ]
+
+
+async def _organisms_asked(
+    state: PipelineState, shown: Sequence[CardQuestion]
+) -> list[str]:
+    dimensions = {q.dimension for q in shown} | {
+        q.dimension for q in state.domain.open_questions
+    }
+    if ConstraintKind.ORGANISM not in dimensions:
+        return []
+    return await list_organisms(state.site_id)
 
 
 async def consult_user(
@@ -392,6 +427,7 @@ async def consult_user(
             shown,
             sheets=sheets,
             replaced=state.turn_markers.card_stand_ins.get(ctx.tool_call_id or "", {}),
+            organisms=await _organisms_asked(state, shown),
         )
         state.domain.answer_open_questions(answered, on_card=True)
         state.domain.record_answered(_asked(shown))

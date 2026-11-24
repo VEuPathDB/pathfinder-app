@@ -2,6 +2,14 @@
 
 ## 2026-11-24
 
+* **An answer that names no organism keeps the stated one.** A card answer on the organism
+  dimension becomes a requirement only when its words name one organism of the site
+  (`organism_reader.site_entry`), and then it holds that entry as its value. Words that name
+  none, such as "proceed with defaults", record no requirement, so the researcher's hard
+  "Plasmodium falciparum 3D7" stays the organism requirement instead of being replaced by
+  the words and then bound as the species node. The words still reach the Lead as the
+  answer.
+
 * **The operator the current message states is the one read.** The operator reader keeps the
   newest message's reading whenever that message names an operator for the combine, at any
   confidence: below the floor it is `unsure` and asks nothing. The thread's older words are
