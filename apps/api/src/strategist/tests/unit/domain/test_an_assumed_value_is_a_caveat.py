@@ -6,11 +6,11 @@ from __future__ import annotations
 from veupathdb.domain.parameters import NumberValue, StringValue
 
 from strategist.domain.caveats import caveats_for
+from strategist.domain.strategy.measurement_kinds import MeasurementKind
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
     Measurement,
-    MeasurementKind,
     OperationalSpec,
     ValueSource,
 )

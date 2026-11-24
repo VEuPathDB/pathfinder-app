@@ -16,6 +16,10 @@ from veupathdb.model import CamelModel
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.genome_group import GenomeGroup
+from strategist.domain.strategy.measurement_kinds import (
+    TAKEN_FROM_A_READ,
+    MeasurementKind,
+)
 from strategist.domain.strategy.named_taxa import NamedTaxon
 from strategist.domain.strategy.number_precision import rounded_number
 from strategist.domain.strategy.operator_reads import OperatorReading
@@ -111,31 +115,6 @@ class BoundValue(CamelModel):
     ) -> BoundValue:
         """The value with who set it decided, and the words that decided it."""
         return self.model_copy(update=sourced_fields(source, basis))
-
-
-CountedKind = Literal[
-    "loosest_bound",
-    "wildcard_phrase",
-    "phrase_reading",
-    "words_reading",
-    "site_search_reach",
-    "any_strain",
-    "all_strains",
-    "site_default",
-    "bound_count",
-    "reading",
-]
-MeasurementKind = Literal[
-    CountedKind,
-    "vocabulary_label",
-    "options_not_taken",
-    "not_measurable",
-    "picked_from_a_cut_list",
-    "picked_from_a_lookup",
-    "label_without_the_concept",
-]
-
-TAKEN_FROM_A_READ = frozenset({"picked_from_a_cut_list", "picked_from_a_lookup"})
 
 
 class Measurement(CamelModel):

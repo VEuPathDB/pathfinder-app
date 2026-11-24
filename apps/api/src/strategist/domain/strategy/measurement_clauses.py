@@ -5,8 +5,8 @@ from __future__ import annotations
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
 
 from strategist.domain.count_words import counted
+from strategist.domain.strategy.measurement_kinds import TAKEN_FROM_A_READ
 from strategist.domain.strategy.operational_spec import (
-    TAKEN_FROM_A_READ,
     Criterion,
     Measurement,
     ValueSource,
