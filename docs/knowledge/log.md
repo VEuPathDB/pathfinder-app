@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **An organism requirement is judged on its own branch.** The verdict reads the step that links
+  it alone against the entry; an unlinked one needs records of the entry in the result and
+  every record of an organism some requirement names (`OrganismAsked`), so a UNION of two asked
+  strains and a strain with its orthologs in another species pass.
+
 * **A held repeat that ends a loop leads with the warning.** The guard's loop words come first
   in a held repeat's refusal, so the step summary keeps them ahead of an answer carried again.
 

@@ -52,9 +52,12 @@ The entry is compared by equality:
   realizes the taxon;
 - the organism check: a requirement whose organisms the strategy selects, by
   the entry itself or under an entry of the organism tree, carries the organism
-  check, which reads the result's rows against the requirement's own entry and
-  the entries under it, so a row of another strain fails it; one with no entry is
-  `unchecked`;
+  check on its own branch. A step that links it is read alone, and a row of
+  that step outside the entry fails it (a strain bound as its species). With no
+  linking step, the result must hold records of the entry, and every record must
+  be of an organism some requirement names (an organism's entry or an ortholog's
+  target), so a UNION of 3D7 and P01, or 3D7 genes with their orthologs in
+  P. vivax, passes. One with no entry is `unchecked`;
 - FRAME's bind refusal names the entries the live requirements hold
   (`match_exact_option`), and a requirement with no entry names none;
 - the organism fold drops a leaf only when its count equals its organisms'

@@ -38,14 +38,58 @@ def _listed(rows: Sequence[OrganismCount]) -> str:
     return ", ".join(f"{row.organism} ({row.count:,})" for row in rows)
 
 
+class OrganismAsked(CamelModel):
+    """The organism requirement a check judges: its entry, every organism the
+    requirements name, and whether a step links it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    entry: str
+    named: frozenset[str]
+    linked: bool
+
+    @property
+    def allowed(self) -> frozenset[str]:
+        return frozenset({self.entry}) if self.linked else self.named
+
+    @property
+    def whose(self) -> str:
+        return (
+            "the requirement does not name" if self.linked else "no requirement names"
+        )
+
+
+def _misplaced(
+    found: CountedOrganisms, judged_by: SelectedOrganisms, asked: OrganismAsked | None
+) -> str | None:
+    """Why the rows fail: none of the asked entry, or rows outside what is allowed."""
+    if asked is not None and not asked.linked:
+        own = SelectedOrganisms(entries=frozenset({asked.entry}), taxa=judged_by.taxa)
+        if not any(own.holds(row.organism) for row in found.rows if row.count):
+            return f"none of the {found.total:,} records of {found.step} is of {asked.entry}"
+    outside = [row for row in found.rows if not judged_by.holds(row.organism)]
+    if not outside:
+        return None
+    whose = "the strategy does not select" if asked is None else asked.whose
+    held = sum(row.count for row in outside)
+    return (
+        f"{held:,} of the {found.total:,} records of {found.step} hold organisms "
+        f"{whose}: {_listed(outside)}"
+    )
+
+
 def organism_check(
     subject: str,
     requirement: str,
     selected: SelectedOrganisms | None,
     read: CountedOrganisms | UnreadOrganisms | None,
     *,
-    asked: str | None = None,
+    asked: OrganismAsked | None = None,
 ) -> SiteCheck:
+    """The result's organisms against the strategy's selection; with ``asked``, a
+    linked requirement against its step's records and an unlinked one against the
+    result and every organism the requirements name."""
+
     def judged(
         status: CheckStatus, evidence: str, why: UncheckedReason | None = None
     ) -> SiteCheck:
@@ -76,24 +120,14 @@ def organism_check(
             f"{', '.join(sorted(selected.unplaced))} are not known",
             "no_check",
         )
-    allowed = (
+    judged_by = (
         selected
         if asked is None
-        else SelectedOrganisms(entries=frozenset({asked}), taxa=selected.taxa)
+        else SelectedOrganisms(entries=asked.allowed, taxa=selected.taxa)
     )
-    whose = (
-        "the strategy does not select"
-        if asked is None
-        else "the requirement does not name"
-    )
-    outside = [row for row in found.rows if not allowed.holds(row.organism)]
-    if outside:
-        held = sum(row.count for row in outside)
-        return judged(
-            "fail",
-            f"{held:,} of the {found.total:,} records of {found.step} hold organisms "
-            f"{whose}: {_listed(outside)}",
-        )
+    misplaced = _misplaced(found, judged_by, asked)
+    if misplaced is not None:
+        return judged("fail", misplaced)
     if sum(row.count for row in found.rows) < found.total:
         return judged(
             "unchecked",
@@ -108,4 +142,10 @@ def organism_check(
     )
 
 
-__all__ = ["CountedOrganisms", "OrganismCount", "UnreadOrganisms", "organism_check"]
+__all__ = [
+    "CountedOrganisms",
+    "OrganismAsked",
+    "OrganismCount",
+    "UnreadOrganisms",
+    "organism_check",
+]

@@ -6,6 +6,7 @@ from veupathdb.domain.parameters import MultiPickValue
 
 from strategist.domain.organism_checks import (
     CountedOrganisms,
+    OrganismAsked,
     OrganismCount,
     organism_check,
 )
@@ -96,7 +97,13 @@ def test_the_check_reads_the_rows_against_the_stated_entry() -> None:
         ],
     )
 
-    check = organism_check(PF3, _STRAIN.id, selected, read, asked=PF3)
+    check = organism_check(
+        PF3,
+        _STRAIN.id,
+        selected,
+        read,
+        asked=OrganismAsked(entry=PF3, named=frozenset({PF3}), linked=True),
+    )
 
     assert (check.status, check.evidence) == (
         "fail",
