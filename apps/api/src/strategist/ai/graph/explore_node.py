@@ -53,6 +53,12 @@ from strategist.ai.graph._lead_durable import (
     statistics_answered,
 )
 from strategist.ai.graph._lead_facts import show_the_links
+from strategist.ai.graph._lead_memory import (
+    indexed,
+    memory_index,
+    recalled,
+    retrieve_memories,
+)
 from strategist.ai.graph._lead_model import LeadModelContext
 from strategist.ai.graph._lead_reading import MessageNotReadError, classify_the_words
 from strategist.ai.graph._lead_stops import (
@@ -63,12 +69,6 @@ from strategist.ai.graph._lead_stops import (
     reader_stop_reply,
     run_stop_reply,
     strategy_change,
-)
-from strategist.ai.graph._lead_turn import (
-    indexed,
-    memory_index,
-    recalled,
-    retrieve_memories,
 )
 from strategist.ai.graph.rebuild import rebuilt_state
 from strategist.ai.graph.runtime import Context

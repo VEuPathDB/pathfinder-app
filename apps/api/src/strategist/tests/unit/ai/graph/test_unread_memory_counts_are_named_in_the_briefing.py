@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from strategist.ai.graph._lead_turn import indexed
+from strategist.ai.graph._lead_memory import indexed
 from strategist.domain.unread import Unread
 from strategist.tests.unit.ai.lead._turn_contract_cases import building_deps
 

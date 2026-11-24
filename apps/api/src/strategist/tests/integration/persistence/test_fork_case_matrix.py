@@ -25,7 +25,7 @@ from assistant_core.platform import db
 from langgraph.runtime import Runtime
 from sqlalchemy import select, text
 
-from strategist.ai.graph import _lead_turn
+from strategist.ai.graph import _lead_memory
 from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import PipelineState
 from strategist.domain.strategy.session import StrategySession
@@ -651,7 +651,7 @@ async def test_f9_a_branch_turn_retrieves_the_memories_its_parent_would(
         context=_context(user_id, app_memory_store.store),
     )
     on_parent, on_branch = [
-        await _lead_turn.retrieve_memories(_pipeline_state(cid, user_id), runtime)
+        await _lead_memory.retrieve_memories(_pipeline_state(cid, user_id), runtime)
         for cid in (conversation_id, fork_id)
     ]
 

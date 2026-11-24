@@ -11,7 +11,7 @@ from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.store import MemoryStore
 from langgraph.runtime import Runtime
 
-from strategist.ai.graph._lead_turn import memory_index, retrieve_memories
+from strategist.ai.graph._lead_memory import memory_index, retrieve_memories
 from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import PipelineState
 from strategist.domain.strategy.session import StrategySession

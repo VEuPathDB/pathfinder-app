@@ -59,6 +59,12 @@ from strategist.ai.graph._lead_emit import (
 )
 from strategist.ai.graph._lead_exchange import turn_exchange
 from strategist.ai.graph._lead_facts import show_the_facts
+from strategist.ai.graph._lead_memory import (
+    indexed,
+    memory_index,
+    recalled,
+    retrieve_memories,
+)
 from strategist.ai.graph._lead_model import resolve_lead_model_context
 from strategist.ai.graph._lead_reading import MessageNotReadError, read_the_words
 from strategist.ai.graph._lead_runs import LeadRuns
@@ -76,11 +82,7 @@ from strategist.ai.graph._lead_stops import (
 )
 from strategist.ai.graph._lead_turn import (
     TurnResumption,
-    indexed,
-    memory_index,
-    recalled,
     resolve_turn_resumption,
-    retrieve_memories,
     turn_ends_before_the_run,
 )
 from strategist.ai.graph.rebuild import rebuilt_state

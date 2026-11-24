@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from strategist.ai.graph._lead_turn import MEMORY_NOT_READ, recalled
+from strategist.ai.graph._lead_memory import MEMORY_NOT_READ, recalled
 from strategist.ai.lead.lead_pins import pinned_turn_briefing
 from strategist.domain.unread import Unread
 from strategist.tests._support.run_context import run_context_for

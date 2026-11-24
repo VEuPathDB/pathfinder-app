@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-A turn touches the LangGraph store at Lead entry (`ai/graph/_lead_turn.py::retrieve_memories`
+A turn touches the LangGraph store at Lead entry (`ai/graph/_lead_memory.py::retrieve_memories`
 and `memory_index`) and in `finalize_turn` (`auto_write_memories`). All run inside
 `assistant_core.memory.deadline.memory_store_deadline`, an `asyncio.timeout`
 whose window is `memory_store_timeout_seconds` (default 30). Exhaustion raises
