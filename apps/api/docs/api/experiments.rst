@@ -54,11 +54,6 @@ Core experiment service, orchestration, and store.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: strategist.services.experiment.materialization
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Metrics and Evaluation
 ~~~~~~~~~~~~~~~~~~~~~~
 

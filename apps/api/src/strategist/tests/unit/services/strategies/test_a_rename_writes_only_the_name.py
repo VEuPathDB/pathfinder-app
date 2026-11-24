@@ -16,13 +16,14 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.domain.strategy.operations import (
     UpdateStepMetaOp,
     UpdateStepParamsOp,
 )
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import step_wdk_push
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.step_push_planner import (
@@ -32,9 +33,11 @@ from strategist.services.strategies.step_push_planner import (
     StepPushPlan,
     plan_step_pushes,
 )
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.wdk_write_stubs import (
+    held_as,
+)
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     install_stub_api,
@@ -82,6 +85,7 @@ def _plan_of(old: StrategyStepNode, new: StrategyStepNode) -> StepPushPlan:
         old_ast=StrategyAst(record_type="transcript", root=old),
         new_ast=StrategyAst(record_type="transcript", root=new),
         existing_wdk_ids={_LEAF: _WDK_LEAF},
+        held=held_as(StrategyAst(record_type="transcript", root=old)),
     )
     return entry
 
@@ -118,6 +122,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=_combine(name="A and B"),
             new_ast=_combine(name="A with B"),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
+            held=held_as(_combine(name="A and B")),
         )
 
         assert {entry.step_id: entry.action for entry in plan}["step_join"] == (
@@ -130,12 +135,13 @@ class TestThePlanNamesWhatMoved:
             old_ast=_combine(),
             new_ast=_combine(weight=5),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
+            held=held_as(_combine()),
         )
 
         by_id = {entry.step_id: entry for entry in plan}
         assert (by_id["step_join"].action, by_id["step_join"].reason) == (
             RecreateAction(),
-            "combine weight changed",
+            "combine wdk_weight changed",
         )
 
     def test_a_transform_rewired_with_new_values_is_recreated(self) -> None:
@@ -158,6 +164,7 @@ class TestThePlanNamesWhatMoved:
             old_ast=ortholog(a, 10),
             new_ast=ortholog(b, 12),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_t": 3},
+            held=held_as(ortholog(a, 10)),
         )
 
         by_id = {entry.step_id: entry for entry in plan}
@@ -179,56 +186,59 @@ def _graph(root: StrategyStepNode) -> StrategyGraph:
     return graph
 
 
-class TestThePushSendsWhatThePlanNames:
+class TestTheCommitSendsWhatThePlanNames:
     @pytest.fixture
     def api(self, monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         api = StubAPI()
-        monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
+        monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
         list_every_search_under(monkeypatch, "transcript")
         return api
 
     @pytest.fixture
     def validated(self, monkeypatch: pytest.MonkeyPatch) -> list[object]:
-        """The parameters the push validated."""
+        """The parameters the commit validated."""
         seen: list[object] = []
 
-        async def _record(*_args: Any, **kwargs: Any) -> Any:
-            seen.append(kwargs["context"])
+        async def _record(*_args: Any, **kwargs: Any) -> ValidatedParams:
+            seen.append(kwargs["stated"])
+            return ValidatedParams(params=dict(kwargs["stated"]))
 
-        monkeypatch.setattr(step_wdk_push, "validate_parameters", _record)
+        monkeypatch.setattr(commit_tree, "validate_parameters", _record)
         return seen
 
-    async def _push(self, action: PatchAction) -> None:
-        await push_steps_with_plan(
-            _graph(_leaf(name="exported, renamed")),
-            WDKSyncState(wdk_step_ids={_LEAF: _WDK_LEAF}),
-            "plasmodb",
-            [StepPushPlan(step_id=_LEAF, action=action, reason="test")],
+    async def _commit(self, api: StubAPI, before: StrategyStepNode) -> None:
+        graph = _graph(_leaf(score=12, name="exported, renamed"))
+        sync_state = WDKSyncState(wdk_step_ids={_LEAF: _WDK_LEAF})
+        api.holds(flatten_tree(before), sync_state)
+        await commit_tree.commit_tree(
+            site_id="plasmodb",
+            steps=graph.steps,
+            root_id=_LEAF,
+            old=StrategyAst(record_type="transcript", root=before),
+            sync_state=sync_state,
+            target=commit_tree.CommitTarget(name="test", description=""),
         )
 
     async def test_a_rename_is_one_properties_patch(
         self, api: StubAPI, validated: list[object]
     ) -> None:
-        await self._push(PatchAction(search_config=False, name=True))
+        await self._commit(api, _leaf(score=12))
 
-        assert [call.name for call in api.calls] == ["update_step_properties"]
-        assert api.calls[0].kwargs["spec"].custom_name == "exported, renamed"
+        writes = api.step_writes()
+        assert [call.name for call in writes] == ["update_step_properties"]
+        assert writes[0].kwargs["spec"].custom_name == "exported, renamed"
         assert validated == []
 
     async def test_a_value_and_a_name_are_two_writes_in_order(
-        self, api: StubAPI, monkeypatch: pytest.MonkeyPatch
+        self, api: StubAPI, validated: list[object]
     ) -> None:
-        async def _none(*_args: Any, **_kwargs: Any) -> set[str]:
-            return set()
+        await self._commit(api, _leaf())
 
-        monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _none)
-
-        await self._push(PatchAction(search_config=True, name=True))
-
-        assert [(c.name, c.kwargs["step_id"]) for c in api.calls] == [
+        assert [(c.name, c.kwargs["step_id"]) for c in api.step_writes()] == [
             ("update_step_search_config", _WDK_LEAF),
             ("update_step_properties", _WDK_LEAF),
         ]
+        assert validated == [{_SCORE: NumberValue(value=12)}]
 
 
 class TestACanvasRenameLeavesTheSitesValues:

@@ -29,7 +29,6 @@ from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
-    renumber_criteria,
 )
 from strategist.domain.strategy.stated_shape import (
     SlotWrite,
@@ -162,8 +161,8 @@ def _built_over_a_saved_strategy() -> tuple[StrategyGraph, set[str]]:
     """The graph a saved-strategy spec builds, and the criterion ids it minted."""
     spec = _spec_over_a_saved_strategy()
     built = build_step_tree(spec)
-    renumbered = renumber_criteria(spec, built.step_id_by_criterion)
-    return graph_with([built.root]), {c.id for c in renumbered.criteria}
+    renumbered = spec
+    return graph_with([built]), {c.id for c in renumbered.criteria}
 
 
 def test_an_expanded_saved_strategy_counts_as_the_criterion_that_names_it() -> None:
@@ -260,8 +259,8 @@ def _built_over_only_a_saved_strategy() -> tuple[StrategyGraph, set[str]]:
     """The graph that spec builds, and the one criterion id it minted."""
     spec = _spec_of_only_a_saved_strategy()
     built = build_step_tree(spec)
-    renumbered = renumber_criteria(spec, built.step_id_by_criterion)
-    return graph_with([built.root]), {c.id for c in renumbered.criteria}
+    renumbered = spec
+    return graph_with([built]), {c.id for c in renumbered.criteria}
 
 
 def test_a_saved_strategy_no_combine_wraps_counts_as_its_criterion() -> None:

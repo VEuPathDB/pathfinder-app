@@ -24,7 +24,19 @@ strategy name, the message that turn ended with when it is known, and the
 write time. `ConversationRepository._write_strategy` and `clear_strategy` are
 the one seam that appends, so a strategy state that reaches the database
 reaches the history. A write that repeats the newest row's fingerprint, WDK
-strategy id and step count appends nothing.
+strategy id and step count appends nothing. The fingerprint hashes every
+step setting (`StepSettings`: search, parameters, operator, colocation, filters,
+weight, expansion and its name) and the tree shape; a multi-pick is hashed by
+its identity (`MultiPickValue.identity`), so a reordered pick is not a new revision.
+A held value is hashed as written, so a pick stored as wire text and the same pick
+stored as terms are two revisions although `StepSettings.changed` calls them equal.
+
+Hashing the expanded name and the pick's identity moved the fingerprint of every
+stored tree that has an unsorted multi-pick or an `expandedName`. Each such thread
+reads its newest revision as new once: it shows one "superseded" mark, the last
+check's verdict and its evidence card stop counting as current
+(`verdict_of_the_strategy`, `card_of_the_strategy`), and the gene set imported from
+the strategy is synced again once (`gene_set_refresh`).
 
 **A message resolves to the state in force when it was written.** A snapshot
 the message names wins; otherwise the newest snapshot written no later than
@@ -35,8 +47,8 @@ message it just wrote, so the exact rule is available where it matters most.
 
 **Fork materializes; it no longer duplicates.** A fork resolves the anchor's
 snapshot and pushes that tree to WDK as a strategy of its own through the
-existing push path (`plan_step_pushes` with no known step ids, then
-`push_steps_with_plan`, then `sync_strategy_for_site`). WDK's
+one commit path (`commit_tree` with no prior tree, so every step is
+created). WDK's
 `sourceStrategySignature` duplication was removed with the code that used it:
 it copies a strategy as it stands now, which is the very state a branch point
 must not inherit. **Every snapshot that holds a tree is pushed**, whatever WDK

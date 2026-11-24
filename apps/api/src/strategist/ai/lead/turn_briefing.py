@@ -20,10 +20,12 @@ from strategist.domain.strategy.constraints import (
     ConstraintStatus,
 )
 from strategist.domain.strategy.data_marks import DataMarks
+from strategist.domain.strategy.expression_handles import cut_stated
 from strategist.domain.strategy.operational_spec import RequirementLink
 from strategist.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from strategist.domain.strategy.realized_spec import RealizedSpec
 from strategist.domain.strategy.spec_hydration import spec_from_ast
+from strategist.domain.strategy.step_settings_text import settings_change_text
 from strategist.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,
@@ -45,6 +47,7 @@ MAX_BRIEFING_CHARS = 800
 # The briefing and the ledger name a moved analysis in these words.
 ANALYSIS_CHANGED_AFTER_THE_CARD = "changed after the card in this conversation"
 _HEADING = "## Since your last turn"
+_COMBINATIONS_CHANGED = "- the combinations changed"
 _CLOSING = (
     "These are facts about the conversation, not a request. Call "
     "get_live_strategy_state before you quote a count."
@@ -102,6 +105,7 @@ class TurnBriefing(BaseModel):
                 f"- {step.label} ({step.step_id}): removed"
                 for step in self.strategy.removed
             ),
+            *([_COMBINATIONS_CHANGED] if self._combinations_changed() else []),
             *(_task_line(task) for task in self.tasks),
             *([_analysis_line(self.analysis)] if self.analysis is not None else []),
             *(
@@ -109,6 +113,13 @@ class TurnBriefing(BaseModel):
                 for shift in self.constraints
             ),
         ]
+
+    def _combinations_changed(self) -> bool:
+        moved = self.strategy
+        return moved.rewired or (
+            moved.structure_moved
+            and not (moved.changed or moved.added or moved.removed)
+        )
 
 
 def _within_budget(lines: list[str]) -> list[str]:
@@ -123,13 +134,8 @@ def _within_budget(lines: list[str]) -> list[str]:
     return kept
 
 
-def _clipped(value: str | None, limit: int = _MAX_VALUE_CHARS) -> str:
-    """A value short enough for one line. A whole gene list is not one."""
-    if value is None:
-        return "(unset)"
-    if len(value) <= limit:
-        return value
-    return f"{value[:limit]} (cut from {len(value):,} characters)"
+def _shown(value: str | None) -> str:
+    return "(unset)" if value is None else cut_stated(value, _MAX_VALUE_CHARS)
 
 
 def _step_line(change: StepChange) -> str:
@@ -137,15 +143,17 @@ def _step_line(change: StepChange) -> str:
     if change.search_after is not None:
         parts.append(f"search {change.search_before} -> {change.search_after}")
     parts.extend(
-        f"{param.name} {_clipped(param.before)} -> {_clipped(param.after)}"
+        f"{param.name} {_shown(param.before)} -> {_shown(param.after)}"
         for param in change.params[:_MAX_PARAMS_PER_STEP]
     )
     dropped = len(change.params) - _MAX_PARAMS_PER_STEP
     if dropped > 0:
         parts.append(f"+{dropped} more params")
-    if change.weight is not None:
-        parts.append(f"weight {change.weight.before} -> {change.weight.after}")
-    label = _clipped(change.label, _MAX_LABEL_CHARS)
+    parts.extend(
+        settings_change_text(name, change.before, change.after)
+        for name in change.settings
+    )
+    label = cut_stated(change.label, _MAX_LABEL_CHARS)
     return f"- {label} ({change.step_id}): {', '.join(parts)}"
 
 

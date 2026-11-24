@@ -11,13 +11,13 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 
-from strategist.ai.tools.standalone.graph_helpers import build_step_response
+from strategist.ai.tools.standalone.graph_helpers import serialize_step
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.step_words import StepWords
 from strategist.persistence.models import PersistedStrategyGraph
+from strategist.services.conversations.responses import derive_steps_from_strategy_ast
 from strategist.services.strategies import spec_build
 from strategist.services.strategies.graph_rollback import graph_labels, restore_graph
-from strategist.services.strategies.schemas import step_response_from_strategy_ast
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.sync_state import WDKSyncState
 
@@ -62,7 +62,7 @@ def test_a_loaded_strategy_holds_the_words_it_stored() -> None:
 def test_a_stored_step_answers_with_its_title_and_its_words() -> None:
     ast = _stored("step_a")
 
-    response = step_response_from_strategy_ast(ast, ast.root)
+    response = derive_steps_from_strategy_ast(ast)[0]
 
     assert (response.display_name, response.criterion_text) == (
         "Exported Protein",
@@ -74,7 +74,7 @@ def test_a_live_step_answers_with_its_words() -> None:
     graph = _graph_of("step_a")
     graph.note_words(StepWords(criterion_texts={"step_a": _WORDS}))
 
-    response = build_step_response(graph, graph.steps["step_a"])
+    response = serialize_step(graph, graph.steps["step_a"])
 
     assert (response.display_name, response.criterion_text) == (
         "Exported Protein",
@@ -85,7 +85,7 @@ def test_a_live_step_answers_with_its_words() -> None:
 def test_a_step_no_criterion_stated_carries_no_words() -> None:
     ast = StrategyAst(record_type="transcript", root=_leaf("step_a"))
 
-    response = step_response_from_strategy_ast(ast, ast.root)
+    response = derive_steps_from_strategy_ast(ast)[0]
 
     assert (response.display_name, response.criterion_text) == (
         "Exported Protein",

@@ -25,7 +25,7 @@ BOOLEAN_OPERATORS = frozenset(CombineOp) - {CombineOp.COLOCATE}
 BooleanOperator = Annotated[CombineOp, AfterValidator(_must_be_boolean)]
 ```
 
-Every field whose value ends up in a boolean search config uses `BooleanOperator`. Places that legitimately handle colocation, like experiment materialization, keep the wider `CombineOp` and branch on it.
+Every field whose value ends up in a boolean search config uses `BooleanOperator`. Places that legitimately handle colocation, like the step write in `commit_tree`, keep the wider `CombineOp` and branch on it.
 
 # What it bought
 

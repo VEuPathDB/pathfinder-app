@@ -26,12 +26,13 @@ The old inference also missed the structural case entirely: a combine that has l
 
 # Preserved deliberately
 
-A step already live in WDK is never demoted to draft. `_validate_plan_params` re-raises for those, because silently turning a live step into a draft drops it from the built strategy.
+A step already live in WDK is never demoted to draft. A refused value on such a step is a failure the commit reports (`_Commit._refused` in `services/strategies/commit_tree.py`), because silently turning a live step into a draft drops it from the built strategy.
 
 # Anchor
 
 `step_status()` and `StepStatus` in `apps/api/src/strategist/domain/strategy/step_status.py`;
-`defer_draft_steps`, which replaced `defer_incomplete_new_steps`.
+`_Commit._refused` and `_Commit._draft_unless_ready` in
+`apps/api/src/strategist/services/strategies/commit_tree.py`, which decide a draft at commit time.
 
 The lifecycle is this application's, not WDK's: the derivation reads the keyed
 step map and the validation bundle from the client

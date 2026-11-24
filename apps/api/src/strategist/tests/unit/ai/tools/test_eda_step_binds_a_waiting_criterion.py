@@ -131,6 +131,23 @@ async def test_the_waiting_criterion_becomes_the_step_where_the_tree_puts_it(
     assert ctx.deps.state.domain.answered_spec == spec
 
 
+async def test_the_export_takes_the_waiting_criterions_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctx = _ctx(session_with(leaf("step_k1"), {}))
+    ctx.deps.state.domain.operational_spec = _spec(_under_the_root())
+    _wire(monkeypatch)
+
+    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+
+    exported = returned(answer, eda_step.EdaStepCreated)
+    spec = ctx.deps.state.domain.operational_spec
+    assert spec is not None
+    assert (exported.step_id, _WAITING in _graph(ctx).steps) == (_WAITING, True)
+    assert spec.structure == _spec(_under_the_root()).structure
+    assert spec.criteria[1].analysis is not None
+
+
 async def test_an_export_with_no_spec_states_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

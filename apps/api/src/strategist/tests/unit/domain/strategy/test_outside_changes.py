@@ -81,12 +81,14 @@ def test_a_thread_that_answered_to_nothing_reports_nothing() -> None:
     assert changes.structure_moved is False
 
 
-def test_a_flipped_operator_moves_the_structure_and_no_parameter() -> None:
+def test_a_flipped_operator_moves_the_structure_and_the_combines_operator() -> None:
     flipped = _ast(combine("c0", leaf("text"), _expression(), operator=CombineOp.UNION))
 
     changes = outside_changes(_built(), flipped)
 
-    assert changes.changed == []
+    assert [(c.step_id, c.params, c.settings) for c in changes.changed] == [
+        ("c0", [], ["operator"])
+    ]
     assert changes.structure_moved
 
 

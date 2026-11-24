@@ -113,7 +113,7 @@ def _built_combine(operator: CombineOp) -> StrategyStepNode:
             )
         ),
     )
-    return build_step_tree(spec).root
+    return build_step_tree(spec)
 
 
 @pytest.mark.parametrize("operator", [CombineOp.INTERSECT, CombineOp.MINUS])

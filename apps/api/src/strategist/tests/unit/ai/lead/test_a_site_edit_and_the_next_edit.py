@@ -7,22 +7,23 @@ outside the thread, and the edit after it sends it on.
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from veupathdb.domain.parameters import NumberValue
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import CombineOp, flatten_tree
 
 from strategist.ai.lead.deltas import EditDelta
-from strategist.services.strategies import step_wdk_push
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.step_push_planner import (
     PatchAction,
     SkipAction,
     plan_step_pushes,
 )
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.wdk_write_stubs import (
+    accepts_every_value,
+    held_as,
+)
 from strategist.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     PROTEOME_PARAM,
@@ -73,27 +74,34 @@ async def _the_writes(
     """The WDK writes the production push sends for the edit the thread made."""
     before = site.pushed
     after = thread.graph.to_strategy_ast()
+    assert before is not None
     assert after is not None
     api = StubAPI()
-
-    async def _nothing_incomplete(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _nothing_incomplete)
+    sync_state = WDKSyncState(wdk_step_ids=site.ids, wdk_strategy_id=42)
+    api.holds(flatten_tree(before.root), sync_state, root_id=ROOT)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
     list_every_search_under(monkeypatch, "transcript")
-    plan = plan_step_pushes(old_ast=before, new_ast=after, existing_wdk_ids=site.ids)
+    plan = plan_step_pushes(
+        old_ast=before, new_ast=after, existing_wdk_ids=site.ids, held=held_as(before)
+    )
     assert {entry.step_id: entry.action for entry in plan} == {
         SURFACE: SkipAction(),
         STAGE: PatchAction(search_config=True, name=False),
         ROOT: SkipAction(),
     }
-    await push_steps_with_plan(
-        thread.graph, WDKSyncState(wdk_step_ids=site.ids), "plasmodb", plan
+    await commit_tree.commit_tree(
+        site_id="plasmodb",
+        steps=thread.graph.steps,
+        root_id=ROOT,
+        old=before,
+        sync_state=sync_state,
+        target=commit_tree.CommitTarget(name="Thread", description=""),
     )
     return [
         (call.name, call.kwargs["step_id"], call.kwargs.get("parameters"))
         for call in api.calls
+        if "step_id" in call.kwargs
     ]
 
 

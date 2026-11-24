@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildStrategyTree, type TreeNode } from "./compactLayout";
-import type { Step } from "@strategist/shared";
+import type { CombineOp, Step } from "@strategist/shared";
 
 function makeStep(
   overrides: Partial<Step> & { id: string; displayName: string },
@@ -12,7 +12,7 @@ const search = (id: string, displayName: string) => makeStep({ id, displayName }
 
 const combine = (
   id: string,
-  operator: string,
+  operator: CombineOp,
   primaryInputStepId: string,
   secondaryInputStepId: string,
 ) =>

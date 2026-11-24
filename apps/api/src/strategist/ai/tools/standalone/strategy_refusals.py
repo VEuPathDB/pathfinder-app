@@ -78,20 +78,6 @@ def _step_edit_refused(
     )
 
 
-def build_departs_from_the_plan_message(detail: str) -> str:
-    """Why a build whose tree would answer another question is refused.
-
-    The check reads the local tree, so VEuPathDB is never asked and the site
-    refuses nothing.
-    """
-    stated = detail if detail.rstrip().endswith((".", "!", "?")) else f"{detail}."
-    return (
-        f"This build would leave a tree that departs from the plan: {stated} "
-        f"Nothing was built and the strategy is unchanged, and VEuPathDB was "
-        f"not asked."
-    )
-
-
 def operation_refused_message(detail: str, *, wrote: str) -> str:
     """Why a write was refused before it reached VEuPathDB.
 

@@ -12,11 +12,7 @@ from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.gene_sets import strategy_genes
 from strategist.services.gene_sets.homes import StepGenes
 from strategist.services.gene_sets.strategy_genes import read_strategy_genes
-from strategist.services.strategies import sync
-from strategist.services.strategies.sync import (
-    TreeNotHeldError,
-    sync_strategy_for_site,
-)
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.read_saves_back import (
     AFTER_THE_DELETE,
@@ -29,6 +25,7 @@ from strategist.tests._support.read_saves_back import (
     one_request_per_strategy,
     strategy_api_on,
 )
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 
 def _graph_after_the_delete() -> StrategyGraph:
@@ -45,6 +42,7 @@ def _graph_after_the_delete() -> StrategyGraph:
     )
     for step in graph.steps.values():
         step.record_class = "transcript"
+        step.filters_wdk_added = []
     graph.recompute_roots()
     return graph
 
@@ -72,7 +70,7 @@ async def site(monkeypatch: pytest.MonkeyPatch, signed_in: None) -> ReadSavesBac
     del signed_in
     served = ReadSavesBack()
     api = await strategy_api_on(served)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(strategy_genes, "get_strategy_api", lambda _site_id: api)
 
     async def _genes(_site_id: str, _root: WDKStep) -> StepGenes:
@@ -86,11 +84,7 @@ async def site(monkeypatch: pytest.MonkeyPatch, signed_in: None) -> ReadSavesBac
 
 async def _a_read_during_the_delete(site: ReadSavesBack) -> None:
     save = asyncio.create_task(
-        sync_strategy_for_site(
-            graph=_graph_after_the_delete(),
-            sync_state=_held_before_the_delete(),
-            site_id="plasmodb",
-        )
+        put_the_graph(_graph_after_the_delete(), _held_before_the_delete(), "plasmodb")
     )
     await site.put_started.wait()
     refresh = asyncio.create_task(read_strategy_genes("plasmodb", STRATEGY))
@@ -120,9 +114,8 @@ async def test_a_tree_the_site_does_not_hold_after_the_write_fails_the_push(
     site.reverted = True
     state = _held_before_the_delete()
 
-    with pytest.raises(TreeNotHeldError, match="root step 227283450 over 5 steps"):
-        await sync_strategy_for_site(
-            graph=_graph_after_the_delete(), sync_state=state, site_id="plasmodb"
-        )
+    committed = await put_the_graph(_graph_after_the_delete(), state, "plasmodb")
 
+    assert [f.step_id for f in committed.failures] == ["inner"]
+    assert "root step 227283450 over 5 steps" in committed.failures[0].error
     assert state.wdk_step_tree == BEFORE_THE_DELETE

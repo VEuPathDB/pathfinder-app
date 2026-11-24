@@ -25,22 +25,22 @@ from strategist.tests.unit.scripted.models._mock_turns import Scene, names, play
 # in both.
 _LIVE = {
     "rootCount": 53,
+    "rootStepId": "step_join",
     "steps": [
         {
-            "stepId": "step_sp",
+            "id": "step_sp",
             "displayName": "Predicted Signal Peptide",
             "estimatedSize": 680,
         },
         {
-            "stepId": "step_orth",
+            "id": "step_orth",
             "displayName": "Orthology Phylogenetic Profile",
             "estimatedSize": 1240,
         },
         {
-            "stepId": "step_join",
+            "id": "step_join",
             "displayName": "Intersect",
             "estimatedSize": 53,
-            "isRoot": True,
         },
     ],
 }

@@ -21,7 +21,7 @@ from strategist.tests._support.bound_values import bound
 
 
 def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
-    return build_step_tree(spec).root
+    return build_step_tree(spec)
 
 
 _PF = MultiPickValue(values=["Plasmodium falciparum 3D7"])
@@ -123,13 +123,18 @@ class TestTheSavedStrategyBecomesACollapsedInput:
         assert root.secondary_input is not None
         assert root.secondary_input.operator == CombineOp.UNION
 
-    def test_every_step_of_the_saved_subtree_gets_a_fresh_id(self) -> None:
+    def test_the_saved_subtree_roots_under_its_criterion_and_clones_the_rest(
+        self,
+    ) -> None:
         spec = _spec(saved_first=False, operator=CombineOp.INTERSECT)
-        first = _step_tree(spec)
-        second = _step_tree(spec)
-        assert first.secondary_input is not None
-        assert second.secondary_input is not None
-        assert first.secondary_input.id != second.secondary_input.id
+        first = _step_tree(spec).secondary_input
+        second = _step_tree(spec).secondary_input
+        assert first is not None
+        assert second is not None
+        assert (first.id, second.id) == ("c_saved", "c_saved")
+        assert first.primary_input is not None
+        assert second.primary_input is not None
+        assert first.primary_input.id != second.primary_input.id
 
     def test_a_saved_reference_alone_materializes_as_its_own_subtree(self) -> None:
         spec = OperationalSpec(

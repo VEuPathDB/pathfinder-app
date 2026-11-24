@@ -23,19 +23,19 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
-    CombineOp,
     StepKind,
+    StepSettings,
     StrategyAst,
     StrategyStep,
     StrategyStepNode,
     flatten_tree,
     rebuild_tree,
+    settings_of,
     subtree_ids,
     walk,
 )
 from veupathdb.errors import DataParsingError, VEuPathDBError
 from veupathdb.wdk import (
-    WDKSearchConfig,
     WDKStep,
     WDKStrategyDetails,
     get_strategy_api,
@@ -47,6 +47,8 @@ from veupathdb_mcp.wdk import (
 )
 
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
+from strategist.domain.strategy.step_settings_text import OWN_LINES
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
@@ -170,8 +172,10 @@ async def take_what_the_site_holds(
     """Write onto the graph the values and the shape ``live`` moved."""
     local_of = {wdk_id: local for local, wdk_id in sync_state.wdk_step_ids.items()}
     tree = _the_sites_tree(live)
+    if tree is None:
+        return SiteEdits()
     valued = await _take_the_sites_values(graph, local_of, live, tree, site_id)
-    reshaped = tree is not None and await _take_the_sites_shape(
+    reshaped = await _take_the_sites_shape(
         graph, sync_state, local_of, live, tree, site_id
     )
     if valued or reshaped:
@@ -205,27 +209,21 @@ async def _take_the_sites_values(
     graph: StrategyGraph,
     local_of: Mapping[int, str],
     live: WDKStrategyDetails,
-    tree: _SiteTree | None,
+    tree: _SiteTree,
     site_id: str,
 ) -> list[str]:
-    operators = (
-        {}
-        if tree is None
-        else {node.id: node.operator for node in walk(tree.ast.root) if node.operator}
-    )
+    nodes = {node.id: node for node in walk(tree.ast.root)}
     moved: list[str] = []
     for wdk_key, wdk_step in live.steps.items():
         step = _held_step(graph, local_of, wdk_key)
         if step is None:
             continue
-        if step.kind is StepKind.COMBINE:
-            taken = _take_the_operator(step, operators.get(wdk_key))
-        else:
-            taken = await _take_the_parameters(
-                step, wdk_step.search_name, _wire_of(wdk_step), site_id=site_id
-            )
-        weighed = _take_the_weight(step, wdk_step.search_config)
-        if taken or weighed:
+        taken = step.kind is not StepKind.COMBINE and await _take_the_parameters(
+            step, wdk_step.search_name, _wire_of(wdk_step), site_id=site_id
+        )
+        node = nodes.get(wdk_key)
+        settled = node is not None and _take_the_settings(step, settings_of(node))
+        if taken or settled:
             moved.append(step.id)
     return moved
 
@@ -237,24 +235,25 @@ def _wire_of(step: WDKStep) -> WireStep:
     )
 
 
-def _take_the_weight(step: StrategyStep, config: WDKSearchConfig) -> bool:
-    """A graph that holds no weight leaves the weight to the site."""
-    if step.wdk_weight is None or "wdk_weight" not in config.model_fields_set:
-        return False
-    if config.wdk_weight == step.wdk_weight:
-        return False
-    step.wdk_weight = config.wdk_weight
-    return True
-
-
-def _take_the_operator(step: StrategyStep, operator: CombineOp | None) -> bool:
-    """A colocation is not a set operation, so it keeps its own operator."""
-    if operator is None or step.operator in (None, CombineOp.COLOCATE):
-        return False
-    if operator == step.operator:
-        return False
-    step.operator = operator
-    return True
+def _take_the_settings(step: StrategyStep, site: StepSettings) -> bool:
+    added = step.filters_wdk_added
+    stated = site.model_copy(
+        update={
+            "filters": step.filters
+            if added is None
+            else [f for f in site.filters if f not in added]
+        }
+    )
+    held = settings_of(step)
+    moved = [
+        name
+        for name in held.changed(stated)
+        if name in SITE_HELD_SETTINGS and name not in OWN_LINES
+    ]
+    taken = dict(stated)
+    for name in moved:
+        setattr(step, name, taken[name])
+    return bool(moved)
 
 
 async def _take_the_parameters(

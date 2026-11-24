@@ -7,14 +7,15 @@ from dataclasses import dataclass
 
 from veupathdb.domain.strategy import subtree_ids
 
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import (
     JoinContradiction,
     ValueContradiction,
     contradicted_joins,
     contradicted_values,
-    new_join_contradiction,
-    new_value_contradiction,
+    new_join_contradictions,
+    new_value_contradictions,
 )
 from strategist.domain.strategy.stated_shape import (
     SlotWrite,
@@ -91,8 +92,8 @@ def refusal_after_the_batch(
     sides: CanonicalSides,
     slot_writes: Sequence[SlotWrite],
     replaces_a_subtree: bool,
-) -> str | None:
-    """Why the tree the batch leaves behind is refused, or nothing."""
+) -> Problems:
+    """Every way the tree the batch leaves behind departs from the spec."""
     # The spec addresses this graph by step id, so a criterion answers to a
     # step the graph held before the batch or to one the batch mints.
     stated = criteria_with_steps(
@@ -100,23 +101,36 @@ def refusal_after_the_batch(
         entry.step_ids,
         minted=set(graph.steps) - entry.step_ids,
     )
+    problems = Problems()
     eviction = evicted_by(graph, slot_writes, was_reachable=entry.reachable)
     if eviction is not None:
-        return _eviction_message(eviction, stated=stated)
+        occupant = graph.get_step(eviction.occupant_step_id)
+        problems = Problems.one(
+            RefusalKey(check=Check.THE_SLOT_TO_ITS_STEP),
+            _eviction_message(eviction, stated=stated),
+        ).under(
+            criterion=eviction.occupant_step_id,
+            search="" if occupant is None else occupant.search_name or "",
+        )
     if replaces_a_subtree and stated:
         departure = _departure_from_the_spec(
             graph=graph, stated=stated, outside=entry.step_ids - entry.reachable
         )
         if departure is not None:
-            return departure
-    join = new_join_contradiction(
-        structure=deps.stated_structure,
-        graph=graph,
-        criteria=deps.stated_criteria,
-        before=entry.joins,
-    )
-    if join is not None:
-        return join
-    return new_value_contradiction(
-        stated=sides.stated, graph=graph, before=entry.values, after=sides.written
+            problems = problems.plus(
+                Problems.one(
+                    RefusalKey(check=Check.THE_SUBTREE_TO_THE_SPEC), departure
+                ).under(criterion=graph.primary_root_id() or "", search="")
+            )
+    return problems.plus(
+        new_join_contradictions(
+            structure=deps.stated_structure,
+            graph=graph,
+            criteria=deps.stated_criteria,
+            before=entry.joins,
+        )
+    ).plus(
+        new_value_contradictions(
+            stated=sides.stated, graph=graph, before=entry.values, after=sides.written
+        )
     )

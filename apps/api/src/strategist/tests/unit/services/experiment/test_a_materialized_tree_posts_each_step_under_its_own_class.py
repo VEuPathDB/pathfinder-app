@@ -10,20 +10,21 @@ from veupathdb.domain.strategy import (
     ColocationParams,
     CombineOp,
     StrategyStepNode,
+    flatten_tree,
 )
 from veupathdb.errors import ValidationError, WDKError
 from veupathdb.wdk import NewStepSpec, WDKIdentifier
 from veupathdb_mcp.catalog import ValidatedParams
 
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.services.eval import build_gold_strategy
-from strategist.services.experiment import materialization
-from strategist.services.strategies import record_classes
+from strategist.services.strategies import _tree_write, commit_tree, record_classes
+from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.orthomcl_record_classes import (
     serve_orthomcl_record_classes,
 )
 from strategist.tests._support.record_classes import list_each_search_under
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import StubAPI
-from strategist_scripted.seeds.record import materialize_step_tree
 
 _LISTED = {
     "GroupsByPhyleticPattern": "group",
@@ -42,13 +43,26 @@ async def _as_stated(*_args: Any, **kwargs: Any) -> ValidatedParams:
 
 @pytest.fixture(autouse=True)
 def _the_catalog_takes_each_value_as_stated(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(materialization, "validate_parameters", _as_stated)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _as_stated)
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     api = StubAPI()
-    monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     return api
+
+
+async def _commit(site_id: str, root: StrategyStepNode) -> WDKSyncState:
+    sync_state = WDKSyncState()
+    await commit_tree.commit_tree(
+        site_id=site_id,
+        steps=flatten_tree(root),
+        root_id=root.id,
+        old=None,
+        sync_state=sync_state,
+        target=commit_tree.CommitTarget(name="seed", description="", role="internal"),
+    )
+    return sync_state
 
 
 def _join(
@@ -77,14 +91,12 @@ async def test_a_tree_of_two_record_types_is_refused_before_any_post(
 ) -> None:
     serve_orthomcl_record_classes(monkeypatch)
     api = _serve(monkeypatch)
-    made: list[int] = []
+    with pytest.raises(PlanDeparturesError) as refused:
+        await _commit("orthomcl", _join(_protein(), _mammals()))
 
-    with pytest.raises(ValidationError) as refused:
-        await materialize_step_tree("orthomcl", _join(_protein(), _mammals()), made)
-
-    assert (api.calls, made) == ([], [])
-    assert refused.value.detail is not None
-    assert refused.value.detail.startswith(_MIXED)
+    assert api.calls == []
+    (problem,) = refused.value.problems.found
+    assert problem.sentence.startswith(_MIXED)
 
 
 async def test_a_group_tree_posts_each_step_under_group(
@@ -95,17 +107,15 @@ async def test_a_group_tree_posts_each_step_under_group(
     groups = StrategyStepNode(
         id="step_groups", search_name="GroupsFromSequences", primary_input=_protein()
     )
-    made: list[int] = []
+    sync_state = await _commit("orthomcl", _join(groups, _mammals()))
 
-    await materialize_step_tree("orthomcl", _join(groups, _mammals()), made)
-
-    assert [(c.name, c.kwargs["record_type"]) for c in api.calls] == [
+    assert [(c.name, c.kwargs["record_type"]) for c in api.step_writes()] == [
         ("create_step", "sequence"),
         ("create_transform_step", "group"),
         ("create_step", "group"),
         ("create_combined_step", "group"),
     ]
-    assert made == [9001, 9002, 9003, 9004]
+    assert sorted(sync_state.wdk_step_ids.values()) == [9001, 9002, 9003, 9004]
 
 
 async def test_a_colocation_posts_its_own_search_under_its_listed_class(
@@ -119,11 +129,11 @@ async def test_a_colocation_posts_its_own_search_under_its_listed_class(
         CombineOp.COLOCATE,
     )
 
-    await materialize_step_tree("plasmodb", near, [])
+    await _commit("plasmodb", near)
 
     assert [
         (c.name, c.kwargs.get("search_name"), c.kwargs["record_type"])
-        for c in api.calls
+        for c in api.step_writes()
     ] == [
         ("create_step", "GroupsByPhyleticPattern", "group"),
         ("create_step", "SnpsByLocation", "snp"),
@@ -153,15 +163,20 @@ _STRATEGY_REFUSED = WDKError("strategy refused", status=500)
 
 
 class _GoldAPI(StubAPI):
-    datasets: list[list[str]]
     released: list[list[int]]
     posted: list[dict[str, str]]
 
     def __init__(self) -> None:
         super().__init__()
-        self.datasets = []
         self.released = []
         self.posted = []
+
+    @property
+    def datasets(self) -> list[list[str]]:
+        return [
+            write.body["sourceContent"]["ids"]
+            for write in self.wdk.written("POST", "/datasets")
+        ]
 
     async def create_step(
         self,
@@ -171,10 +186,6 @@ class _GoldAPI(StubAPI):
     ) -> WDKIdentifier:
         self.posted.append(dict(spec.search_config.parameters))
         return await super().create_step(spec, record_type, user_id)
-
-    async def create_dataset(self, config: Any) -> int:
-        self.datasets.append(list(config.source_content.ids))
-        return 7001
 
     async def create_strategy(self, *args: Any, **kwargs: Any) -> Any:
         del args, kwargs
@@ -187,7 +198,17 @@ class _GoldAPI(StubAPI):
 
 def _serve_gold(monkeypatch: pytest.MonkeyPatch) -> _GoldAPI:
     api = _GoldAPI()
-    monkeypatch.setattr(materialization, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _tree_write.put_the_tree)
+
+    async def _no_marks(*_args: object) -> dict[str, str]:
+        return {}
+
+    async def _no_organisms(*_args: object) -> dict[str, frozenset[str]]:
+        return {}
+
+    monkeypatch.setattr(_tree_write, "tree_organism_parameters", _no_marks)
+    monkeypatch.setattr(_tree_write, "tree_dataset_organisms", _no_organisms)
     monkeypatch.setattr("strategist.services.eval.get_strategy_api", lambda _s: api)
     return api
 
@@ -209,7 +230,7 @@ async def test_a_gold_tree_the_site_cannot_run_provisions_no_dataset(
             dataset_gene_ids={"ds_gene_ids": ["PF3D7_1133400"]},
         )
 
-    assert (api.datasets, api.calls) == ([], [])
+    assert (api.datasets, api.posted, api.calls) == ([], [], [])
 
 
 async def test_a_gold_strategy_the_site_refuses_releases_its_steps(
@@ -219,7 +240,7 @@ async def test_a_gold_strategy_the_site_refuses_releases_its_steps(
     api = _serve_gold(monkeypatch)
     tree = _join(_protein(), StrategyStepNode(id="step_more", search_name="ByIdList"))
 
-    with pytest.raises(WDKError):
+    with pytest.raises(ValidationError, match="strategy refused"):
         await build_gold_strategy(
             gold_id="gold-proteins",
             site_id="orthomcl",
@@ -243,10 +264,10 @@ async def test_a_gold_build_checks_its_tree_once(
         checked.append(root.id)
         return await refusal(site_id, root, held)
 
-    monkeypatch.setattr(materialization, "tree_record_class_refusal", _counted)
+    monkeypatch.setattr(record_classes, "tree_record_class_refusal", _counted)
     tree = _join(_protein(), StrategyStepNode(id="step_more", search_name="ByIdList"))
 
-    with pytest.raises(WDKError):
+    with pytest.raises(ValidationError):
         await build_gold_strategy(
             gold_id="gold-proteins",
             site_id="orthomcl",
@@ -282,7 +303,7 @@ async def test_a_gold_tree_whose_steps_carry_no_id_posts_every_step(
     serve_orthomcl_record_classes(monkeypatch)
     api = _serve_gold(monkeypatch)
 
-    with pytest.raises(WDKError):
+    with pytest.raises(ValidationError, match="strategy refused"):
         await build_gold_strategy(
             gold_id="gold-recorded",
             site_id="orthomcl",
@@ -303,7 +324,7 @@ async def test_a_gold_tree_with_no_dataset_and_no_ids_posts_every_step(
     tree = copy.deepcopy(_RECORDED_SHAPE)
     tree["primaryInput"]["parameters"] = {}
 
-    with pytest.raises(WDKError):
+    with pytest.raises(ValidationError, match="strategy refused"):
         await build_gold_strategy(
             gold_id="gold-recorded", site_id="orthomcl", step_tree=tree
         )

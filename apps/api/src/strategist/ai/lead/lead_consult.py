@@ -33,6 +33,7 @@ from strategist.domain.strategy.constraints import (
 )
 from strategist.domain.strategy.genome_group_steps import spec_read_on_genomes
 from strategist.domain.strategy.operator_reading import with_operator
+from strategist.domain.strategy.organism_picks import organism_restatements
 from strategist.domain.strategy.question_options import (
     Keep,
     PickClass,
@@ -118,6 +119,29 @@ def _answer_requirement(
     )
 
 
+def _name_the_organism(
+    state: PipelineState,
+    named: SetOrganism,
+    option_id: str,
+    sheets: Mapping[str, Sequence[ParameterInfo]],
+) -> None:
+    domain = state.domain
+    asked = [c for c in domain.requirements if c.id == named.constraint_id]
+    domain.name_organism(named.constraint_id, named.organism)
+    spec = domain.operational_spec
+    if spec is None:
+        return
+    for values in organism_restatements(spec, asked, named.organism):
+        spec = spec_bound_by_card(
+            spec,
+            values,
+            option_id=option_id,
+            sheets=sheets,
+            expressions=domain.built_expressions,
+        )
+    domain.operational_spec = spec
+
+
 def _apply(
     state: PipelineState,
     option: TypedOption,
@@ -154,8 +178,8 @@ def _apply(
             state.turn_markers.saves_asked.append(handle)
         case SetOperator(criteria=criteria, operator=operator) if spec is not None:
             domain.operational_spec = with_operator(spec, criteria, operator)
-        case SetOrganism(constraint_id=named, organism=organism):
-            domain.name_organism(named, organism)
+        case SetOrganism() as named:
+            _name_the_organism(state, named, option.id, sheets)
         case ReadGenomes(criterion_id=criterion, group=group) if spec is not None:
             domain.operational_spec = spec_read_on_genomes(spec, criterion, group)
         case PickTail() as pick:

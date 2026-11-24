@@ -24,7 +24,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_edit_guard import (
-    new_value_contradiction,
+    new_value_contradictions,
     spec_stated_values,
 )
 from strategist.tests._support.bound_values import bound
@@ -69,10 +69,9 @@ def _refusal(held: Constraint, value: ParamValue, written: ParamValue) -> str:
             parameters={_PARAM: written},
         ),
     )
-    refused = new_value_contradiction(
+    return new_value_contradictions(
         stated=spec_stated_values(spec), graph=graph, before={}, after={}
-    )
-    return refused or ""
+    ).text()
 
 
 @pytest.mark.parametrize(

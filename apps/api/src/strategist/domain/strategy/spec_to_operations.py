@@ -10,7 +10,6 @@ from __future__ import annotations
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
-    CombineOp,
     StepKind,
     StrategyStepNode,
     generate_step_id,
@@ -26,7 +25,6 @@ from strategist.domain.strategy.edit_plan import (
     UnsupportedEditError,
     criterion_for,
     live_join,
-    node_for,
     restructure,
 )
 from strategist.domain.strategy.operational_spec import (
@@ -50,6 +48,7 @@ from strategist.domain.strategy.operations.resolutions import compute_delete_cho
 from strategist.domain.strategy.orthology import round_trip_refusal
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_diff import CriterionChange, SpecDiff
+from strategist.domain.strategy.spec_tree import node_for
 from strategist.domain.strategy.stated_shape import (
     StatedShape,
     criteria_with_steps,
@@ -346,18 +345,22 @@ def _resolve_combine(node: StructureNode, plan: EditPlan) -> str:
     left = _resolve(node.inputs[0], plan)
     for extra in node.inputs[1:]:
         right = _resolve(extra, plan)
-        left = _join(plan, left, right, node.combine_operator)
+        left = _join(plan, left, right, node)
     return left
 
 
-def _join(plan: EditPlan, left_id: str, right_id: str, operator: CombineOp) -> str:
+def _join(plan: EditPlan, left_id: str, right_id: str, node: StructureNode) -> str:
     """The combine over the two branches: the live one, or a new one."""
-    existing = live_join(plan.graph, left_id, right_id, operator)
+    existing = live_join(plan.graph, left_id, right_id, node.combine_operator)
     if existing is not None:
-        if plan.graph.steps[existing.step_id].operator is not existing.operator:
+        live = plan.graph.steps[existing.step_id]
+        region = node.region(live.colocation_params)
+        if live.operator is not existing.operator or live.colocation_params != region:
             plan.emit(
                 UpdateCombineOperatorOp(
-                    step_id=existing.step_id, operator=existing.operator
+                    step_id=existing.step_id,
+                    operator=existing.operator,
+                    colocation_params=region,
                 )
             )
         return existing.step_id
@@ -365,7 +368,7 @@ def _join(plan: EditPlan, left_id: str, right_id: str, operator: CombineOp) -> s
     join = flat_join(
         left_id,
         right_id,
-        operator,
+        node.combine_operator,
         left_nests=plan.graph.steps[left_id].primary_input_id is not None,
         right_nests=plan.graph.steps[right_id].primary_input_id is not None,
     )
@@ -376,6 +379,7 @@ def _join(plan: EditPlan, left_id: str, right_id: str, operator: CombineOp) -> s
                 id=new_id,
                 search_name=COMBINE_SEARCH_NAME,
                 operator=join.operator,
+                colocation_params=node.region(),
                 display_name=combine_display_name(join.operator),
             ),
             left_id=join.primary,

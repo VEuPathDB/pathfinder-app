@@ -6,7 +6,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
 )
 
-from strategist.services.strategies.schemas import step_response_from_strategy_ast
+from strategist.services.conversations.responses import derive_steps_from_strategy_ast
 
 _WDK_DEFAULT = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 
@@ -15,7 +15,7 @@ _WDK_DEFAULT = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
     ("search_name", "display_name"),
     [(COMBINE_SEARCH_NAME, None), (_WDK_DEFAULT, _WDK_DEFAULT)],
 )
-def test_an_unnamed_combine_serializes_its_operators_name(
+def test_an_unnamed_combine_shows_its_operators_name_and_no_search(
     search_name: str, display_name: str | None
 ) -> None:
     combine = StrategyStepNode.model_validate(
@@ -29,15 +29,15 @@ def test_an_unnamed_combine_serializes_its_operators_name(
     )
     ast = StrategyAst(record_type="transcript", root=combine)
 
-    resp = step_response_from_strategy_ast(ast, combine)
+    resp = derive_steps_from_strategy_ast(ast)[0]
 
-    assert (resp.search_name, resp.display_name) == (search_name, "Minus")
+    assert (resp.search_name, resp.display_name) == (None, "Minus")
 
 
 def test_search_step_keeps_search_name_as_display_name() -> None:
     leaf = StrategyStepNode(search_name="GenesByText")
     ast = StrategyAst(record_type="transcript", root=leaf)
 
-    resp = step_response_from_strategy_ast(ast, leaf)
+    resp = derive_steps_from_strategy_ast(ast)[0]
 
     assert resp.display_name == "GenesByText"

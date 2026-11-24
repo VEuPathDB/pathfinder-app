@@ -28,6 +28,7 @@ from strategist.ai.lead.dispatch_context import (
     edit_message,
     record_the_spec_the_dispatch_found,
     refuse_and_restore,
+    refuse_problems_and_restore,
     refuse_without_retry,
     the_edit_the_strategy_owes,
 )
@@ -59,7 +60,7 @@ from strategist.domain.strategy.computed_groups import noted_description
 from strategist.domain.strategy.edit_plan import UnsupportedEditError
 from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.operations import UpdateStrategyMetaOp
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.domain.strategy.orthology import organism_move_refusal
 from strategist.domain.strategy.revision import parse_strategy_ast, strategy_revision
 from strategist.domain.strategy.session import StrategyGraph
@@ -292,6 +293,8 @@ async def _push_the_edit(
         commit = await apply_operations_and_commit(
             deps=agent_deps.to_strategy_context(), ops=ops
         )
+    except PlanDeparturesError as exc:
+        refuse_problems_and_restore(deps, exc.problems)
     except ApplyError as exc:
         # The batch rolls back, so the strategy is exactly as it was.
         refuse_and_restore(deps, edit_operation_refused_message(str(exc)))

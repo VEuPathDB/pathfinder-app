@@ -7,7 +7,7 @@ and a step value are different forms and are never compared to each other.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from strategist.domain.strategy.ast_diff import (
     StepChange,
@@ -32,6 +32,7 @@ class OutsideChanges(BaseModel):
     # Whether the shape derived from the two trees differs, which covers a
     # rewire, an operator and a restated join.
     structure_moved: bool = False
+    rewired: bool = False
 
     @property
     def moved(self) -> bool:
@@ -40,6 +41,22 @@ class OutsideChanges(BaseModel):
     @property
     def removed_ids(self) -> frozenset[str]:
         return frozenset(step.step_id for step in self.removed)
+
+
+def _wiring(
+    nodes: dict[str, StrategyStepNode], held: set[str]
+) -> dict[str, tuple[str, ...]]:
+    return {
+        step_id: tuple(i for i in node.input_ids() if i in held)
+        for step_id, node in nodes.items()
+        if step_id in held
+    }
+
+
+def _rewired(answered: StrategyAst, live: StrategyAst) -> bool:
+    was, now = nodes_of(answered), nodes_of(live)
+    held = was.keys() & now.keys()
+    return _wiring(was, held) != _wiring(now, held)
 
 
 def _structure_of(ast: StrategyAst) -> SpecStructure | None:
@@ -70,4 +87,5 @@ def outside_changes(
         added=diff.added,
         removed=diff.removed,
         structure_moved=_structure_of(answered) != _structure_of(live),
+        rewired=_rewired(answered, live),
     )

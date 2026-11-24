@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from typing import Literal, NamedTuple
 
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import ColocationParams, CombineOp
 
 from strategist.domain.strategy.constraints import (
     STRATEGY_SCOPES,
@@ -183,16 +183,27 @@ def with_readings(
 
 
 def _rewritten(
-    node: StructureNode, members: Sequence[StructureNode], operator: CombineOp
+    node: StructureNode,
+    members: Sequence[StructureNode],
+    operator: CombineOp,
+    colocation: ColocationParams | None,
 ) -> StructureNode:
-    inputs = [_rewritten(child, members, operator) for child in node.inputs]
+    inputs = [_rewritten(child, members, operator, colocation) for child in node.inputs]
     if any(node is member for member in members):
-        return node.model_copy(update={"operator": operator, "inputs": inputs})
-    return node.model_copy(update={"inputs": inputs})
+        return StructureNode(
+            kind=node.kind,
+            operator=operator,
+            colocation_params=colocation,
+            inputs=inputs,
+        )
+    return StructureNode(**{**dict(node), "inputs": inputs})
 
 
 def with_operator(
-    spec: OperationalSpec, criteria: Sequence[str], operator: CombineOp
+    spec: OperationalSpec,
+    criteria: Sequence[str],
+    operator: CombineOp,
+    colocation: ColocationParams | None = None,
 ) -> OperationalSpec:
     wanted = frozenset(criteria)
     chain = next((c for c in chains(spec.structure) if c.criteria == wanted), None)
@@ -201,8 +212,14 @@ def with_operator(
     asked = next(
         (r for r in spec.operator_reads if frozenset(r.criteria) == wanted), None
     )
+    placed = colocation or ColocationParams()
     structure = SpecStructure(
-        root=_rewritten(spec.structure.root, chain.members, operator)
+        root=_rewritten(
+            spec.structure.root,
+            chain.members,
+            operator,
+            placed if operator is CombineOp.COLOCATE else None,
+        )
     )
     picked = OperatorReading(
         criteria=sorted(wanted),

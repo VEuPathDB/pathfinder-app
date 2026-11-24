@@ -522,7 +522,7 @@ describe("validateStepsForSave", () => {
     it("passes empty object when parameters is undefined", async () => {
       mockValidateSearchParams.mockResolvedValue(validResponse());
 
-      const step = makeSearchStep({ parameters: null });
+      const { parameters: _held, ...step } = makeSearchStep();
       await validateStepsForSave({
         siteId: "PlasmoDB",
         steps: [step],

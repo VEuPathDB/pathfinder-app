@@ -7,7 +7,7 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStepTree, WDKStrategyDetails, build_wdk_step_tree
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
-from strategist.services.strategies import commit, sync
+from strategist.services.strategies import _tree_write, commit_tree
 from strategist.services.strategies.commit import CommitResult, apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -45,30 +45,6 @@ class _RefusingSite(StubAPI):
         raise WDKError(_REFUSAL, status=HTTPStatus.UNPROCESSABLE_ENTITY)
 
 
-class _ListingSite(StubAPI):
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del user_id
-        survivor = _IDS["step_a"]
-        return WDKStrategyDetails.model_validate(
-            {
-                "strategyId": strategy_id,
-                "name": "Test",
-                "rootStepId": survivor,
-                "stepTree": {"stepId": survivor},
-                "steps": {
-                    str(survivor): {
-                        "id": survivor,
-                        "searchName": "GenesWithSignalPeptide",
-                        "searchConfig": {"parameters": {}},
-                        "estimatedSize": 479,
-                    }
-                },
-            }
-        )
-
-
 def _pushed_join() -> WDKSyncState:
     root = combine("step_join", leaf("step_a"), leaf("step_b"))
     return WDKSyncState(
@@ -81,14 +57,13 @@ def _pushed_join() -> WDKSyncState:
 async def _delete_b(
     monkeypatch: pytest.MonkeyPatch, api: StubAPI
 ) -> tuple[CommitResult, WDKSyncState]:
-    for module in (commit, sync):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", sync.sync_strategy_for_site)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _tree_write.put_the_tree)
 
     async def _no_marks(*_args: object) -> dict[str, str]:
         return {}
 
-    monkeypatch.setattr(sync, "tree_organism_parameters", _no_marks)
+    monkeypatch.setattr(_tree_write, "tree_organism_parameters", _no_marks)
     root = combine("step_join", leaf("step_a"), leaf("step_b"))
     session = session_with(root, dict(_IDS))
     state = ensure_sync_state(session)
@@ -96,6 +71,7 @@ async def _delete_b(
     assert session.graph is not None
     for step in session.graph.steps.values():
         step.record_class = "transcript"
+    api.holds(session.graph.steps, state, root_id="step_join")
     result = await apply_and_commit(
         deps=StrategyMutationContext(site_id="plasmodb", strategy_session=session),
         op=DeleteStepOp(step_id="step_b", resolution=DeleteResolution.COLLAPSE_COMBINE),
@@ -107,7 +83,7 @@ async def test_a_delete_puts_the_tree_without_the_step_and_drops_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     install_stub_api(monkeypatch)
-    api = _ListingSite()
+    api = StubAPI()
 
     result, state = await _delete_b(monkeypatch, api)
 

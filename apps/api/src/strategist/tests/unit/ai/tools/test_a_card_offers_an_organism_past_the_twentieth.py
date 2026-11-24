@@ -93,7 +93,7 @@ def _offered(criterion: Criterion, values: list[str]) -> list[str]:
     offered: list[str] = []
     for option in card.options:
         match option.binding:
-            case SetValues(params={"organism": value}):
+            case SetValues(params={"organism": str() as value}):
                 offered.append(value)
             case _:
                 pass

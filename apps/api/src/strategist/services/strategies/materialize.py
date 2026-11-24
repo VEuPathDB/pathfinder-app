@@ -16,16 +16,15 @@ from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
 
 from strategist.domain.strategy.combine_naming import name_the_combines
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
 )
+from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.persistence.models import PersistedStrategyGraph
-from strategist.services.strategies.record_classes import tree_record_class_refusal
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.session_factory import build_strategy_session
-from strategist.services.strategies.step_push_planner import plan_step_pushes
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
-from strategist.services.strategies.sync import sync_strategy_for_site
 from strategist.services.strategies.sync_state import ensure_sync_state
 
 logger = get_logger(__name__)
@@ -125,37 +124,29 @@ async def materialize_strategy_snapshot(
         ),
     )
     graph = session.graph
-    refusal = await tree_record_class_refusal(site_id, fresh.root, {})
-    if refusal is not None:
+    if graph is None:
+        return _plan_only(fresh)
+    name_the_combines(graph.steps)
+    sync_state = ensure_sync_state(session)
+    try:
+        committed = await commit_tree(
+            site_id=site_id,
+            steps=graph.steps,
+            root_id=fresh.root.id,
+            old=None,
+            sync_state=sync_state,
+            target=CommitTarget(
+                name=name, description=strategy_description(graph, fresh.root.id)
+            ),
+        )
+    except PlanDeparturesError as exc:
+        refusal = exc.problems.text()
         logger.warning(
             "The site cannot run the snapshot's tree; the thread keeps the plan only",
             conversation_id=str(conversation_id),
             refusal=refusal,
         )
-    if graph is None or refusal is not None:
         return _plan_only(fresh, refusal)
-    name_the_combines(graph.steps)
-    sync_state = ensure_sync_state(session)
-    try:
-        outcome = await push_steps_with_plan(
-            graph,
-            sync_state,
-            site_id,
-            plan_step_pushes(old_ast=None, new_ast=fresh, existing_wdk_ids={}),
-        )
-        if outcome.failed:
-            logger.warning(
-                "WDK refused a snapshot step; the thread keeps the plan only",
-                conversation_id=str(conversation_id),
-                failed_step_ids=sorted(outcome.failed),
-            )
-            return _plan_only(fresh)
-        result = await sync_strategy_for_site(
-            graph=graph,
-            sync_state=sync_state,
-            site_id=site_id,
-            strategy_name=name,
-        )
     except (VEuPathDBError, ValueError) as exc:
         logger.warning(
             "snapshot materialization failed; the thread keeps the plan only",
@@ -163,8 +154,19 @@ async def materialize_strategy_snapshot(
             error=str(exc),
         )
         return _plan_only(fresh)
-    pushed = graph.to_strategy_ast(sync_state=sync_state)
-    if pushed is None:
+    result = committed.sync
+    if result is None:
+        logger.warning(
+            "WDK refused a snapshot step; the thread keeps the plan only",
+            conversation_id=str(conversation_id),
+            failed_step_ids=sorted(
+                [*committed.drafts, *(f.step_id for f in committed.failures)]
+            ),
+        )
+    if committed.record_type is not None:
+        graph.record_type = committed.record_type
+    pushed = None if result is None else graph.to_strategy_ast(sync_state=sync_state)
+    if result is None or pushed is None:
         return _plan_only(fresh)
     return MaterializedStrategy(
         strategy_ast=pushed.model_dump(by_alias=True, exclude_none=True, mode="json"),

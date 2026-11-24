@@ -421,13 +421,10 @@ def built_thread() -> Scene:
         answers={
             "get_live_strategy_state": {
                 "rootCount": LIVE_ROOT_COUNT,
+                "rootStepId": "step_root",
                 "steps": [
-                    {"stepId": "step_leaf", "wdkStepId": 900_001, "isRoot": False},
-                    {
-                        "stepId": "step_root",
-                        "wdkStepId": LIVE_ROOT_WDK_ID,
-                        "isRoot": True,
-                    },
+                    {"id": "step_leaf", "wdkStepId": 900_001},
+                    {"id": "step_root", "wdkStepId": LIVE_ROOT_WDK_ID},
                 ],
             }
         },

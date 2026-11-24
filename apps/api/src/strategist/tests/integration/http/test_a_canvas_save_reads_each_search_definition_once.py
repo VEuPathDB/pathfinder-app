@@ -19,7 +19,6 @@ from veupathdb.wdk import VEuPathDBClient
 
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies import commit
-from strategist.services.strategies.commit import _WDKCommitOutcome
 from strategist.tests.integration.http.conftest import (
     first_frame_client_for,
     make_user,
@@ -48,14 +47,13 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> list[str | None]:
         seen.append(veupathdb_auth_token_ctx.get())
         return load_recorded("search_genes_by_molecular_weight").json_body()
 
-    async def push_reading_twice(**pushed: Any) -> _WDKCommitOutcome:
+    async def push_reading_twice(**pushed: Any) -> None:
         del pushed
         for _ in range(2):
             await site.get_search_details("transcript", SEARCH)
-        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
 
     monkeypatch.setattr(site, "get", get)
-    monkeypatch.setattr(commit, "_commit_to_wdk", push_reading_twice)
+    monkeypatch.setattr(commit, "_commit_the_tree", push_reading_twice)
     return seen
 
 

@@ -15,10 +15,10 @@ from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.orthology import OrganismChange
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import spec_build
+from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.graph_outcome import outcome_for_graph
 from strategist.services.strategies.spec_build import build_strategy_from_spec
-from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.analysis_catalog import serve_the_catalog
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -113,19 +113,20 @@ async def test_a_build_of_a_carry_records_the_organism_of_the_records(
 async def test_a_resync_after_recovery_reads_the_organism_of_the_tree_it_left(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def _sync(*, sync_state: WDKSyncState, **_kwargs: object) -> SyncResult:
+    async def _commit(*, sync_state: WDKSyncState, **_kwargs: object) -> CommittedTree:
         sync_state.organism_params = dict(_MARKS)
-        return SyncResult(
-            wdk_strategy_id=330679883,
-            wdk_url=None,
-            root_step_id=440537303,
-            counts={},
-            root_count=67,
-            zero_step_ids=[],
-            step_count=2,
+        return CommittedTree(
+            pushed=[],
+            failures=[],
+            drafts={},
+            skipped=[],
+            sync=None,
+            record_type="transcript",
+            held={},
+            put=True,
         )
 
-    monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(sub_agent_dispatch, "commit_tree", _commit)
     session = StrategySession(site_id="plasmodb")
     session.graph = _graph(_TARGET)
     deps = lead_deps(pipeline_state(user_prompt="carry"), strategy_session=session)

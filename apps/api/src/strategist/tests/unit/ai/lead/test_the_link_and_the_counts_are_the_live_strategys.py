@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.wdk import WDKStepTree, WDKStrategyDetails
+from veupathdb.wdk import WDKStepTree
 
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.intent import (
@@ -27,11 +27,10 @@ from strategist.domain.strategy.build_outcome import BuildOutcome, built_counts
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.turn_facts import StrategyLinkFact
-from strategist.services.strategies import commit, live_counts, step_wdk_push, sync
 from strategist.services.strategies.result_list import live_result_list_url
-from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.recording_wdk import held_by_the_site
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests.unit.ai.lead.conftest import (
     domain_answering,
@@ -39,7 +38,6 @@ from strategist.tests.unit.ai.lead.conftest import (
     pipeline_state,
 )
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
-    StubAPI,
     combine,
     install_stub_api,
     session_with,
@@ -234,54 +232,11 @@ _INTERSECT = "step_c07f210b"
 _OTHER = "step_sp"
 
 
-class _SiteAfterTheDelete(StubAPI):
-    """The site holds the transmembrane step alone, at 483 genes."""
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del user_id
-        return WDKStrategyDetails.model_validate(
-            {
-                "strategyId": strategy_id,
-                "name": "TM genes",
-                "rootStepId": _LIVE_ROOT,
-                "stepTree": {"stepId": _LIVE_ROOT},
-                "steps": {
-                    str(_LIVE_ROOT): {
-                        "id": _LIVE_ROOT,
-                        "searchName": "GenesByTransmembraneDomains",
-                        "searchConfig": {"parameters": {}},
-                        "estimatedSize": 483,
-                    }
-                },
-            }
-        )
-
-
-async def _sync_on_the_live_root(
-    *, sync_state: WDKSyncState, **_kwargs: object
-) -> SyncResult:
-    sync_state.wdk_step_tree = WDKStepTree(step_id=_LIVE_ROOT)
-    return SyncResult(
-        wdk_strategy_id=_STRATEGY,
-        wdk_url=None,
-        root_step_id=_LIVE_ROOT,
-        counts={},
-        root_count=None,
-        zero_step_ids=[],
-        step_count=1,
-    )
-
-
 async def test_after_a_delete_the_ledger_counts_are_the_live_strategys(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    install_stub_api(monkeypatch)
-    api = _SiteAfterTheDelete()
-    for module in (commit, step_wdk_push, sync, live_counts):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _sync_on_the_live_root)
+    api = install_stub_api(monkeypatch)
+    api.wdk.sizes[_LIVE_ROOT] = 483
     session = session_with(
         combine(
             _INTERSECT,
@@ -291,6 +246,7 @@ async def test_after_a_delete_the_ledger_counts_are_the_live_strategys(
         {_INTERSECT: _DELETED_INTERSECT, _ROOT: _LIVE_ROOT, _OTHER: 441096720},
     )
     ensure_sync_state(session).wdk_strategy_id = _STRATEGY
+    held_by_the_site(session)
     ctx = lead_run_context(strategy_session=session, tool_call_id="call_delete")
     ctx.deps.state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=[_INTERSECT, _ROOT, _OTHER],

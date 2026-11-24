@@ -9,7 +9,11 @@ def _weight_lines(*criteria: Criterion) -> list[str]:
     rendered = render_frame_full(
         FrameSection(spec=OperationalSpec(goal="g", criteria=list(criteria)))
     )
-    return [line for line in rendered.splitlines() if line.startswith("    WEIGHT ")]
+    return [
+        line
+        for line in rendered.splitlines()
+        if line.startswith(("    SETTINGS ", "    RANKED"))
+    ]
 
 
 def test_a_weighted_criterion_says_what_its_weight_adds() -> None:
@@ -19,8 +23,9 @@ def test_a_weighted_criterion_says_what_its_weight_adds() -> None:
     )
 
     assert lines == [
+        "    SETTINGS weight 2",
         (
-            "    WEIGHT 2: a gene this search finds scores 2 more; the result is "
-            "sorted by score, highest first"
-        )
+            "    RANKED: a gene this search finds scores its weight more; the result "
+            "is sorted by score, highest first"
+        ),
     ]

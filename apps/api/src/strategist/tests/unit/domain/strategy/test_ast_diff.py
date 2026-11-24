@@ -6,11 +6,12 @@ from veupathdb.domain.parameters import MultiPickValue, NumberValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
+    StepFilter,
     StrategyAst,
     StrategyStepNode,
 )
 
-from strategist.domain.strategy.ast_diff import WeightChange, diff_strategy_asts
+from strategist.domain.strategy.ast_diff import diff_strategy_asts
 
 
 def _leaf(step_id: str, percentile: int) -> StrategyStepNode:
@@ -126,5 +127,41 @@ def test_a_weight_set_on_the_site_is_reported_with_both_values() -> None:
     )
 
     assert [
-        (change.step_id, change.params, change.weight) for change in diff.changed
-    ] == [("step_expr", [], WeightChange(before=3, after=5))]
+        (c.step_id, c.params, c.settings, c.before.wdk_weight, c.after.wdk_weight)
+        for c in diff.changed
+    ] == [("step_expr", [], ["wdk_weight"], 3, 5)]
+
+
+def test_a_filter_or_an_operator_that_moved_is_a_change() -> None:
+    def combined(operator: CombineOp, filtered: bool) -> StrategyAst:
+        leaf = _leaf("step_a", 90)
+        if filtered:
+            leaf = leaf.model_copy(
+                update={
+                    "filters": [
+                        StepFilter(
+                            name="matched_transcript_filter_array",
+                            value={"values": ["N"]},
+                        )
+                    ]
+                }
+            )
+        return _ast(
+            StrategyStepNode(
+                id="step_u",
+                search_name=COMBINE_SEARCH_NAME,
+                operator=operator,
+                primary_input=leaf,
+                secondary_input=_leaf("step_b", 50),
+            )
+        )
+
+    diff = diff_strategy_asts(
+        combined(CombineOp.UNION, filtered=False),
+        combined(CombineOp.INTERSECT, filtered=True),
+    )
+
+    assert [(c.step_id, c.settings) for c in diff.changed] == [
+        ("step_a", ["filters"]),
+        ("step_u", ["operator"]),
+    ]

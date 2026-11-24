@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, override
 
 import pytest
 from veupathdb.domain.parameters import (
@@ -17,23 +17,28 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import load_recorded
-from veupathdb.wdk import WDKIdentifier, WDKSearchConfig, WDKSearchResponse
+from veupathdb.wdk import (
+    NewStepSpec,
+    WDKIdentifier,
+    WDKSearchConfig,
+    WDKSearchResponse,
+    WDKStep,
+)
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.domain.strategy.operations import UpdateStepParamsOp
 from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies import (
-    save_substrategy,
+    commit_tree,
     stated_sides,
-    step_wdk_push,
 )
+from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.save_substrategy import save_subtree_as_strategy
 from strategist.services.strategies.stated_sides import canonical_batch
-from strategist.services.strategies.step_push_planner import plan_step_pushes
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.recording_wdk import RecordingWDK
 
 _BRANCH = MultiPickValue(values=["Haemoproteidae"])
 _LEAVES = MultiPickValue(values=["Haemoproteus tartakovskyi strain SISKIN1"])
@@ -108,50 +113,70 @@ async def _edit(
         apply_operation(graph, op)
 
 
-class _Api:
+class _Api(RecordingWDK):
     def __init__(self, refusals: int = 0) -> None:
-        self.created: list[dict[str, str]] = []
-        self.written: list[dict[str, str]] = []
+        super().__init__()
         self._refusals = refusals
 
-    def _refuse(self) -> None:
+    @property
+    def created(self) -> list[dict[str, str]]:
+        return [call.kwargs["parameters"] for call in self.named("create_step")]
+
+    @property
+    def written(self) -> list[dict[str, str]]:
+        return [
+            call.kwargs["parameters"]
+            for call in self.named("update_step_search_config")
+        ]
+
+    def _refused(self) -> None:
         if self._refusals:
             self._refusals -= 1
             msg = "WDK refused the step"
             raise WDKError(msg, 502)
 
+    @override
     async def create_step(
-        self, spec: Any, record_type: str, user_id: str | None = None
+        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
     ) -> WDKIdentifier:
-        del record_type, user_id
-        self.created.append(dict(spec.search_config.parameters))
-        self._refuse()
-        return WDKIdentifier(id=11)
+        made = await super().create_step(spec, record_type, user_id)
+        self._refused()
+        return made
 
+    @override
     async def update_step_search_config(
         self,
         step_id: int,
         search_config: WDKSearchConfig,
         record_type: str,
         search_name: str,
+        *,
+        user_id: str | None = None,
+        held: WDKStep | None = None,
     ) -> None:
-        del step_id, record_type, search_name
-        self.written.append(dict(search_config.parameters))
-        self._refuse()
-
-    async def find_step(self, step_id: int) -> Any:
-        del step_id
-        raise OSError
-
-    async def create_strategy(self, **_kwargs: Any) -> WDKIdentifier:
-        return WDKIdentifier(id=7)
+        await super().update_step_search_config(
+            step_id, search_config, record_type, search_name, user_id=user_id, held=held
+        )
+        self._refused()
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch, api: _Api) -> None:
-    monkeypatch.setattr(step_wdk_push, "validate_parameters", _validate)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
-    monkeypatch.setattr(save_substrategy, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     list_every_search_under(monkeypatch, "transcript")
+
+
+async def _commit(
+    graph: StrategyGraph, before: StrategyAst | None, sync_state: WDKSyncState
+) -> CommittedTree:
+    return await commit_tree.commit_tree(
+        site_id="plasmodb",
+        steps=graph.steps,
+        root_id="s",
+        old=before,
+        sync_state=sync_state,
+        target=commit_tree.CommitTarget(name="g", description=""),
+    )
 
 
 def _wire(organism: MultiPickValue, weight: str) -> dict[str, str]:
@@ -188,13 +213,12 @@ async def test_a_push_sends_the_branch_wdk_holds_and_the_held_value_as_they_are(
     api = _Api()
     _serve(monkeypatch, api)
     graph = _graph(_BRANCH, 60)
-    plan = plan_step_pushes(
-        old_ast=_ast(_BRANCH, 50), new_ast=_ast(_BRANCH, 60), existing_wdk_ids={"s": 9}
-    )
 
-    await push_steps_with_plan(
-        graph, WDKSyncState(wdk_step_ids={"s": 9}), "plasmodb", plan
-    )
+    sync_state = WDKSyncState(wdk_step_ids={"s": 9})
+    before = _ast(_BRANCH, 50)
+    api.holds(flatten_tree(before.root), sync_state)
+
+    await _commit(graph, before, sync_state)
 
     assert graph.steps["s"].parameters == _values(_BRANCH, 60)
     assert api.written == [_wire(_BRANCH, "60")]
@@ -207,14 +231,11 @@ async def test_a_failed_push_retried_sends_the_stated_canonical_values(
     _serve(monkeypatch, api)
     graph = _graph(_LEAVES, 50)
     await _edit(monkeypatch, graph, {"organism": _BRANCH})
-    plan = plan_step_pushes(
-        old_ast=None, new_ast=_ast(_LEAVES, 50), existing_wdk_ids={}
-    )
 
-    first = await push_steps_with_plan(graph, WDKSyncState(), "plasmodb", plan)
-    second = await push_steps_with_plan(graph, WDKSyncState(), "plasmodb", plan)
+    first = await _commit(graph, None, WDKSyncState())
+    second = await _commit(graph, None, WDKSyncState())
 
-    assert (first.failed, second.failed) == (["s"], [])
+    assert ([f.step_id for f in first.failures], second.failures) == (["s"], [])
     assert api.created == [_wire(_LEAVES, "50"), _wire(_LEAVES, "50")]
 
 

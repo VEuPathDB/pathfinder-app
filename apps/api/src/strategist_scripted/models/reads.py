@@ -189,16 +189,16 @@ def control_set_id(messages: list[ModelMessage]) -> str | None:
 
 
 class _LiveStep(ToolAnswer):
-    step_id: str = ""
+    id: str = ""
     display_name: str = ""
     estimated_size: int | None = None
     search_name: str | None = None
     wdk_step_id: int | None = None
-    is_root: bool = False
 
 
 class _Live(ToolAnswer):
     root_count: int | None = None
+    root_step_id: str | None = None
     steps: list[_LiveStep] = Field(default_factory=list)
 
 
@@ -206,7 +206,7 @@ def live_step_id(messages: list[ModelMessage], search_name: str) -> str | None:
     """The id of the step that runs ``search_name``, from the newest live read."""
     read = last_return(messages, "get_live_strategy_state", _Live)
     steps = [] if read is None else read.steps
-    return next((s.step_id for s in steps if s.search_name == search_name), None)
+    return next((s.id for s in steps if s.search_name == search_name), None)
 
 
 def live_searches(messages: list[ModelMessage]) -> frozenset[str]:
@@ -218,8 +218,9 @@ def live_searches(messages: list[ModelMessage]) -> frozenset[str]:
 def live_root_wdk_step_id(messages: list[ModelMessage]) -> int | None:
     """The WDK id of the root the newest live read names, or None."""
     read = last_return(messages, "get_live_strategy_state", _Live)
-    steps = [] if read is None else read.steps
-    return next((s.wdk_step_id for s in steps if s.is_root), None)
+    if read is None:
+        return None
+    return next((s.wdk_step_id for s in read.steps if s.id == read.root_step_id), None)
 
 
 class _Controls(ToolAnswer):

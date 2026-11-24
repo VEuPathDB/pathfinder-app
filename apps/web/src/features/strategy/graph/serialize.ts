@@ -1,4 +1,4 @@
-import type { CombineOp, StrategyStepNode, StrategyAst } from "@strategist/shared";
+import type { StrategyStepNode, StrategyAst } from "@strategist/shared";
 import { DEFAULT_STREAM_NAME } from "@strategist/shared";
 import type { Step, Strategy } from "@strategist/shared";
 import { walkSubtreeIds } from "@/features/strategy/operations";
@@ -11,6 +11,48 @@ export type SerializedStrategyPlan = {
   /** Step IDs not reachable from the chosen root. Excluded from the pushed plan. */
   orphanIds: string[];
 };
+
+type StructuralKey =
+  "id" | "searchName" | "displayName" | "parameters" | "operator" | "colocationParams";
+
+type CarriedKey = Exclude<keyof Step & keyof StrategyStepNode, StructuralKey>;
+type CarriedSettings = Pick<StrategyStepNode, CarriedKey>;
+type HeldSettings = { [K in CarriedKey]?: StrategyStepNode[K] | null | undefined };
+
+export const CARRIED_SETTINGS = {
+  filters: true,
+  analyses: true,
+  wdkWeight: true,
+  expandedStrategyId: true,
+  expandedName: true,
+} as const satisfies Record<CarriedKey, true>;
+
+export const STRUCTURAL_KEYS = [
+  "id",
+  "searchName",
+  "displayName",
+  "parameters",
+  "operator",
+  "colocationParams",
+] as const satisfies readonly StructuralKey[];
+
+function carry<K extends CarriedKey>(
+  into: Partial<CarriedSettings>,
+  from: HeldSettings,
+  key: K,
+): void {
+  const value = from[key];
+  if (value == null || (Array.isArray(value) && value.length === 0)) return;
+  into[key] = value;
+}
+
+function carriedSettings(step: HeldSettings): Partial<CarriedSettings> {
+  const carried: Partial<CarriedSettings> = {};
+  for (const key of Object.keys(CARRIED_SETTINGS) as CarriedKey[]) {
+    carry(carried, step, key);
+  }
+  return carried;
+}
 
 function sanitizeParametersForPlan(params: ParamValueMap): ParamValueMap {
   const next: ParamValueMap = {};
@@ -80,6 +122,7 @@ export function serializeStrategyAst(
     if (resolvedSearchName == null) return null;
 
     const node: StrategyStepNode = {
+      ...carriedSettings(step),
       id: step.id,
       searchName: resolvedSearchName,
       displayName: step.displayName ?? "",
@@ -99,7 +142,7 @@ export function serializeStrategyAst(
       if (!secondary) return null;
       node.secondaryInput = secondary;
       if (step.operator == null) return null;
-      node.operator = step.operator as CombineOp;
+      node.operator = step.operator;
       if (step.operator === "COLOCATE" && step.colocationParams) {
         node.colocationParams = step.colocationParams;
       }

@@ -4,8 +4,20 @@ from collections.abc import Mapping, Sequence
 from typing import Annotated, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.strategy import StepKind, StrategyStep, record_class_of
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StepKind,
+    StrategyStep,
+    record_class_of,
+)
 
+MIN_COMBINE_INPUTS = 2
+COLOCATION_SHAPE = (
+    'a colocation is {"kind": "combine", "operator": "COLOCATE", '
+    '"colocationParams": {...}, "inputs": [<genes>, <features>]}, where a field '
+    "it leaves out takes the site's default, and no other node states "
+    "colocationParams."
+)
 NODE_SHAPES = {
     "leaf": (
         'a leaf is {"kind": "leaf", "criterionId": "<id>"}: one bound criterion, '
@@ -27,6 +39,28 @@ NODE_SHAPES = {
         "the tree already states, with no criterionId and no operator."
     ),
 }
+
+
+def shape_refusal(
+    kind: str,
+    *,
+    named: bool,
+    operator: CombineOp | None,
+    colocated: bool,
+    count: int,
+) -> str | None:
+    joined = operator is not None
+    fits = {
+        "leaf": named and not joined and count == 0,
+        "combine": joined and not named and count >= MIN_COMBINE_INPUTS,
+        "transform": named and not joined and count == 1,
+        "copy": not named and not joined and count == 1,
+    }[kind]
+    if not fits:
+        return NODE_SHAPES[kind]
+    if colocated and operator is not CombineOp.COLOCATE:
+        return COLOCATION_SHAPE
+    return None
 
 
 class SpareWrapper(BaseModel):

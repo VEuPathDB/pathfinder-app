@@ -268,8 +268,8 @@ class TestAnAnswerAppliesItsBinding:
 
         minted = minted_spec(deps.state.domain.operational_spec)
 
-        steps = flatten_tree(minted.tree.root)
-        troph = steps[minted.tree.step_id_by_criterion["c_troph"]]
+        steps = flatten_tree(minted.root)
+        troph = steps["c_troph"]
         assert troph.parameters[_FLOOR].to_wire() == "1"
 
     async def test_the_other_floor_binds_the_default_instead(self) -> None:

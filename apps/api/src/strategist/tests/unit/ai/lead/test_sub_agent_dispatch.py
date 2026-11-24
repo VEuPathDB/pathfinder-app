@@ -25,6 +25,7 @@ from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.ledger_render import render_constraints_full
 from strategist.ai.lead.sub_agent_dispatch import build_strategy
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -32,8 +33,9 @@ from strategist.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
@@ -165,7 +167,10 @@ async def test_build_strategy_still_materializes_an_empty_thread(
     assert result.outcome.pushed_step_ids == produced
 
 
-_BUILD_REFUSAL = "the criterion 'protease text' states organism = 'Pf3D7'"
+_DEPARTURE = Problems.one(
+    RefusalKey(check=Check.THE_VALUE_TO_THE_SPEC, parameter="organism"),
+    "the criterion 'protease text' states organism = 'Pf3D7'",
+)
 
 
 async def test_a_build_the_spec_refuses_reaches_the_agent_as_a_retry(
@@ -175,20 +180,15 @@ async def test_a_build_the_spec_refuses_reaches_the_agent_as_a_retry(
 
     async def _fake_build(**kwargs: Any) -> BuildOutcome:
         del kwargs
-        raise ApplyError(_BUILD_REFUSAL)
+        raise PlanDeparturesError(_DEPARTURE)
 
     monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _fake_build)
 
-    with pytest.raises(ModelRetry) as excinfo:
+    with pytest.raises(ProblemsRefusal) as excinfo:
         await build_strategy(_ctx(with_strategy=False))
 
-    message = str(excinfo.value)
-    assert message.startswith(
-        "This build would leave a tree that departs from the plan"
-    )
-    assert "protease text" in message
-    assert "Nothing was built and the strategy is unchanged" in message
-    assert "VEuPathDB was not asked" in message
+    assert excinfo.value.problems == _DEPARTURE
+    assert excinfo.value.closing == "Nothing was written."
 
 
 async def test_the_built_spec_is_re_keyed_on_the_step_ids(

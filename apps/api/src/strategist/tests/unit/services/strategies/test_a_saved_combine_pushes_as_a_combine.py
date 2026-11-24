@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
+from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
@@ -22,18 +23,13 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    WDKIdentifier,
-    WDKSearchConfig,
-    WDKStep,
     WDKStrategyDetails,
 )
 from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.wdk import build_snapshot_from_wdk
 
-from strategist.domain.strategy.build_outcome import BuildOutcome
-from strategist.services.strategies import spec_build, step_wdk_push
+from strategist.services.strategies import commit_tree
+from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.step_push_planner import PatchAction
 from strategist.services.strategies.step_search import (
     names_a_wdk_question,
@@ -41,6 +37,10 @@ from strategist.services.strategies.step_search import (
 )
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.record_classes import list_every_search_under
+from strategist.tests._support.recording_wdk import RecordingWDK
+from strategist.tests._support.wdk_write_stubs import (
+    commit_against,
+)
 
 _VALUES = PatchAction(search_config=True, name=False)
 
@@ -144,46 +144,28 @@ def _cloned_nodes(saved: WDKStrategyDetails) -> list[StrategyStep]:
     return [steps[step_id] for step_id in subtree_ids(root.id, steps)]
 
 
-@dataclass
-class RecordingAPI:
-    """Records every WDK write and hands back the site's own step ids."""
+class RecordingAPI(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__(next_id=500000001)
 
-    created: list[NewStepSpec] = field(default_factory=list)
-    combined: list[CombinedStepSpec] = field(default_factory=list)
-    patched: list[str] = field(default_factory=list)
-    next_id: int = 500000001
+    @property
+    def created(self) -> list[str]:
+        return [
+            call.kwargs["search_name"]
+            for call in self.calls
+            if call.name in {"create_step", "create_transform_step"}
+        ]
 
-    async def create_step(self, spec: NewStepSpec, **_kw: Any) -> WDKIdentifier:
-        self.created.append(spec)
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
+    @property
+    def combined(self) -> list[str]:
+        return [
+            call.kwargs["boolean_operator"]
+            for call in self.named("create_combined_step")
+        ]
 
-    async def create_combined_step(
-        self, spec: CombinedStepSpec, **_kw: Any
-    ) -> WDKIdentifier:
-        self.combined.append(spec)
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def create_transform_step(
-        self, spec: NewStepSpec, *_args: Any, **_kw: Any
-    ) -> WDKIdentifier:
-        self.created.append(spec)
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def update_step_properties(self, *_args: Any, **_kw: Any) -> None:
-        return None
-
-    async def update_step_search_config(self, **_kw: Any) -> None:
-        self.patched.append("update_step_search_config")
-
-    async def find_step(self, step_id: int, **_kw: Any) -> WDKStep:
-        return WDKStep(
-            id=step_id,
-            search_name=_SIGNAL,
-            search_config=WDKSearchConfig(parameters={}),
-        )
+    @property
+    def patched(self) -> list[str]:
+        return [call.name for call in self.named("update_step_search_config")]
 
 
 @dataclass
@@ -196,7 +178,7 @@ class _Validations:
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     recorder = RecordingAPI()
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: recorder)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: recorder)
     list_every_search_under(monkeypatch, "transcript")
     return recorder
 
@@ -221,21 +203,20 @@ def validated(monkeypatch: pytest.MonkeyPatch) -> _Validations:
             raise ValidationError(title="invalid parameters", detail=_BQ_REFUSAL)
         return ValidatedParams(params=dict(stated))
 
-    monkeypatch.setattr(spec_build, "validate_parameters", _validate)
-    monkeypatch.setattr(spec_build, "make_validation_callbacks", lambda _site: None)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
+    monkeypatch.setattr(commit_tree, "make_validation_callbacks", lambda _site: None)
     return seen
 
 
-async def _push(nodes: list[StrategyStep]) -> BuildOutcome:
-    outcome = BuildOutcome()
-    await spec_build._push_tree_to_wdk(
-        nodes=nodes,
-        held={},
+async def _push(nodes: list[StrategyStep]) -> CommittedTree:
+    return await commit_tree.commit_tree(
         site_id="plasmodb",
+        steps={node.id: node for node in nodes},
+        root_id=nodes[-1].id,
+        old=None,
         sync_state=WDKSyncState(),
-        outcome=outcome,
+        target=CommitTarget(name="saved", description=""),
     )
-    return outcome
 
 
 class TestTheCombineReachesWDKAsACombine:
@@ -252,10 +233,10 @@ class TestTheCombineReachesWDKAsACombine:
     ) -> None:
         del validated
 
-        outcome = await _push(_cloned_nodes(_saved_strategy()))
+        committed = await _push(_cloned_nodes(_saved_strategy()))
 
-        assert outcome.failed_steps == []
-        assert len(outcome.pushed_step_ids) == 3
+        assert (committed.failures, committed.drafts) == ([], {})
+        assert len(committed.pushed) == 3
 
     async def test_the_operator_reaches_the_combined_step_call(
         self, api: RecordingAPI, validated: _Validations
@@ -264,9 +245,8 @@ class TestTheCombineReachesWDKAsACombine:
 
         await _push(_cloned_nodes(_saved_strategy()))
 
-        assert len(api.combined) == 1
-        assert api.combined[0].boolean_operator is CombineOp.INTERSECT
-        assert [spec.search_name for spec in api.created] == [_SIGNAL, _RNASEQ]
+        assert api.combined == [CombineOp.INTERSECT.value]
+        assert api.created == [_SIGNAL, _RNASEQ]
 
     async def test_the_boolean_question_is_never_validated_as_a_search(
         self, api: RecordingAPI, validated: _Validations
@@ -282,77 +262,67 @@ class TestASingleStepSavedStrategy:
     async def test_it_pushes_one_leaf_and_no_combine(
         self, api: RecordingAPI, validated: _Validations
     ) -> None:
-        outcome = await _push(_cloned_nodes(_single_step_strategy()))
+        committed = await _push(_cloned_nodes(_single_step_strategy()))
 
-        assert outcome.failed_steps == []
-        assert len(outcome.pushed_step_ids) == 1
-        assert [spec.search_name for spec in api.created] == [_SIGNAL]
+        assert (committed.failures, committed.drafts) == ([], {})
+        assert len(committed.pushed) == 1
+        assert api.created == [_SIGNAL]
         assert api.combined == []
         assert validated.names == [_SIGNAL]
 
 
 class TestASetOperationIsNeverPushedAsASearch:
-    def _orphaned_combine(self) -> StrategyStep:
+    def _orphaned_combine(self) -> StrategyStepNode:
         """A combine that lost both inputs and reads as a leaf under its name."""
-        node = StrategyStepNode(id="step_971a7e05", search_name=_BOOLEAN)
-        return flatten_tree(node)["step_971a7e05"]
+        return StrategyStepNode(id="step_971a7e05", search_name=_BOOLEAN)
 
-    async def test_the_leaf_push_refuses_it_by_name(self, api: RecordingAPI) -> None:
-        step = self._orphaned_combine()
-
-        wdk_id, _validation, failure = await step_wdk_push.push_step_to_wdk(
-            sync_state=WDKSyncState(),
-            step=step,
-            site_id="plasmodb",
-            record_type="transcript",
-            search_name=_BOOLEAN,
-            parameters={},
+    async def test_the_leaf_push_refuses_it_by_name(
+        self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        committed, _ = await commit_against(
+            monkeypatch, api, self._orphaned_combine(), before=None, held={}
         )
 
-        assert wdk_id is None
-        assert failure is not None
+        (failure,) = committed.failures
         assert failure.step_id == "step_971a7e05"
         assert "set operation pushed as a search" in failure.error
         assert _BOOLEAN in failure.error
         assert api.created == []
 
     async def test_the_transform_push_refuses_it_by_name(
-        self, api: RecordingAPI
+        self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         node = StrategyStepNode(
             id="step_half",
             search_name=_BOOLEAN,
             primary_input=StrategyStepNode(id="step_a", search_name=_SIGNAL),
         )
-        step = flatten_tree(node)["step_half"]
 
-        wdk_id, _validation, failure = await step_wdk_push.push_step_to_wdk(
-            sync_state=WDKSyncState(wdk_step_ids={"step_a": _SIGNAL_WDK_ID}),
-            step=step,
-            site_id="plasmodb",
-            record_type="transcript",
-            search_name=_BOOLEAN,
-            parameters={},
+        committed, _ = await commit_against(
+            monkeypatch,
+            api,
+            node,
+            before=node.model_copy(update={"id": "step_before"}),
+            held={"step_a": _SIGNAL_WDK_ID},
         )
 
-        assert wdk_id is None
-        assert failure is not None
+        (failure,) = committed.failures
         assert "set operation pushed as a search" in failure.error
         assert api.created == []
 
-    async def test_the_patch_refuses_it_by_name(self, api: RecordingAPI) -> None:
+    async def test_the_patch_refuses_it_by_name(
+        self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         step = self._orphaned_combine()
-        sync_state = WDKSyncState(wdk_step_ids={step.id: _COMBINE_WDK_ID})
-
-        failure = await step_wdk_push._execute_patch(
-            sync_state,
-            "plasmodb",
-            step,
-            "transcript",
-            _VALUES,
+        before = step.model_copy(
+            update={"parameters": {"bq_operator": StringValue(value="UNION")}}
         )
 
-        assert failure is not None
+        committed, _ = await commit_against(
+            monkeypatch, api, step, before=before, held={step.id: _COMBINE_WDK_ID}
+        )
+
+        (failure,) = committed.failures
         assert "set operation pushed as a search" in failure.error
         assert api.patched == []
 

@@ -22,7 +22,6 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
 from strategist.domain.strategy.spec_tree import (
     build_step_tree,
-    renumber_criteria,
 )
 from strategist.tests._support.stated import stated_tree
 from strategist.tests._support.tool_returns import returned
@@ -82,13 +81,12 @@ def _saved_strategy_spec() -> OperationalSpec:
 def _saved_strategy_deps() -> AgentDeps:
     spec = _saved_strategy_spec()
     built = build_step_tree(spec)
-    renumbered = renumber_criteria(spec, built.step_id_by_criterion)
-    wdk_ids = {node.id: 700 + i for i, node in enumerate(walk(built.root))}
+    wdk_ids = {node.id: 700 + i for i, node in enumerate(walk(built))}
     return AgentDeps(
         site_id="plasmodb",
-        strategy_session=session_with(built.root, wdk_ids),
+        strategy_session=session_with(built, wdk_ids),
         conversation_id=uuid4(),
-        agent_state=AgentToolState(operational_spec_draft=renumbered),
+        agent_state=AgentToolState(operational_spec_draft=spec),
         turn_markers=TurnMarkers(),
     )
 
@@ -173,13 +171,12 @@ def _only_saved_strategy_spec() -> OperationalSpec:
 def _only_saved_strategy_deps() -> AgentDeps:
     spec = _only_saved_strategy_spec()
     built = build_step_tree(spec)
-    renumbered = renumber_criteria(spec, built.step_id_by_criterion)
-    wdk_ids = {node.id: 800 + i for i, node in enumerate(walk(built.root))}
+    wdk_ids = {node.id: 800 + i for i, node in enumerate(walk(built))}
     return AgentDeps(
         site_id="plasmodb",
-        strategy_session=session_with(built.root, wdk_ids),
+        strategy_session=session_with(built, wdk_ids),
         conversation_id=uuid4(),
-        agent_state=AgentToolState(operational_spec_draft=renumbered),
+        agent_state=AgentToolState(operational_spec_draft=spec),
         turn_markers=TurnMarkers(),
     )
 

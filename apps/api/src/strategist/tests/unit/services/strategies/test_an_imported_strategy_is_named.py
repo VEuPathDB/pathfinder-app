@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
+from veupathdb.wdk import tag_internal_wdk_strategy_name
 
 from strategist.services.strategies.wdk_sync import wdk_chat_name
 
@@ -25,6 +26,10 @@ def _ast(name: str | None, root: StrategyStepNode) -> StrategyAst:
     ("ast", "expected"),
     [
         (_ast("Exported kinases", _leaf("exported")), "Exported kinases"),
+        (
+            _ast(tag_internal_wdk_strategy_name("gold:g7"), _leaf("exported")),
+            "gold:g7",
+        ),
         (_ast(None, _leaf("exported")), "exported"),
         (_ast(None, _leaf("GenesByExportPred")), f"WDK Strategy {_WDK_ID}"),
         (

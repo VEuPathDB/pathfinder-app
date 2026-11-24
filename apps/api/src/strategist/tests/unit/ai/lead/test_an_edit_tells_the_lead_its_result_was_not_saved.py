@@ -17,7 +17,7 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.domain.strategy.spec_tree import build_step_tree, renumber_criteria
+from strategist.domain.strategy.spec_tree import build_step_tree
 from strategist.domain.turn_facts import UnsavedSetFact
 from strategist.platform.config import get_settings
 from strategist.services.strategies.commit import CommitResult
@@ -54,14 +54,14 @@ def _spec(organism: str) -> OperationalSpec:
 async def _edit(monkeypatch: pytest.MonkeyPatch, root_count: int) -> EditDelta:
     spec = _spec("Plasmodium falciparum 3D7")
     tree = build_step_tree(spec)
-    before = renumber_criteria(spec, tree.step_id_by_criterion)
+    before = spec
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph(graph_id="g1", name="Genes", site_id="plasmodb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(tree.root)
+    graph.steps = flatten_tree(tree)
     graph.recompute_roots()
     session.graph = graph
-    root = tree.root.id
+    root = tree.id
     after = before.model_copy(deep=True)
     after.criteria[0].resolved_params = bound(_organism("Plasmodium vivax P01"))
     state = pipeline_state(

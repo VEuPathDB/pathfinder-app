@@ -28,10 +28,11 @@ _TEXT = Criterion(
 
 def test_the_graph_stores_the_links_and_hydrates_them_back() -> None:
     graph = graph_of(three_step_root())
+    text = _TEXT.model_copy(update={"id": "step_text"})
     spec = OperationalSpec(
-        goal="g", criteria=[_TEXT], structure=SpecStructure(root=spec_leaf("c_text"))
+        goal="g", criteria=[text], structure=SpecStructure(root=spec_leaf("step_text"))
     )
-    graph.note_words(step_words(spec, {"c_text": "step_text"}))
+    graph.note_words(step_words(spec))
     ast = graph.to_strategy_ast()
     assert isinstance(ast, StrategyAst)
 

@@ -188,6 +188,7 @@ def _pending_joined_at_the_root(
     return StructureNode(
         kind="combine",
         operator=structure.root.combine_operator,
+        colocation_params=structure.root.colocation_params,
         inputs=[built_root, *hanging],
     )
 
@@ -228,7 +229,12 @@ def _structure_of(node: StrategyStepNode, reading: _Reading) -> StructureNode:
     kind = node.infer_kind()
     inputs = [_structure_of(child, reading) for child in node.inputs()]
     if kind == "combine":
-        return StructureNode(kind="combine", operator=node.operator, inputs=inputs)
+        return StructureNode(
+            kind="combine",
+            operator=node.operator,
+            colocation_params=node.colocation_params,
+            inputs=inputs,
+        )
     stated = Criterion(
         id=node.id,
         text=(

@@ -13,6 +13,7 @@ from veupathdb.domain.strategy import (
     subtree_ids,
 )
 
+from strategist.domain.refusal import Problems
 from strategist.domain.strategy.combine_naming import combine_name
 from strategist.domain.strategy.operations._delete import (
     _apply_delete_edge,
@@ -307,4 +308,10 @@ def _apply_wire_input(graph: StrategyGraph, op: WireInputOp) -> ApplyResult:
     )
 
 
-__all__ = ["ApplyError", "ApplyResult", "apply_operation"]
+class PlanDeparturesError(ApplyError):
+    def __init__(self, problems: Problems) -> None:
+        super().__init__(problems.text())
+        self.problems = problems
+
+
+__all__ = ["ApplyError", "ApplyResult", "PlanDeparturesError", "apply_operation"]

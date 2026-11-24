@@ -1,4 +1,4 @@
-"""The sync reports whether it minted the WDK strategy it returns.
+"""The commit reports whether it minted the WDK strategy it returns.
 
 Only a minted strategy is Strategist's to delete, so the flag is true on
 exactly the branches that call ``create_strategy``.
@@ -6,63 +6,27 @@ exactly the branches that call ``create_strategy``.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, Mock
-
 import pytest
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.errors import WDKError
-from veupathdb.wdk import (
-    StrategyAPI,
-    WDKIdentifier,
-    WDKStepTree,
-    WDKStrategyDetails,
-)
+from veupathdb.wdk import WDKStepTree
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import sync
-from strategist.services.strategies.sync import SyncResult, sync_strategy_for_site
+from strategist.services.strategies.commit_tree import CommittedTree
+from strategist.services.strategies.sync import SyncResult
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.recording_wdk import RecordingWDK
+from strategist.tests._support.wdk_write_stubs import put_the_graph, serve_the_site
 
 _WDK_STEP_ID = 1001
+_OTHER_STEP_ID = 9999
 _ADOPTED_ID = 42
-_MINTED_ID = 777
-
-
-def _details(strategy_id: int) -> WDKStrategyDetails:
-    return WDKStrategyDetails.model_validate(
-        {
-            "strategyId": strategy_id,
-            "rootStepId": _WDK_STEP_ID,
-            "name": "test",
-            "stepTree": {"stepId": _WDK_STEP_ID},
-            "steps": {
-                str(_WDK_STEP_ID): {
-                    "id": _WDK_STEP_ID,
-                    "searchName": "GenesByMolecularWeight",
-                    "searchConfig": {"parameters": {}},
-                    "estimatedSize": 5,
-                }
-            },
-            "recordClassName": "transcript",
-        }
-    )
 
 
 @pytest.fixture
-def api(monkeypatch: pytest.MonkeyPatch) -> Mock:
-    stub = Mock(spec=StrategyAPI)
-
-    async def create_strategy(*_args: object, **_kwargs: object) -> WDKIdentifier:
-        return WDKIdentifier(id=_MINTED_ID)
-
-    async def get_strategy(*_args: object, **_kwargs: object) -> WDKStrategyDetails:
-        return _details(_ADOPTED_ID)
-
-    stub.create_strategy = AsyncMock(side_effect=create_strategy)
-    stub.get_strategy = AsyncMock(side_effect=get_strategy)
-    stub.update_strategy = AsyncMock(side_effect=get_strategy)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: stub)
-    return stub
+def api(monkeypatch: pytest.MonkeyPatch) -> RecordingWDK:
+    wdk = RecordingWDK()
+    serve_the_site(monkeypatch, wdk)
+    return wdk
 
 
 def _graph() -> StrategyGraph:
@@ -76,51 +40,82 @@ def _graph() -> StrategyGraph:
     return graph
 
 
+def _held(api: RecordingWDK, sync_state: WDKSyncState) -> WDKSyncState:
+    api.holds(_graph().steps, WDKSyncState(wdk_step_ids={"A": _WDK_STEP_ID}))
+    return sync_state
+
+
+def _adopted(api: RecordingWDK, *, root: int) -> WDKSyncState:
+    api.wdk.holds_the_strategy(
+        {
+            "strategyId": _ADOPTED_ID,
+            "name": "test",
+            "stepTree": {"stepId": root},
+            "steps": {
+                str(root): {
+                    "searchName": "GenesByMolecularWeight",
+                    "searchConfig": {"parameters": {}},
+                }
+            },
+        }
+    )
+    return _held(
+        api,
+        WDKSyncState(
+            wdk_step_ids={"A": _WDK_STEP_ID},
+            wdk_strategy_id=_ADOPTED_ID,
+            wdk_step_tree=WDKStepTree(step_id=root),
+        ),
+    )
+
+
+async def _commit(sync_state: WDKSyncState) -> CommittedTree:
+    return await put_the_graph(_graph(), sync_state, "plasmodb")
+
+
 async def _sync(sync_state: WDKSyncState) -> SyncResult:
-    return await sync_strategy_for_site(
-        graph=_graph(),
-        sync_state=sync_state,
-        site_id="plasmodb",
-    )
+    result = (await _commit(sync_state)).sync
+    assert result is not None
+    return result
 
 
-def _adopted(step_tree: WDKStepTree | None) -> WDKSyncState:
-    return WDKSyncState(
-        wdk_step_ids={"A": _WDK_STEP_ID},
-        wdk_strategy_id=_ADOPTED_ID,
-        wdk_step_tree=step_tree,
-    )
+def _minted(api: RecordingWDK) -> list[int]:
+    return [i for i in api.wdk.strategies if i != _ADOPTED_ID]
 
 
-@pytest.mark.asyncio
-async def test_a_thread_with_no_strategy_yet_mints_one(api: Mock) -> None:
-    result = await _sync(WDKSyncState(wdk_step_ids={"A": _WDK_STEP_ID}))
+async def test_a_thread_with_no_strategy_yet_mints_one(api: RecordingWDK) -> None:
+    result = await _sync(_held(api, WDKSyncState(wdk_step_ids={"A": _WDK_STEP_ID})))
 
-    assert (result.wdk_strategy_id, result.created_wdk_strategy) == (_MINTED_ID, True)
+    assert (
+        [result.wdk_strategy_id],
+        result.created_wdk_strategy,
+        len(api.named("create_strategy")),
+    ) == (_minted(api), True, 1)
 
 
-@pytest.mark.asyncio
-async def test_an_update_of_an_existing_strategy_mints_nothing(api: Mock) -> None:
-    result = await _sync(_adopted(WDKStepTree(step_id=9999)))
+async def test_an_update_of_an_existing_strategy_mints_nothing(
+    api: RecordingWDK,
+) -> None:
+    result = await _sync(_adopted(api, root=_OTHER_STEP_ID))
 
     assert (result.wdk_strategy_id, result.created_wdk_strategy) == (_ADOPTED_ID, False)
-    assert api.update_strategy.await_count == 1
+    assert (len(api.named("update_strategy")), _minted(api)) == (1, [])
 
 
-@pytest.mark.asyncio
-async def test_a_refused_update_mints_nothing(api: Mock) -> None:
-    api.update_strategy = AsyncMock(side_effect=WDKError("refused", status=422))
-    state = _adopted(WDKStepTree(step_id=9999))
+async def test_a_refused_update_mints_nothing(api: RecordingWDK) -> None:
+    api.wdk.refuses_once.add("strategy tree put")
+    state = _adopted(api, root=_OTHER_STEP_ID)
 
-    with pytest.raises(WDKError):
-        await _sync(state)
+    committed = await _commit(state)
 
-    assert (state.wdk_strategy_id, api.create_strategy.await_count) == (_ADOPTED_ID, 0)
+    assert [f.step_id for f in committed.failures] == ["A"]
+    assert (state.wdk_strategy_id, api.named("create_strategy")) == (_ADOPTED_ID, [])
 
 
-@pytest.mark.asyncio
-async def test_an_unchanged_tree_mints_nothing(api: Mock) -> None:
-    result = await _sync(_adopted(WDKStepTree(step_id=_WDK_STEP_ID)))
+async def test_an_unchanged_tree_mints_nothing(api: RecordingWDK) -> None:
+    state = _adopted(api, root=_WDK_STEP_ID)
 
-    assert (result.wdk_strategy_id, result.created_wdk_strategy) == (_ADOPTED_ID, False)
-    assert api.create_strategy.await_count == 0
+    committed = await _commit(state)
+
+    assert (committed.sync, state.wdk_strategy_id) == (None, _ADOPTED_ID)
+    assert api.named("create_strategy") == []

@@ -45,7 +45,7 @@ def _tree(operator: CombineOp, *inputs: StructureNode) -> StrategyStepNode:
             root=StructureNode(kind="combine", operator=operator, inputs=list(inputs))
         ),
     )
-    return build_step_tree(spec).root
+    return build_step_tree(spec)
 
 
 def _searches(node: StrategyStepNode | None) -> list[str]:

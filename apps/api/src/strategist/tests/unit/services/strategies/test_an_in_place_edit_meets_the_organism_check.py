@@ -10,7 +10,7 @@ from veupathdb.wdk import build_wdk_step_tree
 from veupathdb_mcp.catalog import COMPUTE_QUERY, EDA_DATASET_ID_PARAM
 
 from strategist.domain.strategy.operations import UpdateStepParamsOp
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.session import StrategySession
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
@@ -93,16 +93,16 @@ async def test_another_strain_beside_the_study_is_refused_and_nothing_is_pushed(
     serve_organism_trees(monkeypatch, {})
     session = _session()
 
-    with pytest.raises(ApplyError) as excinfo:
+    with pytest.raises(PlanDeparturesError) as excinfo:
         await _rebind(session, GT1, "PF00069")
 
     graph = session.get_graph(None)
     assert graph is not None
     assert (
-        str(excinfo.value),
+        [p.sentence for p in excinfo.value.problems.found],
         api.calls,
         graph.steps["domain"].parameters,
-    ) == (_REFUSAL, [], _domain_params(ME49, "PF00069"))
+    ) == ([_REFUSAL], [], _domain_params(ME49, "PF00069"))
 
 
 async def test_an_edit_on_the_studys_own_strain_is_pushed(api: StubAPI) -> None:

@@ -57,8 +57,9 @@ from strategist.domain.strategy.operations import (
     UpdateStepMetaOp,
     UpdateStepParamsOp,
 )
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.platform.errors import ErrorCode
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.commit import CommitResult, apply_and_commit
 from strategist.services.strategies.insert_saved import (
     insert_saved_into_conversation,
@@ -73,6 +74,8 @@ async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
     """
     try:
         return await apply_and_commit(deps=deps.to_strategy_context(), op=op)
+    except PlanDeparturesError as exc:
+        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
     except ApplyError as exc:
         msg = operation_refused_message(str(exc), wrote="edit")
         raise ModelRetry(msg) from exc
@@ -367,6 +370,8 @@ async def insert_saved_strategy(
             saved_wdk_strategy_id=saved_wdk_strategy_id,
             operator=operator,
         )
+    except PlanDeparturesError as exc:
+        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
     except ApplyError as exc:
         msg = operation_refused_message(str(exc), wrote="insert")
         raise ModelRetry(msg) from exc

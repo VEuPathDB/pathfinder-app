@@ -12,7 +12,7 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
-from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
+from veupathdb.wdk import StrategyAPI
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.domain.modes import ThreadMode
@@ -25,10 +25,9 @@ from strategist.persistence.repositories import ConversationRepository
 from strategist.services.conversations import strategy_ops
 from strategist.services.strategies import (
     commit,
+    commit_tree,
     live_counts,
     site_changes,
-    step_wdk_push,
-    sync,
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
@@ -148,13 +147,7 @@ class SiteAPI(StubAPI):
 
     def __init__(self, strategy: dict[str, Any]) -> None:
         super().__init__()
-        self.strategy = strategy
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del strategy_id, user_id
-        return WDKStrategyDetails.model_validate(self.strategy)
+        self.wdk.holds_the_strategy(strategy)
 
 
 async def decode_numbers(
@@ -225,7 +218,7 @@ def install_the_site(monkeypatch: pytest.MonkeyPatch, site: dict[str, Any]) -> R
     """Serve the thread, the lock, the persist and the site to both routes."""
     install_stub_api(monkeypatch)
     api = SiteAPI(site)
-    for module in (commit, step_wdk_push, sync, live_counts, site_changes):
+    for module in (commit_tree, live_counts, site_changes):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(site_changes, "canonicalize_synced_parameters", decode_numbers)
     repo = Repo(api)

@@ -21,7 +21,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.operations import GraphOperation
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.domain.strategy.spec_tree import build_step_tree, renumber_criteria
+from strategist.domain.strategy.spec_tree import build_step_tree
 from strategist.services.strategies.commit import CommitResult
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from strategist.tests.unit.domain.strategy._orthology import (
@@ -43,11 +43,11 @@ def _held() -> tuple[OperationalSpec, StrategySession]:
     tree = build_step_tree(spec)
     graph = StrategyGraph(graph_id="g1", name="surface", site_id="plasmodb")
     graph.record_type = "transcript"
-    graph.steps = flatten_tree(tree.root)
+    graph.steps = flatten_tree(tree)
     graph.recompute_roots()
     session = StrategySession(site_id="plasmodb")
     session.graph = graph
-    return renumber_criteria(spec, tree.step_id_by_criterion), session
+    return spec, session
 
 
 def _one_way(held: OperationalSpec) -> OperationalSpec:

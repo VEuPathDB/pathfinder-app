@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Mapping
-from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -20,13 +19,6 @@ from pydantic_ai.messages import (
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
-from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    WDKIdentifier,
-    WDKSearchConfig,
-    WDKStep,
-)
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.agents.frame_genome_checks import (
@@ -47,7 +39,7 @@ from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import measurements, spec_build, step_wdk_push
+from strategist.services.strategies import commit_tree, measurements
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -56,7 +48,10 @@ from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.record_classes import list_every_search_under
 from strategist.tests._support.recorded_counts import wire
 from strategist.tests._support.recorded_searches import serve_recorded, suite_search
-from strategist.tests._support.wdk_write_stubs import RecordedPushes, landed_pushes
+from strategist.tests._support.recording_wdk import Call, RecordingWDK
+from strategist.tests._support.wdk_write_stubs import (
+    RecordedPushes,
+)
 from strategist.tests.unit.ai.lead.conftest import pipeline_state
 from strategist.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
@@ -81,46 +76,18 @@ _STRICT = "%hsap:N%pber:Y%pfal:Y%"
 _COUNTS = {_LEFT: 1832, _RIGHT: 1335, _STRICT: 484}
 
 
-@dataclass
-class _RecordingAPI:
-    created: list[dict[str, str]] = field(default_factory=list)
-    combined: list[CombinedStepSpec] = field(default_factory=list)
-    pushes: RecordedPushes = field(
-        default_factory=lambda: landed_pushes(
-            77, root_step_id=7003, root_count=497, step_count=3
-        )
-    )
-    next_id: int = 7000
+class _RecordingAPI(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__(next_id=7001)
+        self.pushes = RecordedPushes()
 
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del record_type, user_id
-        self.created.append(dict(spec.search_config.parameters))
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
+    @property
+    def created(self) -> list[dict[str, str]]:
+        return [call.kwargs["parameters"] for call in self.named("create_step")]
 
-    async def create_combined_step(
-        self,
-        spec: CombinedStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del record_type, user_id
-        self.combined.append(spec)
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name=ORTHOLOG_PATTERN,
-            search_config=WDKSearchConfig(parameters={}),
-        )
+    @property
+    def combined(self) -> list[Call]:
+        return self.named("create_combined_step")
 
 
 @pytest.fixture
@@ -139,9 +106,6 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         del context, held_validation, callbacks, about
         return ValidatedParams(params=stated)
 
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
     async def _recorded(
         _site_id: str,
         _record_type: str,
@@ -153,10 +117,9 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         del timeout_seconds
         return _COUNTS[wire(params, "profile_pattern")]
 
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(spec_build, "validate_parameters", _accept_every_value)
-    monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _noop_reconcile)
-    monkeypatch.setattr(spec_build, "sync_strategy_for_site", api.pushes.sync)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _accept_every_value)
+    monkeypatch.setattr(commit_tree, "put_the_tree", api.pushes.put)
     monkeypatch.setattr(measurements, "count_search_answer", _recorded)
     list_every_search_under(monkeypatch, "transcript")
     return api
@@ -335,7 +298,7 @@ async def test_an_answered_card_pushes_the_minus_with_no_model_in_between(
     minted = minted_spec(thread.domain.operational_spec)
     outcome = await build_strategy_from_spec(
         deps=_context(conversation_id, session_maker),
-        root=minted.tree.root,
+        root=minted.root,
     )
 
     assert outcome.failed_steps == []
@@ -348,9 +311,9 @@ async def test_an_answered_card_pushes_the_minus_with_no_model_in_between(
     assert recording_api.created[1]["included_species"] == "n/a"
     assert recording_api.created[1]["excluded_species"] == "hsap, pber, pfal"
     [combined] = recording_api.combined
-    assert combined.boolean_operator is CombineOp.MINUS
+    assert combined.kwargs["boolean_operator"] == CombineOp.MINUS.value
     async with session_maker() as fresh:
         stored = await ConversationRepository(fresh).get_strategy(conversation_id)
     persisted = StrategyAst.model_validate(stored.strategy_ast)
     assert persisted.root.operator is CombineOp.MINUS
-    assert recording_api.pushes.pushed == [(None, _MESSAGE)]
+    assert recording_api.pushes.pushed == ["Orthologs"]

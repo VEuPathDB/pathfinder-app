@@ -7,20 +7,19 @@ from veupathdb.domain.strategy import (
     ColocationParams,
     CombineOp,
     StrategyAst,
-    StrategyStep,
     StrategyStepNode,
-    flatten_tree,
 )
 from veupathdb.wdk import PatchStepSpec
 
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.step_words import StepWords
-from strategist.services.strategies import spec_build, step_wdk_push
+from strategist.services.strategies import spec_build
 from strategist.services.strategies.step_push_planner import (
     PatchAction,
     plan_step_pushes,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import commit_against, held_as
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import StubAPI
 
 _NAME = "Union: PEXEL motif, Signal peptide"
@@ -60,65 +59,48 @@ def _tree(
     )
 
 
-def _root(named: str | None) -> StrategyStep:
-    return flatten_tree(_tree(named=named))["root"]
+_INPUTS = {k: v for k, v in _WDK_IDS.items() if k != "root"}
 
 
-@pytest.fixture
-def api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
-    stub = StubAPI()
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: stub)
-    return stub
+async def _created(monkeypatch: pytest.MonkeyPatch, root: StrategyStepNode) -> StubAPI:
+    api = StubAPI()
+    before = root.model_copy(update={"id": "before"})
+    await commit_against(monkeypatch, api, root, before=before, held=_INPUTS)
+    return api
 
 
 async def test_the_create_patches_the_name_onto_the_group_s_combine(
-    api: StubAPI,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await step_wdk_push.push_step_to_wdk(
-        sync_state=WDKSyncState(wdk_step_ids=dict(_WDK_IDS)),
-        step=_root(_NAME),
-        site_id="plasmodb",
-        record_type="transcript",
-        search_name="__combine__",
-        parameters={},
-    )
+    api = await _created(monkeypatch, _tree(named=_NAME))
 
     (patch,) = api.named("update_step_properties")
     assert patch.kwargs["spec"].expanded_name == _NAME
     assert patch.kwargs["spec"].expanded is True
 
 
-async def test_a_colocation_over_a_group_carries_its_name(api: StubAPI) -> None:
-    step = _root(_NAME).model_copy(
+async def test_a_colocation_over_a_group_carries_its_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = _tree(named=_NAME).model_copy(
         update={"operator": CombineOp.COLOCATE, "colocation_params": ColocationParams()}
     )
 
-    await step_wdk_push.push_step_to_wdk(
-        sync_state=WDKSyncState(wdk_step_ids=dict(_WDK_IDS)),
-        step=step,
-        site_id="plasmodb",
-        record_type="transcript",
-        search_name="__combine__",
-        parameters={},
-    )
+    api = await _created(monkeypatch, root)
 
-    assert [call.name for call in api.calls] == [
+    writes = api.step_writes()
+    assert [call.name for call in writes] == [
         "create_transform_step",
         "update_step_properties",
     ]
-    assert api.calls[1].kwargs["spec"].expanded_name == _NAME
-    assert api.calls[1].kwargs["spec"].expanded is True
+    assert writes[1].kwargs["spec"].expanded_name == _NAME
+    assert writes[1].kwargs["spec"].expanded is True
 
 
-async def test_a_combine_over_no_group_patches_nothing(api: StubAPI) -> None:
-    await step_wdk_push.push_step_to_wdk(
-        sync_state=WDKSyncState(wdk_step_ids=dict(_WDK_IDS)),
-        step=_root(None),
-        site_id="plasmodb",
-        record_type="transcript",
-        search_name="__combine__",
-        parameters={},
-    )
+async def test_a_combine_over_no_group_patches_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = await _created(monkeypatch, _tree(named=None))
 
     assert api.named("update_step_properties") == []
 
@@ -131,6 +113,7 @@ def test_a_new_group_name_is_a_name_write() -> None:
             root=_tree(signal="SignalP", named="Union: PEXEL motif, SignalP"),
         ),
         existing_wdk_ids=dict(_WDK_IDS),
+        held=held_as(StrategyAst(record_type="transcript", root=_tree(named=_NAME))),
     )
 
     assert {entry.step_id: entry.action for entry in plan}["root"] == PatchAction(
@@ -138,16 +121,16 @@ def test_a_new_group_name_is_a_name_write() -> None:
     )
 
 
-async def test_the_name_write_carries_the_group_name(api: StubAPI) -> None:
-    failure = await step_wdk_push._execute_patch(
-        WDKSyncState(wdk_step_ids=dict(_WDK_IDS)),
-        "plasmodb",
-        _root(_NAME),
-        "transcript",
-        PatchAction(search_config=False, name=True),
+async def test_the_name_write_carries_the_group_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = StubAPI()
+
+    committed, _ = await commit_against(
+        monkeypatch, api, _tree(named=_NAME), before=_tree(), held=_WDK_IDS
     )
 
-    assert failure is None
+    assert committed.failures == []
     (patch,) = api.named("update_step_properties")
     assert patch.kwargs["step_id"] == _WDK_IDS["root"]
     assert patch.kwargs["spec"].custom_name == "Intersect"
@@ -156,15 +139,12 @@ async def test_the_name_write_carries_the_group_name(api: StubAPI) -> None:
 
 
 async def test_a_name_write_over_no_group_leaves_the_display_alone(
-    api: StubAPI,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await step_wdk_push._execute_patch(
-        WDKSyncState(wdk_step_ids=dict(_WDK_IDS)),
-        "plasmodb",
-        _root(None),
-        "transcript",
-        PatchAction(search_config=False, name=True),
-    )
+    api = StubAPI()
+    before = _tree().model_copy(update={"display_name": "And"})
+
+    await commit_against(monkeypatch, api, _tree(), before=before, held=_WDK_IDS)
 
     (patch,) = api.named("update_step_properties")
     assert patch.kwargs["spec"] == PatchStepSpec(custom_name="Intersect")

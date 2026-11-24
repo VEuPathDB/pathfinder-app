@@ -7,7 +7,7 @@ manages graph topology only.
 
 from dataclasses import dataclass, field
 
-from veupathdb.domain.strategy import StepValidation, StrategyAst
+from veupathdb.domain.strategy import StepValidation
 from veupathdb.wdk import WDKStepTree
 
 from strategist.domain.strategy.session import StrategySession
@@ -26,12 +26,9 @@ class WDKSyncState:
     wdk_strategy_description: str | None = None
     wdk_step_tree: WDKStepTree | None = None
     wdk_push_errors: dict[str, str] = field(default_factory=dict)
-    # Snapshot of the AST as it existed at the last successful push. Lets the
-    # diff planner compare new state against the actually-pushed state instead
-    # of always treating every step as new.
-    last_pushed_ast: StrategyAst | None = None
     # The parameter each search of the last synced tree marks as its organism.
     organism_params: dict[str, str] = field(default_factory=dict)
+    replaced_wdk_step_ids: list[int] = field(default_factory=list)
 
     @property
     def wdk_root_step_id(self) -> int | None:

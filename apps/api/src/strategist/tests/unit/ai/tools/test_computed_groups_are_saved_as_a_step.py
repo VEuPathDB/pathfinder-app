@@ -123,7 +123,7 @@ async def test_the_build_leaf_runs_the_list_search_on_the_saved_dataset(
         }
     )
 
-    leaf = build_step_tree(spec).root
+    leaf = build_step_tree(spec)
     dataset = InputDatasetValue(dataset_id=str(DATASET))
     assert (leaf.search_name, leaf.parameters) == (
         "GroupsByNameList",

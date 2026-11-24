@@ -102,10 +102,10 @@ async def test_a_build_after_a_clear_gives_the_minted_step_its_kind(
 
     await build_strategy_from_spec(
         deps=StrategyMutationContext(site_id="plasmodb", strategy_session=session),
-        root=built.root,
+        root=built,
     )
 
-    minted = built.step_id_by_criterion["step_x"]
+    minted = "step_x"
     assert _stored_kinds(session) == {
         minted: StampedKind(search_name=COMPUTE_QUERY, kind=AnalysisKind.COMPUTE)
     }

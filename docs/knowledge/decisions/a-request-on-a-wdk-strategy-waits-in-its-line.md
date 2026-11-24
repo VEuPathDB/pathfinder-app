@@ -37,7 +37,7 @@ and every strategy read inside veupathdb-mcp, such as the control tests' copy of
 tree. The gene-set refresh's read is ordered behind a save's step-tree write this way,
 without the thread's lock.
 
-**A write the strategy does not hold is a failed push.** `sync_strategy_for_site` compares
+**A write the strategy does not hold is a failed push.** `commit_tree` compares
 the tree the client's read-back answers with the tree it sent. A different tree raises
 `TreeNotHeldError` (409), so the edit is reported like a step-tree write the site refused:
 the canvas route refuses the edit and keeps the stored strategy, a build records the

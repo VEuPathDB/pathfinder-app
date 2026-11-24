@@ -87,6 +87,12 @@ def stated_text(name: str, value: ParamValue) -> str:
     return shown_stated_text(value) if handle is None else handle
 
 
+def cut_stated(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]} (cut from {len(text):,} characters)"
+
+
 def _bound_texts(spec: OperationalSpec | None) -> list[tuple[str, str]]:
     bound = [] if spec is None else spec.criteria
     return [
@@ -122,16 +128,17 @@ def held_readings(built: Mapping[str, BuiltPattern]) -> dict[str, str]:
     return {handle: held.reading for handle, held in built.items()}
 
 
-def resolved_params(
-    params: Mapping[str, str], held: Mapping[str, str]
-) -> dict[str, str]:
-    proposed = params.get(PHYLETIC_EXPRESSION_PARAM)
-    if proposed is None or not is_handle(proposed):
-        return dict(params)
-    handle = proposed.strip()
-    if handle not in held:
-        raise UnknownExpressionError(handle)
-    return {**params, PHYLETIC_EXPRESSION_PARAM: held[handle]}
+def resolved_params[V: (str, str | list[str])](
+    params: Mapping[str, V], held: Mapping[str, str]
+) -> dict[str, V]:
+    match params.get(PHYLETIC_EXPRESSION_PARAM):
+        case str() as proposed if is_handle(proposed):
+            handle = proposed.strip()
+            if handle not in held:
+                raise UnknownExpressionError(handle)
+            return {**params, PHYLETIC_EXPRESSION_PARAM: held[handle]}
+        case _:
+            return dict(params)
 
 
 def site_values(values: Mapping[str, ParamValue]) -> dict[str, ParamValue]:
@@ -145,6 +152,7 @@ __all__ = [
     "READING_LIMIT",
     "BuiltPattern",
     "UnknownExpressionError",
+    "cut_stated",
     "expression_handle",
     "expression_reading",
     "handles_in",

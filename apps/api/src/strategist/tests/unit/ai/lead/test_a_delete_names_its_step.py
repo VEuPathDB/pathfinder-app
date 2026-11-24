@@ -30,10 +30,11 @@ from strategist.ai.lead import deleted_steps
 from strategist.ai.lead.deleted_steps import ask_about_the_removals, delete_question
 from strategist.ai.lead.lead_agent import LEAD_MODEL, LeadAgent
 from strategist.ai.lead.lead_tools import delete_step
-from strategist.ai.lead.live_state import LiveStepState, LiveStrategyState
+from strategist.ai.lead.live_state import LiveStrategyState
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_contract import LeadResponse
 from strategist.ai.lead.turn_facts import turn_facts
+from strategist.ai.tools.standalone.strategy_graph import ShownStep
 from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.scripted import scripted_with
@@ -58,23 +59,21 @@ LIVE = LiveStrategyState(
     step_count=4,
     root_count=142,
     steps=[
-        LiveStepState(
-            step_id=TRANSFORM,
+        ShownStep(
+            id=TRANSFORM,
             display_name="Transform by Orthology",
             search_name="GenesByOrthologs",
             estimated_size=142,
         ),
-        LiveStepState(
-            step_id="step_497dcd2a", display_name="Intersect", estimated_size=116
-        ),
-        LiveStepState(
-            step_id="step_sp",
+        ShownStep(id="step_497dcd2a", display_name="Intersect", estimated_size=116),
+        ShownStep(
+            id="step_sp",
             display_name="Predicted Signal Peptide",
             search_name="GenesWithSignalPeptide",
             estimated_size=479,
         ),
-        LiveStepState(
-            step_id="step_tm",
+        ShownStep(
+            id="step_tm",
             display_name="Transmembrane Domain Count",
             search_name="GenesByTransmembraneDomains",
             estimated_size=840,

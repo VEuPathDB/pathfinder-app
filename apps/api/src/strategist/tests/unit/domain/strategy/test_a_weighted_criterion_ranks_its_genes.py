@@ -4,7 +4,6 @@ from veupathdb.domain.parameters import MultiPickValue, NumberValue
 from veupathdb.domain.strategy import CombineOp
 
 from strategist.domain.comparison_facts import ComparedVariant
-from strategist.domain.strategy.edit_plan import node_for
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -14,7 +13,7 @@ from strategist.domain.strategy.operations import ReplaceSubtreeOp
 from strategist.domain.strategy.ranking import gene_scores, score_rows
 from strategist.domain.strategy.reading_plan import plan_lines
 from strategist.domain.strategy.spec_diff import diff_specs
-from strategist.domain.strategy.spec_tree import build_step_tree
+from strategist.domain.strategy.spec_tree import build_step_tree, node_for
 from strategist.tests._support.bound_values import bound
 from strategist.tests.unit.domain.strategy._builders import sets_nothing
 
@@ -63,7 +62,7 @@ def test_a_criterion_weight_is_its_steps_weight() -> None:
 def test_a_built_tree_weighs_each_leaf_as_its_criterion() -> None:
     tree = build_step_tree(_ranking(_weighted("a", 1), _weighted("b", 3)))
 
-    leaves = [tree.root.primary_input, tree.root.secondary_input]
+    leaves = [tree.primary_input, tree.secondary_input]
     assert [leaf.wdk_weight for leaf in leaves if leaf is not None] == [1, 3]
 
 

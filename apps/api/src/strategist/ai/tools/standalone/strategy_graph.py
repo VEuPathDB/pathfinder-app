@@ -7,9 +7,10 @@ Each function takes ``RunContext[AgentDeps]`` and mirrors the original
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field, JsonValue
+from pydantic import Field, JsonValue, field_serializer
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp import ToolErrorPayload, tool_error
 
 from strategist.ai.graph.runtime import AgentDeps
@@ -44,7 +45,9 @@ def _root_count(
 
 
 class ShownStep(StepFields):
-    parameters: dict[str, JsonValue] | None = None
+    @field_serializer("parameters")
+    def _stated(self, parameters: dict[str, ParamValue]) -> dict[str, JsonValue]:
+        return stated_values(parameters)
 
 
 class StrategySummaryResponse(CamelModel):
@@ -71,13 +74,7 @@ class StrategySummaryResponse(CamelModel):
 
 
 def shown_step(step: StepResponse) -> ShownStep:
-    held = step.parameters
-    return ShownStep.model_validate(
-        {
-            **step.model_dump(exclude={"parameters"}),
-            "parameters": None if held is None else stated_values(held),
-        }
-    )
+    return ShownStep.model_validate(step.model_dump())
 
 
 async def get_strategy(

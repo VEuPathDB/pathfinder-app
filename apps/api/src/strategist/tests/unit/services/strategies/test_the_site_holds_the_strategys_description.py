@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, flatten_tree
 from veupathdb.wdk import build_wdk_step_tree
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
 from strategist.persistence.models import PersistedStrategyGraph
-from strategist.services.strategies import commit, reconcile, sync
+from strategist.services.strategies import _tree_write, commit_tree
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -29,15 +30,21 @@ async def _sync(
     monkeypatch: pytest.MonkeyPatch, state: WDKSyncState, stated: str | None = None
 ) -> StubAPI:
     api = StubAPI()
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     session = session_with(combine("step_join", leaf("step_a"), leaf("step_b")), _IDS)
     assert session.graph is not None
     session.graph.description = stated
+    session.graph.name = "G"
     for step in session.graph.steps.values():
         step.record_class = "transcript"
-    await sync.sync_strategy_for_site(
-        graph=session.graph, sync_state=state, site_id="plasmodb", strategy_name="G"
+    api.holds(
+        session.graph.steps,
+        state,
+        root_id="step_join",
+        name="G",
+        description=state.wdk_strategy_description or "",
     )
+    await put_the_graph(session.graph, state, "plasmodb")
     return api
 
 
@@ -101,10 +108,10 @@ async def test_the_read_before_a_push_records_the_description_wdk_holds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = StubAPI()
-    monkeypatch.setattr(reconcile, "get_strategy_api", lambda _site: api)
     state = WDKSyncState(wdk_step_ids={"step_a": 1}, wdk_strategy_id=42)
+    api.holds(flatten_tree(leaf("step_a")), state, root_id="step_a")
 
-    await reconcile_sync_state_with_wdk(state, "plasmodb", 42)
+    await reconcile_sync_state_with_wdk(state, api)
 
     assert state.wdk_strategy_description == ""
 
@@ -113,12 +120,12 @@ async def test_a_delete_puts_the_tree_with_the_description_it_leaves(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = install_stub_api(monkeypatch)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", sync.sync_strategy_for_site)
+    monkeypatch.setattr(commit_tree, "put_the_tree", _tree_write.put_the_tree)
 
     async def _no_marks(*_args: object) -> dict[str, str]:
         return {}
 
-    monkeypatch.setattr(sync, "tree_organism_parameters", _no_marks)
+    monkeypatch.setattr(_tree_write, "tree_organism_parameters", _no_marks)
     root = combine("step_join", leaf("step_a"), leaf("step_b"))
     session = session_with(root, dict(_IDS))
     state = ensure_sync_state(session)

@@ -186,7 +186,7 @@ class TestWhatTheSiteDoesNotSettle:
         assert wired(repo) == {EXPORT: [], TAXON: [], JOIN: [EXPORT, TAXON]}
         assert repo.value(EXPORT, SCORE) == NumberValue(value=12)
 
-    async def test_a_site_that_does_not_answer_leaves_the_canvas_edit_to_run(
+    async def test_a_site_that_does_not_answer_gets_the_plans_values_back(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         repo = install_the_site(monkeypatch, the_site())
@@ -198,7 +198,14 @@ class TestWhatTheSiteDoesNotSettle:
 
         await canvas(repo, UpdateStepMetaOp(step_id=EXPORT, display_name="export"))
 
-        assert [c.name for c in repo.site.calls if c.name.startswith("update")] == [
-            "update_step_properties"
+        assert [
+            c.name for c in repo.site.calls if c.name.startswith("update_step")
+        ] == [
+            "update_step_search_config",
+            "update_step_properties",
         ]
         assert repo.value(EXPORT, SCORE) == NumberValue(value=10)
+        assert (
+            repo.site.wdk.steps[WDK[EXPORT]]["searchConfig"]["parameters"][SCORE]
+            == "10"
+        )

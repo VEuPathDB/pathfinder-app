@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
@@ -49,7 +49,6 @@ from strategist.domain.strategy.expression_handles import BuiltPattern
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.site_set_reads import SiteSetReads
-from strategist.domain.strategy.spec_tree import renumber_criteria
 from strategist.domain.strategy.staleness import StaleBuild
 from strategist.domain.unmet_requirements import unmet_requirement_ids
 
@@ -384,35 +383,6 @@ class StrategyDomainState(ThreadRequirements):
                     criterion_text=text_of.get(node.search_name, ""),
                 ),
             )
-
-    def restate_every_record(
-        self,
-        step_id_by_criterion: Mapping[str, str],
-        restated: Callable[[OperationalSpec], OperationalSpec],
-    ) -> None:
-        """Move every spec the turn holds onto the steps that bound its criteria.
-
-        The plan, the answer and the dispatch record take ``restated``. The
-        turn's entry record is only re-keyed, so the ledger still reads what
-        this turn did to the criteria it entered with.
-        """
-        named = set(step_id_by_criterion)
-
-        def _one(
-            spec: OperationalSpec | None,
-            restate: Callable[[OperationalSpec], OperationalSpec],
-        ) -> OperationalSpec | None:
-            if spec is None or named.isdisjoint(c.id for c in spec.criteria):
-                return spec
-            return restate(spec)
-
-        def _rekeyed(spec: OperationalSpec) -> OperationalSpec:
-            return renumber_criteria(spec, dict(step_id_by_criterion))
-
-        self.operational_spec = _one(self.operational_spec, restated)
-        self.answered_spec = _one(self.answered_spec, restated)
-        self.spec_before_dispatch = _one(self.spec_before_dispatch, restated)
-        self.spec_before_turn = _one(self.spec_before_turn, _rekeyed)
 
     def record_criterion(self, criterion: Criterion) -> None:
         """State one criterion on the framed spec, keyed by the step it names.

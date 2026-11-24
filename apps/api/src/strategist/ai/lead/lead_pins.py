@@ -27,6 +27,7 @@ from strategist.ai.lead.intent_gate import (
     turn_is_off_topic,
     unmet_preconditions,
 )
+from strategist.ai.lead.ledger_sections import render_structure
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from strategist.domain.exchanges import exchanges_section
@@ -38,6 +39,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.pending_analyses import pending_analyses
 from strategist.domain.strategy.session import StrategyGraph, strategy_root_id
+from strategist.domain.strategy.step_settings_text import criterion_settings
 
 __all__ = [
     "eda_route_blocks",
@@ -136,11 +138,13 @@ def pinned_operational_spec(ctx: RunContext[LeadDeps]) -> str | None:
         line = f"  - [{c.id}] {criterion_label(c, 60)} -> {criterion_runs(c)}"
         if slots:
             line += f" | open: {slots}"
-        if c.weight is not None:
-            line += f" | weight {c.weight}"
+        if settings := criterion_settings(c):
+            line += f" | {settings}"
         lines.append(line)
     if spec.dropped:
         lines.append("  dropped: " + "; ".join(d.text for d in spec.dropped))
+    if spec.structure is not None:
+        lines.append(f"- structure: {render_structure(spec.structure.root, spec)}")
     if any(c.weight is not None for c in spec.criteria):
         lines.append(
             "- ranked: a gene scores the sum of the weights of the searches that "

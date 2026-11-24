@@ -1,7 +1,140 @@
 # Log
 
+## 2026-11-24
+
+* **An edit keeps the values it did not state.** A commit sends a value the edit did not
+  move in the form WDK holds it, and the plan keeps its own typed value; before, an
+  organism edit stored a step's other values as the site's wire text.
+
+* **One commit path, measured after.** On the stateful fake of the before measurement, 0 of
+  84 path and field cells are red (27 before), and the canvas undo keeps a step's weight,
+  filters, analyses and expansion. WDK-MAP-011 states that every step and tree write goes
+  through `commit_tree`, held by the test that lists each caller of a WDK write.
+
+* **Strategist takes veupathdb-py 0.9.0b17 and veupathdb-mcp 0.9.0b22.** They carry the one
+  step settings model, filters on the step write, the strategy read of weight, filters and
+  colocation, and a strategy read that states no saved-strategy id; with them come
+  0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
+
 ## 2026-11-23
 
+* **The review fixes of the one step model.** A one-sided join nested on its kept side
+  (`MINUS(c_0, MINUS(c_1, c_2))` for "c_0 minus c_1 minus c_2") departs from the spec: the
+  join's first criterion must reach the kept side. A card option's value is a typed list of
+  terms or one value as written (`SetValues.params`), so a term that starts with a bracket,
+  such as `[Candida] auris`, is one organism on FRAME's card, in the Lead's option check and
+  through a consulted organism. veupathdb-mcp reads no saved-strategy id from WDK, and one
+  list (`SITE_HELD_SETTINGS`) names the settings WDK holds for the commit and the site read,
+  so a group the site left alone keeps the saved strategy it expands. A weight renders
+  before a search is chosen (the pinned plan, the ledger and the picked plan use
+  `criterion_settings`). The briefing names a rewire among steps both trees hold beside any
+  edit. An unreadable site tree takes nothing. One `OWN_LINES` set is in
+  `step_settings_text`, and `stated_text` takes no cut.
+
+* **Every view renders the one step model.** `step_settings_text` renders a step's settings
+  other than its search and values (operator, colocation, filters, weight, expansion), and a
+  change to one. The turn briefing names every setting an outside edit moved (`StepChange.settings`
+  from `StepSettings.changed`), and "the combinations changed" when only the shape moved; the
+  pinned plan, the ledger and a case row name each criterion's settings, and the structure line
+  names a colocation. The site read takes every setting the site moved through the same
+  comparison, a colocation included; a filter WDK added on its own is not taken. A value is cut
+  by one rule beside `stated_text` (`cut_stated`). A consult answer that names an organism
+  rebinds every criterion whose organism value names the asked words, through the card binding.
+
+* **The canvas keeps every setting through undo and redo.** `serializeStrategyAst` carries
+  each step's weight, filters, analyses and saved-strategy expansion into the plan an undo
+  or a redo replays, and the optimistic replace shows them on the canvas until the server
+  answers. The serializer copies every key a step view and a plan node share (`CARRIED_SETTINGS`,
+  checked by the compiler and by a vitest against the generated schemas). The step views it
+  reads (`graph/__fixtures__/weighted-plan.json`) are `step_response`'s, pinned by a Python test,
+  and the matrix row P1 undo replay replays the serializer's output for each filter state the
+  row writes (`undo-plan.json`).
+
+* **The test fakes hold what they were written.** The double that answered every commit's
+  read with the tree before the edit is gone. One fake WDK (`tests/_support/holding_wdk.py`,
+  `RecordingWDK` beside it) holds every step and strategy a test writes and serves them back
+  to the real read; a test that needs WDK to hold something else seeds it (`holds`,
+  `holds_the_strategy`). Moving the fakes onto it found two read gaps, both fixed: a combine
+  read outside the live tree read as a search and was recreated (veupathdb-mcp
+  `settings_on_the_wire`, `runs_a_combine`), and a group name the plan changed was never
+  written because the held name was taken from the plan.
+
+* **An unstated colocation takes the site's defaults.** `ColocationParams` defaults are the
+  site's span defaults (veupathdb-py WDK-STEP-011), `SPAN_LOGIC_DEFAULTS` is gone, the web
+  editor parses the generated schema's defaults, and a stored COLOCATE node without
+  parameters loads on them.
+
+* **One step view.** `StepResponse` is the step's settings (`StepSettings`: search, parameters,
+  operator, colocation, filters, weight, expansion) plus its view fields, built by one function,
+  `step_response`, for the chat snapshot, the REST load, the strategy read and the live read. A
+  step states its own record class, else the strategy's. The live read lists the same view with
+  the root named once (`rootStepId`), its parameters shown as stated values.
+
+* **The plan carries a colocation.** A COLOCATE node of the spec's structure states its
+  `colocationParams`, and only a COLOCATE node does (`StructureNode`). The build, an edit that
+  rebuilds or adds a combine, the stated-steps projection and the hydration of a strategy all
+  carry them, so an edit from a UNION to a colocation is applied instead of rolled back. A
+  colocated pick on the operator card, and a colocation FRAME or an edit states in part, take
+  the defaults `GenesBySpanLogic` shows on the site, which are `ColocationParams`'s own field
+  defaults (veupathdb-py WDK-STEP-011: exact regions, no offsets), with output on the first
+  input because the site's output has no default.
+
+* **A criterion keeps its id through a build.** `build_step_tree` returns the step tree and
+  mints every leaf and transform under its criterion's id (`node_for`, now in
+  `spec_tree.py`), and a saved reference's cloned root under its criterion's id, so a build
+  re-keys nothing: `renumber_criteria`, `SpecTree` and `restate_every_record` are gone, and an
+  operator reading the build carried is still held after it. An EDA export into a waiting
+  criterion is made under that criterion's id and binds it in place. A mirrored join with its
+  sides swapped (`RMINUS` over the inputs a spec's `MINUS` names in the other order) states the
+  spec's join, so the guard no longer refuses it.
+
+* **A write that departs from the plan names every departure at once.** A build or a batch
+  measures the record classes, the organism scopes, the joins and the stated values of the
+  tree it would leave and raises one `PlanDeparturesError` carrying `Problems`; the tool
+  raises them as one `ProblemsRefusal` ("Nothing was written."). Each departure is a
+  `Problem` keyed by its own `Check` member (`the_tree_to_its_record_classes`,
+  `the_intersect_to_its_organisms`, `the_join_to_the_spec`, `the_value_to_the_spec`,
+  `the_slot_to_its_step`, `the_subtree_to_the_spec`, `the_tree_to_its_read_back`) and placed
+  with `under()` on its criterion and search. A build that sends four values the spec states
+  otherwise is refused once with four problems, and nothing is posted.
+
+* **A commit plans against what WDK holds.** Every commit reads what WDK holds for each
+  mapped step before it plans (`reconcile_sync_state_with_wdk`, called by `commit_tree`,
+  so the edit, the build, the recovery resync and the snapshot all read first; a read that
+  fails writes nothing), and the planner compares the plan with it, so a refused
+  search-config PUT or recreate POST is written again by the next commit. Nothing held is
+  kept between commits, and the planner never falls back to the tree before the edit. A
+  gold strategy's id-list datasets are made by the commit path after the record-class
+  check, so a refused gold tree leaves nothing on WDK. A filter WDK still holds after a PUT that left it out
+  is WDK's own default and is recorded, not refused. A live-tree check keeps the mapping of
+  a step WDK still holds, so a step a stopped commit made is not made twice.
+  `last_pushed_ast` is gone.
+* **A saved or internal strategy is kept whole or not at all.** `commit_tree` refuses a
+  tree the site cannot run before any write, for every role. A saved subtree or a gold
+  strategy that stops, fails its strategy check or departs after the put is deleted with
+  every step it made; a saved subtree is put unsaved and marked saved once it reads back.
+  A saved subtree reads each copied value as the source holds it. A build and a recovery
+  resync read their outcome through one mapping (`outcome_of`), which keeps every draft
+  and names the strategy only when the tree was put; a rebuild that left the tree in place
+  still names it and its zero steps and refreshes the gene set. A gold thread is named
+  without the internal tag.
+
+* **A saved subtree, a gold strategy and a seed measurement go through the one commit
+  path.** Each commits its tree with no prior tree and a fresh sync state: a saved subtree
+  as a saved strategy, a gold strategy and a seed as internal ones. Every value is stated,
+  so each is validated once, and each step carries its weight, filters, expansion and a
+  colocation's own parameters; a refused or open step refuses the whole write and names
+  every step it refused, and the steps already made are deleted.
+  `services/experiment/materialization.py` is gone, and no module but the commit path's
+  own creates or patches a step.
+
+* **A build goes through the one commit path.** `build_strategy_from_spec` replaces the
+  graph and commits it with the tree it held before as `old`, so a rebuild writes only the
+  steps that moved: a moved value is a search-config PUT on the step WDK holds, a moved
+  search a new step and new combines above it, and the WDK steps a recreate replaced or the
+  rebuild dropped are deleted after the put. A draft or a refused step is a failed step of
+  the build, a step above it is skipped, and no strategy is put. The WDK ids a recreate
+  replaced are kept on the strategy row (`replaced_wdk_step_ids`) until a put deletes them.
 * **One rename tool and one definition of obsolete.** The building pass held a second
   `rename_strategy` (`ai/tools/standalone/conversation.py`) that took a required description,
   wrote it as the strategy's stated description (sent to WDK at the next push in place of the
@@ -303,6 +436,27 @@
   "Parallel browser test workers act as one user" left.
 
 ## 2026-11-22
+
+* **A strategy reaches WDK through one commit path.** `services/strategies/commit_tree.py`
+  plans each step against the tree before it, validates every step it writes once (a value
+  that moved is stated, the rest is context) and returns every refusal together: a refused
+  step WDK does not hold is a draft, one it holds is a failure, and either keeps the tree
+  from being put. A new step is created without its filters, the filters WDK added are kept
+  beside the sync state, and the step's own filters follow in one search-config PUT that
+  carries the held list with the plan's change; a filter change on a leaf is a search-config
+  patch, on a combine a recreate. The tree is put, a ranking is sorted by weight when a
+  weight moved or the root did, the steps a recreate replaced and the steps the graph
+  dropped are deleted after the put, and the strategy is read back: every setting WDK holds
+  other than the parameters is compared with the plan, and a difference is a failure that
+  names the field. The edit path, the snapshot materialize and the resync after recovery
+  run through it; the filter pass and the sort in `sync.py` and `step_wdk_push.py` are
+  gone, and an import-linter contract names the modules that may import the step writers.
+  Each step carries the filters WDK added (`filters_wdk_added`, recorded from the read
+  after its create and persisted with the graph); a held step whose last push failed
+  with no record is finished by the next commit before anything else, the WDK ids a
+  recreate replaced wait in the sync state until a put lands, a step WDK does not hold
+  states every value it carries, and a unit test names every module that calls a WDK
+  strategy write.
 
 * **Every value shown to an agent reads back.** A filter with no clauses is shown `[]`
   and `[]` binds `{"filters":[]}`, the text WDK's no-filter value is; a value stated back

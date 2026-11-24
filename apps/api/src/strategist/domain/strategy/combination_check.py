@@ -98,7 +98,7 @@ def _meeting_node(node: StructureNode, wanted: frozenset[str]) -> StructureNode 
     return node
 
 
-def _meeting_combine(
+def meeting_combine(
     structure: SpecStructure, criterion_ids: Collection[str]
 ) -> StructureNode | None:
     """The combine node where these criteria meet, or None."""
@@ -120,7 +120,7 @@ def meeting_operator(
     that combines nothing. A transform that is not one of them is
     transparent: the criteria under it still meet at the combine above.
     """
-    node = _meeting_combine(structure, criterion_ids)
+    node = meeting_combine(structure, criterion_ids)
     return None if node is None else node.operator
 
 

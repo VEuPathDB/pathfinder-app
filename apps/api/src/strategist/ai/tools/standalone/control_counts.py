@@ -27,7 +27,7 @@ from strategist.domain.evidence import (
     ControlTestEvidence,
     NamedControlSet,
 )
-from strategist.domain.strategy.expression_handles import stated_values
+from strategist.domain.strategy.expression_handles import cut_stated, stated_values
 
 VALUE_CHARS = 120
 _NOTHING_NAMED: Mapping[str, object] = MappingProxyType({})
@@ -40,9 +40,7 @@ def _shown(value: JsonValue) -> str:
             shown = text
         case _:
             shown = json.dumps(value)
-    if len(shown) <= VALUE_CHARS:
-        return shown
-    return f"{shown[:VALUE_CHARS].rstrip()} ..."
+    return cut_stated(shown, VALUE_CHARS)
 
 
 class ControlCounts(CamelModel):

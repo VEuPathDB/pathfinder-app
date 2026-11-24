@@ -58,29 +58,20 @@ strategies. Results are cached by plan hash.
    :undoc-members:
    :show-inheritance:
 
-Strategy Build
---------------
+Commit
+------
 
-**Purpose:** High-level strategy build orchestration. Coordinates step
-creation and graph assembly.
+**Purpose:** The one path that writes steps and a strategy to WDK: refuse a
+tree the site cannot run, plan the calls each step needs against what WDK
+holds, validate once, push, put the tree and read back what WDK holds. A saved
+or internal strategy is kept whole or deleted.
 
-.. automodule:: strategist.services.strategies.build
+.. automodule:: strategist.services.strategies.commit_tree
    :members:
    :undoc-members:
    :show-inheritance:
-
-Step Push
----------
-
-**Purpose:** Plan the WDK calls one step needs, then make them. A failed push
-leaves the step in the local graph for the sync service to retry.
 
 .. automodule:: strategist.services.strategies.step_push_planner
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: strategist.services.strategies.step_wdk_push
    :members:
    :undoc-members:
    :show-inheritance:
@@ -98,9 +89,8 @@ Auto Import
 Sync and Reconcile
 ------------------
 
-**Purpose:** Push local graph state to WDK — step tree, strategy, counts,
-decorations — and read live WDK state back to self-heal ``sync_state`` after
-a partial push.
+**Purpose:** The step tree as WDK keys it, the strategy's labels, and live WDK
+state read back to self-heal ``sync_state`` after a partial push.
 
 .. automodule:: strategist.services.strategies.sync
    :members:

@@ -47,6 +47,7 @@ from strategist.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
 from strategist.domain.strategy.staleness import detect_build_staleness
+from strategist.domain.strategy.stated_regions import spec_with_the_regions_it_runs
 from strategist.services.conversations.thread_activity import (
     ThreadActivity,
     read_thread_activity,
@@ -203,6 +204,7 @@ async def refresh_live_strategy_state(
     await _class_every_step(context)
     await _stamp_the_analysis_kinds(context)
     await _name_every_genome_group(working_state.domain, context.site_id)
+    _read_every_region_back(working_state.domain, context.strategy_session)
     await _answer_what_was_written_outside(working_state, context)
     await hydrate_spec_from_the_strategy(working_state, context)
     _state_every_analysis(working_state, context.strategy_session.get_graph(None))
@@ -248,6 +250,20 @@ def _record_the_strategy_at_arrival(state: PipelineState, context: Context) -> N
         None if graph is None else graph.primary_root_id(),
         {} if session.sync_state is None else session.sync_state.step_counts,
     )
+
+
+def _read_every_region_back(
+    domain: StrategyDomainState, session: StrategySession
+) -> None:
+    graph = session.get_graph(None)
+    if domain.operational_spec is not None:
+        domain.operational_spec = spec_with_the_regions_it_runs(
+            domain.operational_spec, graph
+        )
+    if domain.answered_spec is not None:
+        domain.answered_spec = spec_with_the_regions_it_runs(
+            domain.answered_spec, graph
+        )
 
 
 async def _name_every_genome_group(domain: StrategyDomainState, site_id: str) -> None:

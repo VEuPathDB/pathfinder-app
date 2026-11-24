@@ -16,12 +16,8 @@ from veupathdb_mcp.wdk import WireStep
 
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.services.strategies import record_classes, site_changes
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.record_classes import tree_record_class_refusal
-from strategist.services.strategies.step_push_planner import (
-    CreateAction,
-    StepPushPlan,
-)
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
@@ -66,6 +62,7 @@ def _live(record_class_name: str | None, search_name: str) -> WDKStrategyDetails
         strategy_id=330534153,
         name="mammal groups",
         root_step_id=_GROUPS_STEP,
+        record_class_name="transcript",
         step_tree=WDKStepTree(step_id=_GROUPS_STEP),
         steps={
             str(_GROUPS_STEP): WDKStep(
@@ -95,11 +92,15 @@ async def test_a_site_edit_is_decoded_under_the_class_wdk_states_for_the_step(
 
     monkeypatch.setattr(site_changes, "_decoded", _decoded)
 
+    live = _live(record_class_name, "GroupsByPhyleticPattern")
+    tree = site_changes._the_sites_tree(live)
+    assert tree is not None
+
     await site_changes._take_the_sites_values(
         _groups_in_a_gene_strategy("GroupsByPhyleticPattern"),
         {_GROUPS_STEP: "step_groups"},
-        _live(record_class_name, "GroupsByPhyleticPattern"),
-        None,
+        live,
+        tree,
         "orthomcl",
     )
 
@@ -164,18 +165,25 @@ async def test_a_colocation_over_groups_is_posted_under_its_own_class(
     graph = StrategyGraph("g1", "groups near snps", "plasmodb")
     graph.steps = flatten_tree(_colocation(_groups()))
     graph.recompute_roots()
-    plan = [
-        StepPushPlan(step_id=step_id, action=CreateAction(), reason="new")
-        for step_id in ("step_groups", "step_snps", "step_near")
-    ]
 
-    outcome = await push_steps_with_plan(graph, WDKSyncState(), "plasmodb", plan)
+    committed = await commit_tree(
+        site_id="plasmodb",
+        steps=graph.steps,
+        root_id="step_near",
+        old=None,
+        sync_state=WDKSyncState(),
+        target=CommitTarget(name="groups near snps", description=""),
+    )
 
-    assert (outcome.failed, graph.steps["step_near"].record_class) == (
+    assert (committed.failures, graph.steps["step_near"].record_class) == (
         [],
         "transcript",
     )
-    assert [(c.name, c.kwargs["record_type"]) for c in api.calls] == [
+    assert [
+        (c.name, c.kwargs["record_type"])
+        for c in api.calls
+        if c.name != "create_strategy"
+    ] == [
         ("create_step", "group"),
         ("create_step", "snp"),
         ("create_transform_step", "transcript"),

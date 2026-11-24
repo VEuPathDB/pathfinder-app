@@ -41,6 +41,7 @@ STRATEGY_COLUMNS = {
     "gene_set_id",
     "gene_set_auto_imported",
     "imported_saved_strategy_ids",
+    "replaced_wdk_step_ids",
     "generated_name_seed",
 }
 

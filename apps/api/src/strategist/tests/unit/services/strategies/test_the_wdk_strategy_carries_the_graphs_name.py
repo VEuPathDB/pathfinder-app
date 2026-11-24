@@ -10,14 +10,17 @@ import pytest
 from assistant_core.persistence.repositories.conversation import (
     DEFAULT_CONVERSATION_NAME,
 )
+from veupathdb.domain.strategy import flatten_tree
 from veupathdb.wdk import build_wdk_step_tree
 
 from strategist.domain.strategy.operations import UpdateStrategyMetaOp
-from strategist.services.strategies import reconcile, sync
+from strategist.domain.strategy.strategy_description import strategy_description
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -41,10 +44,10 @@ async def test_the_read_before_a_push_records_the_name_wdk_holds(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = StubAPI()
-    monkeypatch.setattr(reconcile, "get_strategy_api", lambda _site: api)
     state = WDKSyncState(wdk_step_ids={"step_a": 1}, wdk_strategy_id=_WDK_STRATEGY)
+    api.holds(flatten_tree(leaf("step_a")), state, root_id="step_a", name="Test")
 
-    await reconcile_sync_state_with_wdk(state, "plasmodb", _WDK_STRATEGY)
+    await reconcile_sync_state_with_wdk(state, api)
 
     assert state.wdk_strategy_name == "Test"
 
@@ -54,14 +57,20 @@ async def _sync(
 ) -> StubAPI:
     """Sync the two-search join under ``name`` against a recording WDK."""
     api = StubAPI()
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     session = session_with(combine("step_join", leaf("step_a"), leaf("step_b")), _IDS)
     assert session.graph is not None
+    session.graph.name = name
     for step in session.graph.steps.values():
         step.record_class = "transcript"
-    await sync.sync_strategy_for_site(
-        graph=session.graph, sync_state=state, site_id="plasmodb", strategy_name=name
+    api.holds(
+        session.graph.steps,
+        state,
+        root_id="step_join",
+        name=state.wdk_strategy_name or name,
+        description=strategy_description(session.graph, "step_join"),
     )
+    await put_the_graph(session.graph, state, "plasmodb")
     return api
 
 
@@ -122,17 +131,19 @@ class TestTheFirstPush:
         self, monkeypatch: pytest.MonkeyPatch, graph_name: str, user_prompt: str
     ) -> tuple[list[object], str]:
         api = StubAPI()
-        monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+        monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
         root = combine("step_join", leaf("step_a"), leaf("step_b"))
         session = session_with(root, _IDS)
         assert session.graph is not None
         session.graph.name = graph_name
         for step in session.graph.steps.values():
             step.record_class = "transcript"
-        await sync.sync_strategy_for_site(
-            graph=session.graph,
-            sync_state=WDKSyncState(wdk_step_ids=dict(_IDS)),
-            site_id="plasmodb",
+        state = WDKSyncState(wdk_step_ids=dict(_IDS))
+        api.holds(session.graph.steps, state)
+        await put_the_graph(
+            session.graph,
+            state,
+            "plasmodb",
             user_prompt=user_prompt,
         )
         created = [call.kwargs["name"] for call in api.named("create_strategy")]

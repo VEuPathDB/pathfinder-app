@@ -19,8 +19,8 @@ from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.lead.ledger import InvestigationLedger
 from strategist.ai.lead.reply_claims import machine_words
 from strategist.ai.tools.standalone.graph_helpers import (
-    build_step_response,
     counted_records,
+    serialize_step,
 )
 from strategist.domain.strategy.build_outcome import built_counts
 from strategist.domain.strategy.questions import OpenQuestion
@@ -136,7 +136,7 @@ def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> st
         if ledger.build.stale_build is not None:
             return f"{held}. {_OUT_OF_DATE}"
         return _with_link(f"{held}.", url)
-    title = build_step_response(graph, graph.steps[root_id]).display_name
+    title = serialize_step(graph, graph.steps[root_id]).display_name
     if ledger.build.stale_build is not None:
         return f'{held}; the final step is "{title}". {_OUT_OF_DATE}'
     count = built_counts(graph, session.sync_state).of(root_id)

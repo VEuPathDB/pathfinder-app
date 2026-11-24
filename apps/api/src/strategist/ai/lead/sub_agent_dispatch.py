@@ -12,7 +12,7 @@ from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy import rebuild_tree
+from veupathdb.domain.strategy import StrategyStepNode, pushable_root_id, rebuild_tree
 from veupathdb.errors import VEuPathDBError
 
 from strategist.ai.graph.runtime import AgentDeps
@@ -44,16 +44,13 @@ from strategist.ai.lead.sub_agent_stream import (
 from strategist.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from strategist.ai.lead.unsaved_set import result_not_saved
 from strategist.ai.tools.standalone.graph_helpers import derive_strategy_name
-from strategist.ai.tools.standalone.strategy_refusals import (
-    build_departs_from_the_plan_message,
-)
 from strategist.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.computed_groups import noted_description
 from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.domain.strategy.organism_picks import asked_organisms
 from strategist.domain.strategy.orthology import (
     OrganismChange,
@@ -73,21 +70,22 @@ from strategist.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
 from strategist.domain.strategy.spec_tree import (
-    SpecTree,
     build_step_tree,
-    renumber_criteria,
 )
 from strategist.domain.strategy.step_words import added_searches, step_words
+from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.domain.strategy.types import SyncStateProtocol
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
+from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.data_marks import read_data_marks
+from strategist.services.strategies.naming import name_for_the_push
 from strategist.services.strategies.spec_build import (
     build_strategy_from_spec,
-    node_results,
+    outcome_of,
 )
-from strategist.services.strategies.sync import sync_strategy_for_site
 from strategist.services.strategies.sync_state import ensure_sync_state
 
 
@@ -111,7 +109,7 @@ class MintedSpec:
     """A spec that passed every check a build makes before it writes a step."""
 
     spec: OperationalSpec
-    tree: SpecTree
+    root: StrategyStepNode
 
 
 def minted_spec(spec: OperationalSpec | None) -> MintedSpec:
@@ -129,10 +127,10 @@ def minted_spec(spec: OperationalSpec | None) -> MintedSpec:
     try:
         # A criterion waiting for its analysis has no search to mint, so the
         # EDA tools add its step once the rest is built.
-        tree = build_step_tree(spec_without_pending_analyses(folded.spec))
+        root = build_step_tree(spec_without_pending_analyses(folded.spec))
     except ValueError as exc:
         raise ModelRetry(structure_does_not_convert_message(str(exc))) from exc
-    return MintedSpec(spec=folded.spec, tree=tree)
+    return MintedSpec(spec=folded.spec, root=root)
 
 
 async def build_the_spec(deps: LeadDeps, *, call_id: str) -> ExecuteDelta:
@@ -153,43 +151,29 @@ async def build_the_minted(
     The thread holds no step when this runs, so the build writes the strategy
     whole.
     """
-    spec, built = minted.spec, minted.tree
+    spec = minted.spec
     agent_deps = agent_deps_for(deps, call_id=call_id)
-    context = replace(
-        agent_deps.to_strategy_context(),
-        step_words=step_words(spec, built.step_id_by_criterion),
-    )
+    context = replace(agent_deps.to_strategy_context(), step_words=step_words(spec))
     current = agent_deps.strategy_session.get_graph(None)
     described = None if current is None else current.description
     comparisons = deps.state.domain.computed_comparisons
     try:
         outcome: BuildOutcome = await build_strategy_from_spec(
             deps=context,
-            root=built.root,
+            root=minted.root,
             description=noted_description(described, comparisons, spec),
         )
-    except ApplyError as exc:
-        raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
-    # A criterion and the step it built become one address, so the next turn's
-    # edit changes that step instead of rebuilding the strategy around it.
-    # The build re-keys the criteria without changing what they state, so every
-    # record the turn holds moves to the same addresses and the diff reads kept.
-    deps.state.domain.restate_every_record(
-        built.step_id_by_criterion,
-        lambda held: renumber_criteria(held, built.step_id_by_criterion),
-    )
-    renumbered = renumber_criteria(spec, built.step_id_by_criterion)
-    deps.state.domain.operational_spec = renumbered
-    deps.state.domain.data_marks = await read_data_marks(
-        agent_deps.site_id, [renumbered]
-    )
+    except PlanDeparturesError as exc:
+        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
+    deps.state.domain.operational_spec = spec
+    deps.state.domain.data_marks = await read_data_marks(agent_deps.site_id, [spec])
     deps.state.record_build(outcome)
-    added = added_searches(renumbered, built.step_id_by_criterion.values())
+    added = added_searches(spec, [c.id for c in spec.criteria])
     deps.state.turn_markers.record_added_searches(added)
     graph = agent_deps.strategy_session.get_graph(None)
     # The whole local tree is persisted even when a push fails part way, so
-    # the renumbered spec is what the strategy answers to either way.
-    the_strategy_now_answers_to(deps.state, renumbered, graph)
+    # the spec is what the strategy answers to either way.
+    the_strategy_now_answers_to(deps.state, spec, graph)
     if graph is not None:
         emit_chunk(
             get_stream_writer(),
@@ -205,7 +189,7 @@ async def build_the_minted(
             conversation_id=agent_deps.conversation_id,
             site_id=agent_deps.site_id,
             user_id=agent_deps.user_id,
-            name=_gene_set_name(renumbered, graph),
+            name=_gene_set_name(spec, graph),
         )
     return ExecuteDelta(
         outcome=outcome,
@@ -338,25 +322,40 @@ def _records_organism(
 
 
 async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOutcome:
-    """The BuildOutcome after recovery edits, read by re-syncing the strategy."""
+    """The BuildOutcome after recovery edits, read by committing the strategy again."""
     graph = agent_deps.strategy_session.get_graph(None)
     if graph is None:
         return prior
+    primary = graph.primary_root_id()
+    root_id = None if primary is None else pushable_root_id(primary, graph.steps)
+    if root_id is None:
+        return prior
     sync_state = ensure_sync_state(agent_deps.strategy_session)
     try:
-        sync_result = await sync_strategy_for_site(
-            graph=graph,
-            sync_state=sync_state,
+        committed = await commit_tree(
             site_id=agent_deps.site_id,
-            user_prompt=agent_deps.user_prompt,
+            steps=graph.steps,
+            root_id=root_id,
+            old=graph.to_strategy_ast(sync_state=sync_state),
+            sync_state=sync_state,
+            target=CommitTarget(
+                name=name_for_the_push(graph, agent_deps.user_prompt),
+                description=strategy_description(graph, root_id),
+            ),
         )
-    except VEuPathDBError:
+    except VEuPathDBError, ApplyError:
         return prior
-    fresh = BuildOutcome(
-        pushed_step_ids=list(prior.pushed_step_ids),
-        wdk_strategy_id=sync_result.wdk_strategy_id,
-        zero_step_ids=list(sync_result.zero_step_ids),
-        organism_change=_records_organism(graph, sync_state),
+    if committed.record_type is not None:
+        graph.record_type = committed.record_type
+    fresh = outcome_of(
+        committed,
+        graph.steps,
+        sync_state,
+        nodes=list(graph.steps.values()),
+        change=_records_organism(graph, sync_state),
     )
-    fresh.node_results = node_results(list(graph.steps.values()), sync_state, fresh)
+    fresh.pushed_step_ids = [
+        *prior.pushed_step_ids,
+        *(sid for sid in fresh.pushed_step_ids if sid not in prior.pushed_step_ids),
+    ]
     return fresh

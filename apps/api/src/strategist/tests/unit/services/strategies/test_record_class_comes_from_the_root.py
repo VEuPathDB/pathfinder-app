@@ -14,7 +14,6 @@ Transcripts to Genes") is listed under ``gene``. Each 404s under the other::
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
@@ -24,24 +23,16 @@ from veupathdb.domain.strategy import (
     StrategyStep,
     record_class_of,
 )
-from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    WDKIdentifier,
-    WDKSearchConfig,
-    WDKStep,
-)
 from veupathdb_mcp.catalog import (
     ValidatedParams,
     ValidationCallbacks,
     assign_step_record_classes,
 )
 
-from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import record_classes, step_wdk_push
-from strategist.services.strategies.step_push_planner import CreateAction, StepPushPlan
-from strategist.services.strategies.step_wdk_push import push_steps_with_plan
+from strategist.services.strategies import commit_tree, record_classes
+from strategist.services.strategies.commit_tree import CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.recording_wdk import RecordingWDK
 
 _LISTED_UNDER = {
     "GenesByMolecularWeight": "transcript",
@@ -150,87 +141,45 @@ class TestEachStepTakesTheClassItsSearchIsListedUnder:
         assert record_class_of("and", steps) == "transcript"
 
 
-@dataclass
-class _RecordingAPI:
-    next_id: int = 2000
-    calls: list[tuple[str, str, str]] = field(default_factory=list)
-
-    def _alloc(self) -> int:
-        self.next_id += 1
-        return self.next_id
-
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self.calls.append(("create_step", spec.search_name, record_type))
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_transform_step(
-        self,
-        spec: NewStepSpec,
-        input_step_id: int,
-        record_type: str = "transcript",
-        *,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id, input_step_id
-        self.calls.append(("create_transform_step", spec.search_name, record_type))
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_combined_step(
-        self, spec: CombinedStepSpec, record_type: str, user_id: str | None = None
-    ) -> WDKIdentifier:
-        del user_id, spec
-        self.calls.append(("create_combined_step", "", record_type))
-        return WDKIdentifier(id=self._alloc())
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByMolecularWeight",
-            search_config=WDKSearchConfig(parameters={}),
-        )
+async def _as_stated(*_args: object, **kwargs: Any) -> ValidatedParams:
+    return ValidatedParams(params=dict(kwargs["stated"]))
 
 
-async def _noop_validate_plan_params(*_args: object, **_kwargs: object) -> set[str]:
-    return set()
+async def _commit(steps: dict[str, StrategyStep]) -> CommittedTree:
+    return await commit_tree.commit_tree(
+        site_id="plasmodb",
+        steps=steps,
+        root_id="root",
+        old=None,
+        sync_state=WDKSyncState(),
+        target=commit_tree.CommitTarget(name="crossing", description=""),
+    )
 
 
 @pytest.fixture
-def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
-    api = _RecordingAPI()
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(
-        step_wdk_push, "_validate_plan_params", _noop_validate_plan_params
-    )
+def recording_api(monkeypatch: pytest.MonkeyPatch) -> RecordingWDK:
+    api = RecordingWDK(next_id=2000)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _as_stated)
     return api
 
 
 class TestThePushAddressesEachStepByItsOwn:
     async def test_the_leaf_and_the_transform_go_to_different_record_types(
-        self, recording_api: _RecordingAPI
+        self, recording_api: RecordingWDK
     ) -> None:
-        graph = StrategyGraph("g1", "crossing", "plasmodb")
-        graph.steps = {
-            "leaf": _leaf("leaf", "GenesByMolecularWeight", "transcript"),
-            "root": _transform("root", "GenesFromTranscripts", "leaf", "gene"),
-        }
-        graph.record_type = "gene"
-        graph.recompute_roots()
+        committed = await _commit(
+            {
+                "leaf": _leaf("leaf", "GenesByMolecularWeight", "transcript"),
+                "root": _transform("root", "GenesFromTranscripts", "leaf", "gene"),
+            }
+        )
 
-        plan = [
-            StepPushPlan(step_id="leaf", action=CreateAction(), reason="new"),
-            StepPushPlan(step_id="root", action=CreateAction(), reason="new"),
-        ]
-        outcome = await push_steps_with_plan(graph, WDKSyncState(), "plasmodb", plan)
-
-        assert outcome.failed == []
-        assert recording_api.calls == [
+        assert committed.failures == []
+        assert [
+            (c.name, c.kwargs.get("search_name", ""), c.kwargs["record_type"])
+            for c in recording_api.step_writes()
+        ] == [
             ("create_step", "GenesByMolecularWeight", "transcript"),
             ("create_transform_step", "GenesFromTranscripts", "gene"),
         ]
@@ -238,8 +187,10 @@ class TestThePushAddressesEachStepByItsOwn:
 
 class TestValidationWritesTheClassOntoTheStep:
     async def test_the_step_keeps_the_class_validation_resolved(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, recording_api: RecordingWDK, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        del recording_api
+
         async def _validate(ctx: Any, **_kwargs: object) -> ValidatedParams:
             return ValidatedParams(
                 params={}, record_class=_LISTED_UNDER[ctx.search_name]
@@ -259,10 +210,10 @@ class TestValidationWritesTheClassOntoTheStep:
         async def _resolver(_site_id: str) -> Any:
             return _catalog_resolver
 
-        monkeypatch.setattr(step_wdk_push, "validate_parameters", _validate)
+        monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
         monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
         monkeypatch.setattr(
-            step_wdk_push,
+            commit_tree,
             "make_validation_callbacks",
             lambda _site_id: ValidationCallbacks(
                 resolve_record_type_for_search=_resolve,
@@ -274,16 +225,8 @@ class TestValidationWritesTheClassOntoTheStep:
             "leaf": _leaf("leaf", "GenesByMolecularWeight"),
             "root": _transform("root", "GenesFromTranscripts", "leaf"),
         }
-        plan = [
-            StepPushPlan(step_id="leaf", action=CreateAction(), reason="new"),
-            StepPushPlan(step_id="root", action=CreateAction(), reason="new"),
-        ]
+        committed = await _commit(steps)
 
-        await record_classes.fill_record_classes("plasmodb", steps)
-        incomplete = await step_wdk_push._validate_plan_params(
-            plan, steps, "plasmodb", {}
-        )
-
-        assert incomplete == set()
+        assert (committed.drafts, committed.failures) == ({}, [])
         assert steps["leaf"].record_class == "transcript"
         assert steps["root"].record_class == "gene"

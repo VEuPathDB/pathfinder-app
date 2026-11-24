@@ -7,7 +7,11 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk import StrategyAPI, get_strategy_api
+from veupathdb.wdk import (
+    StrategyAPI,
+    get_strategy_api,
+    strip_internal_wdk_strategy_name,
+)
 from veupathdb_mcp.wdk import (
     build_snapshot_from_wdk,
     canonicalize_synced_parameters,
@@ -131,7 +135,8 @@ def wdk_chat_name(payload: StrategyAst, wdk_id: int) -> str:
     root = payload.root
     given = given_by_a_researcher(root.display_name, root.search_name)
     root_name = root.display_name if given else None
-    return payload.name or root_name or placeholder_strategy_name(wdk_id)
+    given_name = strip_internal_wdk_strategy_name(payload.name or "")
+    return given_name or root_name or placeholder_strategy_name(wdk_id)
 
 
 def import_write(spec: WdkChatSpec, *, name: str) -> ConversationUpdate:

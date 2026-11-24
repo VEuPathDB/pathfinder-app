@@ -7,6 +7,7 @@ transform, plus a combine WDK marks as an expanded saved sub-strategy.
 from __future__ import annotations
 
 import pytest
+from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStep,
@@ -14,7 +15,6 @@ from veupathdb.wdk import (
     WDKStrategyDetails,
 )
 
-from strategist.services.strategies import reconcile
 from strategist.services.strategies.reconcile import reconcile_sync_state_with_wdk
 from strategist.services.strategies.sync_state import WDKSyncState
 
@@ -22,7 +22,7 @@ _BOOLEAN = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 
 
 class _FakeAPI:
-    """Answers one strategy read."""
+    """Answers one strategy read; every step outside its tree is gone."""
 
     def __init__(self, details: WDKStrategyDetails) -> None:
         self._details = details
@@ -30,6 +30,10 @@ class _FakeAPI:
     async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
         del strategy_id
         return self._details
+
+    async def find_step(self, step_id: int) -> WDKStep:
+        msg = f"step {step_id} is gone"
+        raise WDKError(msg, status=404)
 
 
 def _step(
@@ -87,11 +91,8 @@ async def _reconciled(
     details: WDKStrategyDetails,
     held: dict[str, int],
 ) -> WDKSyncState:
-    monkeypatch.setattr(
-        reconcile, "get_strategy_api", lambda site_id: _FakeAPI(details)
-    )
     state = WDKSyncState(wdk_step_ids=dict(held), wdk_strategy_id=7)
-    await reconcile_sync_state_with_wdk(state, "plasmodb", 7)
+    await reconcile_sync_state_with_wdk(state, _FakeAPI(details))
     return state
 
 
@@ -109,7 +110,13 @@ class TestTheLiveStepIds:
     async def test_a_leaf_tree_keeps_one_id(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        details = _details().model_copy(update={"step_tree": WDKStepTree(step_id=5)})
+        held = _details()
+        details = held.model_copy(
+            update={
+                "step_tree": WDKStepTree(step_id=5),
+                "steps": {**held.steps, "5": _step(5, "GenesByText")},
+            }
+        )
 
         state = await _reconciled(monkeypatch, details, {"a": 5, "b": 10})
 

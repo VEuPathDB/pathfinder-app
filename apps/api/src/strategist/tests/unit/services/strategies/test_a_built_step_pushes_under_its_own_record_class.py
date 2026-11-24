@@ -1,5 +1,5 @@
-"""A declarative build pushes each step under the record class its search is
-listed under, so a transform reads its own input parameters from the catalog."""
+"""A commit pushes each step under the record class its search is listed under,
+so a transform reads its own input parameters from the catalog."""
 
 from __future__ import annotations
 
@@ -7,21 +7,19 @@ from collections.abc import Awaitable, Callable
 
 import pytest
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
-    StepKind,
-    StepValidation,
-    StrategyStep,
     StrategyStepNode,
     flatten_tree,
 )
 from veupathdb_mcp.catalog import ValidatedParams
 
-from strategist.domain.strategy.build_outcome import BuildOutcome
-from strategist.services.strategies import record_classes, spec_build
+from strategist.services.strategies import commit_tree, record_classes
+from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState
+
+from ._counting_strategy_api import CountingStrategyAPI
 
 _LISTED_UNDER = {
     "GroupsByPhyleticPattern": "group",
@@ -30,11 +28,14 @@ _LISTED_UNDER = {
 }
 
 
-def _recording(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
-    pushed: list[tuple[str, str]] = []
+def _recording(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[list[tuple[str, str]], CountingStrategyAPI]:
+    validated: list[tuple[str, str]] = []
+    api = CountingStrategyAPI()
 
     async def _validate(ctx: SearchContext, **_kwargs: object) -> ValidatedParams:
-        pushed.append((ctx.search_name, ctx.record_type))
+        validated.append((ctx.search_name, ctx.record_type))
         return ValidatedParams(params={}, record_class=_LISTED_UNDER[ctx.search_name])
 
     async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
@@ -43,31 +44,29 @@ def _recording(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
 
         return _listed_under
 
-    async def _push(
-        *,
-        sync_state: WDKSyncState,
-        step: StrategyStep,
-        site_id: str,
-        record_type: str,
-        search_name: str,
-        parameters: dict[str, ParamValue],
-    ) -> tuple[int | None, StepValidation | None, str | None]:
-        del site_id, search_name, parameters
-        pushed.append((step.id, record_type))
-        sync_state.wdk_step_ids[step.id] = 1000 + len(pushed)
-        return sync_state.wdk_step_ids[step.id], None, None
-
-    monkeypatch.setattr(spec_build, "validate_parameters", _validate)
-    monkeypatch.setattr(spec_build, "push_step_to_wdk", _push)
+    monkeypatch.setattr(commit_tree, "validate_parameters", _validate)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
-    return pushed
+    return validated, api
+
+
+async def _commit(root: StrategyStepNode) -> CommittedTree:
+    return await commit_tree.commit_tree(
+        site_id="orthomcl",
+        steps=flatten_tree(root),
+        root_id=root.id,
+        old=None,
+        sync_state=WDKSyncState(),
+        target=CommitTarget(name="groups", description=""),
+    )
 
 
 async def test_each_step_of_an_orthomcl_build_pushes_under_its_own_class(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    pushed = _recording(monkeypatch)
-    steps = flatten_tree(
+    validated, api = _recording(monkeypatch)
+
+    await _commit(
         StrategyStepNode(
             id="and",
             search_name=COMBINE_SEARCH_NAME,
@@ -82,42 +81,29 @@ async def test_each_step_of_an_orthomcl_build_pushes_under_its_own_class(
             secondary_input=StrategyStepNode(id="taxon", search_name="ByTaxonomy"),
         )
     )
-    order = ["pattern", "proteins", "taxon", "and"]
 
-    await spec_build._push_tree_to_wdk(
-        nodes=[steps[step_id] for step_id in order],
-        held={},
-        site_id="orthomcl",
-        sync_state=WDKSyncState(),
-        outcome=BuildOutcome(),
-    )
-
-    assert pushed == [
+    assert validated == [
         ("GroupsByPhyleticPattern", "group"),
-        ("pattern", "group"),
         ("FromGroups", "sequence"),
-        ("proteins", "sequence"),
         ("ByTaxonomy", "sequence"),
-        ("taxon", "sequence"),
-        ("and", "sequence"),
+    ]
+    assert [(c.name, c.kwargs["record_type"]) for c in api.step_writes()] == [
+        ("create_step", "group"),
+        ("create_transform_step", "sequence"),
+        ("create_step", "sequence"),
+        ("create_combined_step", "sequence"),
     ]
 
 
 async def test_a_build_step_the_site_lists_under_no_class_is_not_sent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    pushed = _recording(monkeypatch)
-    outcome = BuildOutcome()
+    validated, api = _recording(monkeypatch)
 
-    await spec_build._push_tree_to_wdk(
-        nodes=[StrategyStep(id="lost", kind=StepKind.SEARCH, search_name="Unlisted")],
-        held={},
-        site_id="orthomcl",
-        sync_state=WDKSyncState(),
-        outcome=outcome,
-    )
+    committed = await _commit(StrategyStepNode(id="lost", search_name="Unlisted"))
 
-    assert (pushed, [f.error for f in outcome.failed_steps]) == (
+    assert (validated, api.calls, [f.error for f in committed.failures]) == (
+        [],
         [],
         [
             (

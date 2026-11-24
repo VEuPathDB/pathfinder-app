@@ -1,30 +1,49 @@
+from collections.abc import Mapping
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Discriminator, model_validator
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
+from veupathdb.domain.strategy import (
+    StepSettings,
+    StrategyAst,
+    StrategyStepNode,
+    settings_of,
+    walk,
+)
 
 
 class SkipAction(BaseModel):
     model_config = ConfigDict(frozen=True)
     kind: Literal["skip"] = "skip"
 
+    @property
+    def writes_parameters(self) -> bool:
+        return False
+
 
 class CreateAction(BaseModel):
     model_config = ConfigDict(frozen=True)
     kind: Literal["create"] = "create"
 
+    @property
+    def writes_parameters(self) -> bool:
+        return True
+
 
 class PatchAction(BaseModel):
     """A write to a step WDK already holds, naming the parts that moved.
 
-    The search config carries every parameter and the weight, so it is sent
-    only when one of them moved; a new name alone is a properties patch.
+    The search config carries every parameter, the weight and the filters, so
+    it is sent only when one of them moved; a new name alone is a properties patch.
     """
 
     model_config = ConfigDict(frozen=True)
     kind: Literal["patch"] = "patch"
     search_config: bool
     name: bool
+
+    @property
+    def writes_parameters(self) -> bool:
+        return self.search_config
 
     @model_validator(mode="after")
     def _writes_something(self) -> PatchAction:
@@ -37,6 +56,10 @@ class PatchAction(BaseModel):
 class RecreateAction(BaseModel):
     model_config = ConfigDict(frozen=True)
     kind: Literal["recreate"] = "recreate"
+
+    @property
+    def writes_parameters(self) -> bool:
+        return True
 
 
 StepActionT = Annotated[
@@ -56,55 +79,42 @@ def _index_by_id(ast: StrategyAst) -> dict[str, StrategyStepNode]:
     return {s.id: s for s in walk(ast.root)}
 
 
+_RECREATES_A_COMBINE = ("operator", "colocation_params", "wdk_weight", "filters")
+_WRITES_A_SEARCH_CONFIG = ("parameters", "wdk_weight", "filters")
+
+
 def _decide_combine(
-    new_step: StrategyStepNode, old_step: StrategyStepNode
+    new_step: StrategyStepNode, old_step: StrategyStepNode, held: StepSettings
 ) -> tuple[StepActionT, str]:
-    if new_step.operator != old_step.operator:
-        return (
-            RecreateAction(),
-            f"combine operator changed {old_step.operator}->{new_step.operator}",
-        )
     if new_step.input_ids() != old_step.input_ids():
         return RecreateAction(), "combine input topology changed"
-    if new_step.colocation_params != old_step.colocation_params:
-        return RecreateAction(), "colocation params changed"
-    if new_step.wdk_weight != old_step.wdk_weight:
-        # A combine's parameters live on the site only, and a search-config PUT
-        # replaces the parameters whole, so the weight goes in at creation.
-        return RecreateAction(), "combine weight changed"
+    moved = settings_of(new_step).changed(held)
+    recreated = [name for name in moved if name in _RECREATES_A_COMBINE]
+    if recreated:
+        return RecreateAction(), "combine " + " and ".join(recreated) + " changed"
     if _renamed(new_step, old_step) or (
-        bool(new_step.expanded_name)
-        and new_step.expanded_name != old_step.expanded_name
+        bool(new_step.expanded_name) and "expanded_name" in moved
     ):
         return PatchAction(search_config=False, name=True), "combine name changed"
     return SkipAction(), "combine unchanged"
 
 
 def _decide_leaf_or_transform(
-    new_step: StrategyStepNode, old_step: StrategyStepNode
+    new_step: StrategyStepNode, old_step: StrategyStepNode, held: StepSettings
 ) -> tuple[StepActionT, str]:
-    if new_step.search_name != old_step.search_name:
-        # A WDK step runs the search it was created with. The search-config
-        # endpoint validates against that search, so a new search is a new step.
+    moved = settings_of(new_step).changed(held)
+    if "search_name" in moved:
         return RecreateAction(), "search changed"
     if new_step.primary_input_id != old_step.primary_input_id:
         return RecreateAction(), "transform input changed"
-    moved = [
-        what
-        for what, differs in (
-            ("params", new_step.parameters != old_step.parameters),
-            ("wdk weight", new_step.wdk_weight != old_step.wdk_weight),
-            ("display name", _renamed(new_step, old_step)),
-        )
-        if differs
-    ]
-    if not moved:
+    written = [name for name in moved if name in _WRITES_A_SEARCH_CONFIG]
+    renamed = _renamed(new_step, old_step)
+    if not written and not renamed:
         return SkipAction(), "leaf/transform unchanged"
-    patch = PatchAction(
-        search_config="params" in moved or "wdk weight" in moved,
-        name="display name" in moved,
+    patch = PatchAction(search_config=bool(written), name=renamed)
+    return patch, " and ".join([*written, *(["display name"] if renamed else [])]) + (
+        " changed"
     )
-    return patch, " and ".join(moved) + " changed"
 
 
 def _renamed(new_step: StrategyStepNode, old_step: StrategyStepNode) -> bool:
@@ -116,24 +126,23 @@ def _renamed(new_step: StrategyStepNode, old_step: StrategyStepNode) -> bool:
 
 def _decide_step(
     step: StrategyStepNode,
-    old_ast: StrategyAst | None,
     old_by_id: dict[str, StrategyStepNode],
     existing_wdk_ids: dict[str, int],
+    held: Mapping[str, StepSettings],
 ) -> tuple[StepActionT, str]:
     if step.id not in existing_wdk_ids:
         return CreateAction(), "no wdk id"
-    if old_ast is None:
-        return CreateAction(), "no prior ast"
     old_step = old_by_id.get(step.id)
-    if old_step is None:
-        return CreateAction(), "new step not in prior ast"
+    holds = held.get(step.id)
+    if old_step is None or holds is None:
+        return CreateAction(), "no prior step or no read of what wdk holds"
     new_kind = step.infer_kind()
     old_kind = old_step.infer_kind()
     if new_kind != old_kind:
         return RecreateAction(), f"step kind changed {old_kind}->{new_kind}"
     if new_kind == "combine":
-        return _decide_combine(step, old_step)
-    return _decide_leaf_or_transform(step, old_step)
+        return _decide_combine(step, old_step, holds)
+    return _decide_leaf_or_transform(step, old_step, holds)
 
 
 def plan_step_pushes(
@@ -141,6 +150,7 @@ def plan_step_pushes(
     old_ast: StrategyAst | None,
     new_ast: StrategyAst,
     existing_wdk_ids: dict[str, int],
+    held: Mapping[str, StepSettings],
 ) -> list[StepPushPlan]:
     new_steps = walk(new_ast.root)
     old_by_id: dict[str, StrategyStepNode] = (
@@ -148,7 +158,7 @@ def plan_step_pushes(
     )
 
     decisions: dict[str, tuple[StepActionT, str]] = {
-        step.id: _decide_step(step, old_ast, old_by_id, existing_wdk_ids)
+        step.id: _decide_step(step, old_by_id, existing_wdk_ids, held)
         for step in new_steps
     }
 

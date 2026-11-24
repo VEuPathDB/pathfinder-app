@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -25,14 +24,6 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 from veupathdb.wdk import (
-    CombinedStepSpec,
-    NewStepSpec,
-    PatchStepSpec,
-    WDKIdentifier,
-    WDKSearchConfig,
-    WDKStep,
-    WDKStepTree,
-    WDKStrategyDetails,
     build_wdk_step_tree,
 )
 
@@ -47,10 +38,15 @@ from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_hydration import spec_from_ast
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
-from strategist.services.strategies import commit, live_counts, step_wdk_push, sync
+from strategist.services.strategies import commit_tree, live_counts
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support import wdk_write_stubs
 from strategist.tests._support.bound_values import stated
+from strategist.tests._support.recording_wdk import (
+    RecordingWDK,
+    held_by_the_site,
+    served,
+)
 
 # A strategy write defers the gene-set refresh onto the job queue.
 pytestmark = pytest.mark.usefixtures("open_job_queue")
@@ -58,139 +54,17 @@ pytestmark = pytest.mark.usefixtures("open_job_queue")
 WDK_IDS = {"step_text": 100, "step_go": 200, "step_join": 300}
 
 
-@dataclass
-class _Call:
-    name: str
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class _RecordingAPI:
-    """Records every WDK write the edit makes."""
-
-    calls: list[_Call] = field(default_factory=list)
-    next_id: int = 9000
-
-    def named(self, name: str) -> list[_Call]:
-        return [c for c in self.calls if c.name == name]
-
-    def _alloc(self) -> int:
-        self.next_id += 1
-        return self.next_id
-
-    async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del user_id
-        self.calls.append(_Call("delete_step", {"step_id": step_id}))
-
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id
-        self.calls.append(_Call("create_step", {"search_name": spec.search_name}))
-        del record_type
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_combined_step(
-        self, spec: CombinedStepSpec, record_type: str, user_id: str | None = None
-    ) -> WDKIdentifier:
-        del user_id, record_type
-        self.calls.append(
-            _Call("create_combined_step", {"primary": spec.primary_step_id})
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def create_transform_step(
-        self,
-        spec: NewStepSpec,
-        input_step_id: int,
-        record_type: str = "transcript",
-        *,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del user_id, record_type
-        self.calls.append(
-            _Call(
-                "create_transform_step",
-                {"search_name": spec.search_name, "input_step_id": input_step_id},
-            )
-        )
-        return WDKIdentifier(id=self._alloc())
-
-    async def update_step_search_config(
-        self,
-        step_id: int,
-        search_config: WDKSearchConfig,
-        record_type: str,
-        search_name: str,
-        *,
-        user_id: str | None = None,
-    ) -> None:
-        del user_id, record_type
-        self.calls.append(
-            _Call(
-                "update_step_search_config",
-                {
-                    "step_id": step_id,
-                    "search_name": search_name,
-                    "parameters": dict(search_config.parameters),
-                },
-            )
-        )
-
-    async def update_step_properties(
-        self, step_id: int, spec: PatchStepSpec, *, user_id: str | None = None
-    ) -> None:
-        del user_id, spec
-        self.calls.append(_Call("update_step_properties", {"step_id": step_id}))
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByText",
-            search_config=WDKSearchConfig(parameters={}),
-        )
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del user_id
-        self.calls.append(_Call("get_strategy", {"strategy_id": strategy_id}))
-        return WDKStrategyDetails(
-            strategy_id=strategy_id,
-            name="Test strategy",
-            root_step_id=300,
-            step_tree=WDKStepTree(step_id=300),
-            steps={
-                "100": WDKStep(
-                    id=100,
-                    search_name="GenesByText",
-                    search_config=WDKSearchConfig(parameters={}),
-                    estimated_size=2122,
-                ),
-                "200": WDKStep(
-                    id=200,
-                    search_name="GenesByGoTerm",
-                    search_config=WDKSearchConfig(parameters={}),
-                    estimated_size=45,
-                ),
-                "300": WDKStep(
-                    id=300,
-                    search_name="boolean",
-                    search_config=WDKSearchConfig(parameters={}),
-                    estimated_size=7,
-                ),
-            },
-        )
+class _RecordingAPI(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__()
+        self.wdk.sizes = {100: 2122, 200: 45, 300: 7}
 
 
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
+    monkeypatch.setitem(served, "site", api)
+    for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     wdk_write_stubs.stub_every_catalog_read(monkeypatch)
@@ -295,6 +169,7 @@ def _deps(conv_id: UUID, session_maker: Any) -> LeadDeps:
         step_counts={},
         wdk_step_tree=build_wdk_step_tree(_root(), WDK_IDS),
     )
+    held_by_the_site(session)
     before = _before()
     state = PipelineState(
         conversation_id=conv_id,
@@ -391,20 +266,21 @@ async def test_edit_does_not_re_put_the_step_tree_when_topology_is_unchanged(
     stub_api: _RecordingAPI,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    calls: list[str] = []
-
-    async def _record_sync(**kwargs: Any) -> None:
-        del kwargs
-        calls.append("sync")
-
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _record_sync)
     conv_id = await _seed(db_session, seed_user)
     deps = _deps(conv_id, session_maker)
     _stub_frame(monkeypatch, _organism_swap(_before()))
 
     await run_edit(deps=deps, parent_tool_call_id="t1", reason="swap organism")
 
-    assert calls == []
+    trees = [
+        c.kwargs["step_tree"]
+        for c in [
+            *stub_api.named("update_strategy"),
+            *stub_api.named("create_strategy"),
+        ]
+        if c.kwargs["step_tree"] is not None
+    ]
+    assert trees == []
     assert stub_api.named("create_step") == []
 
 

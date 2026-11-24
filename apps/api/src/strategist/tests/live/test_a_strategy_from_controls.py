@@ -130,7 +130,7 @@ async def built(wdk_identity: str) -> AsyncGenerator[Built]:
 
 async def _site_read(offer: SeparationOffer, built: Built) -> _Read:
     """The built offer's root as a control test of its own reads it."""
-    root_step_id, size = await built(build_step_tree(offer.spec).root)
+    root_step_id, size = await built(build_step_tree(offer.spec))
     positives = sorted([*offer.positive.returned, *offer.positive.not_returned])
     negatives = sorted([*offer.negative.returned, *offer.negative.not_returned])
     read = await run_step_control_tests(

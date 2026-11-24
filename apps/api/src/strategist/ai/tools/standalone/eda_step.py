@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
@@ -28,10 +29,10 @@ from strategist.ai.tools.standalone._eda_step_guard import (
     refuse_half_a_cut,
 )
 from strategist.ai.tools.standalone._eda_step_spec import (
+    bind_the_export,
     restate_the_structure,
     scope_the_exported_criterion,
     spec_after_the_replacement,
-    spec_binding_the_export,
     state_the_exported_step,
     structure_states_the_graph,
 )
@@ -58,11 +59,13 @@ from strategist.domain.eda_thread import EdaExport
 from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
-from strategist.domain.strategy.operations.apply import ApplyError
+from strategist.domain.strategy.operations import GraphOperation
+from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_edit_guard import spec_stated_values
 from strategist.domain.strategy.spec_hydration import criteria_listed_under
 from strategist.domain.strategy.step_words import StampedKind, StepWords, step_words
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.eda.binding import read_analysis
 from strategist.services.eda.direction import selection_sentence
 from strategist.services.eda.steps import (
@@ -172,12 +175,7 @@ def _state_the_export(
     if waiting is None:
         state_the_exported_step(ctx, graph, plan.node, plan.binding)
         return
-    ctx.deps.state.domain.restate_every_record(
-        {waiting.criterion_id: plan.node.id},
-        lambda spec: spec_binding_the_export(
-            spec, waiting.criterion_id, plan.node, plan.binding
-        ),
-    )
+    bind_the_export(ctx.deps.state.domain, plan.node, plan.binding)
 
 
 async def _list_the_classes(ctx: RunContext[LeadDeps]) -> None:
@@ -335,6 +333,9 @@ async def create_eda_step(
     waiting = export_placement(
         spec, graph, criterion_id, dataset_id=binding.dataset_id, asked=asked
     )
+    if waiting is not None:
+        plan = replace(plan, node=node.model_copy(update={"id": waiting.criterion_id}))
+        node = plan.node
     write = export_write(
         ctx, graph, node, asked=asked, join=None if waiting is None else waiting.join
     )
@@ -346,16 +347,11 @@ async def create_eda_step(
         else spec_after_the_replacement(ctx, graph, node, replace_step_id, plan.binding)
     )
 
-    try:
-        result = await apply_operations_and_commit(
-            deps=_strategy_context(ctx, stated, {node.id: plan.stamped}),
-            ops=write.ops,
-        )
-    except ValidationError as exc:
-        raise validation_model_retry(exc, searchName=node.search_name) from exc
-    except ApplyError as exc:
-        msg = operation_refused_message(str(exc), wrote="export")
-        raise ModelRetry(msg) from exc
+    result = await _commit_the_export(
+        _strategy_context(ctx, stated, {node.id: plan.stamped}),
+        write.ops,
+        search_name=node.search_name,
+    )
     if replace_step_id is None:
         _state_the_export(ctx, graph, plan, waiting)
     else:
@@ -423,3 +419,17 @@ async def create_eda_step(
         )
     landed = _landed(node.id, replace_step_id, write.join)
     return with_summary(created, landed, ctx=ctx, extra=metadata)
+
+
+async def _commit_the_export(
+    deps: StrategyMutationContext, ops: Sequence[GraphOperation], *, search_name: str
+) -> CommitResult:
+    try:
+        return await apply_operations_and_commit(deps=deps, ops=ops)
+    except ValidationError as exc:
+        raise validation_model_retry(exc, searchName=search_name) from exc
+    except PlanDeparturesError as exc:
+        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
+    except ApplyError as exc:
+        msg = operation_refused_message(str(exc), wrote="export")
+        raise ModelRetry(msg) from exc

@@ -5,9 +5,9 @@ from veupathdb.domain.strategy import CombineOp, flatten_tree
 
 from strategist.domain.strategy.operations import DeleteResolution, DeleteStepOp
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import sync
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 from strategist.tests.unit.services.strategies.test_commit_reroots_the_strategy import (
     _join,
     _leaf,
@@ -81,13 +81,10 @@ async def test_a_new_ranking_opens_sorted_by_score(api: _RecordingAPI) -> None:
     graph.steps.update(flatten_tree(root))
     graph.recompute_roots()
 
-    await sync.sync_strategy_for_site(
-        graph=graph,
-        sync_state=WDKSyncState(
-            wdk_step_ids={"step_a": 100, "step_b": 200, "step_join": 300}
-        ),
-        site_id="toxodb",
-    )
+    state = WDKSyncState(wdk_step_ids={"step_a": 100, "step_b": 200, "step_join": 300})
+    api.holds(graph.steps, state)
+
+    await put_the_graph(graph, state, "toxodb")
 
     assert [call.kwargs["step_id"] for call in api.named("update_step_properties")] == [
         300

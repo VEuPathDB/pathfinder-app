@@ -9,12 +9,13 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.errors import WDKError
 
-from strategist.services.strategies import organism_params, sync
+from strategist.services.strategies import commit_tree, organism_params
 from strategist.services.strategies.organism_params import (
     organism_parameters,
     tree_organism_parameters,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -91,17 +92,16 @@ async def test_a_sync_records_the_marks_of_the_tree_it_pushed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = StubAPI()
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
     ids = {"step_a": 440537303, "step_b": 440537313, "step_join": 440537323}
     session = session_with(combine("step_join", leaf("step_a"), leaf("step_b")), ids)
     assert session.graph is not None
     for step in session.graph.steps.values():
         step.record_class = "transcript"
     state = WDKSyncState(wdk_step_ids=dict(ids))
+    api.holds(session.graph.steps, state)
 
-    await sync.sync_strategy_for_site(
-        graph=session.graph, sync_state=state, site_id="plasmodb"
-    )
+    await put_the_graph(session.graph, state, "plasmodb")
 
     assert state.organism_params == {"GenesByTaxon": "organism"}
 

@@ -31,7 +31,7 @@ which refuses a variant that names a combine.
 The name never crosses the WDK wire. `WDKStepTree` carries step ids only
 (WDK-STRAT-001), and a boolean step is created through `create_combined_step`
 with the operator as a parameter (WDK-STEP-002, WDK-STEP-006), so
-`push_step_to_wdk` branches on `StepKind.COMBINE` before the search name is
+the step write in `commit_tree` branches on `StepKind.COMBINE` before the search name is
 ever used.
 
 # The alternative that was rejected

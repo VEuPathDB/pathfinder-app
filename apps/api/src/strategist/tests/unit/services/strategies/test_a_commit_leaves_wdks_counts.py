@@ -8,7 +8,7 @@ numbers.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from typing import Any
 from uuid import uuid4
 
@@ -18,15 +18,6 @@ from procrastinate.testing import InMemoryConnector
 from pydantic import JsonValue
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
-from veupathdb.wdk import (
-    NewStepSpec,
-    PatchStepSpec,
-    StepsMixin,
-    WDKIdentifier,
-    WDKSearchConfig,
-    WDKStep,
-    WDKStrategyDetails,
-)
 from veupathdb_mcp.catalog import ValidatedParams
 
 from strategist.ai.tools.standalone.stream_parts import build_graph_snapshot_payload
@@ -35,21 +26,18 @@ from strategist.domain.strategy.operations import (
     UpdateStepParamsOp,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.services.strategies import (
-    commit,
-    live_counts,
-    stated_sides,
-    step_wdk_push,
-    sync,
-)
+from strategist.services.strategies import commit, stated_sides
 from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
-from strategist.services.strategies.sync import (
-    SyncResult,
-    build_step_tree_from_graph,
-)
+from strategist.services.strategies.sync import build_step_tree_from_graph
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.recording_wdk import (
+    RecordingWDK,
+    held_by_the_site,
+    served,
+)
+from strategist.tests._support.wdk_write_stubs import serve_the_site
 
 _SITE = "vectorbase"
 _STRATEGY = 900
@@ -70,72 +58,13 @@ _RECORDED = {_TEXT: 0, _GO: 152, _INNER: 152, _IPR: 70, _OUTER: 152}
 _LIVE = {_TEXT: 71, _GO: 152, _INNER: 159, _IPR: 70, _OUTER: 159}
 
 
-@dataclass
-class _StubAPI:
-    """The WDK calls a parameter edit makes, with the counts it reads back."""
+class _StubAPI(RecordingWDK):
+    def __init__(self, live: dict[str, int | None]) -> None:
+        super().__init__()
+        self.wdk.sizes = {_WDK_IDS[sid]: size for sid, size in live.items()}
 
-    live: dict[str, int | None]
-    next_id: int = 9000
-
-    delete_orphaned_steps = StepsMixin.delete_orphaned_steps
-
-    async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del step_id, user_id
-
-    async def create_step(
-        self,
-        spec: NewStepSpec,
-        record_type: str,
-        user_id: str | None = None,
-    ) -> WDKIdentifier:
-        del spec, record_type, user_id
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def create_combined_step(self, **_kwargs: Any) -> WDKIdentifier:
-        self.next_id += 1
-        return WDKIdentifier(id=self.next_id)
-
-    async def update_step_search_config(self, **_kwargs: Any) -> None:
-        return None
-
-    async def update_step_properties(
-        self, step_id: int, spec: PatchStepSpec, *, user_id: str | None = None
-    ) -> None:
-        del step_id, spec, user_id
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByText",
-            search_config=WDKSearchConfig(parameters={}),
-        )
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del user_id
-        return WDKStrategyDetails.model_validate(
-            {
-                "strategyId": strategy_id,
-                "name": "edited",
-                "rootStepId": _WDK_IDS[_OUTER],
-                "stepTree": {"stepId": _WDK_IDS[_OUTER]},
-                "steps": {
-                    str(_WDK_IDS[local_id]): {
-                        "id": _WDK_IDS[local_id],
-                        "searchName": "GenesByText",
-                        "searchConfig": {"parameters": {}},
-                        "estimatedSize": size,
-                    }
-                    for local_id, size in self.live.items()
-                },
-            }
-        )
-
-
-_SITE_IS_DOWN = OSError("the site is not answering")
+    def leaves_out(self, step_id: str) -> None:
+        self.wdk.sizes[_WDK_IDS[step_id]] = None
 
 
 def _leaf(step_id: str) -> StrategyStepNode:
@@ -176,6 +105,7 @@ def _seeded_session() -> StrategyMutationContext:
     # new step tree and the counts have only the live read to come from.
     sync_state.wdk_step_tree = build_step_tree_from_graph(root, dict(_WDK_IDS))
     session.sync_state = sync_state
+    held_by_the_site(session)
     return StrategyMutationContext(
         site_id=_SITE,
         strategy_session=session,
@@ -186,30 +116,14 @@ def _seeded_session() -> StrategyMutationContext:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     api = _StubAPI(live=dict(_LIVE))
-    for module in (commit, step_wdk_push, sync, live_counts):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-
-    async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
+    monkeypatch.setitem(served, "site", api)
+    serve_the_site(monkeypatch, api)
 
     async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
         params: dict[str, ParamValue] = dict(kwargs["stated"])
         return ValidatedParams(params=params, record_class="transcript")
 
     monkeypatch.setattr(stated_sides, "validate_parameters", _echo_parameters)
-
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
-
-    async def _refuse_sync(**_kwargs: Any) -> SyncResult:
-        msg = "a parameter edit leaves the step tree alone and puts nothing"
-        raise AssertionError(msg)
-
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _refuse_sync)
 
     async def _noop_persist(*_args: Any, **_kwargs: Any) -> None:
         return None
@@ -241,7 +155,7 @@ class TestTheSessionHoldsTheLiveCounts:
     @pytest.mark.asyncio
     async def test_a_step_the_site_leaves_out_is_unknown(self, wdk: _StubAPI) -> None:
         """A local step the strategy does not hold answers no count at all."""
-        wdk.live.pop(_IPR)
+        wdk.leaves_out(_IPR)
         deps = _seeded_session()
 
         await apply_and_commit(deps=deps, op=_rebind_text())
@@ -283,10 +197,7 @@ class TestTheSnapshotCarriesTheSameNumbers:
 class TestAFailedReadLeavesNoNumberOnTheEditedBranch:
     @pytest.fixture
     def unreadable(self, wdk: _StubAPI, monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
-        async def _down(*_args: Any, **_kwargs: Any) -> WDKStrategyDetails:
-            raise _SITE_IS_DOWN
-
-        monkeypatch.setattr(wdk, "get_strategy", _down)
+        wdk.wdk.answers_before_refusing["strategy read"] = 1
         return wdk
 
     @pytest.mark.asyncio

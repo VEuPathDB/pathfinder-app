@@ -10,10 +10,9 @@ from collections.abc import Iterable, Iterator, Mapping
 
 from cachetools import LRUCache
 from veupathdb.domain.parameters import ParamValue
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, StrategyStep
 from veupathdb_mcp.wdk import compute_plan_step_counts, count_search_answer
 
-from strategist.domain.strategy.session import StrategyGraph
 from strategist.platform.identity import STEP_COUNTS_STRATEGY_NAME
 from strategist.services.strategies.slow_searches import timed
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -39,22 +38,24 @@ async def count_bound_criterion(
     )
 
 
-def _the_step_and_what_reads_it(graph: StrategyGraph, step_id: str) -> Iterator[str]:
-    """The step, and every combine that takes it as an input, up to the root."""
+def _the_step_and_what_reads_it(
+    steps: Mapping[str, StrategyStep], step_id: str
+) -> Iterator[str]:
+    """The step, and every step that takes it as an input, up to the root."""
+    readers = {i: s.id for s in steps.values() for i in s.input_ids()}
     current: str | None = step_id
     seen: set[str] = set()
     while current is not None and current not in seen:
         seen.add(current)
         yield current
-        parent = graph.parent_of(current)
-        current = None if parent is None else parent[0].id
+        current = readers.get(current)
 
 
 def invalidate_counts_for(
     sync_state: WDKSyncState,
     step_ids: Iterable[str],
     *,
-    graph: StrategyGraph,
+    steps: Mapping[str, StrategyStep],
 ) -> None:
     """Mark the cached counts of ``step_ids`` and of their ancestors unknown.
 
@@ -63,7 +64,7 @@ def invalidate_counts_for(
     A stale integer reads as fact.
     """
     for step_id in step_ids:
-        for affected in _the_step_and_what_reads_it(graph, step_id):
+        for affected in _the_step_and_what_reads_it(steps, step_id):
             if affected in sync_state.step_counts:
                 sync_state.step_counts[affected] = None
 

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass, field
-from typing import Any
 
 import pytest
 from veupathdb.domain import SearchContext
@@ -13,11 +11,7 @@ from veupathdb.domain.strategy import StepValidation
 from veupathdb.wdk import (
     WDKParameter,
     WDKSearch,
-    WDKSearchConfig,
     WDKSearchResponse,
-    WDKStep,
-    WDKStepTree,
-    WDKStrategyDetails,
 )
 from veupathdb_mcp.catalog import (
     ParameterInfo,
@@ -30,17 +24,16 @@ from veupathdb_mcp.catalog import (
 from strategist.ai.lead import edit_dispatch
 from strategist.ai.tools.standalone import _frame_canonical, frame_spec
 from strategist.services.strategies import (
-    commit,
+    commit_tree,
     live_counts,
     record_classes,
     sheet_params,
-    step_wdk_push,
-    sync,
 )
 from strategist.tests._support import wdk_write_stubs
 from strategist.tests._support.recorded_searches import (
     no_count,
 )
+from strategist.tests._support.recording_wdk import RecordingWDK, served
 from strategist.tests._support.sheets import declarations
 
 PF = "Plasmodium falciparum 3D7"
@@ -57,97 +50,10 @@ WDK_IDS = {
 }
 
 
-@dataclass
-class Call:
-    name: str
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class RecordingAPI:
-    calls: list[Call] = field(default_factory=list)
-
-    def named(self, name: str) -> list[Call]:
-        return [c for c in self.calls if c.name == name]
-
-    async def update_step_properties(
-        self, step_id: int, spec: object, *, user_id: str | None = None
-    ) -> None:
-        del user_id
-        self.calls.append(
-            Call("update_step_properties", {"step_id": step_id, "spec": spec})
-        )
-
-    async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del user_id
-        self.calls.append(Call("delete_step", {"step_id": step_id}))
-
-    async def update_step_search_config(
-        self,
-        step_id: int,
-        search_config: WDKSearchConfig,
-        record_type: str,
-        search_name: str,
-        *,
-        user_id: str | None = None,
-    ) -> None:
-        del user_id, record_type
-        self.calls.append(
-            Call(
-                "update_step_search_config",
-                {
-                    "step_id": step_id,
-                    "search_name": search_name,
-                    "parameters": dict(search_config.parameters),
-                },
-            )
-        )
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByProfile",
-            search_config=WDKSearchConfig(parameters={}),
-        )
-
-    async def update_strategy(
-        self,
-        strategy_id: int,
-        step_tree: WDKStepTree | None = None,
-        name: str | None = None,
-        user_id: str | None = None,
-        *,
-        description: str | None = None,
-    ) -> WDKStrategyDetails:
-        del user_id, description
-        self.calls.append(
-            Call(
-                "update_strategy",
-                {"strategy_id": strategy_id, "step_tree": step_tree, "name": name},
-            )
-        )
-        return await self.get_strategy(strategy_id)
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del user_id
-        return WDKStrategyDetails(
-            strategy_id=strategy_id,
-            name="Test strategy",
-            root_step_id=500,
-            step_tree=WDKStepTree(step_id=500),
-            steps={
-                str(wdk_id): WDKStep(
-                    id=wdk_id,
-                    search_name="GenesByProfile",
-                    search_config=WDKSearchConfig(parameters={}),
-                    estimated_size=11,
-                )
-                for wdk_id in WDK_IDS.values()
-            },
-        )
+class RecordingAPI(RecordingWDK):
+    def __init__(self) -> None:
+        super().__init__()
+        self.wdk.answer_size = 11
 
 
 def _organism_info() -> ParameterInfo:
@@ -218,7 +124,8 @@ class _SearchDetailsClient:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     api = RecordingAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
+    monkeypatch.setitem(served, "site", api)
+    for module in (commit_tree, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     wdk_write_stubs.stub_every_catalog_read(monkeypatch)

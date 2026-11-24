@@ -1,128 +1,66 @@
-"""A filtered step records the size it has once the filter is on it.
-
-A filter narrows what a step answers, and the site applies it on the step
-rather than on the tree. A count read before the filter reaches the site
-describes the unfiltered step, and that number is what the sync stores.
-"""
-
 from __future__ import annotations
-
-from unittest.mock import AsyncMock, Mock
 
 import pytest
 from veupathdb.domain.strategy import StepFilter, StrategyStepNode, flatten_tree
-from veupathdb.wdk import (
-    StrategyAPI,
-    WDKIdentifier,
-    WDKStrategyDetails,
+
+from strategist.services.strategies.commit_tree import (
+    CommitTarget,
+    CommittedTree,
+    commit_tree,
+)
+from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests.unit.services.strategies.test_one_commit_path_writes_a_strategy import (
+    Env,
 )
 
-from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import sync
-from strategist.services.strategies.sync import SyncResult, sync_strategy_for_site
-from strategist.services.strategies.sync_state import WDKSyncState
-
 _STEP = "step_text"
-_WDK_STEP_ID = 1001
-_STRATEGY = 77
-_UNFILTERED = 1825
-_FILTERED = 71
 
 
-class _Site:
-    """A site whose step answers fewer records once its filter is set."""
-
-    def __init__(self) -> None:
-        self.filtered = False
-
-    def details(self) -> WDKStrategyDetails:
-        return WDKStrategyDetails.model_validate(
-            {
-                "strategyId": _STRATEGY,
-                "rootStepId": _WDK_STEP_ID,
-                "name": "test",
-                "stepTree": {"stepId": _WDK_STEP_ID},
-                "steps": {
-                    str(_WDK_STEP_ID): {
-                        "id": _WDK_STEP_ID,
-                        "searchName": "GenesByText",
-                        "searchConfig": {"parameters": {}},
-                        "estimatedSize": _FILTERED if self.filtered else _UNFILTERED,
-                    }
-                },
-                "recordClassName": "transcript",
-            }
-        )
-
-
-def _api(site: _Site) -> StrategyAPI:
-    api = Mock(spec=StrategyAPI)
-
-    async def create_strategy(*_args: object, **_kwargs: object) -> WDKIdentifier:
-        return WDKIdentifier(id=_STRATEGY)
-
-    async def get_strategy(*_args: object, **_kwargs: object) -> WDKStrategyDetails:
-        return site.details()
-
-    async def set_step_filter(*_args: object, **_kwargs: object) -> None:
-        site.filtered = True
-
-    api.create_strategy = AsyncMock(side_effect=create_strategy)
-    api.get_strategy = AsyncMock(side_effect=get_strategy)
-    api.set_step_filter = AsyncMock(side_effect=set_step_filter)
-    api.update_strategy = AsyncMock(side_effect=NotImplementedError)
-    return api
-
-
-@pytest.fixture
-def site(monkeypatch: pytest.MonkeyPatch) -> _Site:
-    served = _Site()
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: _api(served))
-    return served
-
-
-def _graph() -> StrategyGraph:
-    graph = StrategyGraph("g1", "test", "plasmodb")
+async def _commit(sync_state: WDKSyncState) -> CommittedTree:
     step = StrategyStepNode(
         id=_STEP,
         search_name="GenesByText",
-        filters=[StepFilter(name="gene_boolean_filter_array", value={"values": ["x"]})],
+        filters=[
+            StepFilter(name="matched_transcript_filter_array", value={"values": ["N"]})
+        ],
     )
-    graph.steps = flatten_tree(step)
-    graph.steps[_STEP].record_class = "transcript"
-    graph.record_type = "transcript"
-    graph.recompute_roots()
-    return graph
-
-
-async def _sync(sync_state: WDKSyncState) -> SyncResult:
-    return await sync_strategy_for_site(
-        graph=_graph(), sync_state=sync_state, site_id="plasmodb"
+    return await commit_tree(
+        site_id="plasmodb",
+        steps=flatten_tree(step),
+        root_id=_STEP,
+        old=None,
+        sync_state=sync_state,
+        target=CommitTarget(name="test", description=""),
     )
 
 
-@pytest.mark.asyncio
-async def test_the_session_records_the_filtered_size(site: _Site) -> None:
-    sync_state = WDKSyncState(wdk_step_ids={_STEP: _WDK_STEP_ID})
+async def test_the_filter_reaches_the_step_before_the_strategy_is_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    env = Env(monkeypatch)
 
-    await _sync(sync_state)
+    await _commit(WDKSyncState())
 
-    assert sync_state.step_counts == {_STEP: _FILTERED}
-
-
-@pytest.mark.asyncio
-async def test_the_result_reports_the_filtered_size(site: _Site) -> None:
-    result = await _sync(WDKSyncState(wdk_step_ids={_STEP: _WDK_STEP_ID}))
-
-    assert result.counts == {_STEP: _FILTERED}
-    assert result.root_count == _FILTERED
+    assert [(w.method, w.path.rsplit("/", 1)[-1]) for w in env.wdk.writes] == [
+        ("POST", "steps"),
+        ("PUT", "search-config"),
+        ("POST", "strategies"),
+    ]
 
 
-@pytest.mark.asyncio
-async def test_the_result_links_to_the_result_list_of_its_root(site: _Site) -> None:
-    result = await _sync(WDKSyncState(wdk_step_ids={_STEP: _WDK_STEP_ID}))
+async def test_the_result_reports_the_count_and_links_to_its_root(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    Env(monkeypatch)
+    sync_state = WDKSyncState()
 
-    assert result.wdk_url == (
+    committed = await _commit(sync_state)
+
+    assert committed.sync is not None
+    assert (committed.sync.counts, committed.sync.root_count) == ({_STEP: 100}, 100)
+    assert sync_state.step_counts == {_STEP: 100}
+    assert committed.sync.wdk_url == (
         "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/"
-        f"{_STRATEGY}/{_WDK_STEP_ID}/summary:_default"
+        f"{sync_state.wdk_strategy_id}/{sync_state.wdk_step_ids[_STEP]}"
+        "/summary:_default"
     )

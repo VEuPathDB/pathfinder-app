@@ -25,6 +25,7 @@ from strategist.domain.eda_thread import EdaAnalysisFacts, EdaExport
 from strategist.domain.strategy.build_outcome import BuildOutcome, BuiltCounts
 from strategist.domain.strategy.expression_handles import BuiltPattern
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
+from strategist.domain.strategy.step_settings_text import criterion_settings
 
 __all__ = ["collect_case_candidates"]
 
@@ -109,6 +110,8 @@ def _criterion_row(
         "role": criterion.role,
         "params": _params(criterion, built),
     }
+    if settings := criterion_settings(criterion):
+        row["settings"] = settings
     if criterion.analysis is not None:
         row["analysis"] = criterion.analysis.words
     # The free-text reason and the scores stay out, so a rewording is one case.

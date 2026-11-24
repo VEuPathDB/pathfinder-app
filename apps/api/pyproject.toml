@@ -57,8 +57,8 @@ constraint-dependencies = [
 ]
 [tool.uv.sources]
 assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.9.0b5" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.9.0b15" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.9.0-b20" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.9.0b17" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.9.0-b22" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.9.0b3" }
 
 [build-system]
@@ -358,6 +358,18 @@ name = "The scripted test model never imports the tests"
 type = "forbidden"
 source_modules = ["strategist_scripted"]
 forbidden_modules = ["strategist.tests"]
+
+[[tool.importlinter.contracts]]
+name = "Only the one commit path writes a step or a strategy to WDK"
+type = "protected"
+protected_modules = [
+    "strategist.services.strategies._tree_write",
+    "strategist.services.strategies._wdk_step_calls",
+]
+allowed_importers = [
+    "strategist.services.strategies.commit_tree",
+    "strategist.tests",
+]
 
 
 # A distribution's public surface is what its package exports. A private module

@@ -15,8 +15,9 @@ from strategist.ai.lead import deleted_steps
 from strategist.ai.lead._delete_rules import delete_cascade
 from strategist.ai.lead.deleted_steps import ask_about_the_removals
 from strategist.ai.lead.lead_tools import delete_step
-from strategist.ai.lead.live_state import LiveStepState, LiveStrategyState
+from strategist.ai.lead.live_state import LiveStrategyState
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.tools.standalone.strategy_graph import ShownStep
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.lead.conftest import (
@@ -39,15 +40,15 @@ _LIVE = LiveStrategyState(
     step_count=3,
     root_count=823,
     steps=[
-        LiveStepState(step_id=_UNION, display_name="Union", estimated_size=823),
-        LiveStepState(
-            step_id=_GS,
+        ShownStep(id=_UNION, display_name="Union", estimated_size=823),
+        ShownStep(
+            id=_GS,
             display_name="InterPro Domain",
             search_name="GenesByInterproDomain",
             estimated_size=383,
         ),
-        LiveStepState(
-            step_id=_WB,
+        ShownStep(
+            id=_WB,
             display_name="InterPro Domain",
             search_name="GenesByInterproDomain",
             estimated_size=440,
@@ -118,8 +119,8 @@ def _chain(depth: int) -> tuple[StrategyStepNode, LiveStrategyState]:
     search = "GenesByTransmembraneDomains"
     node = StrategyStepNode(id="leaf_0", search_name=search, display_name=title)
     steps = [
-        LiveStepState(
-            step_id="leaf_0", display_name=title, search_name=search, estimated_size=840
+        ShownStep(
+            id="leaf_0", display_name=title, search_name=search, estimated_size=840
         )
     ]
     for level in range(1, depth + 1):
@@ -128,15 +129,13 @@ def _chain(depth: int) -> tuple[StrategyStepNode, LiveStrategyState]:
         )
         node = combine(f"and_{level}", leaf, node, CombineOp.INTERSECT)
         steps += [
-            LiveStepState(
-                step_id=f"leaf_{level}",
+            ShownStep(
+                id=f"leaf_{level}",
                 display_name=title,
                 search_name=search,
                 estimated_size=1_871,
             ),
-            LiveStepState(
-                step_id=f"and_{level}", display_name="Intersect", estimated_size=116
-            ),
+            ShownStep(id=f"and_{level}", display_name="Intersect", estimated_size=116),
         ]
     live = LiveStrategyState(
         wdk_strategy_id=1, step_count=len(steps), root_count=116, steps=steps

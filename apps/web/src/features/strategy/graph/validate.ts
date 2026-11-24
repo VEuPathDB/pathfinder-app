@@ -36,8 +36,7 @@ function inferKind(step: Step): "search" | "transform" | "combine" | "invalid" {
   // A step with an operator (or explicit kind="combine") is a combine even if
   // one or both inputs were removed.  This ensures combine-specific checks
   // (two inputs required, operator required, etc.) still fire.
-  if ((step.operator != null && step.operator !== "") || step.kind === "combine")
-    return "combine";
+  if (step.operator != null || step.kind === "combine") return "combine";
   if (step.primaryInputStepId != null) return "transform";
   return "search";
 }
@@ -154,7 +153,7 @@ export function validateStrategySteps(steps: Step[]): StrategyGraphError[] {
     }
 
     if (kind === "combine") {
-      if (step.operator == null || step.operator === "") {
+      if (step.operator == null) {
         errors.push({
           code: "MISSING_OPERATOR",
           severity: "error",

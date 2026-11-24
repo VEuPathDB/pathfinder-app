@@ -8,21 +8,27 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.domain.strategy import CombineOp, StrategyAst
+from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
+from veupathdb.wdk import StrategyAPI
 
 from strategist.domain.strategy.operations import (
+    AddCombineOp,
     AddLeafOp,
     AttachNewRoot,
     UpdateStepParamsOp,
 )
-from strategist.domain.strategy.session import StrategyGraph
 from strategist.persistence.models import User
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.services.conversations.responses import derive_steps_from_strategy_ast
-from strategist.services.strategies import commit
-from strategist.services.strategies.commit import apply_and_commit
-from strategist.services.strategies.sync import SyncResult
+from strategist.services.strategies import _tree_write, commit_tree
+from strategist.services.strategies._tree_write import TreeTarget, WrittenTree
+from strategist.services.strategies.commit import (
+    apply_and_commit,
+    apply_operations_and_commit,
+)
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.held_steps import BOOLEAN_SEARCH
+from strategist.tests._support.holding_wdk import held_definition
 from strategist.tests._support.recorded_searches import suite_search
 from strategist.tests._support.wdk_write_stubs import validate_against
 from strategist.tests.integration.services.strategies._commit_wire import (
@@ -45,29 +51,26 @@ SITE_COUNTS = {"step_a": 11, "step_b": 22, "step_c": 5, "step_d": 40}
 class SiteThatCounts:
     """A push that stores what the site answers for each step, as the real sync does."""
 
+    site: CountingAPI
     pushed: int = 0
 
-    async def sync(
+    async def put(
         self,
-        *,
-        graph: StrategyGraph,
-        sync_state: WDKSyncState,
+        api: StrategyAPI,
         site_id: str,
-        strategy_name: str | None = None,
-        user_prompt: str = "",
-    ) -> SyncResult:
-        del site_id, strategy_name, user_prompt
+        root: StrategyStepNode,
+        record_type: str,
+        sync_state: WDKSyncState,
+        target: TreeTarget,
+    ) -> WrittenTree | None:
         self.pushed += 1
-        sync_state.step_counts = {sid: SITE_COUNTS.get(sid) for sid in graph.steps}
-        return SyncResult(
-            wdk_strategy_id=555,
-            wdk_url="http://test",
-            root_step_id=0,
-            counts=dict(sync_state.step_counts),
-            root_count=None,
-            zero_step_ids=[],
-            step_count=len(graph.steps),
+        written = await _tree_write.put_the_tree(
+            api, site_id, root, record_type, sync_state, target
         )
+        self.site.wdk.sizes.update(
+            {sync_state.wdk_step_ids[n.id]: SITE_COUNTS.get(n.id) for n in walk(root)}
+        )
+        return written
 
 
 @pytest.fixture
@@ -90,10 +93,17 @@ async def seed_user(db_session: AsyncSession) -> User:
 
 @pytest.fixture
 def site(monkeypatch: pytest.MonkeyPatch) -> SiteThatCounts:
-    counting = SiteThatCounts()
-    patch_strategy_api(monkeypatch, CountingAPI())
-    validate_against(monkeypatch, [suite_search("search_genes_by_taxon")])
-    monkeypatch.setattr(commit, "sync_strategy_for_site", counting.sync)
+    api = CountingAPI()
+    counting = SiteThatCounts(site=api)
+    patch_strategy_api(monkeypatch, api)
+    validate_against(
+        monkeypatch,
+        [
+            suite_search("search_genes_by_taxon"),
+            held_definition(BOOLEAN_SEARCH),
+        ],
+    )
+    monkeypatch.setattr(commit_tree, "put_the_tree", counting.put)
     return counting
 
 
@@ -153,11 +163,25 @@ async def test_a_new_step_answers_with_its_count(
         db_session_factory=session_maker,
     )
 
-    await apply_and_commit(
-        deps=deps, op=AddLeafOp(step=leaf("step_d"), attach=AttachNewRoot())
+    await apply_operations_and_commit(
+        deps=deps,
+        ops=[
+            AddLeafOp(step=leaf("step_d"), attach=AttachNewRoot()),
+            AddCombineOp(
+                step=StrategyStepNode(
+                    id="step_c", search_name="__combine__", operator=CombineOp.UNION
+                ),
+                left_id="step_a",
+                right_id="step_d",
+            ),
+        ],
     )
 
-    assert await _sizes(session_maker, conv_id) == {"step_a": 11, "step_d": 40}
+    assert await _sizes(session_maker, conv_id) == {
+        "step_a": 11,
+        "step_d": 40,
+        "step_c": 5,
+    }
     assert site.pushed == 1
 
 

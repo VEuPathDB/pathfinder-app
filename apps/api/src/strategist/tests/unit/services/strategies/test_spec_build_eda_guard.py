@@ -7,7 +7,6 @@ from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.domain.strategy import (
     StepValidation,
-    StrategyStep,
     StrategyStepNode,
     flatten_tree,
 )
@@ -26,12 +25,14 @@ from veupathdb_mcp.catalog import (
     ValidationCallbacks,
 )
 
-from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.services.eda.authoring import new_analysis, serialize_spec
-from strategist.services.strategies import spec_build
+from strategist.services.strategies import commit_tree
+from strategist.services.strategies.commit_tree import CommitTarget, CommittedTree
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.catalog_builders import serve_search_details
 from strategist.tests._support.record_classes import list_every_search_under
+
+from ._counting_strategy_api import CountingStrategyAPI
 
 _DATASET_ID = "DS_e973eadd57"
 _DESEQ_SEARCH = "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCDESeq"
@@ -111,9 +112,9 @@ def _callbacks(site_id: str, **_kw: object) -> ValidationCallbacks:
     )
 
 
-def _serve(monkeypatch: pytest.MonkeyPatch) -> list[StrategyStep]:
-    """Answer the WDK reads, and record every step that reaches the push."""
-    pushed: list[StrategyStep] = []
+def _serve(monkeypatch: pytest.MonkeyPatch) -> CountingStrategyAPI:
+    """Answer the WDK reads, and record every step write."""
+    api = CountingStrategyAPI()
 
     async def _resolved(
         ctx: SearchContext,
@@ -124,27 +125,14 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> list[StrategyStep]:
         del ctx, resolved_record_type, parameters
         return ResolvedSearch(response=_response(), values_were_read=True)
 
-    async def _push(
-        *,
-        sync_state: WDKSyncState,
-        step: StrategyStep,
-        site_id: str,
-        record_type: str,
-        search_name: str,
-        parameters: dict[str, ParamValue],
-    ) -> tuple[int | None, StepValidation | None, str | None]:
-        del sync_state, site_id, record_type, search_name, parameters
-        pushed.append(step)
-        return 440185943, None, None
-
     serve_search_details(monkeypatch, _resolved)
     list_every_search_under(monkeypatch, "transcript")
-    monkeypatch.setattr(spec_build, "make_validation_callbacks", _callbacks)
-    monkeypatch.setattr(spec_build, "push_step_to_wdk", _push)
-    return pushed
+    monkeypatch.setattr(commit_tree, "make_validation_callbacks", _callbacks)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site: api)
+    return api
 
 
-async def _build(spec: str) -> tuple[BuildOutcome, WDKSyncState]:
+async def _build(spec: str) -> CommittedTree:
     root = StrategyStepNode(
         search_name=_DESEQ_SEARCH,
         parameters={
@@ -152,27 +140,24 @@ async def _build(spec: str) -> tuple[BuildOutcome, WDKSyncState]:
             EDA_ANALYSIS_SPEC_PARAM: StringValue(value=spec),
         },
     )
-    steps = flatten_tree(root)
-    outcome = BuildOutcome()
-    sync_state = WDKSyncState()
-    await spec_build._push_tree_to_wdk(
-        nodes=[steps[root.id]],
-        held={},
+    return await commit_tree.commit_tree(
         site_id="plasmodb",
-        sync_state=sync_state,
-        outcome=outcome,
+        steps=flatten_tree(root),
+        root_id=root.id,
+        old=None,
+        sync_state=WDKSyncState(),
+        target=CommitTarget(name="DESeq", description=""),
     )
-    return outcome, sync_state
 
 
 class TestTheInventedSpecNeverReachesCreateStep:
     @pytest.mark.asyncio
     async def test_no_step_is_pushed(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        pushed = _serve(monkeypatch)
+        api = _serve(monkeypatch)
 
         await _build(_INVENTED_SPEC)
 
-        assert pushed == []
+        assert api.calls == []
 
     @pytest.mark.asyncio
     async def test_the_node_fails_with_the_eda_guidance(
@@ -180,21 +165,22 @@ class TestTheInventedSpecNeverReachesCreateStep:
     ) -> None:
         _serve(monkeypatch)
 
-        outcome, _sync = await _build(_INVENTED_SPEC)
+        committed = await _build(_INVENTED_SPEC)
 
-        assert len(outcome.failed_steps) == 1
-        failure = outcome.failed_steps[0]
-        assert failure.search_name == _DESEQ_SEARCH
-        assert "an analysis is opened on it" in failure.error
-        assert "The step is built from the open analysis." in failure.error
+        (refusal,) = committed.drafts.values()
+        assert committed.failures == []
+        assert "an analysis is opened on it" in refusal
+        assert "The step is built from the open analysis." in refusal
 
     @pytest.mark.asyncio
     async def test_an_authored_spec_still_pushes(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        pushed = _serve(monkeypatch)
+        api = _serve(monkeypatch)
 
-        outcome, _sync = await _build(_authored_spec())
+        committed = await _build(_authored_spec())
 
-        assert outcome.failed_steps == []
-        assert [step.search_name for step in pushed] == [_DESEQ_SEARCH]
+        assert (committed.failures, committed.drafts) == ([], {})
+        assert [c.kwargs["search_name"] for c in api.named("create_step")] == [
+            _DESEQ_SEARCH
+        ]

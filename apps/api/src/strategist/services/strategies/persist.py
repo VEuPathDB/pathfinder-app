@@ -19,6 +19,7 @@ from strategist.persistence.repositories.conversation_update import (
 )
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.sync import SyncResult
+from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.services.strategies.write_lock import strategy_write_scope
 
 logger = get_logger(__name__)
@@ -72,6 +73,9 @@ async def persist_strategy_ast_to_conversation(
                     wdk_strategy_created_here=True if minted else None,
                     is_saved=False if minted else None,
                     step_count=_total_step_count(merged_ast),
+                    replaced_wdk_step_ids=list(
+                        ensure_sync_state(deps.strategy_session).replaced_wdk_step_ids
+                    ),
                 ),
             )
     except (VEuPathDBError, OSError, RuntimeError) as exc:

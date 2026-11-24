@@ -30,7 +30,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.operations import GraphOperation, ReplaceSubtreeOp
 from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.domain.strategy.step_naming import criterion_title
+from strategist.domain.strategy.spec_tree import node_for
 
 __all__ = [
     "COPY_UNSTATED",
@@ -39,7 +39,6 @@ __all__ = [
     "UnsupportedEditError",
     "criterion_for",
     "live_join",
-    "node_for",
     "restructure",
 ]
 
@@ -76,16 +75,6 @@ class EditPlan:
     def emit(self, op: GraphOperation) -> None:
         self.ops.append(op)
         apply_operation(self.graph, op)
-
-
-def node_for(criterion: Criterion) -> StrategyStepNode:
-    return StrategyStepNode(
-        id=criterion.id,
-        search_name=criterion.search_name,
-        parameters=criterion.step_parameters,
-        display_name=criterion_title(criterion).name,
-        wdk_weight=criterion.weight,
-    )
 
 
 def criterion_for(plan: EditPlan, node: StructureNode) -> Criterion:
@@ -147,7 +136,7 @@ def _target_transform(node: StructureNode, plan: EditPlan) -> StrategyStepNode:
 def _target_combine(node: StructureNode, plan: EditPlan) -> StrategyStepNode:
     left = target(node.inputs[0], plan)
     for extra in node.inputs[1:]:
-        left = _target_join(plan, left, target(extra, plan), node.combine_operator)
+        left = _target_join(plan, left, target(extra, plan), node)
     return left
 
 
@@ -155,15 +144,15 @@ def _target_join(
     plan: EditPlan,
     left: StrategyStepNode,
     right: StrategyStepNode,
-    operator: CombineOp,
+    node: StructureNode,
 ) -> StrategyStepNode:
     """The combine over the two branches: the live one, or a new one."""
-    existing = live_join(plan.graph, left.id, right.id, operator)
+    existing = live_join(plan.graph, left.id, right.id, node.combine_operator)
     if existing is None:
         join = flat_join(
             left,
             right,
-            operator,
+            node.combine_operator,
             left_nests=left.primary_input is not None,
             right_nests=right.primary_input is not None,
         )
@@ -171,6 +160,7 @@ def _target_join(
             id=generate_step_id(),
             search_name=COMBINE_SEARCH_NAME,
             operator=join.operator,
+            colocation_params=node.region(),
             display_name=combine_display_name(join.operator),
             primary_input=join.primary,
             secondary_input=join.secondary,
@@ -179,14 +169,14 @@ def _target_join(
     primary, secondary = (
         (left, right) if live.primary_input_id == left.id else (right, left)
     )
-    return rebuild_tree(live.id, plan.graph.steps).model_copy(
-        update={
+    held = rebuild_tree(live.id, plan.graph.steps)
+    return StrategyStepNode(
+        **{
+            **dict(held),
             "operator": existing.operator,
+            "colocation_params": node.region(live.colocation_params),
             "display_name": combine_name(
                 live.display_name, live.search_name, existing.operator
-            ),
-            "colocation_params": (
-                live.colocation_params if live.operator is existing.operator else None
             ),
             "primary_input": primary,
             "secondary_input": secondary,

@@ -57,7 +57,7 @@ def _spec(*criteria: Criterion, root: StructureNode) -> OperationalSpec:
 
 
 def test_a_built_leaf_is_titled_by_its_search() -> None:
-    root = build_step_tree(_spec(_EXPORTED, root=spec_leaf("c_gpi"))).root
+    root = build_step_tree(_spec(_EXPORTED, root=spec_leaf("c_gpi")))
 
     assert root.display_name == "Exported Protein"
 
@@ -67,7 +67,7 @@ def test_a_built_transform_is_titled_by_its_search() -> None:
         _EXPORTED, _ORTHOLOGS, root=spec_transform("c_orth", spec_leaf("c_gpi"))
     )
 
-    root = build_step_tree(spec).root
+    root = build_step_tree(spec)
 
     assert (
         root.display_name,
@@ -81,7 +81,7 @@ def test_a_built_transform_is_titled_by_its_search() -> None:
 def test_a_criterion_with_no_known_search_name_keeps_its_words() -> None:
     bare = _EXPORTED.model_copy(update={"search_display_name": None})
 
-    root = build_step_tree(_spec(bare, root=spec_leaf("c_gpi"))).root
+    root = build_step_tree(_spec(bare, root=spec_leaf("c_gpi")))
 
     assert root.display_name == "genes with a predicted GPI anchor"
 
@@ -189,16 +189,16 @@ def test_a_hydrated_criterion_states_the_researchers_words() -> None:
     )
 
 
-def test_the_words_are_keyed_by_the_step_each_criterion_built() -> None:
+def test_the_words_are_keyed_by_each_criterions_id() -> None:
     spec = _spec(
         _EXPORTED, _ORTHOLOGS, root=spec_transform("c_orth", spec_leaf("c_gpi"))
     )
 
-    texts = step_words(spec, {"c_gpi": "step_1", "c_orth": "step_2"}).criterion_texts
+    texts = step_words(spec).criterion_texts
 
     assert texts == {
-        "step_1": "genes with a predicted GPI anchor",
-        "step_2": "their P. vivax orthologs",
+        "c_gpi": "genes with a predicted GPI anchor",
+        "c_orth": "their P. vivax orthologs",
     }
 
 

@@ -63,6 +63,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from testcontainers.community.postgres import PostgresContainer
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.eda import close_all_eda_clients
 from veupathdb.wdk import forget_signing_keys, get_site_router
 from veupathdb_mcp.embeddings import (
@@ -394,6 +395,13 @@ def _clear_identity_caches() -> Generator[None]:
     _drop_identity_caches()
     yield
     _drop_identity_caches()
+
+
+@pytest.fixture(autouse=True)
+def _sign_out_around_a_test() -> Generator[None]:
+    veupathdb_auth_token_ctx.set(None)
+    yield
+    veupathdb_auth_token_ctx.set(None)
 
 
 def _drop_eda_study_caches() -> None:

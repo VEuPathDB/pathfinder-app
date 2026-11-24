@@ -12,7 +12,7 @@ from uuid import UUID
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb.domain.strategy import StrategyAst, walk
+from veupathdb.domain.strategy import StrategyAst, flatten_tree
 from veupathdb.errors import SiteNotFoundError
 
 from strategist.domain.modes import ThreadMode
@@ -20,16 +20,15 @@ from strategist.domain.strategy.revision import (
     parse_strategy_ast,
     strategy_revision,
 )
+from strategist.domain.strategy.step_words import StepWords
 from strategist.persistence.models import ConversationStrategyView
 from strategist.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies.result_list import result_list_url
-from strategist.services.strategies.schemas import (
-    StepResponse,
-    step_response_from_strategy_ast,
-)
+from strategist.services.strategies.schemas import StepResponse, step_response
+from strategist.services.strategies.sync_state import WDKSyncState
 
 
 class StepRecord(CamelModel):
@@ -108,10 +107,26 @@ def derive_steps_from_strategy_ast(payload: StrategyAst | None) -> list[StepResp
     """
     if payload is None:
         return []
-    nodes = list(walk(payload.root))
+    steps = flatten_tree(payload.root)
     for detached in payload.detached_roots:
-        nodes.extend(walk(detached))
-    return [step_response_from_strategy_ast(payload, step) for step in nodes]
+        steps.update(flatten_tree(detached))
+    sync = WDKSyncState(
+        wdk_step_ids=payload.wdk_step_ids or {},
+        step_counts=dict(payload.step_counts or {}),
+        step_validations=payload.step_validations or {},
+        wdk_push_errors=payload.wdk_push_errors or {},
+    )
+    words = StepWords.of(payload)
+    return [
+        step_response(
+            step,
+            steps=steps,
+            record_type=payload.record_type,
+            words=words,
+            sync=sync,
+        )
+        for step in steps.values()
+    ]
 
 
 def extract_strategy_description(payload: StrategyAst | None) -> str | None:

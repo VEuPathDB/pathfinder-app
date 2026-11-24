@@ -14,22 +14,24 @@ _LIVE = "get_live_strategy_state"
 
 
 class _Step(ToolAnswer):
-    step_id: str
+    id: str
     display_name: str = ""
     estimated_size: int | None = None
-    is_root: bool = False
 
 
 class _Live(ToolAnswer):
+    root_step_id: str | None = None
     steps: list[_Step] = Field(default_factory=list)
 
 
 def _answer(live: _Live | None) -> str:
+    if live is None:
+        return "The strategy read did not answer."
     leaf = next(
         (
             s
-            for s in ([] if live is None else live.steps)
-            if not s.is_root and s.estimated_size is not None
+            for s in live.steps
+            if s.id != live.root_step_id and s.estimated_size is not None
         ),
         None,
     )

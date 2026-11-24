@@ -40,7 +40,7 @@ from strategist.services.gene_sets.types import (
     ResultNotGenes,
     ResultWithoutGenes,
 )
-from strategist.services.strategies import sync
+from strategist.services.strategies import commit_tree
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import (
     defer_the_gene_set_refresh,
@@ -58,9 +58,13 @@ from strategist.tests._support.read_saves_back import (
     BEFORE_THE_DELETE,
     GO,
     INNER,
+    OUTER,
     TEXT,
     ReadSavesBack,
     strategy_api_on,
+)
+from strategist.tests._support.wdk_write_stubs import (
+    put_the_graph,
 )
 
 # The worker carries the researcher's WDK token into the job.
@@ -335,7 +339,7 @@ async def site(monkeypatch: pytest.MonkeyPatch) -> ReadSavesBack:
     served = ReadSavesBack(put_waits_for_a_reader=False)
     served.release_the_put.clear()
     api = await strategy_api_on(served)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit_tree, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(strategy_genes, "get_strategy_api", lambda _site_id: api)
 
     async def _genes(_site_id: str, _root: WDKStep) -> StepGenes:
@@ -359,6 +363,7 @@ def _graph_after_the_delete() -> StrategyGraph:
     )
     for step in graph.steps.values():
         step.record_class = "transcript"
+        step.filters_wdk_added = []
     graph.recompute_roots()
     return graph
 
@@ -370,24 +375,25 @@ async def test_the_job_reads_the_strategy_after_the_tree_write_ends(
     try:
         await store_root(thread, CombineOp.INTERSECT)
         save = asyncio.create_task(
-            sync.sync_strategy_for_site(
-                graph=_graph_after_the_delete(),
-                sync_state=WDKSyncState(
+            put_the_graph(
+                _graph_after_the_delete(),
+                WDKSyncState(
                     wdk_step_ids={"text": TEXT, "go": GO, "join": INNER},
                     wdk_strategy_id=_WDK_STRATEGY,
                     wdk_step_tree=BEFORE_THE_DELETE,
                     wdk_strategy_name="Kinases",
                 ),
-                site_id="plasmodb",
+                "plasmodb",
             )
         )
         await site.put_started.wait()
+        read_before_the_write = len(site.reads)
         refresh = asyncio.create_task(run_refresh_job(thread))
         async with asyncio.timeout(10):
             await strategy_line.a_request_waits.wait()
         for _ in range(20):
             await asyncio.sleep(0)
-        read_during_the_write = list(site.reads)
+        read_during_the_write = site.reads[read_before_the_write:]
 
         site.release_the_put.set()
         await asyncio.gather(save, refresh)
@@ -395,6 +401,6 @@ async def test_the_job_reads_the_strategy_after_the_tree_write_ends(
         veupathdb_auth_token_ctx.reset(reset)
 
     assert read_during_the_write == []
-    assert site.reads == [INNER, INNER, INNER]
+    assert site.reads == [OUTER, INNER, INNER, INNER]
     assert site.held == AFTER_THE_DELETE
     assert (await _stored()).gene_ids == _INTERSECT

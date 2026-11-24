@@ -34,6 +34,7 @@ class ConversationUpdate:
     gene_set_id_set: bool = False
     gene_set_auto_imported: bool | None = None
     imported_saved_strategy_ids: list[int] | None = None
+    replaced_wdk_step_ids: list[int] | None = None
     generated_name_seed: NameSeed | None = None
     generated_name_seed_set: bool = False
     touch_updated_at: bool = True
@@ -53,6 +54,9 @@ class ConversationUpdate:
             "imported_saved_strategy_ids": None
             if self.imported_saved_strategy_ids is None
             else list(self.imported_saved_strategy_ids),
+            "replaced_wdk_step_ids": None
+            if self.replaced_wdk_step_ids is None
+            else list(self.replaced_wdk_step_ids),
         }
         flagged: dict[str, tuple[bool, Any]] = {
             "wdk_strategy_id": (self.wdk_strategy_id_set, self.wdk_strategy_id),

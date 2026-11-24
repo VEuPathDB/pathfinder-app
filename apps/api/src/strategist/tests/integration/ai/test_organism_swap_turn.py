@@ -40,6 +40,7 @@ from strategist.domain.strategy.spec_hydration import spec_from_ast
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.recording_wdk import held_by_the_site
 from strategist.tests.integration.ai._organism_swap_wire import (
     DERISI,
     PF,
@@ -160,6 +161,7 @@ def _deps(conv_id: UUID, session_maker: Any) -> LeadDeps:
     session.sync_state = WDKSyncState(
         wdk_step_ids=dict(WDK_IDS), wdk_strategy_id=777, step_counts={}
     )
+    held_by_the_site(session)
     before = _before()
     state = PipelineState(
         conversation_id=conv_id,

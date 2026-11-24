@@ -32,6 +32,7 @@ from strategist.domain.strategy.reading_choices import reading_choice_lines
 from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.domain.strategy.spec_diff import SpecDiff, diff_specs
 from strategist.domain.strategy.staleness import StaleBuild
+from strategist.domain.strategy.step_settings_text import colocation_text
 from strategist.domain.strategy.value_binding import plain_value
 
 RecoveryKind = Literal[
@@ -105,6 +106,8 @@ def render_structure(node: StructureNode, spec: OperationalSpec) -> str:
         return f"COPY {render_structure(node.inputs[0], spec)}"
     op = node.combine_operator.value
     inner = f" {op} ".join(render_structure(child, spec) for child in node.inputs)
+    if (region := node.region()) is not None:
+        inner = f"{inner}; {colocation_text(region)}"
     return f"({inner})"
 
 

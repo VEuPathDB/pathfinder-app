@@ -34,7 +34,7 @@ from strategist.tests._support.sheets import visible_sheet
 
 
 def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
-    return build_step_tree(spec).root
+    return build_step_tree(spec)
 
 
 def _text_leaf() -> StrategyStepNode:

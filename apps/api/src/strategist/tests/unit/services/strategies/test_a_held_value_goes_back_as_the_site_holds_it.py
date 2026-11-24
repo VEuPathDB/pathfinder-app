@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, override
 
 import pytest
 from veupathdb.domain.parameters import (
@@ -18,18 +17,18 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb.domain.strategy import (
     StepKind,
+    StepSettings,
     StepValidation,
     StrategyAst,
     StrategyStep,
     StrategyStepNode,
     flatten_tree,
 )
-from veupathdb.wdk import StrategyAPI, WDKIdentifier, WDKSearchConfig
+from veupathdb.wdk import NewStepSpec, StrategyAPI, WDKIdentifier, WDKSearchConfig
 from veupathdb_mcp.catalog import ValidatedParams
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.ai.agents.strategy_instructions import _render_step_params
-from strategist.domain.strategy.edit_plan import node_for
 from strategist.domain.strategy.operations import (
     AddLeafOp,
     AttachNewRoot,
@@ -38,7 +37,9 @@ from strategist.domain.strategy.operations import (
 from strategist.domain.strategy.operations.apply import apply_operation
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_hydration import spec_from_ast
+from strategist.domain.strategy.spec_tree import node_for
 from strategist.persistence.models import PersistedStrategyGraph
+from strategist.services.conversations.responses import derive_steps_from_strategy_ast
 from strategist.services.experiment import variant_comparison
 from strategist.services.experiment.variant_comparison import (
     VariantComparison,
@@ -47,12 +48,13 @@ from strategist.services.experiment.variant_comparison import (
     counted_in_place,
 )
 from strategist.services.separation.thread_searches import thread_searches
-from strategist.services.strategies import site_changes, stated_sides, step_wdk_push
+from strategist.services.strategies import site_changes, stated_sides
 from strategist.services.strategies._wdk_step_calls import _put_search_config
-from strategist.services.strategies.schemas import step_response_from_strategy_ast
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
+from strategist.tests._support.recording_wdk import RecordingWDK
+from strategist.tests._support.wdk_write_stubs import commit_against
 
 _RETIRED: dict[str, ParamValue] = {
     "text_expression": HeldValue(wire="kinase"),
@@ -99,7 +101,12 @@ async def _put(monkeypatch: pytest.MonkeyPatch, step: StrategyStep) -> dict[str,
     api = StrategyAPI.__new__(StrategyAPI)
     monkeypatch.setattr(api, "update_step_search_config", record)
     await _put_search_config(
-        api, WDKSyncState(wdk_step_ids={step.id: 10}), step, "transcript"
+        api,
+        WDKSyncState(wdk_step_ids={step.id: 10}),
+        step,
+        "transcript",
+        step.parameters,
+        StepSettings(),
     )
     return dict(sent[0].parameters)
 
@@ -111,7 +118,7 @@ def test_an_imported_retired_step_keeps_its_values_and_wdks_verdict() -> None:
     )
     graph = session.graph
     assert graph is not None
-    response = step_response_from_strategy_ast(_imported(), _imported().root)
+    response = derive_steps_from_strategy_ast(_imported())[0]
 
     assert graph.steps["10"].parameters == _RETIRED
     assert ensure_sync_state(session).step_validations == {"10": _REFUSED}
@@ -123,34 +130,19 @@ async def test_an_imported_retired_step_is_created_byte_identical(
 ) -> None:
     created: list[WDKSearchConfig] = []
 
-    class _Api:
+    class _Api(RecordingWDK):
+        @override
         async def create_step(
-            self, spec: Any, *, record_type: str, verbatim: Collection[str] = ()
+            self, spec: NewStepSpec, record_type: str, user_id: str | None = None
         ) -> WDKIdentifier:
-            del record_type
             created.append(spec.search_config)
-            return WDKIdentifier(id=11)
+            return await super().create_step(spec, record_type, user_id)
 
-        async def find_step(self, step_id: int) -> Any:
-            del step_id
-            raise OSError
-
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: _Api())
-    step = StrategyStep(
-        id="10",
-        kind=StepKind.SEARCH,
-        search_name="GenesByRetiredText",
-        parameters=dict(_RETIRED),
+    step = StrategyStepNode(
+        id="10", search_name="GenesByRetiredText", parameters=dict(_RETIRED)
     )
 
-    await step_wdk_push.push_step_to_wdk(
-        sync_state=WDKSyncState(),
-        step=step,
-        site_id="plasmodb",
-        record_type="transcript",
-        search_name="GenesByRetiredText",
-        parameters=step.parameters,
-    )
+    await commit_against(monkeypatch, _Api(), step, before=None, held={})
 
     assert dict(created[0].parameters) == {
         "text_expression": "kinase",

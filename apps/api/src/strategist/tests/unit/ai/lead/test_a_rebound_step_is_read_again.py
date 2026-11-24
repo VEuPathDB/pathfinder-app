@@ -40,6 +40,7 @@ from strategist.tests._support.analysis_catalog import (
     serve_the_catalog,
 )
 from strategist.tests._support.bound_values import bound
+from strategist.tests._support.recording_wdk import held_by_the_site
 from strategist.tests._support.run_context import turn_runtime
 from strategist.tests.unit.ai.lead._analysis_thread import document
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import install_stub_api
@@ -69,6 +70,7 @@ def _session(node: StrategyStepNode, stamped: StampedKind | None) -> StrategySes
     session = StrategySession(site_id="plasmodb")
     session.graph = graph
     session.sync_state = WDKSyncState(wdk_step_ids={node.id: 101}, wdk_strategy_id=42)
+    held_by_the_site(session)
     return session
 
 

@@ -9,12 +9,11 @@ import respx
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStepTree, get_site
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies.sync import sync_strategy_for_site
 from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.tests._support.wdk_write_stubs import put_the_graph
 
 _USER = 1000000104
 _STRATEGY = 214648770
@@ -134,29 +133,33 @@ async def test_the_put_after_a_delete_sends_the_tree_without_the_step() -> None:
     state = _held()
     with respx.mock(assert_all_called=False) as router:
         put = _site(router, httpx.Response(204))
-        result = await sync_strategy_for_site(
-            graph=_the_graph_after_the_delete(), sync_state=state, site_id="plasmodb"
+        committed = await put_the_graph(
+            _the_graph_after_the_delete(), state, "plasmodb"
         )
 
     assert [json.loads(call.request.content) for call in put.calls] == [
         {"stepTree": {"stepId": _SIGNAL}}
     ]
-    assert (result.wdk_strategy_id, result.counts) == (_STRATEGY, {"signal": 479})
+    assert committed.sync is not None
+    assert (committed.sync.wdk_strategy_id, committed.sync.counts) == (
+        _STRATEGY,
+        {"signal": 479},
+    )
     assert state.wdk_step_tree == WDKStepTree(step_id=_SIGNAL)
 
 
 @pytest.mark.usefixtures("signed_in")
-async def test_a_put_the_site_refuses_raises_and_mints_no_strategy() -> None:
+async def test_a_put_the_site_refuses_is_a_failure_and_mints_no_strategy() -> None:
     state = _held()
     with respx.mock(assert_all_called=False) as router:
         _site(router, httpx.Response(422, json=_REFUSED))
-        with pytest.raises(WDKError, match=f"{_GO} is not a valid step ID"):
-            await sync_strategy_for_site(
-                graph=_the_graph_after_the_delete(),
-                sync_state=state,
-                site_id="plasmodb",
-            )
+        committed = await put_the_graph(
+            _the_graph_after_the_delete(), state, "plasmodb"
+        )
         minted = [call for call in router.calls if call.request.method == "POST"]
+
+    assert [f.step_id for f in committed.failures] == ["signal"]
+    assert f"{_GO} is not a valid step ID" in committed.failures[0].error
 
     assert minted == []
     assert (state.wdk_strategy_id, state.wdk_step_tree) == (
