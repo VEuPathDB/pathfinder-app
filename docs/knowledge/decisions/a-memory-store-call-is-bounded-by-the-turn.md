@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A memory-store call is bounded by the turn, and neither call fails the turn
-description: Retrieval at Lead entry and the auto-write in finalize_turn run under memory_store_timeout_seconds (default 30); exhaustion raises MemoryStoreTimeoutError, which retrieval logs and degrades to no memories. The auto-write runs after the reply is on the wire, so any failure of it is logged and dropped and the turn ends with its reply; re-raising it was measured replacing a finished reply with a stop message. An unbounded await was measured parking a test run for the full 600 s ceiling. The store's batch task is also ended with the store, so a closed store leaves nothing pending.
+description: Retrieval at Lead entry and the auto-write in finalize_turn run under memory_store_timeout_seconds (default 30); exhaustion raises MemoryStoreTimeoutError, which retrieval logs and degrades to an unread memory the turn briefing names. The auto-write runs after the reply is on the wire, so any failure of it is logged and dropped and the turn ends with its reply; re-raising it was measured replacing a finished reply with a stop message. An unbounded await was measured parking a test run for the full 600 s ceiling. The store's batch task is also ended with the store, so a closed store leaves nothing pending.
 tags: [memory, langgraph, jobs, worker, reliability, chat]
 generated: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-29T00:00:00Z }
@@ -10,14 +10,15 @@ status: stable
 
 # What was decided
 
-A turn touches the LangGraph store twice: `ai/graph/_lead_turn.py::retrieve_memories`
-at Lead entry and `auto_write_memories` in `finalize_turn`. Both now run inside
+A turn touches the LangGraph store at Lead entry (`ai/graph/_lead_turn.py::retrieve_memories`
+and `memory_index`) and in `finalize_turn` (`auto_write_memories`). All run inside
 `assistant_core.memory.deadline.memory_store_deadline`, an `asyncio.timeout`
 whose window is `memory_store_timeout_seconds` (default 30). Exhaustion raises
 `MemoryStoreTimeoutError`, which carries the operation and the window.
 
-**Retrieval degrades**: it logs a warning naming the thread and returns `[]`,
-and the turn runs on the user's prompt alone. **The auto-write is dropped**:
+**Retrieval degrades**: each read logs a warning and returns `Unread`; the turn
+briefing says the saved preferences were not read and the other memories were not
+counted (`recalled`, `indexed`), and the turn runs on the user's prompt alone. **The auto-write is dropped**:
 `ai/graph/nodes.py::_write_the_notes` logs any exception it raises, the
 timeout included, and `finalize_turn` ends the turn as it would with no
 notes. The saved gene sets stay on the state, so the next verified turn
