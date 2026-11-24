@@ -103,7 +103,8 @@ def build_not_ready_message(spec: OperationalSpec | None) -> str:
     ]
     if not open_params:
         calls = ", ".join(
-            f'create_eda_step(criterion_id="{c.id}")'
+            f'create_eda_step(placement={{"kind": "criterion", "criterion_id": '
+            f'"{c.id}"}})'
             for c in spec.criteria
             if c.pending_analysis
         )

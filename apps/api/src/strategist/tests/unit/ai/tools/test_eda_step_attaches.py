@@ -14,6 +14,7 @@ from veupathdb.domain.strategy import (
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import BesideRoot, IntoSlot
 from strategist.ai.tools.standalone._eda_step_write import ExportJoin
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -96,7 +97,10 @@ async def test_an_export_into_a_free_slot_takes_that_slot_in_the_structure(
     _wire(monkeypatch)
 
     answer = await eda_step.create_eda_step(
-        ctx, attach_to_step_id="step_c1", slot="secondary"
+        ctx,
+        placement=IntoSlot(
+            kind="into_slot", attach_to_step_id="step_c1", slot="secondary"
+        ),
     )
 
     exported = returned(answer, eda_step.EdaStepCreated).step_id
@@ -133,7 +137,12 @@ async def test_an_export_makes_the_strategy_answer_to_the_spec_that_states_it(
     )
     _wire(monkeypatch)
 
-    await eda_step.create_eda_step(ctx, attach_to_step_id="step_c1", slot="secondary")
+    await eda_step.create_eda_step(
+        ctx,
+        placement=IntoSlot(
+            kind="into_slot", attach_to_step_id="step_c1", slot="secondary"
+        ),
+    )
 
     domain = ctx.deps.state.domain
     assert domain.answered_spec == domain.operational_spec
@@ -207,7 +216,7 @@ class TestCombiningTheExportWithTheRoot:
         _wire(monkeypatch)
 
         answer = await eda_step.create_eda_step(
-            ctx, combine_with_root=CombineOp.INTERSECT
+            ctx, placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT)
         )
 
         exported = returned(answer, eda_step.EdaStepCreated).step_id
@@ -228,7 +237,7 @@ class TestCombiningTheExportWithTheRoot:
         _wire(monkeypatch)
 
         answer = await eda_step.create_eda_step(
-            ctx, combine_with_root=CombineOp.INTERSECT
+            ctx, placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT)
         )
 
         exported = returned(answer, eda_step.EdaStepCreated).step_id
@@ -245,7 +254,7 @@ class TestCombiningTheExportWithTheRoot:
         _wire(monkeypatch)
 
         answer = await eda_step.create_eda_step(
-            ctx, combine_with_root=CombineOp.INTERSECT
+            ctx, placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT)
         )
 
         result = returned(answer, eda_step.EdaStepCreated)
@@ -259,49 +268,6 @@ class TestCombiningTheExportWithTheRoot:
             f"Step {result.step_id} combined with step_k1 (INTERSECT)"
         )
 
-    async def test_a_join_beside_an_attach_point_is_refused(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        _wire(monkeypatch)
-
-        with pytest.raises(ModelRetry) as raised:
-            await eda_step.create_eda_step(
-                self._ctx(),
-                combine_with_root=CombineOp.INTERSECT,
-                attach_to_step_id="step_k1",
-            )
-
-        assert "combine_with_root" in str(raised.value)
-        assert "attach_to_step_id" in str(raised.value)
-
-    async def test_a_join_beside_a_slot_is_refused(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        _wire(monkeypatch)
-
-        with pytest.raises(ModelRetry) as raised:
-            await eda_step.create_eda_step(
-                self._ctx(), combine_with_root=CombineOp.UNION, slot="secondary"
-            )
-
-        assert "combine_with_root" in str(raised.value)
-        assert "slot" in str(raised.value)
-
-    async def test_a_join_beside_a_replace_is_refused(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        _wire(monkeypatch)
-
-        with pytest.raises(ModelRetry) as raised:
-            await eda_step.create_eda_step(
-                self._ctx(),
-                combine_with_root=CombineOp.INTERSECT,
-                replace_step_id="step_k1",
-            )
-
-        assert "combine_with_root" in str(raised.value)
-        assert "replace_step_id" in str(raised.value)
-
     async def test_a_strategy_with_two_roots_is_refused(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -312,7 +278,10 @@ class TestCombiningTheExportWithTheRoot:
         _wire(monkeypatch)
 
         with pytest.raises(ModelRetry) as raised:
-            await eda_step.create_eda_step(ctx, combine_with_root=CombineOp.INTERSECT)
+            await eda_step.create_eda_step(
+                ctx,
+                placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT),
+            )
 
         message = str(raised.value)
         assert "step_c1" in message
@@ -358,7 +327,12 @@ async def test_a_plan_that_rewires_built_steps_is_left_alone(
     )
     _wire(monkeypatch)
 
-    await eda_step.create_eda_step(ctx, attach_to_step_id="step_top", slot="secondary")
+    await eda_step.create_eda_step(
+        ctx,
+        placement=IntoSlot(
+            kind="into_slot", attach_to_step_id="step_top", slot="secondary"
+        ),
+    )
 
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None

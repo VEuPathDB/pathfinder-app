@@ -1,7 +1,7 @@
 """In-memory working state for a strategy that is under construction during a
 chat session."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 
 from veupathdb import get_logger
 from veupathdb.domain.strategy import (
@@ -20,6 +20,11 @@ from strategist.domain.strategy.step_words import StampedKind, StepWords
 from strategist.domain.strategy.types import SyncStateProtocol
 
 logger = get_logger(__name__)
+
+
+def not_a_step(named: object, held: Iterable[object]) -> str:
+    listed = ", ".join(str(step) for step in held) or "no step yet"
+    return f"Step {named} is not a step of this strategy. It holds {listed}."
 
 
 class StrategyHistoryEntry(CamelModel):

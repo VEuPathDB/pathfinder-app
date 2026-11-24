@@ -189,8 +189,8 @@ tree it carries, and a subtree replacement because it drops the steps the new
 branch does not carry. Three model-driven surfaces take steps off a strategy.
 Two ask the researcher first: `delete_step` for one step, and
 `replace_subtree` for one branch, which is also refused when the branch would
-drop a criterion the spec states. The third, `create_eda_step` with
-`replace_step_id`, replaces the named step's subtree without a card: the route
+drop a criterion the spec states. The third, `create_eda_step` with a
+`replace` placement, replaces the named step's subtree without a card: the route
 block the Lead reads names the one step the export supersedes, so the call
 carries the researcher's own instruction, and the spec guard bounds what can
 go. Whether that replacement should be gated like the other two is an open

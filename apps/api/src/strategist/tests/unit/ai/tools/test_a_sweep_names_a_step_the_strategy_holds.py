@@ -37,8 +37,8 @@ async def test_a_step_the_strategy_does_not_hold_is_refused_before_the_card() ->
         )
 
     assert str(raised.value) == (
-        "Step 440606243 is no step of this strategy on the site. Its steps are "
-        "440649693. Nothing was started and no card was shown."
+        "Step 440606243 is not a step of this strategy. It holds 440649693. "
+        "Nothing was started and no card was shown."
     )
 
 

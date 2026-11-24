@@ -119,7 +119,10 @@ class TestTheUnbuiltEdaCriterionRule:
         assert "open_eda_analysis" in sentence
         assert "set_eda_filters" in sentence
         assert "preview_eda_subset" in sentence
-        assert 'create_eda_step(criterion_id="c_essential")' in sentence
+        assert (
+            'create_eda_step(placement={"kind": "criterion", "criterion_id": "c_essential"})'
+            in sentence
+        )
         assert "Never ask the user for an analysis specification document" in sentence
         assert (
             "A cut that neither the researcher's words nor one of the study's "

@@ -63,8 +63,9 @@ async def test_an_edit_that_moves_nothing_names_the_recut_of_an_export(
     assert thread.committed == []
     assert delta.description == (
         "The edit changes no step FRAME binds: FRAME keeps an analysis export as it "
-        f"is. A change to the export's thresholds or direction is create_eda_step("
-        f"replace_step_id='{STAGE}'), which reads the completed compute again; new "
+        "is. A change to the export's thresholds or direction is create_eda_step("
+        f'placement={{"kind": "replace", "replace_step_id": "{STAGE}"}}), which '
+        "reads the completed compute again; new "
         "groups run run_eda_compute first. That recut is the change the researcher "
         "asked for, so it needs no card: make it. Any other request the strategy "
         "already states."
@@ -96,19 +97,19 @@ def test_the_lead_recuts_an_export_with_create_eda_step() -> None:
 
     assert (
         "A change to an exported step's thresholds, direction or groups is "
-        "``create_eda_step`` with ``replace_step_id`` set to that step, never "
+        "``create_eda_step`` with a ``replace`` placement on that step, never "
         "``edit_strategy``:"
     ) in read
 
 
 def test_the_instruction_and_the_tool_name_the_recut_of_an_export() -> None:
-    """Neither scopes ``replace_step_id`` to steps that leave out the recut."""
+    """Neither scopes the replace placement to steps that leave out the recut."""
     read = " ".join(LEAD_INSTRUCTIONS.split())
     described = " ".join((create_eda_step.__doc__ or "").split())
 
     assert [
         (
-            "Pass ``replace_step_id`` to put the export in the place of a step "
+            "Pass one of kind ``replace`` to put the export in the place of a step "
             "the strategy holds: an export of the open analysis whose cut changes, "
             "an EDA-backed step built without an analysis, or a step this subset "
             "supersedes."

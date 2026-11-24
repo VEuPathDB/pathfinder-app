@@ -58,9 +58,9 @@ def eda_criterion_not_built_message(waiting: Criterion) -> str:
         f"analysis workflow builds, and no step exports it yet from dataset "
         f"{dataset}. Build it now: open_eda_analysis("
         f'dataset_id="{dataset}"), then set_eda_filters, then '
-        f"preview_eda_subset, then create_eda_step("
-        f'criterion_id="{waiting.id}"), which puts the step where the '
-        f"structure places it. Never ask the user for an analysis "
+        f"preview_eda_subset, then create_eda_step(placement="
+        f'{{"kind": "criterion", "criterion_id": "{waiting.id}"}}), which puts '
+        f"the step where the structure places it. Never ask the user for an analysis "
         f"specification document, and never answer that the criterion cannot "
         f"be built or mapped: create_eda_step writes that document from the "
         f"analysis you filtered. A cut that neither the researcher's words nor "

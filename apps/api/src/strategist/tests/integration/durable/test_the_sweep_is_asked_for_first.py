@@ -15,14 +15,22 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
+from veupathdb.domain.parameters import SinglePickValue
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from strategist.ai.graph import _lead_model
-from strategist.persistence.models import ControlSet
+from strategist.persistence.models import ControlSet, ConversationStrategy
+from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
+from strategist.tests._support.recorded_searches import (
+    serve_recorded_definitions,
+    suite_search,
+)
 from strategist.tests._support.scripted import scripted_with
 from strategist.tests._support.scripted_reading import read_as
 from strategist.tests.integration.chat._helpers import (
@@ -71,8 +79,42 @@ def _sweeping_lead() -> FunctionModel:
 
 @pytest.fixture(autouse=True)
 def sweeping_lead(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve_recorded_definitions(monkeypatch, [suite_search("search_genes_by_taxon")])
     read_as(monkeypatch, "follow_up_question")
     monkeypatch.setattr(_lead_model, "scripted", scripted_with(model=_sweeping_lead))
+
+
+async def _a_thread_holding_the_step(user_id: UUID) -> UUID:
+    """A thread whose strategy holds the step the sweep tunes, built on the site."""
+    conversation_id = uuid4()
+    ast = StrategyAst(
+        record_type="transcript",
+        root=StrategyStepNode(
+            id="step_taxon",
+            search_name="GenesByTaxon",
+            parameters={"organism": SinglePickValue(value="Plasmodium falciparum 3D7")},
+        ),
+        wdk_step_ids={"step_taxon": SWEEP_STEP_ID},
+    )
+    async with async_session_factory() as session:
+        session.add(
+            Conversation(
+                assistant_id=STRATEGIST_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+            )
+        )
+        await session.flush()
+        session.add(
+            ConversationStrategy(
+                conversation_id=conversation_id,
+                strategy_ast=ast.model_dump(
+                    by_alias=True, exclude_none=True, mode="json"
+                ),
+            )
+        )
+        await session.commit()
+    return conversation_id
 
 
 @pytest.fixture(autouse=True)
@@ -168,7 +210,7 @@ async def test_the_sweep_asks_before_it_runs(
         app,
         authed_user_id,
         in_memory_jobs,
-        chat_post_body(uuid4(), SWEEP_PROMPT),
+        chat_post_body(await _a_thread_holding_the_step(authed_user_id), SWEEP_PROMPT),
     )
 
     asked = [c for c in chunks if c["type"] == "tool-approval-request"]
@@ -192,7 +234,7 @@ async def test_the_users_yes_defers_the_sweep(
     signed_in_to_veupathdb: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
-    conversation_id = uuid4()
+    conversation_id = await _a_thread_holding_the_step(authed_user_id)
     asked = await _turn(
         app,
         authed_user_id,
@@ -221,7 +263,7 @@ async def test_a_refused_sweep_defers_nothing(
     signed_in_to_veupathdb: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
-    conversation_id = uuid4()
+    conversation_id = await _a_thread_holding_the_step(authed_user_id)
     asked = await _turn(
         app,
         authed_user_id,
@@ -251,7 +293,7 @@ async def test_the_answering_turn_records_the_answer_before_the_call(
     signed_in_to_veupathdb: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
-    conversation_id = uuid4()
+    conversation_id = await _a_thread_holding_the_step(authed_user_id)
     asked = await _turn(
         app,
         authed_user_id,

@@ -19,7 +19,7 @@ from veupathdb_mcp.controls import ControlTargetData, ControlTestResult
 from strategist.ai.graph.turn_records import ControlTestRun
 from strategist.ai.lead.card_reply import CardReply
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone._step_read import graph_step_id, read_as
+from strategist.ai.tools.standalone._step_read import held_wdk_step, read_as
 from strategist.ai.tools.standalone.saved_control_sets import (
     unattached_set,
 )
@@ -232,20 +232,17 @@ async def sweep_can_run(
 ) -> None:
     """Refuse a sweep call the worker would refuse, before its card is drawn."""
     del reply, budget
-    held = ctx.deps.runtime.strategy_session.wdk_step_ids()
-    if held and wdk_step_id not in held:
-        msg = (
-            f"Step {wdk_step_id} is no step of this strategy on the site. Its steps "
-            f"are {', '.join(str(i) for i in held)}. Nothing was started and no card "
-            "was shown."
-        )
-        raise ModelRetry(msg)
+    session = ctx.deps.runtime.strategy_session
+    try:
+        held_wdk_step(session, wdk_step_id)
+    except ModelRetry as exc:
+        msg = f"{exc} Nothing was started and no card was shown."
+        raise ModelRetry(msg) from exc
     refused = unattached_set(control_set_id, ctx.deps.state.domain.control_sets)
     if refused is not None:
         msg = f"{refused} {NO_SET_ATTACHED} Nothing was started and no card was shown."
         raise ModelRetry(msg)
-    session = ctx.deps.runtime.strategy_session
-    if not parameters or graph_step_id(session, wdk_step_id) is None:
+    if not parameters:
         return
     record_class, search_name = await read_as(session, wdk_step_id)
     if search_name is None:

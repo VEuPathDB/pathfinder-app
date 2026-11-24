@@ -57,9 +57,10 @@ sample.
   step binds its subset and no cut, whatever volcano the document stores.
   The criterion the export is states that binding
   ([an EDA analysis is a criterion of the spec](an-eda-analysis-is-a-criterion-of-the-spec.md)).
-- `effect_direction` defaults to unset. A direction on an analysis with no
-  comparison, or without both thresholds, is refused
-  (`refuse_a_direction_without_a_volcano`).
+- `effect_direction` defaults to unset. It travels in the `volcano` argument
+  with both thresholds, so the argument type refuses a direction or one
+  threshold alone; a direction on an analysis with no comparison is refused
+  (`refuse_a_direction_without_a_comparison`).
 - A subset's range cut is stated or asked. Before anything is planned,
   `ai/tools/standalone/_eda_step_guard.py::subset_basis` reads each filter of
   the analysis against the study's sheet. A `numberRange` or `dateRange` bound

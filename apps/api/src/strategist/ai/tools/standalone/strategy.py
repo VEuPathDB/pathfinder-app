@@ -6,11 +6,12 @@ operation and applies it through the single commit path.
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated, cast
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONArray, JSONObject
+from pydantic import Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
@@ -29,6 +30,7 @@ from strategist.ai.tools.standalone.graph_helpers import count_summary
 from strategist.ai.tools.standalone.strategy_refusals import (
     _no_graph,
     _refused,
+    departures_refused,
     operation_refused_message,
     wdk_refused_the_edit,
 )
@@ -41,10 +43,9 @@ from strategist.domain.strategy.build_outcome import (
     BuiltCounts,
     built_counts,
 )
-from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.commit import apply_operations_and_commit
 from strategist.services.strategies.result_list import live_result_list_url
 from strategist.services.strategies.spec_build import build_strategy_from_spec
@@ -151,14 +152,12 @@ async def build_strategy(
         )
         raise ModelRetry(msg)
 
-    try:
+    with departures_refused():
         outcome = await build_strategy_from_spec(
             deps=deps.to_strategy_context(),
             root=await typed_tree(deps.resolving(), root),
             description=description,
         )
-    except PlanDeparturesError as exc:
-        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
     url = live_result_list_url(session.site_id, session.sync_state)
     counts = built_counts(graph, session.sync_state)
     payload = _build_outcome_payload(outcome, graph, url, counts)
@@ -180,7 +179,7 @@ def _current_revision(graph: StrategyGraph) -> str:
 async def apply_operations(
     ctx: RunContext[AgentDeps],
     base_revision: str,
-    operations: list[OperationPayload],
+    operations: Annotated[list[OperationPayload], Field(min_length=1)],
     graph_id: str | None = None,
 ) -> ToolReturn[JSONObject]:
     """Edit the strategy with a batch of operations, not a whole new tree.
@@ -211,13 +210,6 @@ async def apply_operations(
     if graph is None:
         return _no_graph(ctx, graph_id)
 
-    if not operations:
-        msg = (
-            "VALIDATION_ERROR: apply_operations needs at least one operation. "
-            "Pass the edits you want to make, or call get_strategy to look first."
-        )
-        raise ModelRetry(msg)
-
     current = _current_revision(graph)
     if base_revision != current:
         msg = (
@@ -231,12 +223,11 @@ async def apply_operations(
 
     typed = await typed_operations(deps.resolving(), graph, operations)
     try:
-        result = await apply_operations_and_commit(
-            deps=deps.to_strategy_context(),
-            ops=typed,
-        )
-    except PlanDeparturesError as exc:
-        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
+        with departures_refused():
+            result = await apply_operations_and_commit(
+                deps=deps.to_strategy_context(),
+                ops=typed,
+            )
     except ApplyError as exc:
         # A refused batch rolls back, so the base revision stays valid.
         msg = (

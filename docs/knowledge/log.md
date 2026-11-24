@@ -2,6 +2,33 @@
 
 ## 2026-11-24
 
+* **The pinned strategy names what the site refused, whole.** A step's push error and its
+  first validation error were cut at 60 characters, which ended inside the parameter name of a
+  refusal such as "PlasmoDB did not take the strategy's steps: Parameter 'organism' does not
+  accept ...", so the building pass read no value to fix. Both render whole, and a step's
+  validation lists every message WDK sent, each one WDK keys by a parameter as
+  `<parameter>: <message>` (for example `organism: Invalid value 'Nope'.`). Of the other fixed
+  cuts in `ai/`, each shortens a label beside an id or a value printed whole, a trace or a log
+  field, and stays.
+
+* **An export names its place and its cut as typed arguments.** `create_eda_step` takes one
+  `placement`, a union by `kind` (`criterion`, `into_slot`, `replace`, `beside_root`; unset adds
+  a new root), and one `volcano` that holds both thresholds and the direction. Pydantic refuses
+  a second place, a slot without its combine and a threshold alone before the body runs, and
+  the refusal is charged per key like every argument shape; the body checks that read the
+  arguments are gone.
+
+* **A step of the strategy has one definition.** Every tool that names a step, by its id or by
+  its WDK id, refuses one the strategy does not hold through `_step_read.held_step` or
+  `held_wdk_step`, and the graph operations through `_graph_edit._require`, all in the one
+  sentence `session.not_a_step` writes, which lists the steps the strategy holds. So an
+  `apply_operations` batch and an export into a slot of no held step name the steps there are.
+  Two tools stay outside: `get_estimated_size`, which counts a step of an imported strategy, and
+  `run_control_tests_on_step`, whose worker reads the step from the account. A step edit no
+  longer answers a missing step with an error payload, a download names a step of this
+  strategy only, and a sweep is refused on a strategy with no built step. A plan departure is turned into its refusal by one `departures_refused`, and
+  `apply_operations` states a batch of one operation at least on its argument type.
+
 * **An edit keeps the values it did not state.** A commit sends a value the edit did not
   move in the form WDK holds it, and the plan keeps its own typed value; before, an
   organism edit stored a step's other values as the site's wire text.

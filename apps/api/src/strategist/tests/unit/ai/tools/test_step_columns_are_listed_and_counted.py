@@ -225,7 +225,7 @@ async def test_a_step_the_strategy_does_not_hold_is_not_listed(
         await step_columns(ctx, 1)
 
     assert str(refused.value) == (
-        f"Step 1 is not a step of this strategy. Its built steps: {TM_STEP}."
+        f"Step 1 is not a step of this strategy. It holds {TM_STEP}."
     )
     assert server.listed_for == []
 

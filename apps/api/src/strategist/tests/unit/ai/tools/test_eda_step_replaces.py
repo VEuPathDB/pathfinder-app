@@ -14,6 +14,7 @@ from strategist.ai.lead.intent import IntentClassification, UserIntent
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_facts import turn_facts
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import InPlaceOf
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -91,7 +92,9 @@ class TestAnExportThatTakesAStepsPlace:
         applied: list[Any] = []
         _wire(monkeypatch, commit=recording_commit(applied))
 
-        await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+        await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+        )
 
         op = applied[0][0]
         assert op.kind == "replaceSubtree"
@@ -108,29 +111,13 @@ class TestAnExportThatTakesAStepsPlace:
         applied: list[Any] = []
         _wire(monkeypatch, commit=recording_commit(applied, dropped=["step_k2"]))
 
-        answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+        answer = await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+        )
 
         result = returned(answer, eda_step.EdaStepCreated)
         assert result.replaced_step_id == "step_k2"
         assert result.dropped_step_ids == ["step_k2"]
-
-    async def test_a_replace_beside_an_attach_point_is_refused(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        ctx = _lead_ctx_over(combine("step_c1", leaf("step_k1"), leaf("step_k2")))
-        _wire(monkeypatch)
-
-        with pytest.raises(ModelRetry) as excinfo:
-            await eda_step.create_eda_step(
-                ctx,
-                replace_step_id="step_k2",
-                attach_to_step_id="step_c1",
-                slot="secondary",
-            )
-
-        message = str(excinfo.value)
-        assert "replace_step_id" in message
-        assert "attach_to_step_id" in message
 
     async def test_a_step_the_strategy_does_not_hold_is_refused(
         self, monkeypatch: pytest.MonkeyPatch
@@ -139,11 +126,13 @@ class TestAnExportThatTakesAStepsPlace:
         _wire(monkeypatch)
 
         with pytest.raises(ModelRetry) as excinfo:
-            await eda_step.create_eda_step(ctx, replace_step_id="step_gone")
+            await eda_step.create_eda_step(
+                ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_gone")
+            )
 
         message = str(excinfo.value)
         assert "step_gone" in message
-        assert "'step_c1', 'step_k1', 'step_k2'" in message
+        assert "It holds step_c1, step_k1, step_k2." in message
 
 
 class TestAReplacementThatReachesTheCommit:
@@ -159,7 +148,9 @@ class TestAReplacementThatReachesTheCommit:
         graph = ctx.deps.runtime.strategy_session.graph
         assert graph is not None
 
-        answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+        answer = await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+        )
 
         result = returned(answer, eda_step.EdaStepCreated)
         exported = result.step_id
@@ -180,7 +171,9 @@ class TestAReplacementThatReachesTheCommit:
         ctx.deps.state.domain.operational_spec = _two_kinase_criteria()
         _wire(monkeypatch)
 
-        answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+        answer = await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+        )
 
         exported = returned(answer, eda_step.EdaStepCreated).step_id
         spec = ctx.deps.state.domain.operational_spec
@@ -212,7 +205,9 @@ async def test_a_refused_replacement_leaves_the_spec_as_it_found_it(
     _wire(monkeypatch, commit=refusing_commit)
 
     with pytest.raises(ModelRetry):
-        await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+        await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+        )
 
     assert ctx.deps.state.domain.operational_spec is spec
     assert [c.id for c in spec.criteria] == ["step_k1", "step_k2"]
@@ -233,7 +228,9 @@ async def test_a_batch_the_graph_refuses_comes_back_as_a_retry(
     _wire(monkeypatch, commit=refusing_commit)
 
     with pytest.raises(ModelRetry) as excinfo:
-        await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+        await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+        )
 
     message = str(excinfo.value)
     assert message.startswith("One operation this export writes was refused")
@@ -254,7 +251,9 @@ class TestTheStructureAfterAReplacement:
         ctx.deps.state.domain.operational_spec = _two_kinase_criteria()
         _wire(monkeypatch)
 
-        answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+        answer = await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+        )
 
         exported = returned(answer, eda_step.EdaStepCreated).step_id
         spec = ctx.deps.state.domain.operational_spec
@@ -283,7 +282,9 @@ class TestTheStructureAfterAReplacement:
         )
         _wire(monkeypatch)
 
-        answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k1")
+        answer = await eda_step.create_eda_step(
+            ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k1")
+        )
 
         exported = returned(answer, eda_step.EdaStepCreated).step_id
         spec = ctx.deps.state.domain.operational_spec
@@ -315,7 +316,9 @@ async def test_replacing_a_combine_names_the_export_where_it_stood(
     )
     _wire(monkeypatch)
 
-    answer = await eda_step.create_eda_step(ctx, replace_step_id="step_sub")
+    answer = await eda_step.create_eda_step(
+        ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_sub")
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated).step_id
     spec = ctx.deps.state.domain.operational_spec
@@ -343,7 +346,9 @@ async def test_replacing_a_step_the_spec_does_not_state_states_the_export(
     )
     _wire(monkeypatch)
 
-    answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+    answer = await eda_step.create_eda_step(
+        ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated).step_id
     spec = ctx.deps.state.domain.operational_spec
@@ -365,7 +370,9 @@ async def test_a_replacement_keeps_the_count_the_replaced_step_held(
     ctx.deps.state.turn_markers.record_arrival("step_c1", counts)
     _wire(monkeypatch)
 
-    answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+    answer = await eda_step.create_eda_step(
+        ctx, placement=InPlaceOf(kind="replace", replace_step_id="step_k2")
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated).step_id
     ensure_sync_state(ctx.deps.runtime.strategy_session).step_counts[exported] = 1249

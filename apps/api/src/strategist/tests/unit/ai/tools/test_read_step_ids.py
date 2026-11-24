@@ -140,7 +140,9 @@ async def test_a_step_this_strategy_did_not_build_is_refused(
     with pytest.raises(ModelRetry) as refused:
         await read_step_ids(ctx, wdk_step_id=227253270)
 
-    assert f"The built steps: {_ROOT_WDK_STEP}." in str(refused.value)
+    assert str(refused.value) == (
+        f"Step 227253270 is not a step of this strategy. It holds {_ROOT_WDK_STEP}."
+    )
     assert reports.asked == []
 
 

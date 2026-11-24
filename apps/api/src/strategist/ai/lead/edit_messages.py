@@ -309,10 +309,10 @@ def edit_bound_nothing_message() -> str:
 
 def recut_call(exports: Sequence[str]) -> str:
     """The call that recuts one of the strategy's analysis exports."""
-    ids = " or ".join(f"'{step_id}'" for step_id in exports)
-    if len(exports) == 1:
-        return f"create_eda_step(replace_step_id={ids})"
-    return f"create_eda_step(replace_step_id=<one of {ids}>)"
+    ids = " or ".join(f'"{step_id}"' for step_id in exports)
+    named = ids if len(exports) == 1 else f"<one of {ids}>"
+    placement = f'{{"kind": "replace", "replace_step_id": {named}}}'
+    return f"create_eda_step(placement={placement})"
 
 
 def edit_moves_nothing_message(exports: Sequence[str]) -> str:

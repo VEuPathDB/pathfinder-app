@@ -10,6 +10,10 @@ from veupathdb.domain.strategy import CombineOp
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import (
+    BesideRoot,
+    WaitingCriterion,
+)
 from strategist.ai.tools.standalone._eda_step_write import ExportJoin
 from strategist.domain.strategy.analysis_binding import AnalysisKind
 from strategist.domain.strategy.operational_spec import (
@@ -96,7 +100,9 @@ async def test_the_waiting_criterion_becomes_the_step_where_the_tree_puts_it(
     ctx.deps.state.domain.operational_spec = _spec(_under_the_root())
     _wire(monkeypatch)
 
-    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)
@@ -138,7 +144,9 @@ async def test_the_export_takes_the_waiting_criterions_id(
     ctx.deps.state.domain.operational_spec = _spec(_under_the_root())
     _wire(monkeypatch)
 
-    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated)
     spec = ctx.deps.state.domain.operational_spec
@@ -201,27 +209,13 @@ async def test_a_criterion_the_export_cannot_take_is_refused_and_nothing_written
     criterion_id = "c_missing" if refusal == "c_missing" else _WAITING
 
     with pytest.raises(ModelRetry) as raised:
-        await eda_step.create_eda_step(ctx, criterion_id=criterion_id)
+        await eda_step.create_eda_step(
+            ctx, placement=WaitingCriterion(kind="criterion", criterion_id=criterion_id)
+        )
 
     assert refusal in str(raised.value)
     assert sorted(_graph(ctx).steps) == ["step_k1"]
     assert ctx.deps.state.domain.operational_spec == spec
-
-
-async def test_the_structure_is_the_whole_placement(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    ctx = _ctx(session_with(leaf("step_k1"), {}))
-    ctx.deps.state.domain.operational_spec = _spec(_under_the_root())
-    _wire(monkeypatch)
-
-    with pytest.raises(ModelRetry) as raised:
-        await eda_step.create_eda_step(
-            ctx, criterion_id=_WAITING, combine_with_root=CombineOp.UNION
-        )
-
-    assert "the structure places" in str(raised.value)
-    assert sorted(_graph(ctx).steps) == ["step_k1"]
 
 
 async def test_an_export_on_a_dataset_a_criterion_waits_on_names_it(
@@ -233,9 +227,11 @@ async def test_an_export_on_a_dataset_a_criterion_waits_on_names_it(
     _wire(monkeypatch)
 
     with pytest.raises(ModelRetry) as raised:
-        await eda_step.create_eda_step(ctx, combine_with_root=CombineOp.INTERSECT)
+        await eda_step.create_eda_step(
+            ctx, placement=BesideRoot(kind="beside_root", operator=CombineOp.INTERSECT)
+        )
 
-    assert f'criterion_id="{_WAITING}"' in str(raised.value)
+    assert f'"criterion_id": "{_WAITING}"' in str(raised.value)
     assert sorted(_graph(ctx).steps) == ["step_k1"]
 
 
@@ -252,7 +248,9 @@ async def test_the_first_export_of_a_spec_that_only_waits_is_the_strategy(
     )
     _wire(monkeypatch)
 
-    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated).step_id
     assert _graph(ctx).roots == {exported}
@@ -280,7 +278,9 @@ async def test_a_place_inside_a_branch_joins_the_step_that_branch_holds(
     ctx.deps.state.domain.operational_spec = spec
     _wire(monkeypatch)
 
-    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+    answer = await eda_step.create_eda_step(
+        ctx, placement=WaitingCriterion(kind="criterion", criterion_id=_WAITING)
+    )
 
     exported = returned(answer, eda_step.EdaStepCreated)
     graph = _graph(ctx)

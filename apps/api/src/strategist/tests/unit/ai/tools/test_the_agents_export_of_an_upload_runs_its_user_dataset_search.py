@@ -10,6 +10,7 @@ from veupathdb.eda import EdaVolcanoConfiguration
 from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import VolcanoCut
 from strategist.domain.strategy.operations.types import AddLeafOp
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.tests._support.eda_step_doubles import (
@@ -49,9 +50,11 @@ async def _exported_search(monkeypatch: pytest.MonkeyPatch, dataset_id: str) -> 
 
     await eda_step.create_eda_step(
         lead_run_context(user_prompt="export the up genes", strategy_session=session),
-        effect_size_threshold=1.0,
-        significance_threshold=0.05,
-        effect_direction="upOnly",
+        volcano=VolcanoCut(
+            effect_size_threshold=1.0,
+            significance_threshold=0.05,
+            effect_direction="upOnly",
+        ),
     )
 
     [op] = applied[0]

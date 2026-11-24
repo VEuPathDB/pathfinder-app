@@ -13,6 +13,7 @@ from veupathdb.eda import EdaFilter
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_step
+from strategist.ai.tools.standalone._eda_step_arguments import VolcanoCut
 from strategist.domain.eda_parts import EdaEffectDirection
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.services.strategies.commit import CommitResult
@@ -116,7 +117,9 @@ async def test_a_sample_subset_with_a_computation_but_no_thresholds_is_refused(
         "The analysis holds 1 filter on Sample and 1 comparison, and no "
         "filter on pfal3D7 htseq counts."
     )
-    assert "Send effect_size_threshold and significance_threshold" in message
+    assert "Send a volcano with effect_size_threshold and significance_threshold" in (
+        message
+    )
     assert _steps(lead_ctx) == []
 
 
@@ -148,7 +151,8 @@ async def test_a_sample_subset_with_a_computation_exports_the_volcano(
     )
 
     answer = await eda_step.create_eda_step(
-        lead_ctx, effect_size_threshold=1.0, significance_threshold=0.05
+        lead_ctx,
+        volcano=VolcanoCut(effect_size_threshold=1.0, significance_threshold=0.05),
     )
 
     step = applied[0][0].step
@@ -190,29 +194,19 @@ async def test_a_direction_on_an_analysis_with_no_computation_is_refused(
     _wire(monkeypatch, [gene_filter()])
 
     with pytest.raises(ModelRetry) as refusal:
-        await eda_step.create_eda_step(lead_ctx, effect_direction=direction)
+        await eda_step.create_eda_step(
+            lead_ctx,
+            volcano=VolcanoCut(
+                effect_size_threshold=1.0,
+                significance_threshold=0.05,
+                effect_direction=direction,
+            ),
+        )
 
     assert str(refusal.value) == (
         f'effect_direction="{direction}" selects a side of a comparison, and the '
         f"open analysis holds 0 comparisons. Nothing was written. Call "
-        f"run_eda_compute to run the comparison, then export with "
-        f"effect_size_threshold, significance_threshold and effect_direction."
-    )
-    assert _steps(lead_ctx) == []
-
-
-async def test_a_direction_with_no_thresholds_is_refused(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    """A direction with no volcano cut would export the subset and drop it."""
-    _wire(monkeypatch, [gene_filter()], with_computation=True)
-
-    with pytest.raises(ModelRetry) as refusal:
-        await eda_step.create_eda_step(lead_ctx, effect_direction="upOnly")
-
-    assert str(refusal.value) == (
-        'effect_direction="upOnly" selects a side of the volcano, so it needs '
-        "effect_size_threshold and significance_threshold. Send both, or leave "
-        "effect_direction unset to export the subset. Nothing was written."
+        f"run_eda_compute to run the comparison, then export with the volcano "
+        f"cut and its effect_direction."
     )
     assert _steps(lead_ctx) == []

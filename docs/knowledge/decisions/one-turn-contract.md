@@ -96,7 +96,7 @@ a turn that changed nothing, ended on no card, recorded no question and carries 
 refused, unless the reply names each value in a clause that takes the change back and says why.
 The correction names `delete_step` for a bare withdrawal; a withdrawal with the values that
 replace it is a replacement (`contract_messages.unmade_change_message`), made through
-`edit_strategy` or, for an analysis export's cut, through `create_eda_step(replace_step_id=...)`
+`edit_strategy` or, for an analysis export's cut, through `create_eda_step` with a `replace` placement
 on an export of the open analysis (`services/eda/export.open_analysis_exports`), as is a
 stated value.
 
