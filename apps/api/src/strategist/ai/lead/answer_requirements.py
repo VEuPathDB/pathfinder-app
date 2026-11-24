@@ -6,11 +6,14 @@ from collections.abc import Sequence
 
 from strategist.ai.lead.organism_reader import site_entry
 from strategist.domain.clipped import clipped_text
+from strategist.domain.strategy.answer_values import stated_value
 from strategist.domain.strategy.constraints import (
+    MANY_VALUED_KINDS,
     Constraint,
     ConstraintKind,
     ConstraintSource,
     OrganismValue,
+    RequirementValue,
 )
 
 LABEL_LIMIT = 120
@@ -23,14 +26,14 @@ def answer_requirement(
     dimension: ConstraintKind,
     organisms: Sequence[str],
 ) -> Constraint | None:
-    """The words an answer states as a requirement on the question's
-    dimension, or None when it states none. Words on the organism dimension
-    state the one organism of the site they name, and none otherwise."""
+    """The words an answer states as a requirement on the question's dimension,
+    or None when they state none. On a dimension of one value, only words that
+    name a value of it state one, so other words leave the stated value."""
     stated = "; ".join(labels) if labels else note
     if not stated:
         return None
     label = clipped_text(prompt or stated, LABEL_LIMIT)
-    if dimension is not ConstraintKind.ORGANISM:
+    if dimension in MANY_VALUED_KINDS:
         return Constraint(
             kind=dimension,
             requested_value=stated,
@@ -38,8 +41,13 @@ def answer_requirement(
             source=ConstraintSource.USER_EXPLICIT,
             hard=True,
         )
-    entry = site_entry(stated, organisms)
-    if entry is None:
+    value: RequirementValue | None
+    if dimension is ConstraintKind.ORGANISM:
+        entry = site_entry(stated, organisms)
+        value = None if entry is None else OrganismValue(organism=entry)
+    else:
+        entry, value = stated, stated_value(dimension, stated)
+    if entry is None or value is None:
         return None
     return Constraint(
         kind=dimension,
@@ -48,5 +56,5 @@ def answer_requirement(
         source=ConstraintSource.USER_EXPLICIT,
         quote=stated,
         hard=True,
-        value=OrganismValue(organism=entry),
+        value=value,
     )

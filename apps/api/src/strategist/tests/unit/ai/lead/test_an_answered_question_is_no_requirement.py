@@ -156,8 +156,8 @@ def _leads_card(prompt: str, *labels: str) -> CardQuestion:
     )
 
 
-_LOOK = "Look for a different Leishmania major expression study"
-_USE = "Use the available Leishmania major study"
+_LOOK = "Look for a Leishmania major microarray study"
+_USE = "Use the available Leishmania major RNA-Seq study"
 
 
 async def test_a_later_answer_on_the_same_dimension_replaces_the_earlier() -> None:

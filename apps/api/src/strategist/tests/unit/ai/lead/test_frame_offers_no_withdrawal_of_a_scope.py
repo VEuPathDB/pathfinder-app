@@ -41,7 +41,7 @@ _SUBSTITUTE = SlotQuestion(
         "substitute the nearest available predicted signal-peptide search, or "
         "the predicted exported-protein search?"
     ),
-    dimension=ConstraintKind.DATA_TYPE,
+    dimension=ConstraintKind.PROPERTY,
     recommended_value="Predicted Signal Peptide",
     options=["Predicted Signal Peptide", "Exported Protein"],
     criterion_id="c_predicted_gpi_anchor",
@@ -147,5 +147,5 @@ async def test_a_substitute_named_in_words_is_recorded_and_the_organism_stays(
 
     assert [(c.kind, c.requested_value) for c in deps.state.domain.requirements] == [
         (ConstraintKind.ORGANISM, "P. falciparum 3D7"),
-        (ConstraintKind.DATA_TYPE, "Predicted Signal Peptide"),
+        (ConstraintKind.PROPERTY, "Predicted Signal Peptide"),
     ]

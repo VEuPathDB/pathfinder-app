@@ -199,8 +199,8 @@ def apply_option_bindings(
     A value binds, an operator rewires its combine and a withdrawal retires;
     typed words, a picked reading a framing pass named and the note, never
     another offered label, become a requirement on the dimension ``asked``
-    names; on the organism dimension only words that name one of ``organisms``
-    do. That requirement replaces
+    names; on a dimension of one value only words that name a value of it do
+    (an organism of ``organisms``). That requirement replaces
     each one ``replaced`` holds under the question's prompt. Every picked label
     is kept as a card pick, which states a cut an EDA export rests on, and a
     picked tail is held as a rule that each later study's own edge meets.

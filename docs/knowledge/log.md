@@ -2,6 +2,13 @@
 
 ## 2026-11-24
 
+* **An answer that names no value keeps the stated value, on every dimension of one value.** A
+  card answer on a percentile, fold change, significance, data type, organism, record type or
+  comparator dimension becomes a requirement only when its words name a value of that kind
+  (`answer_values.stated_value`: a share, a cut, a bound, RNA-Seq or microarray; a site entry for
+  an organism). "proceed with defaults" therefore replaces no stated "top 5 percent", as it no
+  longer replaced 3D7.
+
 * **A card recommends no option whose pick retires or replaces a stated requirement.**
   `CardQuestion.recommended_drops` refuses a recommended drop option, and a recommended option
   other than the keep option on a question that replaces the requirement (`replaces`), names it,
