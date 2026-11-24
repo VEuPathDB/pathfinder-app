@@ -40,15 +40,19 @@ async def test_variant_comparison_real_counts_and_overlap(wdk_session: None) -> 
 
     by_label = {v.label: v for v in comparison.variants}
     assert {v.error for v in comparison.variants} == {None}
+    assert comparison.read_cap is None
     assert by_label["kinase"].gene_count >= 100
     assert 20 <= by_label["phosphatase"].gene_count <= 200
     assert by_label["transferase"].gene_count <= 50
     # Kinases are mostly distinct from phosphatases/transferases.
-    assert by_label["kinase"].unique_count >= 100
+    kinase_unique = by_label["kinase"].unique_count
+    assert kinase_unique is not None
+    assert kinase_unique >= 100
 
     pairs = {frozenset((o.a, o.b)): o for o in comparison.overlaps}
     kin_phos = pairs[frozenset(("kinase", "phosphatase"))]
-    assert kin_phos.shared <= 15
+    assert (kin_phos.shared <= 15, kin_phos.shared_at_least) == (True, False)
+    assert kin_phos.jaccard is not None
     assert 0.0 <= kin_phos.jaccard < 0.2
 
 
