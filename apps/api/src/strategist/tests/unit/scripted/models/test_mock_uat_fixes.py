@@ -216,7 +216,9 @@ def test_no_own_search_at_all_reads_the_other_site_and_builds_nothing(
         {"otherSites": {"experiments": [{"datasetId": "DS_elsewhere"}]}},
     ]
     unbound = {
-        "pendingPlan": {"text": "It runs on another site."},
+        "pendingPlan": {
+            "rendered": "Not applied until the strategy is built: It runs on another site."
+        },
         "disposition": "needs_research",
     }
     text = "Upregulated after a blood meal [[arc:other-site-experiment]]"
@@ -238,7 +240,9 @@ def test_no_own_search_at_all_reads_the_other_site_and_builds_nothing(
     ]
     assert names(lead) == ["frame_problem", "final_result"]
     assert (
-        lead[-1].args_as_dict()["prose"] == "It runs on another site. I built nothing."
+        lead[-1].args_as_dict()["prose"]
+        == "Not applied until the strategy is built: It runs on another site. "
+        "I built nothing."
     )
 
 

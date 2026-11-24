@@ -278,7 +278,7 @@ def structure_dropped(messages: list[ModelMessage]) -> frozenset[str]:
 
 
 class _PlanRead(ToolAnswer):
-    text: str = ""
+    rendered: str = ""
 
 
 class _Summary(ToolAnswer):
@@ -288,7 +288,7 @@ class _Summary(ToolAnswer):
 
     @property
     def said(self) -> str:
-        plan = "" if self.pending_plan is None else self.pending_plan.text
+        plan = "" if self.pending_plan is None else self.pending_plan.rendered
         return " ".join(part for part in (self.route, plan) if part)
 
 

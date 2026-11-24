@@ -32,7 +32,7 @@ def asking_frame(site_id: str) -> dict[str, object]:
         param_display_names={"organism": ORGANISM_LABEL},
     )
     return {
-        "pendingPlan": {"text": "The signal peptide search needs its organism."},
+        "pendingPlan": {"rendered": "The signal peptide search needs its organism."},
         "disposition": "needs_user",
         "openQuestions": [asked.model_dump(by_alias=True, mode="json")],
         "cardQuestions": [

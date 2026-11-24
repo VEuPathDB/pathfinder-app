@@ -16,6 +16,7 @@ from strategist.ai.lead.deltas import EditDelta, FrameResult
 from strategist.ai.lead.edit_dispatch import run_edit
 from strategist.ai.lead.frame_dispatch import run_frame
 from strategist.ai.lead.intent import IntentClassification, UserIntent
+from strategist.domain.pending_plan import PendingPlan
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
@@ -143,8 +144,7 @@ async def test_the_recorded_edit_states_nothing_was_applied(
         "criterion was changed"
     )
     assert [s for s in _strings(dumped) if _CLAIM in s] == [
-        dumped["pendingPlan"]["text"],
-        dumped["pendingPlan"]["rendered"],
+        dumped["pendingPlan"]["rendered"]
     ]
 
 
@@ -167,8 +167,7 @@ async def test_a_needs_user_build_pass_carries_frames_text_only_as_a_pending_pla
     dumped = result.model_dump(by_alias=True, mode="json")
     assert "summary" not in dumped
     assert [s for s in _strings(dumped) if _CLAIM in s] == [
-        dumped["pendingPlan"]["text"],
-        dumped["pendingPlan"]["rendered"],
+        dumped["pendingPlan"]["rendered"]
     ]
     assert dumped["pendingPlan"]["rendered"].startswith("Not applied")
 
@@ -179,9 +178,9 @@ def test_a_route_is_said_beside_the_pending_plan() -> None:
     )
 
     dumped = result.model_dump(by_alias=True, mode="json")
-    assert (dumped["route"], dumped["pendingPlan"]["text"]) == (
+    assert (dumped["route"], dumped["pendingPlan"]) == (
         "Ask this on ToxoDB.",
-        _DRAFT,
+        {"rendered": f"Not applied, waiting on your answer: {_DRAFT}"},
     )
 
 
@@ -218,3 +217,9 @@ def test_an_unbound_edit_states_nothing_was_applied_and_its_refusal() -> None:
     delta = EditDelta(diff=SpecDiff(), disposition="unbound", refusal="no organism")
 
     assert (delta.summary, delta.refusal) == (_NOTHING, "no organism")
+
+
+def test_a_dumped_pending_plan_reads_back_whole() -> None:
+    plan = PendingPlan(text=_DRAFT, waits_on="build")
+
+    assert PendingPlan.model_validate(plan.model_dump(by_alias=True)) == plan
