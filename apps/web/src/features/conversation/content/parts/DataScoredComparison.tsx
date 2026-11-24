@@ -23,9 +23,21 @@ const COLUMNS = [
   { head: "Balanced accuracy", numeric: true },
 ] as const;
 
-function fmt(value: number | null | undefined): string {
-  return value == null ? "-" : value.toFixed(2);
+type Score = ScoredVariant["mcc"];
+
+function fmt(value: Score): string {
+  if (value == null) return "-";
+  return typeof value === "number" ? value.toFixed(2) : "not measured";
 }
+
+const SCORE_OF: Record<string, (variant: ScoredVariant) => Score> = {
+  mcc: (v) => v.mcc,
+  f1: (v) => v.f1,
+  precision: (v) => v.precision,
+  sensitivity: (v) => v.sensitivity,
+  recall: (v) => v.sensitivity,
+  balanced_accuracy: (v) => v.balancedAccuracy,
+};
 
 function hasFailed(variant: ScoredVariant): boolean {
   return variant.error != null && variant.error !== "";
@@ -35,7 +47,8 @@ function caption(data: ScoredComparison): string {
   const count = `${data.variants.length.toLocaleString()} variants`;
   const winner = data.variants.find((v) => v.label === data.winnerLabel);
   if (data.winnerLabel != null && winner !== undefined) {
-    return `${count}, winner ${data.winnerLabel} at ${fmt(winner.mcc)}`;
+    const score = SCORE_OF[data.objective]?.(winner);
+    return `${count}, winner ${data.winnerLabel} at ${data.objective} ${fmt(score)}`;
   }
   const failed = data.variants.filter(hasFailed).length;
   if (failed > 0) {

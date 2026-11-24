@@ -89,13 +89,6 @@ def sweep_control_runs(
     return runs
 
 
-class _SweepTable(_SweepTrials):
-    """A finished sweep as its table reads it: the search and the objective."""
-
-    search_name: str
-    objective: str
-
-
 def _varied(variants: list[SweepVariantResult]) -> list[str]:
     """The parameters whose value differs between the settings."""
     names = sorted({name for variant in variants for name in variant.params})
@@ -138,12 +131,11 @@ def _scored(variant: SweepVariantResult, label: str, search: str) -> ScoredVaria
     )
 
 
-def sweep_comparison(result: dict[str, Any]) -> ScoredComparison:
+def sweep_comparison(sweep: SweepResult) -> ScoredComparison:
     """The settings a sweep scored, best first, each named by what it varied."""
-    table = _SweepTable.model_validate(result)
-    varied = _varied(table.variants)
+    varied = _varied(sweep.variants)
     ranked = sorted(
-        table.variants,
+        sweep.variants,
         key=lambda v: (v.status != "success", -(v.score or 0.0)),
     )
     labels = {
@@ -153,9 +145,9 @@ def sweep_comparison(result: dict[str, Any]) -> ScoredComparison:
     }
     winner = next((v for v in ranked if v.status == "success"), None)
     return ScoredComparison(
-        variants=[_scored(v, labels[v.variant_id], table.search_name) for v in ranked],
+        variants=[_scored(v, labels[v.variant_id], sweep.search_name) for v in ranked],
         winner_label=None if winner is None else labels[winner.variant_id],
-        objective=table.objective,
+        objective=sweep.ranked_by,
     )
 
 
@@ -171,7 +163,7 @@ def _sweep_chunks_from_result(
     sweep = SweepResult.model_validate(outcome.result)
     table = DataChunk(
         type="data-scored-comparison",
-        data=sweep_comparison(outcome.result).model_dump(by_alias=True, mode="json"),
+        data=sweep_comparison(sweep).model_dump(by_alias=True, mode="json"),
     )
     return [table, *summary_chunks(tool_call_id, sweep_summary(sweep))]
 

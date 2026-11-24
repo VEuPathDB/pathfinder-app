@@ -28921,6 +28921,9 @@
                 "type": "number"
               },
               {
+                "$ref": "#/components/schemas/Unread"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -28930,6 +28933,9 @@
             "anyOf": [
               {
                 "type": "number"
+              },
+              {
+                "$ref": "#/components/schemas/Unread"
               },
               {
                 "type": "null"
@@ -28943,6 +28949,9 @@
                 "type": "number"
               },
               {
+                "$ref": "#/components/schemas/Unread"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -28954,6 +28963,9 @@
                 "type": "number"
               },
               {
+                "$ref": "#/components/schemas/Unread"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -28963,6 +28975,9 @@
             "anyOf": [
               {
                 "type": "number"
+              },
+              {
+                "$ref": "#/components/schemas/Unread"
               },
               {
                 "type": "null"

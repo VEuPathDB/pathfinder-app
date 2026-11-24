@@ -5,11 +5,13 @@ intersection counts returned by :func:`run_positive_negative_controls`.
 """
 
 import math
+from collections.abc import Callable
 
 from veupathdb_mcp.controls import (
     ControlTestResult,
 )
 
+from strategist.domain.unread import Unread
 from strategist.services.experiment.types import (
     ConfusionMatrix,
     ExperimentMetrics,
@@ -43,12 +45,62 @@ def compute_confusion_matrix(
     )
 
 
+NO_POSITIVES = Unread(reason="no positive controls")
+NO_NEGATIVES = Unread(reason="no negative controls")
+_NONE_RETURNED = Unread(reason="the result holds no control")
+_ALL_RETURNED = Unread(reason="the result holds every control")
+
+
+def _ratio(part: int, whole: int, empty: Unread) -> float | Unread:
+    return part / whole if whole > 0 else empty
+
+
+def _both(
+    first: float | Unread,
+    second: float | Unread,
+    joined: Callable[[float, float], float],
+) -> float | Unread:
+    match first:
+        case Unread():
+            return first
+    match second:
+        case Unread():
+            return second
+    return joined(first, second)
+
+
+def _f1(precision: float, sensitivity: float) -> float:
+    total = precision + sensitivity
+    return 2 * precision * sensitivity / total if total > 0 else 0.0
+
+
+def _mcc(cm: ConfusionMatrix) -> float | Unread:
+    tp, fp, tn, fn = (
+        cm.true_positives,
+        cm.false_positives,
+        cm.true_negatives,
+        cm.false_negatives,
+    )
+    margins = (
+        (tp + fn, NO_POSITIVES),
+        (tn + fp, NO_NEGATIVES),
+        (tp + fp, _NONE_RETURNED),
+        (tn + fn, _ALL_RETURNED),
+    )
+    empty = next((why for size, why in margins if size == 0), None)
+    if empty is not None:
+        return empty
+    return ((tp * tn) - (fp * fn)) / math.sqrt(math.prod(s for s, _ in margins))
+
+
 def compute_metrics(
     cm: ConfusionMatrix,
     *,
     total_results: int | None = None,
 ) -> ExperimentMetrics:
-    """Compute all classification metrics from a confusion matrix.
+    """Every classification metric of a confusion matrix. A ratio whose
+    denominator is empty is not measured, and says which controls it lacks; a
+    ratio that counts false positives needs negative controls.
 
     :param cm: Confusion matrix.
     :param total_results: Total number of results returned by the search, or
@@ -61,40 +113,43 @@ def compute_metrics(
         cm.true_negatives,
         cm.false_negatives,
     )
-
-    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    npv = tn / (tn + fn) if (tn + fn) > 0 else 0.0
-    fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
-    fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
-
-    f1_denom = precision + sensitivity
-    f1 = (2 * precision * sensitivity / f1_denom) if f1_denom > 0 else 0.0
-
-    # Matthews Correlation Coefficient
-    mcc_denom = math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-    mcc = ((tp * tn) - (fp * fn)) / mcc_denom if mcc_denom > 0 else 0.0
-
-    balanced_accuracy = (sensitivity + specificity) / 2.0
-    youdens_j = sensitivity + specificity - 1.0
-
+    negatives = tn + fp
+    positives = tp + fn
+    sensitivity = _ratio(tp, positives, NO_POSITIVES)
+    specificity = _ratio(tn, negatives, NO_NEGATIVES)
+    precision = _ratio(tp, tp + fp, _NONE_RETURNED) if negatives > 0 else NO_NEGATIVES
+    npv = (
+        _ratio(tn, tn + fn, _ALL_RETURNED)
+        if positives > 0 and negatives > 0
+        else NO_POSITIVES
+        if positives == 0
+        else NO_NEGATIVES
+    )
     return ExperimentMetrics(
         confusion_matrix=cm,
         sensitivity=sensitivity,
         specificity=specificity,
         precision=precision,
         negative_predictive_value=npv,
-        false_positive_rate=fpr,
-        false_negative_rate=fnr,
-        f1_score=f1,
-        mcc=mcc,
-        balanced_accuracy=balanced_accuracy,
-        youdens_j=youdens_j,
+        false_positive_rate=_ratio(fp, negatives, NO_NEGATIVES),
+        false_negative_rate=_ratio(fn, positives, NO_POSITIVES),
+        f1_score=_both(precision, sensitivity, _f1),
+        mcc=_mcc(cm),
+        balanced_accuracy=_both(sensitivity, specificity, lambda a, b: (a + b) / 2),
+        youdens_j=_both(sensitivity, specificity, lambda a, b: a + b - 1.0),
         total_results=total_results,
-        total_positives=tp + fn,
-        total_negatives=tn + fp,
+        total_positives=positives,
+        total_negatives=negatives,
     )
+
+
+def metric_text(value: float | Unread) -> str:
+    """A metric to two places, or why it was not measured."""
+    match value:
+        case Unread(reason=reason):
+            return f"not measured ({reason})"
+        case _:
+            return f"{value:.2f}"
 
 
 def metrics_from_control_result(result: ControlTestResult) -> ExperimentMetrics:

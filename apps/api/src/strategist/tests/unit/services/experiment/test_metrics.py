@@ -5,8 +5,7 @@ fp=2, tn=10-2=8 gives the round numbers used throughout.
 
 from __future__ import annotations
 
-import math
-
+import pytest
 from veupathdb_mcp.controls import (
     ControlTargetData,
     ControlTestResult,
@@ -14,6 +13,7 @@ from veupathdb_mcp.controls import (
     PositiveControls,
 )
 
+from strategist.domain.unread import Unread
 from strategist.services.experiment.metrics import (
     compute_confusion_matrix,
     compute_metrics,
@@ -43,30 +43,32 @@ def test_metrics_hand_computed() -> None:
         positive_hits=8, total_positives=10, negative_hits=2, total_negatives=10
     )
     m = compute_metrics(cm, total_results=100)
-    assert math.isclose(m.sensitivity, 0.8)
-    assert math.isclose(m.specificity, 0.8)
-    assert math.isclose(m.precision, 0.8)
-    assert math.isclose(m.negative_predictive_value, 0.8)
-    assert math.isclose(m.false_positive_rate, 0.2)
-    assert math.isclose(m.false_negative_rate, 0.2)
-    assert math.isclose(m.f1_score, 0.8)
-    assert math.isclose(m.mcc, 0.6)  # (64-4)/sqrt(10*10*10*10) = 60/100
-    assert math.isclose(m.balanced_accuracy, 0.8)
-    assert math.isclose(m.youdens_j, 0.6)
+    assert m.sensitivity == pytest.approx(0.8)
+    assert m.specificity == pytest.approx(0.8)
+    assert m.precision == pytest.approx(0.8)
+    assert m.negative_predictive_value == pytest.approx(0.8)
+    assert m.false_positive_rate == pytest.approx(0.2)
+    assert m.false_negative_rate == pytest.approx(0.2)
+    assert m.f1_score == pytest.approx(0.8)
+    assert m.mcc == pytest.approx(0.6)  # (64-4)/sqrt(10*10*10*10) = 60/100
+    assert m.balanced_accuracy == pytest.approx(0.8)
+    assert m.youdens_j == pytest.approx(0.6)
     assert m.total_results == 100
     assert m.total_positives == 10
     assert m.total_negatives == 10
 
 
-def test_metrics_zero_denominators_are_safe() -> None:
+def test_no_controls_measure_nothing() -> None:
     cm = compute_confusion_matrix(
         positive_hits=0, total_positives=0, negative_hits=0, total_negatives=0
     )
     m = compute_metrics(cm)
-    assert m.sensitivity == 0.0
-    assert m.precision == 0.0
-    assert m.mcc == 0.0
-    assert m.f1_score == 0.0
+    assert (m.sensitivity, m.precision, m.mcc, m.f1_score) == (
+        Unread(reason="no positive controls"),
+        Unread(reason="no negative controls"),
+        Unread(reason="no positive controls"),
+        Unread(reason="no negative controls"),
+    )
 
 
 def test_perfect_classifier_mcc_is_one() -> None:
@@ -74,8 +76,8 @@ def test_perfect_classifier_mcc_is_one() -> None:
         positive_hits=10, total_positives=10, negative_hits=0, total_negatives=10
     )
     m = compute_metrics(cm)
-    assert math.isclose(m.mcc, 1.0)
-    assert math.isclose(m.f1_score, 1.0)
+    assert m.mcc == pytest.approx(1.0)
+    assert m.f1_score == pytest.approx(1.0)
 
 
 def test_anti_correlated_classifier_has_negative_mcc() -> None:
@@ -87,25 +89,12 @@ def test_anti_correlated_classifier_has_negative_mcc() -> None:
         positive_hits=2, total_positives=10, negative_hits=8, total_negatives=10
     )
     m = compute_metrics(cm)
-    assert math.isclose(m.mcc, -0.6)
+    assert m.mcc == pytest.approx(-0.6)
     # Symmetric: flipping to the well-classified counts gives +0.6.
     cm2 = compute_confusion_matrix(
         positive_hits=8, total_positives=10, negative_hits=2, total_negatives=10
     )
-    assert math.isclose(compute_metrics(cm2).mcc, 0.6)
-
-
-def test_mcc_is_zero_not_nan_when_one_class_absent() -> None:
-    # TP=5, FP=5, TN=FN=0. mcc denominator factor (tn+fp)*(tn+fn) collapses to
-    # (0+5)*(0+0) = 0, so the whole sqrt is 0. MCC must be defined as 0.0, never
-    # NaN/inf - a NaN would silently poison downstream means/CIs.
-    cm = compute_confusion_matrix(
-        positive_hits=5, total_positives=5, negative_hits=5, total_negatives=5
-    )
-    m = compute_metrics(cm)
-    assert m.mcc == 0.0
-    assert not math.isnan(m.mcc)
-    assert not math.isinf(m.mcc)
+    assert compute_metrics(cm2).mcc == pytest.approx(0.6)
 
 
 def test_metrics_from_control_result_end_to_end() -> None:
@@ -122,8 +111,8 @@ def test_metrics_from_control_result_end_to_end() -> None:
     assert m.confusion_matrix.true_positives == 8
     assert m.confusion_matrix.false_negatives == 2
     assert m.confusion_matrix.false_positives == 2
-    assert math.isclose(m.sensitivity, 0.8)
-    assert math.isclose(m.mcc, 0.6)
+    assert m.sensitivity == pytest.approx(0.8)
+    assert m.mcc == pytest.approx(0.6)
 
 
 def test_an_unread_result_count_is_no_count() -> None:

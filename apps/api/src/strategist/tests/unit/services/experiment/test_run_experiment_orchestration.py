@@ -7,7 +7,6 @@ hydration are stubbed.
 
 from __future__ import annotations
 
-import math
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -86,8 +85,8 @@ async def test_run_experiment_completes_with_real_metrics(
 
     assert exp.status == "completed"
     assert exp.metrics is not None
-    assert math.isclose(exp.metrics.mcc, 0.6)
-    assert math.isclose(exp.metrics.sensitivity, 0.8)
+    assert exp.metrics.mcc == pytest.approx(0.6)
+    assert exp.metrics.sensitivity == pytest.approx(0.8)
     assert [saved.status for saved in (store.saved[0], store.saved[-1])] == [
         "running",
         "completed",

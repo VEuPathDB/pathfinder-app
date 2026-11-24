@@ -85,9 +85,8 @@ async def test_ranks_by_mcc_and_names_winner(monkeypatch: pytest.MonkeyPatch) ->
     )
     assert result.winner_label == "strict"
     by_label = {v.label: v for v in result.variants}
-    assert by_label["lenient"].mcc is not None
-    assert abs(by_label["lenient"].mcc - 0.6) < 1e-9
-    assert abs((by_label["strict"].mcc or 0.0) - 1.0) < 1e-9
+    assert by_label["lenient"].mcc == pytest.approx(0.6)
+    assert by_label["strict"].mcc == pytest.approx(1.0)
 
 
 @pytest.mark.asyncio

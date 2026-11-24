@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+import pytest
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 
@@ -52,8 +53,9 @@ def test_the_table_ranks_signalp_41_first() -> None:
     assert table.winner_label == "SignalP-4.1"
     assert table.objective == "f1"
     best = table.variants[0]
-    scores = (best.sensitivity, best.precision, best.f1)
-    assert [None if x is None else round(x, 3) for x in scores] == [0.95, 0.987, 0.968]
+    assert best.sensitivity == pytest.approx(0.95, abs=5e-4)
+    assert best.precision == pytest.approx(0.987, abs=5e-4)
+    assert best.f1 == pytest.approx(0.968, abs=5e-4)
     assert best.search_name == "GenesWithSignalPeptide"
 
 

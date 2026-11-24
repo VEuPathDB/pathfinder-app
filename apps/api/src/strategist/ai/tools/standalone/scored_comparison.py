@@ -31,9 +31,9 @@ from strategist.domain.unread import Unread
 from strategist.services.evidence.comparisons import run_scored_comparison
 from strategist.services.evidence.control_sets import get_control_set
 from strategist.services.experiment.scored_comparison import (
-    RANK_BY,
     Objective,
     ScoredComparison,
+    ranked_winner,
 )
 
 
@@ -148,21 +148,23 @@ def _unread_memberships(comparison: ScoredComparison) -> str:
 
 
 def _scored_line(comparison: ScoredComparison, objective: Objective) -> str:
-    """How many variants scored, which one won by the objective, and whose
-    membership was not read."""
+    """How many variants scored, which one won and by which metric, why the
+    objective was not measured when it was not, and whose membership was not
+    read."""
     total = len(comparison.variants)
     failed = sum(1 for v in comparison.variants if v.error is not None)
     unread = _unread_memberships(comparison)
-    winner = next(
-        (v for v in comparison.variants if v.label == comparison.winner_label),
-        None,
-    )
-    if winner is None:
+    ranking = ranked_winner(comparison.variants, objective)
+    match ranking.unmeasured:
+        case Unread(reason=reason):
+            why = f"; {objective} not measured: {reason}"
+        case None:
+            why = ""
+    if ranking.winner is None or ranking.score is None:
         if failed:
-            return f"scoring failed for {failed} of {total} variants{unread}"
-        return f"{total} variants scored, no winner{unread}"
-    score = RANK_BY[objective](winner)
-    said = "not measured" if score is None else f"{score:.3f}"
+            return f"scoring failed for {failed} of {total} variants{why}{unread}"
+        return f"{total} variants scored, no winner{why}{unread}"
     return (
-        f"{total} variants scored, winner {winner.label} at {objective} {said}{unread}"
+        f"{total} variants scored, winner {ranking.winner.label} at "
+        f"{ranking.metric} {ranking.score:.3f}{why}{unread}"
     )

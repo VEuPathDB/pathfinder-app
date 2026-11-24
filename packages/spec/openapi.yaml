@@ -19313,26 +19313,31 @@ components:
         mcc:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Mcc
         balancedAccuracy:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Balancedaccuracy
         f1:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: F1
         sensitivity:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Sensitivity
         precision:
           anyOf:
           - type: number
+          - $ref: '#/components/schemas/Unread'
           - type: 'null'
           title: Precision
         error:
