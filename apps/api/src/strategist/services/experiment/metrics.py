@@ -93,18 +93,12 @@ def _mcc(cm: ConfusionMatrix) -> float | Unread:
     return ((tp * tn) - (fp * fn)) / math.sqrt(math.prod(s for s, _ in margins))
 
 
-def compute_metrics(
-    cm: ConfusionMatrix,
-    *,
-    total_results: int | None = None,
-) -> ExperimentMetrics:
+def compute_metrics(cm: ConfusionMatrix) -> ExperimentMetrics:
     """Every classification metric of a confusion matrix. A ratio whose
     denominator is empty is not measured, and says which controls it lacks; a
     ratio that counts false positives needs negative controls.
 
     :param cm: Confusion matrix.
-    :param total_results: Total number of results returned by the search, or
-        None when it was not read.
     :returns: Full metrics object.
     """
     tp, fp, tn, fn = (
@@ -137,7 +131,6 @@ def compute_metrics(
         mcc=_mcc(cm),
         balanced_accuracy=_both(sensitivity, specificity, lambda a, b: (a + b) / 2),
         youdens_j=_both(sensitivity, specificity, lambda a, b: a + b - 1.0),
-        total_results=total_results,
         total_positives=positives,
         total_negatives=negatives,
     )
@@ -165,7 +158,6 @@ def metrics_from_control_result(result: ControlTestResult) -> ExperimentMetrics:
     pos_total = pos.controls_count if pos else 0
     neg_count = neg.intersection_count if neg else 0
     neg_total = neg.controls_count if neg else 0
-    total_results = result.target.estimated_size
 
     cm = compute_confusion_matrix(
         positive_hits=pos_count,
@@ -173,4 +165,4 @@ def metrics_from_control_result(result: ControlTestResult) -> ExperimentMetrics:
         negative_hits=neg_count,
         total_negatives=neg_total,
     )
-    return compute_metrics(cm, total_results=total_results)
+    return compute_metrics(cm)

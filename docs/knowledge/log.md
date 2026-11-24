@@ -16,6 +16,13 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **An unmeasured metric is never a number.** A ratio whose denominator is empty is an
+  `Unread` naming the controls it lacks (`compute_metrics`), and a ratio that counts false
+  positives needs negative controls. The scored table shows "not measured", the comparison
+  ranks by its objective only where it is measured, else by recall and says so, and the
+  table's objective is the metric it ranked by. `ExperimentMetrics.total_results` and
+  `LeadRunCapture.new_messages`, which nothing read, are deleted.
+
 * **A choice is among one parameter's entries.** "Compare Pf3D7 versus PvP01" bound one
   organism per criterion and showed each as Strategist's choice. An entry another criterion
   of the spec binds on the same parameter (`taken_elsewhere`), or one named only inside a

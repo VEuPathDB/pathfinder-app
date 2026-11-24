@@ -42,7 +42,7 @@ def test_metrics_hand_computed() -> None:
     cm = compute_confusion_matrix(
         positive_hits=8, total_positives=10, negative_hits=2, total_negatives=10
     )
-    m = compute_metrics(cm, total_results=100)
+    m = compute_metrics(cm)
     assert m.sensitivity == pytest.approx(0.8)
     assert m.specificity == pytest.approx(0.8)
     assert m.precision == pytest.approx(0.8)
@@ -53,7 +53,6 @@ def test_metrics_hand_computed() -> None:
     assert m.mcc == pytest.approx(0.6)  # (64-4)/sqrt(10*10*10*10) = 60/100
     assert m.balanced_accuracy == pytest.approx(0.8)
     assert m.youdens_j == pytest.approx(0.6)
-    assert m.total_results == 100
     assert m.total_positives == 10
     assert m.total_negatives == 10
 
@@ -113,15 +112,3 @@ def test_metrics_from_control_result_end_to_end() -> None:
     assert m.confusion_matrix.false_positives == 2
     assert m.sensitivity == pytest.approx(0.8)
     assert m.mcc == pytest.approx(0.6)
-
-
-def test_an_unread_result_count_is_no_count() -> None:
-    measured = metrics_from_control_result(
-        ControlTestResult(
-            positive=PositiveControls(
-                recovered_ids=["PF3D7_1133400"], missed_ids=["PF3D7_0102600"]
-            )
-        )
-    )
-
-    assert (measured.total_results, measured.sensitivity) == (None, 0.5)

@@ -37,7 +37,6 @@ class ExperimentMetrics(CamelModel):
     false_positive_rate: Measured = NOT_STORED
     false_negative_rate: Measured = NOT_STORED
     youdens_j: Measured = NOT_STORED
-    total_results: int | None = None
     total_positives: int = 0
     total_negatives: int = 0
 
