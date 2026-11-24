@@ -2,6 +2,13 @@
 
 ## 2026-11-24
 
+* **Nothing unknown becomes a default.** The decision
+  `decisions/nothing-unknown-becomes-a-default.md` records cause G's rules G1-G5 (a typed
+  `Unread` on a service read, an absence only over a catalog read, `stated` only through
+  `value_source()`, same-named entries as one name, an unparsed site reply as a site failure),
+  names G6 as the runtime check, states what the fail-open gate reaches, and lists the
+  alternatives rejected.
+
 * **The pinned strategy names what the site refused, whole.** A step's push error and its
   first validation error were cut at 60 characters, which ended inside the parameter name of a
   refusal such as "PlasmoDB did not take the strategy's steps: Parameter 'organism' does not
