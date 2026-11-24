@@ -292,10 +292,7 @@ async def test_a_step_the_site_cannot_read_under_its_parents_is_refused(
     assert refused.value.detail == (
         "Could not connect to plasmodb (dom: the vocabulary under the values it "
         "holds was not read: HTTP 503: VEuPathDB service error: Request failed "
-        "after retries: Server error '503 Service Unavailable' for url "
-        "'https://qa.plasmodb.org/plasmo.qa/service/record-types/transcript/searches/"
-        "GenesByInterproDomain?expandParams=true'\nFor more information check: "
-        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503)."
+        "after retries: Service Unavailable)."
     )
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import httpx
 from veupathdb.errors import (
     ExternalServiceError,
@@ -15,9 +17,15 @@ from veupathdb.wdk import SiteInfo, list_sites
 SERVER_ERROR = 500
 
 
+_HTTPX_STATUS = re.compile(
+    r"(?:Server|Client) error '\d{3} ([^']*)' for url '[^']*'"
+    r"(?:\s*For more information check: \S+)?"
+)
+
+
 def site_words(error: BaseException) -> str:
     """What the site said, with its status."""
-    said = str(error).strip()
+    said = _HTTPX_STATUS.sub(r"\1", str(error)).strip()
     match error:
         case WDKError(status=status) | ExternalServiceError(status=status):
             return f"HTTP {status}: {said}"

@@ -41,11 +41,8 @@ async def test_a_vocabulary_the_site_refuses_under_moved_parents_is_unread(
         "dom": Unread(
             reason=(
                 "the vocabulary under the values it holds was not read: HTTP 503: "
-                "VEuPathDB service error: Request failed after retries: Server error "
-                "'503 Service Unavailable' for url 'https://qa.plasmodb.org/plasmo.qa/service/"
-                "record-types/transcript/searches/GenesByInterproDomain?"
-                "expandParams=true'\nFor more information check: "
-                "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503"
+                "VEuPathDB service error: Request failed after retries: "
+                "Service Unavailable"
             )
         )
     }
