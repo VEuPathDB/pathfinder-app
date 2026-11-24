@@ -3,9 +3,16 @@ import { reduceSnapshot } from "@veupathdb/assistant-client";
 import type { UIMessage } from "ai";
 import { z } from "zod";
 import { getShared } from "@strategist/shared/generated/hooks/useGetShared";
+import { getSharedContext } from "@strategist/shared/generated/hooks/useGetSharedContext";
 import { getSharedSnapshot } from "@strategist/shared/generated/hooks/useGetSharedSnapshot";
+import type { SharedContext } from "@strategist/shared/generated/types/SharedContext";
+import type { SharedConversation } from "@strategist/shared/generated/types/SharedConversation";
 
 import { APIError } from "@/lib/api/http";
+import { toStrategy } from "@/lib/api/strategy";
+import { analysisSnapshotOf } from "@/state/eda";
+
+import type { RailSource } from "../rail/railSource";
 
 export const SHARED_POLL_MS = 4000;
 
@@ -66,4 +73,37 @@ export function sharedMessagesOptions(
     retry: sharedRetry,
     retryDelay: RETRY_DELAY_MS,
   });
+}
+
+export function sharedContextOptions(
+  token: string,
+  password: string | null,
+  cursor: number,
+  revision: string,
+) {
+  return queryOptions({
+    queryKey: ["shared", token, password, "context", cursor, revision] as const,
+    queryFn: () => getSharedContext(token, passwordHeader(password)),
+    staleTime: Infinity,
+    refetchInterval: (query) =>
+      query.state.status === "error" ? SHARED_POLL_MS : false,
+    retry: sharedRetry,
+    retryDelay: RETRY_DELAY_MS,
+  });
+}
+
+export function sharedRailSource(
+  token: string,
+  head: SharedConversation,
+  context: SharedContext,
+): RailSource {
+  return {
+    key: `shared:${token}`,
+    siteId: head.siteId,
+    strategy: toStrategy(context.strategy),
+    privateInputs: context.privateInputs,
+    study: context.study === null ? null : analysisSnapshotOf(context.study),
+    activeTasks: [],
+    owner: null,
+  };
 }

@@ -16,7 +16,11 @@ interface CompactStrategyViewProps {
   /** Optional row-level actions surfaced via a kebab menu. */
   onSaveStep?: (stepId: string) => void;
   onInsertSavedAt?: (stepId: string) => void;
+  privateStepIds?: ReadonlySet<string>;
+  readOnly?: boolean;
 }
+
+const NO_PRIVATE_STEPS: ReadonlySet<string> = new Set();
 
 export function CompactStrategyView({
   strategy,
@@ -24,6 +28,8 @@ export function CompactStrategyView({
   selectedStepId = null,
   onSaveStep,
   onInsertSavedAt,
+  privateStepIds = NO_PRIVATE_STEPS,
+  readOnly = false,
 }: CompactStrategyViewProps) {
   if (strategy == null) return null;
 
@@ -53,6 +59,7 @@ export function CompactStrategyView({
               key={node.step.id}
               node={node}
               allSteps={strategy.steps}
+              privateStepIds={privateStepIds}
               selectedStepId={selectedStepId}
               {...(onStepClick !== undefined && { onStepClick })}
               {...(onSaveStep !== undefined && { onSaveStep })}
@@ -65,6 +72,8 @@ export function CompactStrategyView({
         <CompactDisconnectedSection
           strategy={strategy}
           orphans={orphans}
+          privateStepIds={privateStepIds}
+          readOnly={readOnly}
           selectedStepId={selectedStepId}
           {...(onStepClick !== undefined && { onStepClick })}
         />

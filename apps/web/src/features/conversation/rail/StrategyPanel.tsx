@@ -88,6 +88,8 @@ export function StrategyPanel({ source, check }: StrategyPanelProps) {
             <CompactStrategyView
               strategy={strategy}
               selectedStepId={selectedStepId}
+              privateStepIds={new Set(Object.keys(source.privateInputs))}
+              readOnly={actions === null}
               {...(actions !== null && {
                 onStepClick: actions.openStep,
                 onSaveStep: actions.saveStep,

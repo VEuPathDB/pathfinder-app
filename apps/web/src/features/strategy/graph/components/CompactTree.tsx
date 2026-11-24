@@ -12,12 +12,14 @@ import type { TreeNode } from "@/features/strategy/graph/utils/compactLayout";
 interface TreeRowProps extends RowActions {
   node: TreeNode;
   allSteps: Step[];
+  privateStepIds: ReadonlySet<string>;
 }
 
 /** One step, and indented beneath it the steps that feed it. */
 export function CompactTreeRow({
   node,
   allSteps,
+  privateStepIds,
   onStepClick,
   selectedStepId = null,
   onSaveStep,
@@ -31,6 +33,7 @@ export function CompactTreeRow({
     <li>
       <CompactStepRow
         step={node.step}
+        isPrivate={privateStepIds.has(node.step.id)}
         selectedStepId={selectedStepId}
         {...(onStepClick !== undefined && { onStepClick })}
         {...(onSaveStep !== undefined && { onSaveStep })}
@@ -40,6 +43,7 @@ export function CompactTreeRow({
         <ChildList
           node={node}
           allSteps={allSteps}
+          privateStepIds={privateStepIds}
           selectedStepId={selectedStepId}
           savedName={savedName}
           {...(onStepClick !== undefined && { onStepClick })}
@@ -54,6 +58,7 @@ export function CompactTreeRow({
 function ChildList({
   node,
   allSteps,
+  privateStepIds,
   onStepClick,
   selectedStepId = null,
   savedName,
@@ -70,6 +75,7 @@ function ChildList({
           key={child.step.id}
           node={child}
           allSteps={allSteps}
+          privateStepIds={privateStepIds}
           selectedStepId={selectedStepId}
           {...(onStepClick !== undefined && { onStepClick })}
           {...(onSaveStep !== undefined && { onSaveStep })}

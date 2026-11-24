@@ -295,3 +295,58 @@ describe("a strategy whose branches are themselves combines", () => {
     expect(screen.getAllByTestId(/^compact-step-row-/)).toHaveLength(7);
   });
 });
+
+describe("a step whose input is private", () => {
+  afterEach(() => cleanup());
+
+  it("marks the step and leaves its neighbours alone", () => {
+    render(
+      <CompactStrategyView
+        strategy={COMBINE_STRATEGY}
+        privateStepIds={new Set(["step_a"])}
+      />,
+    );
+    expect(screen.getByTestId("compact-step-private-step_a")).toHaveTextContent(
+      "Private list",
+    );
+    expect(screen.queryByTestId("compact-step-private-step_b")).toBeNull();
+    expect(screen.queryByTestId("compact-step-private-step_c")).toBeNull();
+  });
+
+  it("marks a disconnected step", () => {
+    const detached: Strategy = {
+      ...COMBINE_STRATEGY,
+      steps: [
+        ...COMBINE_STRATEGY.steps,
+        { ...SIMPLE_STRATEGY.steps[0]!, id: "step_x" },
+      ],
+    };
+    render(
+      <CompactStrategyView strategy={detached} privateStepIds={new Set(["step_x"])} />,
+    );
+    expect(
+      within(screen.getByTestId("compact-strategy-orphans")).getByTestId(
+        "compact-step-private-step_x",
+      ),
+    ).toHaveTextContent("Private list");
+  });
+});
+
+describe("a read-only view", () => {
+  afterEach(() => cleanup());
+
+  it("offers no way to remove disconnected steps", () => {
+    const detached: Strategy = {
+      ...COMBINE_STRATEGY,
+      steps: [
+        ...COMBINE_STRATEGY.steps,
+        { ...SIMPLE_STRATEGY.steps[0]!, id: "step_x" },
+      ],
+    };
+    render(<CompactStrategyView strategy={detached} readOnly />);
+    expect(screen.getByTestId("compact-strategy-orphans")).toHaveTextContent(
+      "1 disconnected",
+    );
+    expect(screen.queryByRole("button", { name: /Remove all/ })).toBeNull();
+  });
+});

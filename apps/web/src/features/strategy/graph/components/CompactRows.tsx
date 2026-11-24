@@ -15,6 +15,7 @@ const KIND_DOT: Record<string, string> = {
 
 export interface StepRowProps extends RowActions {
   step: CompactStep;
+  isPrivate?: boolean;
 }
 
 export interface RowActions {
@@ -24,8 +25,20 @@ export interface RowActions {
   onInsertSavedAt?: (stepId: string) => void;
 }
 
+export function PrivateListMark({ stepId }: { stepId: string }) {
+  return (
+    <span
+      data-testid={`compact-step-private-${stepId}`}
+      className="shrink-0 rounded-full border border-border px-1.5 text-[10px] text-muted-foreground"
+    >
+      Private list
+    </span>
+  );
+}
+
 export function CompactStepRow({
   step,
+  isPrivate = false,
   onStepClick,
   selectedStepId = null,
   onSaveStep,
@@ -35,6 +48,7 @@ export function CompactStepRow({
     <div className="flex items-center gap-1">
       <StepRowButton
         step={step}
+        isPrivate={isPrivate}
         selectedStepId={selectedStepId}
         {...(onStepClick !== undefined && { onStepClick })}
       />
@@ -49,7 +63,12 @@ export function CompactStepRow({
   );
 }
 
-function StepRowButton({ step, onStepClick, selectedStepId = null }: StepRowProps) {
+function StepRowButton({
+  step,
+  isPrivate = false,
+  onStepClick,
+  selectedStepId = null,
+}: StepRowProps) {
   const snapshot = useStepSnapshot(step.source);
   const liveCount = snapshot.estimatedSize;
   const isSelected = step.id === selectedStepId;
@@ -92,6 +111,7 @@ function StepRowButton({ step, onStepClick, selectedStepId = null }: StepRowProp
       >
         {label}
       </span>
+      {isPrivate && <PrivateListMark stepId={step.id} />}
       <span className="text-xs tabular-nums text-muted-foreground">
         {typeof liveCount === "number" ? liveCount.toLocaleString() : "..."}
       </span>

@@ -15,12 +15,16 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+import type { SharedContext } from "@strategist/shared/generated/types/SharedContext";
+
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";
 import { chatUrl } from "@/lib/routes";
+import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStore";
 
 import { server } from "../../../../vitest.msw-setup";
 import { SharedConversationView } from "./SharedConversationView";
+import { SHARED_CONTEXT } from "./sharedContextFixture";
 
 const API = "http://localhost:3000/strategist/api/v1/shared/tok-1";
 const PASSWORD = "Zq3-pw-from-owner";
@@ -56,11 +60,13 @@ const CHUNKS = [
 function serve({
   head = HEAD,
   password = null,
+  context = SHARED_CONTEXT,
 }: {
   head?: SharedConversation;
   password?: string | null;
-} = {}): { copies: number } {
-  const seen = { copies: 0 };
+  context?: SharedContext;
+} = {}): { copies: number; context: number } {
+  const seen = { copies: 0, context: 0 };
   const locked = (request: Request) =>
     password !== null && request.headers.get("X-Share-Password") !== password;
   const refusal = () =>
@@ -79,6 +85,11 @@ function serve({
     http.get(`${API}/snapshot`, ({ request }) =>
       locked(request) ? refusal() : HttpResponse.json({ chunks: CHUNKS, cursor: 7 }),
     ),
+    http.get(`${API}/context`, ({ request }) => {
+      if (locked(request)) return refusal();
+      seen.context += 1;
+      return HttpResponse.json(context);
+    }),
     http.post(`${API}/copy`, () => {
       seen.copies += 1;
       return HttpResponse.json({
@@ -109,7 +120,16 @@ function show(signedIn = false) {
 
 afterEach(() => {
   pushMock.mockClear();
+  useRightRailStore.setState({ openPanel: null, autoOpenedConversation: null });
+  useLeftSidebarStore.setState({ collapsed: false });
+  window.innerWidth = 1024;
 });
+
+const WITH_CONTEXT: SharedConversation = {
+  ...HEAD,
+  includeContext: true,
+  strategyRevision: "r-1",
+};
 
 describe("SharedConversationView", () => {
   it("shows the thread under its name, marked read-only", async () => {
@@ -287,5 +307,100 @@ describe("SharedConversationView", () => {
       within(header).getByRole("link", { name: "Sign in to make a copy" }),
     ).toHaveAttribute("href", "https://qa.plasmodb.org/plasmo.qa/app/user/login");
     expect(within(header).queryByRole("button", { name: "Make a copy" })).toBeNull();
+  });
+
+  it("shows the strategy panel read-only when the link carries the context", async () => {
+    serve({ head: WITH_CONTEXT });
+    show();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open Strategy" }));
+
+    expect(await screen.findByTestId("strategy-headline")).toHaveTextContent("12");
+    expect(screen.getByTestId("compact-step-private-s-list")).toHaveTextContent(
+      "Private list",
+    );
+    expect(screen.queryByTestId("compact-step-private-s-text")).toBeNull();
+    expect(screen.queryByTestId("rail-strategy-open")).toBeNull();
+    expect(screen.queryByTestId("rail-strategy-refresh")).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Open strategy on / })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Share" })).toBeNull();
+  });
+
+  it("shows the study the thread showed, with no way to open it", async () => {
+    serve({ head: WITH_CONTEXT });
+    show();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open Study" }));
+
+    expect(await screen.findByTestId("rail-eda-panel")).toHaveTextContent(
+      "Heat shock response in sensitive mutants (LRR5, DHC)",
+    );
+    expect(screen.queryByTestId("rail-eda-open")).toBeNull();
+  });
+
+  it("shows no side panels when the link leaves the context out", async () => {
+    const seen = serve();
+    show();
+
+    await screen.findByText("Twelve kinases sit on chromosome 3.");
+
+    expect(screen.queryByRole("toolbar", { name: "Side panels" })).toBeNull();
+    expect(seen.context).toBe(0);
+  });
+
+  it("hides the rail once the owner turns the context off", async () => {
+    const seen = serve({ head: WITH_CONTEXT });
+    const { queryClient } = show();
+    expect(
+      await screen.findByRole("toolbar", { name: "Side panels" }),
+    ).toBeInTheDocument();
+    serve({ head: { ...HEAD, includeContext: false, strategyRevision: "" } });
+
+    await queryClient.refetchQueries({ queryKey: ["shared", "tok-1", null] });
+
+    await waitFor(() =>
+      expect(screen.queryByRole("toolbar", { name: "Side panels" })).toBeNull(),
+    );
+    expect(seen.context).toBe(1);
+  });
+
+  it("reads the context again when the strategy revision moves", async () => {
+    const seen = serve({ head: WITH_CONTEXT });
+    const { queryClient } = show();
+    await screen.findByRole("toolbar", { name: "Side panels" });
+    await waitFor(() => expect(seen.context).toBe(1));
+    server.use(
+      http.get(API, () =>
+        HttpResponse.json({ ...WITH_CONTEXT, strategyRevision: "r-2" }),
+      ),
+    );
+
+    await queryClient.refetchQueries({
+      queryKey: ["shared", "tok-1", null],
+      exact: true,
+    });
+
+    await waitFor(() => expect(seen.context).toBe(2));
+  });
+
+  it("opens the rail over the thread on a narrow screen", async () => {
+    window.innerWidth = 700;
+    useLeftSidebarStore.setState({ collapsed: true });
+    serve({ head: WITH_CONTEXT });
+    show();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open Strategy" }));
+
+    expect(screen.getByTestId("rail-panel")).toHaveClass("absolute");
+    expect(screen.getByRole("button", { name: "Close panel" })).toBeVisible();
+  });
+
+  it("keeps the panel buttons on a phone, where the page has no phone bar", async () => {
+    serve({ head: WITH_CONTEXT });
+    show();
+
+    const toolbar = await screen.findByRole("toolbar", { name: "Side panels" });
+
+    expect(toolbar.parentElement).not.toHaveClass("max-sm:hidden");
   });
 });

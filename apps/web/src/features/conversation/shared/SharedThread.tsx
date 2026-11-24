@@ -12,26 +12,43 @@ import {
 } from "@/components/ai-elements/conversation";
 
 import { AssistantMessage, UserMessage } from "../content/MessageRenderer";
+import { RailToggle } from "../rail/RailToggle";
+import type { RailSource } from "../rail/railSource";
+import { RightRail } from "../rail/RightRail";
 import { ReadOnlyThreadProvider } from "../readOnlyThread";
 import { ChatHelpersProvider } from "../runtime/chatHelpersContext";
 
-export function SharedThread({ id, messages }: { id: string; messages: UIMessage[] }) {
+export function SharedThread({
+  id,
+  messages,
+  rail,
+}: {
+  id: string;
+  messages: UIMessage[];
+  rail: RailSource | null;
+}) {
   const chat = useChat({ id, messages });
   const runtime = useAISDKRuntime(chat);
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ChatHelpersProvider value={chat}>
         <ReadOnlyThreadProvider value>
-          <ThreadPrimitive.Root className="flex h-full min-h-0 flex-col">
-            <Conversation>
-              <ConversationContent className="pt-4">
-                <ThreadPrimitive.Messages
-                  components={{ UserMessage, AssistantMessage }}
-                />
-              </ConversationContent>
-            </Conversation>
-            <ConversationScrollButton />
-          </ThreadPrimitive.Root>
+          <div className="relative flex h-full min-h-0 min-w-0">
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+              <ThreadPrimitive.Root className="flex h-full min-h-0 flex-col">
+                <Conversation>
+                  <ConversationContent className="pt-4">
+                    <ThreadPrimitive.Messages
+                      components={{ UserMessage, AssistantMessage }}
+                    />
+                  </ConversationContent>
+                </Conversation>
+                <ConversationScrollButton />
+              </ThreadPrimitive.Root>
+              {rail !== null && <RailToggle source={rail} />}
+            </div>
+            {rail !== null && <RightRail source={rail} />}
+          </div>
         </ReadOnlyThreadProvider>
       </ChatHelpersProvider>
     </AssistantRuntimeProvider>

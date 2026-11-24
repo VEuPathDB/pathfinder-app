@@ -2,12 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { APIError } from "@/lib/api/http";
 
+import type { SharedConversation } from "@strategist/shared/generated/types/SharedConversation";
+
 import {
   SHARED_POLL_MS,
   sharedPollAfter,
+  sharedRailSource,
   sharedRefusalOf,
   sharedRetry,
 } from "./sharedConversation";
+import { SHARED_CONTEXT } from "./sharedContextFixture";
 
 function refusal(status: number, code: string): APIError {
   return new APIError("refused", {
@@ -55,5 +59,42 @@ describe("sharedPollAfter", () => {
 
   it("stops polling a link that is gone or locked", () => {
     expect([sharedPollAfter(GONE), sharedPollAfter(LOCKED)]).toEqual([false, false]);
+  });
+});
+
+describe("sharedRailSource", () => {
+  const head: SharedConversation = {
+    name: "kinases",
+    siteId: "plasmodb",
+    assistantId: "strategist",
+    allowCopy: false,
+    includeContext: true,
+    strategyRevision: "r-1",
+    cursor: 7,
+    turnInFlight: false,
+  };
+
+  it("builds a rail source with no owner", () => {
+    const source = sharedRailSource("tok-1", head, SHARED_CONTEXT);
+
+    expect(source).toMatchObject({
+      key: "shared:tok-1",
+      siteId: "plasmodb",
+      owner: null,
+      activeTasks: [],
+      privateInputs: { "s-list": ["ds_gene_ids"] },
+    });
+    expect(source.strategy?.steps.map((step) => step.estimatedSize)).toEqual([
+      41, 1204, 12,
+    ]);
+    expect(source.study?.studyDisplayName).toBe(
+      "Heat shock response in sensitive mutants (LRR5, DHC)",
+    );
+  });
+
+  it("shows no study when the link shares none", () => {
+    expect(
+      sharedRailSource("tok-1", head, { ...SHARED_CONTEXT, study: null }).study,
+    ).toBe(null);
   });
 });

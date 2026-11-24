@@ -24,6 +24,10 @@ opens `/shared/<token>`, inside the website that frames Strategist.
   "Include the strategy and its context" ticked (`conversation_shares.include_context`, on for a
   new link), `GET /api/v1/shared/{token}/context` serves the thread's strategy and its bound study
   for a read-only rail; it refuses with 403 `SHARE_CONTEXT_NOT_SHARED` when the box is cleared.
+  The page reads it again when the head's cursor or `strategyRevision` moves. The rail panels
+  read one `RailSource` (`features/conversation/rail/railSource.ts`); a viewer's has no owner,
+  so the panels offer no edit, run, refresh, note, task, share or site link, and a step whose
+  input is withheld reads "Private list".
   It is redacted once, in `services/conversations/shared_context.py`: the owner's WDK handles
   (strategy and step ids, the WDK and study links, the gene set id), the spend and the thread
   ids are withheld, and the conversation id is one derived from the token. Which step inputs are
