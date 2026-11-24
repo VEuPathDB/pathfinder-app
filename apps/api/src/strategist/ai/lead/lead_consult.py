@@ -89,8 +89,17 @@ async def consult_can_ask(
     ctx: RunContext[LeadDeps], questions: list[CardQuestion], *, reply: CardReply
 ) -> None:
     del reply
-    requirements = ctx.deps.state.domain.requirements
-    drops = [why for q in questions for why in q.recommended_drops(requirements)]
+    domain = ctx.deps.state.domain
+    spec = domain.operational_spec
+    links = {
+        c.id: [link.requirement for link in c.answers]
+        for c in ([] if spec is None else spec.criteria)
+    }
+    drops = [
+        why
+        for q in questions
+        for why in q.recommended_drops(domain.requirements, links)
+    ]
     if drops:
         raise ModelRetry(" ".join(drops))
     cards = ctx.deps.state.turn_markers.card_stand_ins

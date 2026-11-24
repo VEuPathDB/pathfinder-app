@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **A card recommends no option whose pick retires or replaces a stated requirement.**
+  `CardQuestion.recommended_drops` refuses a recommended drop option, and a recommended option
+  other than the keep option on a question that replaces the requirement (`replaces`), names it,
+  or names a criterion that answers it. A question that changes no requirement may recommend.
+
 * **A requirement blocks only when the steps' values show it unmet.** The no-step block and the
   reply contract read one predicate, `GroundedConstraint.blocks` (a hard requirement the
   researcher stated, grounded `substituted` or `ungroundable`); `is_blocking` and
