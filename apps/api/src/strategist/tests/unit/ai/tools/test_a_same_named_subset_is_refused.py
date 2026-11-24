@@ -17,6 +17,7 @@ from veupathdb.domain.parameters import (
 from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_lookups import pick_problems
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
+from strategist.domain.refusal import Problems
 from strategist.platform.refusals import refuse_problems
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
@@ -94,7 +95,7 @@ def test_an_entry_the_request_names_by_accession_binds() -> None:
     assert state.request_messages == [f"{_MESSAGE} Use IPR050205."]
 
 
-def _without_a_lookup(picks: list[str]) -> None:
+def _without_a_lookup(picks: list[str]) -> Problems:
     definition = suite_search("search_genes_by_interpro_domain")
     terms = [
         WDKVocabTerm((v["value"], v["display"], None)) for v in _E1["allowedValues"]
@@ -114,17 +115,15 @@ def _without_a_lookup(picks: list[str]) -> None:
         text=_TEXT,
         params={},
     ).with_values({_DOMAINS: MultiPickValue(values=picks)})
-    refuse_problems(
-        pick_problems(state, definition, call, sheet_of(definition.parameters or []))
-    )
+    return pick_problems(state, definition, call, sheet_of(definition.parameters or []))
 
 
 def test_a_same_named_subset_no_lookup_read_is_refused_from_the_vocabulary() -> None:
     with pytest.raises(ModelRetry) as refused:
-        _without_a_lookup(["IPR050205"])
+        refuse_problems(_without_a_lookup(["IPR050205"]))
 
     assert "IPR050205 and IPR050236 share the name" in refused.value.message
 
 
 def test_both_same_named_entries_no_lookup_read_bind() -> None:
-    _without_a_lookup(["IPR050205", "IPR050236"])
+    assert _without_a_lookup(["IPR050205", "IPR050236"]).found == ()
