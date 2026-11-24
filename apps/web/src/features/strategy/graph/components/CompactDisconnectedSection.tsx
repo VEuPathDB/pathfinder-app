@@ -1,11 +1,10 @@
 "use client";
 
-import type { Step, Strategy } from "@strategist/shared";
+import type { Step } from "@strategist/shared";
 import { Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PrivateListMark } from "@/features/strategy/graph/components/CompactRows";
-import { useDeleteOperation } from "@/features/strategy/graph/hooks/useDeleteOperation";
 import { inferStepKind } from "@/features/strategy/graph";
 import { cn } from "@/lib/utils/cn";
 
@@ -16,29 +15,20 @@ const KIND_DOT: Record<string, string> = {
 };
 
 interface DisconnectedSectionProps {
-  strategy: Strategy;
   orphans: Step[];
   privateStepIds?: ReadonlySet<string>;
-  readOnly?: boolean;
+  onRemoveOrphans?: (stepIds: string[]) => void;
   onStepClick?: (stepId: string) => void;
   selectedStepId?: string | null;
 }
 
 export function CompactDisconnectedSection({
-  strategy,
   orphans,
   privateStepIds,
-  readOnly = false,
+  onRemoveOrphans,
   onStepClick,
   selectedStepId = null,
 }: DisconnectedSectionProps) {
-  const deleteOp = useDeleteOperation(strategy.id);
-  const handleClear = () => {
-    deleteOp.requestDeleteMany(
-      orphans.map((s) => s.id),
-      { skipConfirm: true },
-    );
-  };
   return (
     <section
       data-testid="compact-strategy-orphans"
@@ -46,19 +36,19 @@ export function CompactDisconnectedSection({
     >
       <header className="mb-1 flex items-center justify-between gap-2 px-1 text-xs font-medium text-warning">
         <span>{orphans.length} disconnected</span>
-        {!readOnly && (
+        {onRemoveOrphans !== undefined && (
           <Button
             type="button"
             size="xs"
             variant="ghost"
-            onClick={handleClear}
+            onClick={() => onRemoveOrphans(orphans.map((step) => step.id))}
             className="h-6 gap-1 px-1.5 text-xs text-warning hover:text-warning"
           >
             <Trash2 className="size-3" aria-hidden /> Remove all
           </Button>
         )}
       </header>
-      {!readOnly && (
+      {onRemoveOrphans !== undefined && (
         <p className="px-1 pb-1 text-xs text-muted-foreground">
           These steps aren&apos;t connected and block save. Remove or wire them up in
           the full editor.

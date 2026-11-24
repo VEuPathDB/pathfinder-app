@@ -11,6 +11,7 @@ export interface StrategyActions {
   saveStep: (stepId: string) => void;
   insertSavedAt: (stepId: string) => void;
   insertSavedAsRoot: () => void;
+  removeSteps: (stepIds: string[]) => void;
   dialogs: ReactNode;
 }
 

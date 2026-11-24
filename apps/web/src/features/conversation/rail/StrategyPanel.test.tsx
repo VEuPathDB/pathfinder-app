@@ -27,6 +27,7 @@ vi.mock("@/state/strategy/useStepSnapshot", () => ({
 import { strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
 import { EVIDENCE_CARD } from "../content/parts/evidenceCardFixture";
 import { StrategyPanel } from "./StrategyPanel";
+import { railSourceFixture } from "./railSourceFixture";
 import { useOwnerRailSource } from "./useOwnerRailSource";
 
 const STRATEGY: Strategy = {
@@ -210,3 +211,27 @@ function OwnerPanel({
   const source = useOwnerRailSource({ conversationId, strategy, siteId });
   return <StrategyPanel source={source} check={check} />;
 }
+
+describe("StrategyPanel disconnected steps", () => {
+  afterEach(() => cleanup());
+
+  it("removes them through the owner's removal", () => {
+    const removeSteps = vi.fn();
+    const base = railSourceFixture();
+    const owner = base.owner!;
+    render(
+      <StrategyPanel
+        check={null}
+        source={railSourceFixture({
+          strategy: {
+            ...STRATEGY,
+            steps: [...STRATEGY.steps, { ...STRATEGY.steps[0]!, id: "step_9" }],
+          },
+          owner: { ...owner, strategy: { ...owner.strategy, removeSteps } },
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Remove all/ }));
+    expect(removeSteps).toHaveBeenCalledWith(["step_9"]);
+  });
+});

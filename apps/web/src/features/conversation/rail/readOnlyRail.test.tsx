@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
+import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
 import type { Strategy } from "@strategist/shared";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { UIMessage } from "ai";
 import { http, HttpResponse } from "msw";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { analysisSnapshotOf } from "@/state/eda";
@@ -19,6 +22,7 @@ import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersCon
 import { EdaPanel } from "./EdaPanel";
 import { RailToggle } from "./RailToggle";
 import { railSourceFixture } from "./railSourceFixture";
+import { makeLedger } from "./review/ledgerFixture";
 import { ReviewPanel } from "./review/ReviewPanel";
 import { StrategyPanel } from "./StrategyPanel";
 
@@ -67,11 +71,29 @@ const TWO_STEP: Strategy = {
   ],
 };
 
+const DETACHED: Strategy = {
+  ...TWO_STEP,
+  steps: [...TWO_STEP.steps, { ...TWO_STEP.steps[1]!, id: "s-loose" }],
+};
+
 const EMPTY: Strategy = { ...TWO_STEP, steps: [], rootStepId: null };
 
 const STUDY = analysisSnapshotOf(EDA_ANALYSIS_STATE_FIXTURE);
 
-const requests = { notes: 0, tasks: 0 };
+const requests = { notes: 0 };
+
+const FOLD_TOGGLES = ["Memory1 used"];
+
+function Runtime({ children }: { children: ReactNode }) {
+  const runtime = useLocalRuntime({
+    async run() {
+      return { content: [] };
+    },
+  });
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>
+  );
+}
 
 function chat(messages: UIMessage[]): ChatHelpers {
   return {
@@ -92,12 +114,7 @@ function chat(messages: UIMessage[]): ChatHelpers {
 
 beforeEach(() => {
   requests.notes = 0;
-  requests.tasks = 0;
   server.use(
-    http.get("*/conversations/:id/tasks", () => {
-      requests.tasks += 1;
-      return HttpResponse.json({ tasks: [] });
-    }),
     http.get("*/conversations/:id/scratchpad/notes", () => {
       requests.notes += 1;
       return HttpResponse.json([]);
@@ -123,6 +140,19 @@ describe("a rail with no owner", () => {
     expect(screen.queryByRole("button", { name: "Step actions" })).toBeNull();
   });
 
+  it("offers no removal of disconnected steps", () => {
+    render(
+      <StrategyPanel
+        source={railSourceFixture({ owner: null, strategy: DETACHED })}
+        check={null}
+      />,
+    );
+    expect(screen.getByTestId("compact-strategy-orphans")).toHaveTextContent(
+      "1 disconnected",
+    );
+    expect(screen.queryByRole("button", { name: /Remove all/ })).toBeNull();
+  });
+
   it("offers no saved strategy to an empty rail", () => {
     render(
       <StrategyPanel
@@ -134,16 +164,61 @@ describe("a rail with no owner", () => {
     expect(screen.queryByTestId("rail-strategy-insert-saved")).toBeNull();
   });
 
-  it("reads no notes or tasks", async () => {
+  it("offers no owner control in the Review panel", async () => {
+    const ledger = makeLedger({
+      verification: {
+        complete: true,
+        successful: true,
+        caveats: [
+          {
+            kind: "chosen_among",
+            criterionId: "s1",
+            paramDisplayName: "Text term",
+            value: "transport*",
+            source: "chosen",
+            unchosenCount: 0,
+            sentence: "Text term transport* was chosen for you.",
+          },
+        ],
+      },
+    });
+    const memory = {
+      key: "k1",
+      kind: "knowledge",
+      name: "Transporter terms",
+      summary: "Use transport*",
+      createdAt: "2026-11-01T00:00:00Z",
+    };
     render(
-      <ChatHelpersProvider value={chat([])}>
-        <ReviewPanel source={railSourceFixture({ owner: null })} />
-      </ChatHelpersProvider>,
+      <Runtime>
+        <ChatHelpersProvider
+          value={chat([
+            {
+              id: "m1",
+              role: "assistant",
+              parts: [
+                { type: "data-ledger-update", data: ledger },
+                { type: "data-memory-retrieved", data: { memories: [memory] } },
+              ],
+            },
+          ])}
+        >
+          <ReviewPanel source={railSourceFixture({ owner: null })} />
+        </ChatHelpersProvider>
+      </Runtime>,
     );
-    await waitFor(() => expect(screen.getByTestId("review-panel")).toBeVisible());
+    await userEvent.click(screen.getByRole("button", { name: /^Memory/ }));
+
+    const panel = screen.getByTestId("review-panel");
+    expect(panel).toHaveTextContent("transport*");
+    expect(panel).toHaveTextContent("Transporter terms");
+    expect(
+      within(panel)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(FOLD_TOGGLES);
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(requests.notes + requests.tasks).toBe(0);
-    expect(screen.queryByText("Assistant's notes")).toBeNull();
+    expect(requests.notes).toBe(0);
   });
 
   it("shows the study with no way to open it", () => {

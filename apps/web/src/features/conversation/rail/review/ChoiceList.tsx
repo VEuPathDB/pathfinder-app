@@ -16,7 +16,13 @@ const WHO: Record<Choice["source"], string> = {
   default: "Site default.",
 };
 
-export function ChoiceList({ choices }: { choices: readonly Choice[] }) {
+export function ChoiceList({
+  choices,
+  changeable,
+}: {
+  choices: readonly Choice[];
+  changeable: boolean;
+}) {
   const aui = useAui();
   const closePanel = useRightRailStore((s) => s.closePanel);
   const leftDrawn = useLeftSidebarDrawn();
@@ -41,16 +47,18 @@ export function ChoiceList({ choices }: { choices: readonly Choice[] }) {
               <p className="text-xs text-muted-foreground">{choice.param}</p>
               <p className="break-words text-sm text-foreground">{choice.value}</p>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => change(choice)}
-              aria-label={`Change ${choice.param}`}
-              className="h-7 px-2 text-xs text-primary transition-transform active:scale-[0.98]"
-            >
-              Change
-            </Button>
+            {changeable && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => change(choice)}
+                aria-label={`Change ${choice.param}`}
+                className="h-7 px-2 text-xs text-primary transition-transform active:scale-[0.98]"
+              >
+                Change
+              </Button>
+            )}
             <p className="col-span-2 text-xs text-muted-foreground">
               <span className="font-medium text-warning">{WHO[choice.source]}</span>{" "}
               {choice.sentence}

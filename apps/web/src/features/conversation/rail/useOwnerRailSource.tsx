@@ -8,6 +8,7 @@ import { useState } from "react";
 import { beginConversation } from "@/features/conversation/api/beginConversation";
 import { InsertSavedDialog } from "@/features/saved/InsertSavedDialog";
 import { SaveSubstrategyDialog } from "@/features/strategy/editor/SaveSubstrategyDialog";
+import { useDeleteOperation } from "@/features/strategy/graph/hooks/useDeleteOperation";
 import { useRefreshStepCountsMutation } from "@/features/strategy/mutations/useRefreshStepCountsMutation";
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
 import { edaTabUrl, strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
@@ -34,6 +35,7 @@ function useStrategyActions(
     siteId,
     onSuccess: () => setSaveStepId(null),
   });
+  const deleteOperation = useDeleteOperation(strategy?.id ?? conversationId);
   const refreshCounts = useRefreshStepCountsMutation({
     conversationId: strategy?.id ?? "",
     siteId,
@@ -54,6 +56,8 @@ function useStrategyActions(
     saveStep: setSaveStepId,
     insertSavedAt: setInsertTargetId,
     insertSavedAsRoot: () => setInsertAsRoot(true),
+    removeSteps: (stepIds) =>
+      deleteOperation.requestDeleteMany(stepIds, { skipConfirm: true }),
     dialogs: (
       <>
         {insertAsRoot && (

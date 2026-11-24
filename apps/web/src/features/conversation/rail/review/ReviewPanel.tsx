@@ -93,12 +93,12 @@ export function ReviewPanel({ source }: { source: RailSource }) {
             </ReviewSection>
             <BuildProblems problems={model.buildProblems} />
             <SpotCheck check={model.spotCheck} />
-            <ChoiceList choices={model.choices} />
+            <ChoiceList choices={model.choices} changeable={owner !== null} />
             <CaveatList caveats={model.caveats} />
           </>
         )}
         {owner !== null && <NotesFold conversationId={owner.conversationId} />}
-        <MemoryFold messages={messages} />
+        <MemoryFold messages={messages} manageable={owner !== null} />
       </motion.div>
     </RailPanelShell>
   );

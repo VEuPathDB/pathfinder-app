@@ -332,21 +332,26 @@ describe("a step whose input is private", () => {
   });
 });
 
-describe("a read-only view", () => {
+describe("disconnected steps", () => {
   afterEach(() => cleanup());
 
-  it("offers no way to remove disconnected steps", () => {
-    const detached: Strategy = {
-      ...COMBINE_STRATEGY,
-      steps: [
-        ...COMBINE_STRATEGY.steps,
-        { ...SIMPLE_STRATEGY.steps[0]!, id: "step_x" },
-      ],
-    };
-    render(<CompactStrategyView strategy={detached} readOnly />);
+  const detached: Strategy = {
+    ...COMBINE_STRATEGY,
+    steps: [...COMBINE_STRATEGY.steps, { ...SIMPLE_STRATEGY.steps[0]!, id: "step_x" }],
+  };
+
+  it("offers no way to remove them when no removal is given", () => {
+    render(<CompactStrategyView strategy={detached} />);
     expect(screen.getByTestId("compact-strategy-orphans")).toHaveTextContent(
       "1 disconnected",
     );
     expect(screen.queryByRole("button", { name: /Remove all/ })).toBeNull();
+  });
+
+  it("removes every one of them through the removal it is given", () => {
+    const removed = vi.fn();
+    render(<CompactStrategyView strategy={detached} onRemoveOrphans={removed} />);
+    fireEvent.click(screen.getByRole("button", { name: /Remove all/ }));
+    expect(removed).toHaveBeenCalledWith(["step_x"]);
   });
 });

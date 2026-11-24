@@ -17,6 +17,7 @@ export function railSourceFixture(overrides: Partial<RailSource> = {}): RailSour
         saveStep: () => undefined,
         insertSavedAt: () => undefined,
         insertSavedAsRoot: () => undefined,
+        removeSteps: () => undefined,
         dialogs: null,
       },
       openStudy: () => undefined,

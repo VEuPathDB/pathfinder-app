@@ -89,11 +89,11 @@ export function StrategyPanel({ source, check }: StrategyPanelProps) {
               strategy={strategy}
               selectedStepId={selectedStepId}
               privateStepIds={new Set(Object.keys(source.privateInputs))}
-              readOnly={actions === null}
               {...(actions !== null && {
                 onStepClick: actions.openStep,
                 onSaveStep: actions.saveStep,
                 onInsertSavedAt: actions.insertSavedAt,
+                onRemoveOrphans: actions.removeSteps,
               })}
             />
           </div>
