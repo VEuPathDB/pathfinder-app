@@ -174,7 +174,7 @@ def test_a_record_of_the_old_counters_loads_with_an_empty_ledger() -> None:
     markers = TurnMarkers.model_validate(
         {
             "outputRefusals": 2,
-            "refusedRules": ["unverified_build"],
+            "refusedRules": ["unsaved_controls"],
             "refusedDigests": ["x"],
         }
     )
