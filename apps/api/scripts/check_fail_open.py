@@ -28,46 +28,87 @@ def _empty(node: ast.expr | None) -> bool:
             return value in (None, False, 0, "") and value is not True
         case ast.Call(func=ast.Name(id=name), args=[], keywords=[]):
             return name in _EMPTY_CALLS
-        case ast.Call(args=args):
-            return any(_empty(arg) for arg in args)
+        case ast.Call(args=args, keywords=keywords):
+            return any(_empty(arg) for arg in [*args, *(k.value for k in keywords)])
+    return False
+
+
+def _named_log(func: ast.expr) -> bool:
+    match func:
+        case ast.Attribute(attr=attr):
+            return attr in _LOG_METHODS or "log" in attr.lower()
+        case ast.Name(id=name):
+            return "log" in name.lower()
     return False
 
 
 def _logs(statement: ast.stmt) -> bool:
     match statement:
-        case ast.Expr(value=ast.Call(func=ast.Attribute(attr=attr))):
-            return attr in _LOG_METHODS
+        case ast.Expr(value=ast.Call(func=func)):
+            return _named_log(func)
     return False
 
 
-def _returns_empty(statement: ast.stmt) -> bool:
+def _quiet(statement: ast.stmt) -> bool:
     match statement:
-        case ast.Return(value=value):
-            return _empty(value)
-        case ast.Assign(value=value) | ast.AnnAssign(value=value):
-            return value is not None and _empty(value)
+        case ast.Expr(value=ast.Call()) | ast.Assign() | ast.AnnAssign() | ast.Pass():
+            return True
     return False
+
+
+def _exits(node: ast.AST) -> bool:
+    match node:
+        case ast.Raise() | ast.Return():
+            return True
+    return False
+
+
+def _nodes(handler: ast.ExceptHandler) -> Iterator[ast.AST]:
+    for statement in handler.body:
+        yield from ast.walk(statement)
+
+
+def _defaulted(handler: ast.ExceptHandler) -> ast.AST | None:
+    for node in _nodes(handler):
+        match node:
+            case ast.Return(value=value) if _empty(value):
+                return node
+            case ast.Assign(value=value) if _empty(value):
+                return node
+            case ast.AnnAssign(value=value) if value is not None and _empty(value):
+                return node
+    return None
+
+
+def _shape(handler: ast.ExceptHandler) -> tuple[str, str] | None:
+    body = handler.body
+    defaulted = _defaulted(handler)
+    if defaulted is not None:
+        return "returns or assigns an empty value", ast.unparse(defaulted)
+    match body[-1]:
+        case ast.Pass():
+            return "ends in pass", "pass"
+        case ast.Continue():
+            return "ends in continue", "continue"
+    if (
+        not any(_exits(node) for node in _nodes(handler))
+        and any(_logs(statement) for statement in body)
+        and all(_quiet(statement) for statement in body)
+    ):
+        return "logs and falls through", "log"
+    return None
 
 
 def shape_of(handler: ast.ExceptHandler) -> str | None:
-    body = handler.body
-    if any(_returns_empty(statement) for statement in body):
-        return "returns or assigns an empty value"
-    match body[-1]:
-        case ast.Pass():
-            return "ends in pass"
-        case ast.Continue():
-            return "ends in continue"
-    if all(_logs(statement) for statement in body):
-        return "only logs"
-    return None
+    found = _shape(handler)
+    return None if found is None else found[0]
 
 
 class _Scanner(ast.NodeVisitor):
     def __init__(self, path: str) -> None:
         self.path = path
         self.scope: list[str] = []
-        self.counts: dict[str, int] = {}
+        self.seen: dict[str, int] = {}
         self.found: list[Handler] = []
 
     def _enter(
@@ -82,14 +123,16 @@ class _Scanner(ast.NodeVisitor):
     visit_ClassDef = _enter
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
-        shape = shape_of(node)
-        if shape is not None:
+        found = _shape(node)
+        if found is not None:
+            shape, default = found
             function = ".".join(self.scope) or "<module>"
-            ordinal = self.counts.get(function, 0) + 1
-            self.counts[function] = ordinal
-            self.found.append(
-                Handler(f"{self.path}:{function}:{ordinal}", node.lineno, shape)
-            )
+            caught = "BaseException" if node.type is None else ast.unparse(node.type)
+            identity = f"{self.path}:{function}:{caught}:{default}".replace(" ", "")
+            repeat = self.seen.get(identity, 0) + 1
+            self.seen[identity] = repeat
+            key = identity if repeat == 1 else f"{identity}#{repeat}"
+            self.found.append(Handler(key, node.lineno, shape))
         self.generic_visit(node)
 
 
