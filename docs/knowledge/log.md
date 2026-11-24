@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **The newest message's operator wins only above the floor.** A newest reading below
+  `decisions_operator_min_confidence` no longer stands over a confident reading of the thread,
+  so the card is asked; a confident one (dry-c's "flip the last combine ... to a UNION" read
+  as union above the floor) still asks nothing.
+
 * **An answer that names no value keeps the stated value, on every dimension of one value.** A
   card answer on a percentile, fold change, significance, data type, organism, record type or
   comparator dimension becomes a requirement only when its words name a value of that kind

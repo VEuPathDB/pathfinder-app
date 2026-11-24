@@ -125,18 +125,25 @@ _UNION_OVER_THE_SURFACE_FEATURES = OperationalSpec(
 
 
 class _ByMessages:
-    """The newest message alone reads as a union below the floor; the whole
-    thread reads as the intersect the recorded turn held, at 0.57."""
+    """The newest message alone reads the root as a union at the given
+    confidence and states nothing of the inner combine; the whole thread reads
+    each as the intersect the recorded turn held."""
+
+    def __init__(self, newest: float) -> None:
+        self.newest = newest
 
     async def __call__(self, request: DecisionRequest) -> DecisionResponse | None:
         newest_alone = _TURNS[0] not in request.input
-        choice, confidence = ("union", 0.45) if newest_alone else ("intersect", 0.57)
+        root = "3D7 blood-stage expression" in request.input
+        choice, confidence = ("intersect", 0.57)
+        if newest_alone:
+            choice, confidence = ("union", self.newest) if root else ("not_stated", 0.9)
         response: dict[str, Any] = json.loads(json.dumps(_RECORDED["response"]))
         response["answers"][0].update({"choice": choice, "confidence": confidence})
         return DecisionResponse.model_validate(response)
 
 
-async def test_the_flip_the_message_states_is_not_asked_back() -> None:
+async def _read_with(newest_confidence: float) -> tuple[str, int, bool]:
     domain = StrategyDomainState(
         requirements=_REQUIREMENTS,
         operational_spec=_UNION_OVER_THE_SURFACE_FEATURES,
@@ -144,15 +151,21 @@ async def test_the_flip_the_message_states_is_not_asked_back() -> None:
         request_messages=_TURNS[1:5],
     )
     deps = lead_deps(pipeline_state(user_prompt=_TURNS[5], domain=domain))
-    use_decisions_transport(_ByMessages())
+    use_decisions_transport(_ByMessages(newest_confidence))
 
     read = await read_the_operators(_UNION_OVER_THE_SURFACE_FEATURES, deps)
     deps.state.domain.operational_spec = read
-
     root = next(r for r in read.operator_reads if r.built is CombineOp.UNION)
-    assert (
+    return (
         root.read,
-        root.read_operator,
-        questions_for_the_card(deps, FrameResult(), []),
-        read.ready_to_build,
-    ) == ("unsure", CombineOp.UNION, [], True)
+        len(questions_for_the_card(deps, FrameResult(), [])),
+        (read.ready_to_build),
+    )
+
+
+async def test_a_confident_flip_the_message_states_is_not_asked_back() -> None:
+    assert await _read_with(0.82) == ("agrees", 0, True)
+
+
+async def test_a_newest_reading_below_the_floor_asks_the_card() -> None:
+    assert await _read_with(0.45) == ("disagrees", 1, False)

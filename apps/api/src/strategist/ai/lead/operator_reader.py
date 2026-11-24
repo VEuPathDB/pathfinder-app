@@ -123,7 +123,9 @@ async def _newest_first(
     floor: float,
 ) -> OperatorReading | None:
     newest = await _read(branches, messages[-1:], ask, floor)
-    if len(messages) == 1 or (newest is not None and newest.read_operator is not None):
+    if len(messages) == 1 or (
+        newest is not None and newest.read in ("agrees", "disagrees")
+    ):
         return newest
     return await _read(branches, messages, ask, floor)
 
