@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # The e2e suite on recorded WDK answers.
 #   replay [playwright args]       the suite against apps/web/e2e/wire (Mac, CI)
+#   catalogs                       build the catalog snapshots from QA (cedar only)
 #   record --test <spec:line> ...  record the named tests against QA (cedar only)
+#   record --all                   record the whole suite (cedar only)
 #   refresh                        re-send every recording to QA (cedar only)
 # record and refresh read WDK_TEST_EMAIL and WDK_TEST_PASSWORD from the shell.
 set -euo pipefail
@@ -56,16 +58,22 @@ replay() {
 }
 
 TESTS=()
+ALL=""
 
 read_tests() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --test) TESTS+=("$2"); shift 2 ;;
-      *) echo "record takes --test <spec:line> only, not $1" >&2; exit 2 ;;
+      --all) ALL=1; shift ;;
+      *) echo "record takes --test <spec:line> or --all, not $1" >&2; exit 2 ;;
     esac
   done
-  if [ "${#TESTS[@]}" -eq 0 ]; then
-    echo "name at least one --test <spec:line>" >&2
+  if [ "${#TESTS[@]}" -eq 0 ] && [ -z "$ALL" ]; then
+    echo "name at least one --test <spec:line>, or --all" >&2
+    exit 2
+  fi
+  if [ ! -d "$WIRE/catalogs" ]; then
+    echo "build the catalog snapshots first: scripts/e2e-wire.sh catalogs" >&2
     exit 2
   fi
 }
@@ -87,7 +95,7 @@ record() {
   WIRE_DIR="$staging" WIRE_ACCESS=rw \
     compose "${RECORD_FILES[@]}" up -d --build --force-recreate "${SERVICES[@]}"
   wait_for_stack
-  suite record "${TESTS[@]}" || status=$?
+  suite record ${TESTS[@]+"${TESTS[@]}"} || status=$?
   node apps/web/scripts/redact-traces.mjs apps/web/test-results apps/web/playwright-report
 
   cp -R "$WIRE/." "$scratch/"
@@ -95,7 +103,7 @@ record() {
     python -m veupathdb.testing.wire merge /staging /scratch
 
   start_replay "$scratch"
-  suite replay "${TESTS[@]}"
+  suite replay ${TESTS[@]+"${TESTS[@]}"}
 
   rm -rf "${WIRE:?}"
   cp -R "$scratch/." "$WIRE/"
@@ -153,7 +161,8 @@ refresh() {
 
 case "${1:-}" in
   replay) shift; replay "$@" ;;
+  catalogs) compose "${REPLAY_FILES[@]}" down; build_catalogs ;;
   record) shift; record "$@" ;;
   refresh) shift; refresh "$@" ;;
-  *) echo "usage: scripts/e2e-wire.sh replay|record --test <spec:line>|refresh" >&2; exit 2 ;;
+  *) echo "usage: scripts/e2e-wire.sh replay|catalogs|record (--test <spec:line> | --all)|refresh" >&2; exit 2 ;;
 esac
