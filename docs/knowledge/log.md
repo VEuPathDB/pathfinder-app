@@ -5,7 +5,10 @@
 * **A step whose sheet under its own parents was not read is refused.**
   `sheets_under_their_parents` gives `Unread` for it, and both readers (`stated_spec_of`,
   the replay's reading) refuse through `read_or_refuse` with the site's reason; the
-  published sheet never stands in for the vocabulary under moved parents.
+  published sheet never stands in for the vocabulary under moved parents. A narrowing
+  the site refuses reaches that refusal: veupathdb-mcp 0.9.0b24 returns `NotNarrowed`
+  instead of the static view, and `_sheet_under` reads through
+  `wdk_fetch_under_parents_at`, which raises it.
 
 * **A turn's snapshot is named when it is written.** The turn's assistant message id rides
   every strategy snapshot the turn writes (`writes_named_by`, `THE_TURNS_MESSAGE`), so no

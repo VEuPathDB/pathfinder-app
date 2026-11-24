@@ -4,15 +4,20 @@ title: A contextualized param view is an enrichment, and it has one owner
 description: Six call sites asked WDK for a search's params under a context, with four exception types caught and five recoveries between them. The two with no policy at all are exactly where three separate bugs landed.
 tags: [wdk-alignment, parameters, resilience, architecture]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-11-24T00:00:00Z }
 status: stable
 ---
 
 # What was decided
 
 `get_search_params_under_context` owns the operation. It narrows a search's
-parameters by a context when WDK can narrow them, falls back to the static view
-when WDK cannot, and raises only when the static view is unreachable too.
+parameters by a context when WDK can narrow them, returns `NotNarrowed` (the
+static view and the site's refusal) when WDK cannot, and raises only when the
+static view is unreachable too. Each caller states its policy: the binding walk
+(`wdk_fetch_at`) reads the static view, and a reader that labels a held value
+from the vocabulary under its parents (`wdk_fetch_under_parents_at`, used by
+`sheet_params._sheet_under`) raises the refusal, so the step is `Unread` and the
+turn is refused with the site's reason.
 
 # Why: the seam had no owner
 
@@ -65,6 +70,14 @@ not why WDK refused. Serving the step editor's parameter panel, that route
 turned a refusal into a 500 and the panel reported the search as having no
 parameters. It now tries the site, then the portal, then the static view, and
 raises only when the static view fails too.
+
+# Why a label does not fall back
+
+A label read from the static view names a value from a vocabulary its parents
+do not give, so the step shows a wrong label with nothing to say it is wrong.
+The walk only binds, and the run endpoint checks what it binds; a label has no
+such check. The cost is that a combination WDK refuses to narrow (below) refuses
+the reading of a step that holds it.
 
 # Evidence it works
 

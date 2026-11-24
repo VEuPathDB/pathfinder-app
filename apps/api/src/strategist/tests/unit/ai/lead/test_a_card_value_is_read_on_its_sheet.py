@@ -90,6 +90,7 @@ async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
 
     monkeypatch.setattr(card_sheets, "parameters_of_searches", _sheets)
     monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
+    monkeypatch.setattr(sheet_params, "wdk_fetch_under_parents_at", _fetch_at)
     deps = lead_deps(
         pipeline_state(
             "plasmodb",

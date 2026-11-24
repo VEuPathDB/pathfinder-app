@@ -21,6 +21,7 @@ from veupathdb_mcp.catalog import (
     read_search_definition,
     read_under_parents,
     wdk_fetch_at,
+    wdk_fetch_under_parents_at,
 )
 
 from strategist.domain.strategy.operational_spec import Criterion
@@ -215,7 +216,7 @@ async def _sheet_under(
         listed_under = record_type or await _listed_under(site_id, search_name)
         if listed_under is None:
             return None
-        fetch_at = wdk_fetch_at(site_id, listed_under, search_name)
+        fetch_at = wdk_fetch_under_parents_at(site_id, listed_under, search_name)
         return await vocabularies_under(fetch_at, list(sheet), values)
     except (VEuPathDBError, OSError) as exc:
         logger.warning(
