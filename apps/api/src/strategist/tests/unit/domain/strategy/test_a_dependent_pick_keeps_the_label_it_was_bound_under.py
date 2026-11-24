@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
 
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import (
     bind_values,
     parents_moved,
@@ -13,6 +14,8 @@ from strategist.domain.strategy.value_binding import (
 )
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
+
+_STATED = StatedSource(words="")
 
 # plasmodb GenesByInterproDomain: the published sheet under its default
 # organism, and the sheet under Plasmodium falciparum 3D7 and Pfam.
@@ -28,13 +31,13 @@ def test_the_published_sheet_alone_holds_no_label_for_the_domain() -> None:
 
 
 def test_the_bind_labels_the_domain_under_its_bound_parents() -> None:
-    bound = bind_values(_KH, "stated", _UNDER_PF3D7)
+    bound = bind_values(_KH, _STATED, _UNDER_PF3D7)
 
     assert bound["domain_typeahead"].label == "KH domain"
 
 
 def test_a_read_on_the_published_sheet_keeps_the_label_it_was_bound_under() -> None:
-    bound = bind_values(_KH, "stated", _UNDER_PF3D7)
+    bound = bind_values(_KH, _STATED, _UNDER_PF3D7)
 
     again = read_again(bound, _PUBLISHED)
 

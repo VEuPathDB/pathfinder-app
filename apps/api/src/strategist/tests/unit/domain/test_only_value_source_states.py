@@ -12,6 +12,8 @@ from strategist.domain.strategy.operational_spec import BoundValue
 _PACKAGE = Path(__file__).resolve().parents[3]
 _MINTS = "domain/strategy/value_source.py"
 _FIELDS = "domain/strategy/stated_source.py"
+_CONSTRUCTS = "constructs StatedSource"
+_MAPS = 'holds {"source": "stated"}'
 
 
 def _stated(node: ast.expr | None) -> bool:
@@ -33,11 +35,9 @@ def _statings(tree: ast.AST) -> list[tuple[int, str]]:
     for node in ast.walk(tree):
         match node:
             case ast.Call(func=ast.Name(id="StatedSource")):
-                found.append((node.lineno, "constructs StatedSource"))
-            case ast.Call(func=ast.Attribute(attr="sourced"), args=[first, *_]) if (
-                _stated(first)
-            ):
-                found.append((node.lineno, 'calls sourced("stated")'))
+                found.append((node.lineno, _CONSTRUCTS))
+            case ast.Call(args=args) if any(_stated(arg) for arg in args):
+                found.append((node.lineno, 'passes "stated"'))
             case ast.Call(keywords=keywords) if any(
                 k.arg == "source" and _stated(k.value) for k in keywords
             ):
@@ -46,11 +46,17 @@ def _statings(tree: ast.AST) -> list[tuple[int, str]]:
                 _the_source(key) and _stated(value)
                 for key, value in zip(keys, values, strict=True)
             ):
-                found.append((node.lineno, 'holds {"source": "stated"}'))
+                found.append((node.lineno, _MAPS))
             case ast.Assign(targets=targets, value=value) if _stated(value) and any(
                 _the_source(t) for t in targets
             ):
                 found.append((node.lineno, 'assigns source = "stated"'))
+            case ast.AnnAssign(value=value) if _stated(value):
+                found.append((node.lineno, 'defaults to "stated"'))
+            case (
+                ast.FunctionDef(args=arguments) | ast.AsyncFunctionDef(args=arguments)
+            ) if any(_stated(d) for d in [*arguments.defaults, *arguments.kw_defaults]):
+                found.append((node.lineno, 'defaults a parameter to "stated"'))
     return found
 
 
@@ -64,12 +70,12 @@ def _production() -> list[Path]:
 
 def test_only_value_source_makes_a_stated_source() -> None:
     found = {
-        f"{path.relative_to(_PACKAGE).as_posix()}:{line}": what
+        (path.relative_to(_PACKAGE).as_posix(), what)
         for path in _production()
-        for line, what in _statings(ast.parse(path.read_text()))
+        for _, what in _statings(ast.parse(path.read_text()))
     }
 
-    assert sorted({key.split(":")[0] for key in found}) == [_FIELDS, _MINTS], found
+    assert found == {(_MINTS, _CONSTRUCTS), (_FIELDS, _MAPS)}
 
 
 @pytest.mark.parametrize(
@@ -80,6 +86,9 @@ def test_only_value_source_makes_a_stated_source() -> None:
         "BoundValue(value=v, source='stated')",
         "held.model_copy(update={'source': 'stated'})",
         "held.source = 'stated'",
+        "bind_values(values, 'stated', sheet)",
+        "source: ValueSource = 'stated'",
+        "def restated(c, source='stated'):\n    return c",
     ],
 )
 def test_a_planted_stated_source_is_found(planted: str) -> None:

@@ -31,6 +31,7 @@ from strategist.domain.site_checks import SiteCheck, expression_fit_checks
 from strategist.domain.strategy.build_outcome import BuiltCounts
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests._support.ortho_taxonomy import recorded_ortho_taxonomy
@@ -38,6 +39,8 @@ from strategist.tests._support.orthomcl_step_columns import serve_step_columns
 from strategist.tests._support.qa_recording import client_recording
 
 from .conftest import agent_run_context
+
+_STATED = StatedSource(words="")
 
 _STEP = 227284080
 
@@ -140,7 +143,7 @@ def _context(search_name: str, params: dict[str, ParamValue]) -> RunContext[Agen
         id="c_one",
         text="groups across the apicomplexans",
         search_name=search_name,
-        resolved_params=bind_values(params, "stated", []),
+        resolved_params=bind_values(params, _STATED, []),
     )
     state = AgentToolState(operational_spec_draft=OperationalSpec(criteria=[criterion]))
     return agent_run_context(
@@ -330,7 +333,7 @@ def test_a_fit_holds_only_while_its_step_binds_its_expression() -> None:
             search_name=PHYLETIC_EXPRESSION_SEARCH,
             resolved_params=bind_values(
                 {PHYLETIC_EXPRESSION_PARAM: StringValue(value=_SINGLE_COPY)},
-                "stated",
+                _STATED,
                 [],
             ),
         ),

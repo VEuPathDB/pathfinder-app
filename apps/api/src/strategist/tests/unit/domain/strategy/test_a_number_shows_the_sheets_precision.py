@@ -13,8 +13,10 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
-from strategist.domain.strategy.operational_spec import ValueSource
+from strategist.domain.strategy.stated_source import StatedSource, UnstatedSource
 from strategist.domain.strategy.value_binding import bind_values
+
+_STATED = StatedSource(words="")
 
 # tritrypdb RNA-Seq fold change: the floor is a pick whose terms are the
 # TPM a read count gives, and whose initial term is the ten reads one.
@@ -50,7 +52,9 @@ def _number(initial: str | None) -> ParameterInfo:
 
 
 def _shown(
-    value: ParamValue, info: ParameterInfo, source: ValueSource = "chosen"
+    value: ParamValue,
+    info: ParameterInfo,
+    source: UnstatedSource | StatedSource = "chosen",
 ) -> str | None:
     return bind_values({info.name: value}, source, [info])[info.name].rounded()
 
@@ -80,7 +84,7 @@ def test_an_integer_value_under_an_integer_initial_value_is_unchanged() -> None:
 
 
 def test_a_value_the_researcher_states_shows_as_written() -> None:
-    assert [_shown(StringValue(value="734.0197"), _number("10"), "stated")] == [None]
+    assert [_shown(StringValue(value="734.0197"), _number("10"), _STATED)] == [None]
 
 
 def test_a_text_is_no_number_to_round() -> None:

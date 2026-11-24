@@ -13,6 +13,7 @@ from strategist.domain.strategy.operational_spec import (
     Measurement,
 )
 from strategist.domain.strategy.spec_replay import criterion_rebound, criterion_restated
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.domain.strategy.value_source import (
     source_kind,
@@ -21,6 +22,8 @@ from strategist.domain.strategy.value_source import (
 )
 
 from ._builders import text_leaf
+
+_STATED = StatedSource(words="")
 
 _PERCENTILE = "min_expression_percentile"
 _REQUEST = (
@@ -66,11 +69,14 @@ def test_the_step_parameters_carry_the_bound_values() -> None:
 
 
 def test_bind_values_gives_every_value_one_source() -> None:
-    bound = bind_values({"organism": StringValue(value="Pf3D7")}, "stated", [], "held")
+    stated = StatedSource(words="the message names Pf3D7")
+    bound = bind_values({"organism": StringValue(value="Pf3D7")}, stated, [])
 
     assert bound == {
         "organism": BoundValue(
-            value=StringValue(value="Pf3D7"), source="stated", basis="held"
+            value=StringValue(value="Pf3D7"),
+            source="stated",
+            basis="the message names Pf3D7",
         )
     }
 
