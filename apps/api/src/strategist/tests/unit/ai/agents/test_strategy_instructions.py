@@ -267,7 +267,9 @@ class TestTheRenderedGraph:
         )
 
         assert rendered is not None
-        assert f"ERROR: {refusal}" in rendered
+        assert rendered.splitlines()[5] == (
+            f"b: GenesByMolecularWeight [leaf] -> ERROR: {refusal}"
+        )
 
     def test_an_invalid_step_names_what_the_site_found_wrong(self) -> None:
         refusal = "Parameter 'organism' does not accept 'Plasmodium knowlesi strain H'."
@@ -281,7 +283,9 @@ class TestTheRenderedGraph:
         )
 
         assert rendered is not None
-        assert f"INVALID: {refusal}" in rendered
+        assert rendered.splitlines()[5] == (
+            f"b: GenesByMolecularWeight [leaf] -> INVALID: {refusal}"
+        )
 
     def test_a_step_wdk_refused_carries_no_count(self) -> None:
         """The stored count is the search WDK still runs, not the edited one."""
