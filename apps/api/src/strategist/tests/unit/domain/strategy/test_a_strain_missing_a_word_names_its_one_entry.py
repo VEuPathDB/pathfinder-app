@@ -68,8 +68,7 @@ _NOT_ONE = [
 ]
 
 
-@pytest.mark.parametrize(("site", "words", "message"), _NOT_ONE)
-def test_words_held_by_no_entry_or_by_several_name_none(
-    site: str, words: str, message: str
-) -> None:
-    assert entry_holding(words, message, _vocabulary(site)) is None
+def test_words_held_by_no_entry_or_by_several_name_none() -> None:
+    named = [entry_holding(w, m, _vocabulary(site)) for site, w, m in _NOT_ONE]
+
+    assert named == [None] * len(_NOT_ONE)
