@@ -1,12 +1,17 @@
 import { useRef, useState } from "react";
 import { useEventListener } from "usehooks-ts";
 
-import { currentDockLayout, dockLayoutAt } from "@/state/useDockLayout";
+import {
+  currentDockLayout,
+  dockLayoutAt,
+  useLeftSidebarDrawn,
+} from "@/state/useDockLayout";
 import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStore";
 
 export function useAutoCollapsePanels(pathname: string): void {
   const setCollapsed = useLeftSidebarStore((s) => s.setCollapsed);
   const closePanel = useRightRailStore((s) => s.closePanel);
+  const leftDrawn = useLeftSidebarDrawn();
   const [checkedOnMount, setCheckedOnMount] = useState(false);
   const [seenPath, setSeenPath] = useState(pathname);
   const [mountWidth] = useState(() =>
@@ -15,7 +20,7 @@ export function useAutoCollapsePanels(pathname: string): void {
   const lastWidth = useRef<number | null>(mountWidth);
 
   function closeFloatingPanels(): void {
-    const { leftFloats, rightFloats } = currentDockLayout();
+    const { leftFloats, rightFloats } = currentDockLayout(leftDrawn);
     if (leftFloats) setCollapsed(true);
     if (rightFloats) closePanel();
   }
@@ -25,8 +30,8 @@ export function useAutoCollapsePanels(pathname: string): void {
     const width = window.innerWidth;
     lastWidth.current = width;
     if (before === null || before === width) return;
-    const was = dockLayoutAt(before);
-    const now = dockLayoutAt(width);
+    const was = dockLayoutAt(before, leftDrawn);
+    const now = dockLayoutAt(width, leftDrawn);
     if (now.leftFloats && !was.leftFloats) setCollapsed(true);
     if (now.rightFloats && !was.rightFloats) closePanel();
   }

@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -9,6 +10,8 @@ import {
   useRightRailStore,
   useSideOrderStore,
 } from "@/state/useRightRailStore";
+
+import { LeftSidebarDrawn } from "@/state/useDockLayout";
 
 import { useChatRuntime } from "./useChatRuntime";
 
@@ -70,9 +73,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function inShell({ children }: { children: ReactNode }) {
+  return createElement(LeftSidebarDrawn, { value: true }, children);
+}
+
 async function sendBuildTurn(): Promise<void> {
-  const { result } = renderHook(() =>
-    useChatRuntime({ conversationId: CONVERSATION_ID }),
+  const { result } = renderHook(
+    () => useChatRuntime({ conversationId: CONVERSATION_ID }),
+    { wrapper: inShell },
   );
   await act(async () => {
     await result.current.chat.sendMessage({ text: "Build it." });

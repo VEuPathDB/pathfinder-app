@@ -7,7 +7,11 @@ import { NarrowBackdrop } from "@/lib/components/NarrowBackdrop";
 import { RIGHT_PANEL_WIDTH_PX } from "@/lib/layout/dock";
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
-import { railMayOpenItself, useDockLayout } from "@/state/useDockLayout";
+import {
+  railMayOpenItself,
+  useDockLayout,
+  useLeftSidebarDrawn,
+} from "@/state/useDockLayout";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
 import {
@@ -30,6 +34,7 @@ export function RightRail({ source }: { source: RailSource }) {
   const autoOpenedConversation = useRightRailStore((s) => s.autoOpenedConversation);
   const autoOpen = useRightRailStore((s) => s.autoOpen);
   const { rightFloats } = useDockLayout();
+  const leftDrawn = useLeftSidebarDrawn();
   const chat = useChatHelpers();
   const activity = computeRailActivity(chat.messages);
   const parts = chat.messages.flatMap((m) => m.parts);
@@ -55,7 +60,7 @@ export function RightRail({ source }: { source: RailSource }) {
       autoOpenedConversation,
       autoOpenChecked,
     }) &&
-    railMayOpenItself()
+    railMayOpenItself(leftDrawn)
   ) {
     setAutoOpenChecked(source.key);
     queueMicrotask(() => autoOpen(source.key, "review"));

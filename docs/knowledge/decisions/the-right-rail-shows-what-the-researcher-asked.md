@@ -15,6 +15,9 @@ pill at the top right of the conversation (`rail/RailToggle.tsx`), and on a phon
 the bottom bar; help, settings and the Strategist mark sit at the foot of the left rail. A side
 panel stays beside the conversation only while the conversation keeps 600 px
 (`lib/layout/dock.ts::dockLayout`); otherwise the panel opened last floats over it as a drawer.
+The nav rail and the sidebar count only on a page that draws them: the app shell states it with
+`LeftSidebarDrawn` (`state/useDockLayout.ts`), and a shared page, which draws neither, gives the
+conversation their width.
 Spend is one ring beside Attach (`composer/SpendRing.tsx`): it fills to the share of the
 account's monthly allowance spent, and its tooltip holds this conversation's total, the month's
 spend against the allowance and the reset date. Review

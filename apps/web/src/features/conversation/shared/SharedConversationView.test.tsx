@@ -403,4 +403,18 @@ describe("SharedConversationView", () => {
 
     expect(toolbar.parentElement).not.toHaveClass("max-sm:hidden");
   });
+
+  it("docks the rail beside the thread at 1200px, since the page draws no sidebar", async () => {
+    window.innerWidth = 1200;
+    useLeftSidebarStore.setState({ collapsed: false });
+    serve({ head: WITH_CONTEXT });
+    show();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Open Strategy" }));
+
+    expect(screen.getByTestId("rail-panel").className.split(" ")).not.toContain(
+      "absolute",
+    );
+    expect(screen.queryByRole("button", { name: "Close panel" })).toBe(null);
+  });
 });

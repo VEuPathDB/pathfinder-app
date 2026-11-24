@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/conversation/conv-1",
 }));
 
+import { LeftSidebarDrawn } from "@/state/useDockLayout";
 import { usePhoneBarStore } from "@/state/usePhoneBarStore";
 import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStore";
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
@@ -117,6 +118,13 @@ describe("the rail panel floats over the thread when the chat would drop below 6
     expect(useRightRailStore.getState().openPanel).toBe(null);
   });
 
+  it("floats at 1200px beside an open sidebar", () => {
+    setViewportWidth(1200);
+    useRightRailStore.setState({ openPanel: "review" });
+    renderRail("conv-1", []);
+    expect(screen.getByTestId("rail-panel")).toHaveClass("absolute");
+  });
+
   it("stays beside the chat when the chat keeps 600px", () => {
     setViewportWidth(1440);
     useLeftSidebarStore.setState({ collapsed: true });
@@ -148,6 +156,14 @@ describe("the rail's buttons on a phone", () => {
 });
 
 function OwnerRail({ conversationId }: { conversationId: string }) {
+  return (
+    <LeftSidebarDrawn value>
+      <OwnerRailPanels conversationId={conversationId} />
+    </LeftSidebarDrawn>
+  );
+}
+
+function OwnerRailPanels({ conversationId }: { conversationId: string }) {
   const source = useOwnerRailSource({
     conversationId,
     strategy: null,
