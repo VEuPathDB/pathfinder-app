@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from types import MappingProxyType
+
+from veupathdb.domain.parameters import PhyleticTree
 
 from strategist.domain.log2_scale import scale_of
 from strategist.domain.strategy.combination_check import (
@@ -247,6 +250,7 @@ def _ground_untyped(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
 
 
 _NO_MARKS = DataMarks()
+_NO_TREES: Mapping[str, PhyleticTree] = MappingProxyType({})
 
 _HANDLERS = {
     ConstraintKind.DATA_TYPE: _ground_data_type,
@@ -297,6 +301,7 @@ def ground_against_spec(
     spec: OperationalSpec,
     *,
     marks: DataMarks = _NO_MARKS,
+    trees: Mapping[str, PhyleticTree] = _NO_TREES,
 ) -> list[GroundedConstraint]:
     """Ground each constraint against the facts this spec realizes and what the
     site says each criterion runs on."""
@@ -307,5 +312,6 @@ def ground_against_spec(
             structure=spec.structure,
             criteria=spec.criteria,
             marks=marks,
+            trees=trees,
         ),
     )

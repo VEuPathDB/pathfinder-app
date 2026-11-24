@@ -14,6 +14,7 @@ from strategist.domain.strategy.constraints import (
     PropertyValue,
     TextValue,
 )
+from strategist.domain.strategy.genome_group import INCLUDED_SPECIES
 from strategist.domain.strategy.linked_values import (
     NO_LINK,
     linked_params,
@@ -23,6 +24,7 @@ from strategist.domain.strategy.linked_values import (
 )
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.organism_scope import selected_organisms
+from strategist.domain.strategy.phyletic_genomes import included_genomes
 from strategist.domain.strategy.realized_spec import RealizedSpec
 from strategist.domain.strategy.step_naming import criterion_title
 from strategist.domain.strategy.words import words_of
@@ -154,19 +156,34 @@ def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
     return _synteny(c, linked, shown, syntenic=asked.syntenic)
 
 
+def _genomes(k: Criterion, realized: RealizedSpec) -> list[str] | None:
+    """The genomes a phylogenetic profile's own included species cover; None when
+    its tree was not read."""
+    tree = realized.trees.get(k.search_name)
+    return None if tree is None else included_genomes(tree, k.param_values)
+
+
 def _ground_unlinked_ortholog(
     c: Constraint, asked: OrthologValue, realized: RealizedSpec
 ) -> GroundedConstraint:
     """Met by any transform whose targets, or phylogenetic profile whose included
     genomes, hold every asked organism, with the stated synteny on a transform."""
     wanted = set(asked.organisms)
+    profiles = [k for k in realized.criteria if INCLUDED_SPECIES in k.resolved_params]
+    covered = {k.id: _genomes(k, realized) for k in profiles}
     reaching = [
         k
         for k in realized.criteria
         if (k.role == "transform" and wanted <= selected_organisms(k))
-        or wanted <= set(k.phyletic_genomes)
+        or wanted <= set(covered.get(k.id) or ())
     ]
     shown = ", ".join(asked.organisms)
+    if not reaching and any(genomes is None for genomes in covered.values()):
+        return not_verified(
+            c,
+            "no_value_to_compare",
+            "the species of a phylogenetic profile step were not read",
+        )
     if not reaching:
         note = (
             f"asked orthologs in {shown}, and no step of the strategy carries "

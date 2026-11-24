@@ -85,6 +85,7 @@ from strategist.services.strategies.auto_import import (
 )
 from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.data_marks import read_data_marks
+from strategist.services.strategies.genome_group_names import profile_trees
 from strategist.services.strategies.naming import name_for_the_push
 from strategist.services.strategies.spec_build import (
     build_strategy_from_spec,
@@ -144,7 +145,10 @@ async def build_the_spec(deps: LeadDeps, *, call_id: str) -> ExecuteDelta:
     if asked:
         raise ModelRetry(organism_unnamed_message([pick.quote for _, pick in asked]))
     minted = minted_spec(domain.operational_spec)
-    refuse_problems(requirements_no_step_meets(domain.requirements, minted.spec))
+    trees = await profile_trees(minted.spec, site_id=deps.state.site_id)
+    refuse_problems(
+        requirements_no_step_meets(domain.requirements, minted.spec, trees=trees)
+    )
     return await build_the_minted(deps, minted, call_id=call_id)
 
 

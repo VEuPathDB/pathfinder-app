@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
+from veupathdb.domain.parameters import (
+    MultiPickValue,
+    PhyleticTree,
+    SinglePickValue,
+    StringValue,
+)
+from veupathdb.testing.wdk_fixtures import load_recorded
+from veupathdb.wdk import WDKSearchResponse, phyletic_tree_of
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead.limit_messages import unmet_requirement_message
@@ -63,7 +70,7 @@ _UNMET = (
 )
 
 
-def _bound(value: MultiPickValue | SinglePickValue) -> BoundValue:
+def _bound(value: MultiPickValue | SinglePickValue | StringValue) -> BoundValue:
     return BoundValue(value=value, source="stated")
 
 
@@ -114,7 +121,7 @@ def _recorded_x5() -> OperationalSpec:
 
 
 def test_a_stated_requirement_no_step_meets_is_named_plainly() -> None:
-    problems = requirements_no_step_meets(_HELD, _recorded_x5())
+    problems = requirements_no_step_meets(_HELD, _recorded_x5(), trees={})
 
     assert [p.sentence for p in problems.found] == [_UNMET]
 
@@ -122,7 +129,7 @@ def test_a_stated_requirement_no_step_meets_is_named_plainly() -> None:
 def test_a_requirement_the_researcher_dropped_does_not_block() -> None:
     held = [_ORGANISM, _SIGNAL]
 
-    assert requirements_no_step_meets(held, _recorded_x5()).found == ()
+    assert requirements_no_step_meets(held, _recorded_x5(), trees={}).found == ()
 
 
 def test_it_blocks_the_answer() -> None:
@@ -173,7 +180,7 @@ def test_a_requirement_the_steps_values_cannot_judge_does_not_block() -> None:
     grounded = ground_against_spec([_SIGNAL], _adopted())
 
     assert (
-        requirements_no_step_meets([_SIGNAL], _adopted()).found,
+        requirements_no_step_meets([_SIGNAL], _adopted(), trees={}).found,
         grounded[0].blocks,
     ) == (
         (),
@@ -182,7 +189,7 @@ def test_a_requirement_the_steps_values_cannot_judge_does_not_block() -> None:
 
 
 def test_orthologs_no_step_carries_the_records_to_block() -> None:
-    problems = requirements_no_step_meets([_SYNTENIC], _adopted())
+    problems = requirements_no_step_meets([_SYNTENIC], _adopted(), trees={})
 
     assert [p.sentence for p in problems.found] == [
         (
@@ -237,20 +244,51 @@ def test_two_unlinked_ortholog_steps_meet_each_their_own_requirement() -> None:
         (ConstraintStatus.GROUNDED, False),
         (ConstraintStatus.GROUNDED, False),
     ]
-    assert requirements_no_step_meets(held, spec).found == ()
+    assert requirements_no_step_meets(held, spec, trees={}).found == ()
 
 
-def test_a_phyletic_pattern_step_meets_it_through_its_included_species() -> None:
-    sal1 = "Plasmodium vivax Sal-1"
-    pattern = _step_to("c_pattern", PF3D7, "GenesByOrthologPattern", "seed")
-    spec = OperationalSpec(
-        criteria=[pattern.model_copy(update={"phyletic_genomes": [sal1]})]
+_PATTERN = "GenesByOrthologPattern"
+
+
+def _pattern_tree() -> PhyleticTree:
+    recorded = WDKSearchResponse.model_validate(
+        load_recorded("search_genes_by_ortholog_pattern").json_body()
+    )
+    tree = phyletic_tree_of(recorded.search_data.parameters or [])
+    assert tree is not None
+    return tree
+
+
+def _adopted_pattern() -> OperationalSpec:
+    """A separation offer's pattern step: its own codes, no link, nothing decoded."""
+    return OperationalSpec(
+        criteria=[
+            Criterion(
+                id="cand_pattern",
+                text="genes with orthologs in P. vivax",
+                search_name=_PATTERN,
+                record_class="transcript",
+                role="seed",
+                resolved_params={"included_species": _bound(StringValue(value="pviv"))},
+            )
+        ]
     )
 
-    [met] = ground_against_spec([_orthologs_in(sal1)], spec)
-    [unmet] = ground_against_spec([_orthologs_in(_TG)], spec)
+
+def test_an_adopted_pattern_step_meets_orthologs_through_its_own_codes() -> None:
+    sal1 = "Plasmodium vivax Sal-1"
+    trees = {_PATTERN: _pattern_tree()}
+
+    [met] = ground_against_spec([_orthologs_in(sal1)], _adopted_pattern(), trees=trees)
+    [unmet] = ground_against_spec([_orthologs_in(_TG)], _adopted_pattern(), trees=trees)
 
     assert [(g.status, g.blocks) for g in (met, unmet)] == [
         (ConstraintStatus.GROUNDED, False),
         (ConstraintStatus.SUBSTITUTED, True),
     ]
+
+
+def test_a_pattern_step_whose_tree_is_not_read_blocks_nothing() -> None:
+    [held] = ground_against_spec([_orthologs_in(_TG)], _adopted_pattern())
+
+    assert (held.status, held.blocks) == (ConstraintStatus.NOT_VERIFIED, False)

@@ -25315,13 +25315,6 @@
             "title": "Datasetorganisms",
             "type": "array"
           },
-          "phyleticGenomes": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Phyleticgenomes",
-            "type": "array"
-          },
           "resolvedParams": {
             "additionalProperties": {
               "$ref": "#/components/schemas/BoundValue"

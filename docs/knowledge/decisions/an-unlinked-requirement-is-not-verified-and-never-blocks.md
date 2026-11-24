@@ -55,9 +55,12 @@ a `Problems` keyed `unmet_requirement` per requirement number), and the reply
 contract refuses a reply that ends the turn complete over it; the reply says "The
 requirement '<words>' is not met by any step." An ortholog requirement no
 criterion links is met by any transform whose targets, or phylogenetic profile
-whose included genomes (`Criterion.phyletic_genomes`, its included species codes
-decoded through the search's own `PhyleticTree` when it binds), hold every
-organism it asks, with `isSyntenic` as stated on such a transform;
+whose included genomes (the step's own `included_species` codes, decoded by
+grounding through the search's `PhyleticTree`, which the build and the edit read
+with `profile_trees`), hold every organism it asks, with `isSyntenic` as stated on
+such a transform; nothing derived is stored, so an adopted offer, a stored
+strategy and a FRAME bind are judged alike, and a profile whose tree was not read
+leaves the requirement not verified;
 with no such step, no step carries the records to orthologs there, which is
 unmet. So an adopted separation offer or an EDA
 export, whose steps carry no links, is judged by what its steps hold. A

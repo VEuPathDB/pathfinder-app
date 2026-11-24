@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import ParamValue
-from veupathdb.wdk import WDKParameter, WDKSearch
+from veupathdb.wdk import WDKParameter
 from veupathdb_mcp.catalog import (
     ParamFetcher,
     eda_backed_search,
     format_param_info_typed,
     organism_parameter_of,
-    phyletic_tree_for_search,
     shortlist_slot,
     wdk_fetch_at,
 )
@@ -88,12 +84,10 @@ from strategist.ai.tools.standalone._frame_values import proposed_call, sourced_
 from strategist.ai.tools.standalone._frame_weight import held_weight
 from strategist.domain.refusal import Problems
 from strategist.domain.strategy.expression_handles import stated_value
-from strategist.domain.strategy.genome_group import INCLUDED_SPECIES
 from strategist.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
 )
-from strategist.domain.strategy.phyletic_genomes import included_genomes
 from strategist.platform.refusals import refuse_problems
 from strategist.services.strategies.sheet_params import catalog_search_definition
 
@@ -114,15 +108,6 @@ def _memoized_fetch(site_id: str, record_type: str, search_name: str) -> ParamFe
         return read[key]
 
     return memoized
-
-
-async def _included_genomes(
-    site_id: str, definition: WDKSearch, params: Mapping[str, ParamValue]
-) -> list[str]:
-    if INCLUDED_SPECIES not in params:
-        return []
-    tree = await phyletic_tree_for_search(site_id, definition)
-    return included_genomes(tree, params)
 
 
 async def set_criterion(
@@ -390,9 +375,6 @@ async def _bind_the_search(
             record_class=record_type,
             role=role,
             organism_param=next((i.name for i in infos if i.organism_param), None),
-            phyletic_genomes=await _included_genomes(
-                ctx.deps.site_id, definition, resolved.params
-            ),
             resolved_params=bound,
             param_display_names=display_names(bound, open_params, infos),
             measurements=labels,

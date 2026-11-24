@@ -2,6 +2,12 @@
 
 ## 2026-11-24
 
+* **A profile's genomes are derived when grounding needs them, never stored.**
+  `Criterion.phyletic_genomes` is gone (and from the spec). Grounding decodes a phylogenetic
+  profile step's own `included_species` codes through the search's phyletic tree, which the
+  build and the edit read with `profile_trees`; an adopted offer's pattern step is judged like a
+  FRAME bind, and one whose tree was not read leaves the ortholog requirement not verified.
+
 * **A phylogenetic profile meets an ortholog requirement through its included species.** When
   it binds, a step's `included_species` codes are decoded through the search's own phyletic tree
   (`phyletic_tree_for_search`, the library's reader) into `Criterion.phyletic_genomes`; an unlinked
