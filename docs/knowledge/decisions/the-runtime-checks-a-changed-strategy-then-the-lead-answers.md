@@ -36,8 +36,9 @@ the check passed, failed or stopped.
 gate that narrowed a refused turn to the check (`intent_gate.verification_pending`) are
 deleted. A check that cannot finish is shown by its own stop in the facts part.
 
-**A check that read no record says so.** `domain/site_checks.py::records_read` adds one
-check to every verdict: `pass` when a record read of the checker answered, `unchecked`
+**A check that read no record says so.** `domain/records_read.py::records_read` adds one
+check to every verdict, from the reads that check tallied under its own call id
+(`TurnMarkers.sample_reads`), so a check that parks and resumes keeps its count: `pass` when a record read of the checker answered, `unchecked`
 with `site_unanswered` (which fails `success`) when every read it tried got no answer,
 and `unchecked` with `no_check` (which does not) when it read none.
 
