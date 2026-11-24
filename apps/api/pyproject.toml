@@ -618,7 +618,6 @@ ignore_imports = [
     "strategist.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.search_inspection",
     "strategist.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.searches",
     "strategist.tests.unit.ai.tools.test_catalog_discovery_options -> veupathdb_mcp.catalog.search_inspection",
-    "strategist.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.search_inspection",
     "strategist.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.searches",
     "strategist.tests.unit.ai.tools.test_frame_spec_defaults -> veupathdb_mcp.catalog.searches",
     "strategist.tests.unit.ai.tools.test_frame_spec_params -> veupathdb_mcp.catalog.param_discovery",
