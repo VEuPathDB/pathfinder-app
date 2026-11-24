@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pydantic import ConfigDict
+from veupathdb.model import CamelModel
+
 from strategist.domain.count_words import counted
 from strategist.domain.site_checks import SiteCheck
 
@@ -34,3 +37,15 @@ def records_read(tried: int, answered: int) -> SiteCheck:
         ),
         why_unchecked="site_unanswered",
     )
+
+
+class SampleReads(CamelModel):
+    """The record reads one check tried and the ones the site answered."""
+
+    model_config = ConfigDict(frozen=True)
+
+    tried: int = 0
+    answered: int = 0
+
+    def check(self) -> SiteCheck:
+        return records_read(self.tried, self.answered)

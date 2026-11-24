@@ -164,14 +164,15 @@ async def get_sample_records(
     session = ctx.deps.strategy_session
     wdk_step_id = named_or_root(session.sync_state, wdk_step_id)
     markers = ctx.deps.turn_markers
-    markers.sample_reads_tried += 1
+    check_id = ctx.deps.verification_scope.check_id
+    markers.sample_tried(check_id)
     sample = await read_in_time(
         "get_sample_records",
         f"step {wdk_step_id}",
         _sample(session, wdk_step_id, limit),
         deadline=READ_DEADLINE_SECONDS,
     )
-    markers.sample_reads_answered += 1
+    markers.sample_answered(check_id)
     markers.record_sampled_genes(sample.gene_ids)
     ctx.deps.turn_markers.record_listed_genes(wdk_step_id, sample.gene_ids)
     return with_summary(
