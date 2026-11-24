@@ -2,6 +2,9 @@
 
 ## 2026-11-24
 
+* **Take assistant-core 0.9.0b7.** `ToolRepetitionGuard.check_repeat` counts a repeat the host
+  holds in the guard's identical-arguments streak without spending a call cap.
+
 * **A held repeat judges elision by the next request.** `ReadOnce` runs the elision and the
   compaction over the history that holds the current response's calls, which is what the next
   request shows, so a repeat whose first answer that request digests carries the answer again
