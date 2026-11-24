@@ -1,6 +1,5 @@
 "use client";
 
-import type { Strategy } from "@strategist/shared";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Fragment, useId } from "react";
 import { createPortal } from "react-dom";
@@ -11,14 +10,10 @@ import { cn } from "@/lib/utils/cn";
 import { usePhoneBarStore } from "@/state/usePhoneBarStore";
 
 import { ShareButton } from "../share/ShareButton";
+import type { RailSource } from "./railSource";
 import { useRailPanels, type RailPanelButton } from "./useRailPanels";
 
 const HIGHLIGHT = { type: "spring", stiffness: 520, damping: 40 } as const;
-
-interface RailToggleProps {
-  conversationId: string;
-  strategy: Strategy | null;
-}
 
 function PanelButton({ panel, onPhone }: { panel: RailPanelButton; onPhone: boolean }) {
   const highlight = useEntrance({
@@ -82,8 +77,9 @@ function PanelButton({ panel, onPhone }: { panel: RailPanelButton; onPhone: bool
   );
 }
 
-export function RailToggle({ conversationId, strategy }: RailToggleProps) {
-  const panels = useRailPanels(conversationId, strategy);
+export function RailToggle({ source }: { source: RailSource }) {
+  const panels = useRailPanels(source);
+  const owner = source.owner;
   const phoneSlot = usePhoneBarStore((s) => s.slot);
   return (
     <MotionConfig reducedMotion="user">
@@ -92,7 +88,9 @@ export function RailToggle({ conversationId, strategy }: RailToggleProps) {
         className="pointer-events-none absolute inset-x-0 top-0 z-10 h-12 bg-gradient-to-b from-card via-card/80 to-transparent max-sm:hidden"
       />
       <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5 max-sm:hidden">
-        <ShareButton conversationId={conversationId} onPhone={false} />
+        {owner !== null && (
+          <ShareButton conversationId={owner.conversationId} onPhone={false} />
+        )}
         <div
           role="toolbar"
           aria-label="Side panels"
@@ -111,7 +109,9 @@ export function RailToggle({ conversationId, strategy }: RailToggleProps) {
                 <PanelButton panel={panel} onPhone />
               </Fragment>
             ))}
-            <ShareButton conversationId={conversationId} onPhone />
+            {owner !== null && (
+              <ShareButton conversationId={owner.conversationId} onPhone />
+            )}
           </>,
           phoneSlot,
         )}

@@ -17,7 +17,10 @@ import { useRightRailStore } from "@/state/useRightRailStore";
 import { server } from "../../../../../vitest.msw-setup";
 
 const route = vi.hoisted(() => ({ pathname: "/conversation/conv-1" }));
-vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => route.pathname,
+  useRouter: () => ({ push: vi.fn() }),
+}));
 import {
   ChatHelpersProvider,
   type ChatHelpers,
@@ -25,6 +28,7 @@ import {
 import { EVIDENCE_CARD } from "../../content/parts/evidenceCardFixture";
 import { makeLedger } from "./ledgerFixture";
 import { ReviewPanel } from "./ReviewPanel";
+import { useOwnerRailSource } from "../useOwnerRailSource";
 
 const CONVERSATION = "conv-1";
 const API = "http://localhost:3000/strategist/api/v1/conversations";
@@ -72,7 +76,7 @@ function renderPanel(messages: UIMessage[]): void {
     <QueryClientProvider client={client}>
       <Runtime>
         <ChatHelpersProvider value={makeChat(messages)}>
-          <ReviewPanel conversationId={CONVERSATION} strategy={null} />
+          <OwnerPanel />
           <ComposerText />
           <textarea data-composer-input aria-label="Message" />
         </ChatHelpersProvider>
@@ -82,6 +86,7 @@ function renderPanel(messages: UIMessage[]): void {
 }
 
 beforeEach(() => {
+  useRightRailStore.setState({ openPanel: "review" });
   window.matchMedia = vi.fn().mockImplementation(() => ({
     matches: true,
     addEventListener: () => undefined,
@@ -304,3 +309,12 @@ describe("ReviewPanel", () => {
     expect(screen.getByRole("heading", { name: "Working now" })).toBeInTheDocument();
   });
 });
+
+function OwnerPanel() {
+  const source = useOwnerRailSource({
+    conversationId: CONVERSATION,
+    strategy: null,
+    siteId: "plasmodb",
+  });
+  return <ReviewPanel source={source} />;
+}

@@ -23,6 +23,7 @@ vi.mock("next/navigation", () => ({
 
 import { strategyQueryKey, useStrategyData } from "@/lib/api/strategy";
 import { StrategyPanel } from "./StrategyPanel";
+import { useOwnerRailSource } from "./useOwnerRailSource";
 
 const CONVERSATION = "conv-1";
 const SITE = "vectorbase";
@@ -54,7 +55,7 @@ function strategy(size: number): Strategy {
 /** The rail reads the strategy from the query cache and hands it down. */
 function Rail() {
   return (
-    <StrategyPanel
+    <OwnerPanel
       check={null}
       strategy={useStrategyData(CONVERSATION)}
       siteId={SITE}
@@ -128,7 +129,7 @@ describe("StrategyPanel refresh", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
-        <StrategyPanel
+        <OwnerPanel
           check={null}
           strategy={null}
           siteId={SITE}
@@ -140,3 +141,18 @@ describe("StrategyPanel refresh", () => {
     expect(screen.queryByRole("button", { name: "Refresh step counts" })).toBe(null);
   });
 });
+
+function OwnerPanel({
+  strategy,
+  siteId,
+  conversationId,
+  check,
+}: {
+  strategy: Strategy | null;
+  siteId: string;
+  conversationId: string;
+  check: Parameters<typeof StrategyPanel>[0]["check"];
+}) {
+  const source = useOwnerRailSource({ conversationId, strategy, siteId });
+  return <StrategyPanel source={source} check={check} />;
+}

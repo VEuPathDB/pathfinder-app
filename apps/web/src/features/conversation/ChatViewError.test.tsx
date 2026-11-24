@@ -44,6 +44,7 @@ describe("ChatView error boundary", () => {
       redirect: vi.fn(),
       usePathname: () => pathname,
       useParams: () => ({ siteId }),
+      useRouter: () => ({ push: vi.fn() }),
     }));
     vi.doMock("@tanstack/react-query", async () => {
       const actual = await vi.importActual<ReactQueryExports>("@tanstack/react-query");

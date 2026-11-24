@@ -16,6 +16,7 @@ import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStor
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { RailToggle } from "./RailToggle";
 import { RightRail } from "./RightRail";
+import { useOwnerRailSource } from "./useOwnerRailSource";
 
 function makeChat(messages: UIMessage[], id: string): ChatHelpers {
   return {
@@ -37,8 +38,7 @@ function makeChat(messages: UIMessage[], id: string): ChatHelpers {
 function renderRail(conversationId: string, messages: UIMessage[]): void {
   render(
     <ChatHelpersProvider value={makeChat(messages, conversationId)}>
-      <RailToggle conversationId={conversationId} strategy={null} />
-      <RightRail conversationId={conversationId} strategy={null} siteId="plasmodb" />
+      <OwnerRail conversationId={conversationId} />
     </ChatHelpersProvider>,
   );
 }
@@ -146,3 +146,17 @@ describe("the rail's buttons on a phone", () => {
     slot.remove();
   });
 });
+
+function OwnerRail({ conversationId }: { conversationId: string }) {
+  const source = useOwnerRailSource({
+    conversationId,
+    strategy: null,
+    siteId: "plasmodb",
+  });
+  return (
+    <>
+      <RailToggle source={source} />
+      <RightRail source={source} />
+    </>
+  );
+}

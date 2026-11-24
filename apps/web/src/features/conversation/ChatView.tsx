@@ -22,6 +22,7 @@ import { ChatThread } from "./ChatThread";
 import { ChatViewError } from "./ChatViewError";
 import { RailToggle } from "./rail/RailToggle";
 import { RightRail } from "./rail/RightRail";
+import { useOwnerRailSource } from "./rail/useOwnerRailSource";
 import { ChatHelpersProvider } from "./runtime/chatHelpersContext";
 import { useChatRuntime } from "./runtime/useChatRuntime";
 
@@ -111,19 +112,16 @@ function ChatViewBody({
     initialMessages,
     assistantId,
   });
+  const source = useOwnerRailSource({ conversationId, strategy, siteId });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ChatHelpersProvider value={chat}>
         <div className="relative flex min-h-0 min-w-0 flex-1">
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-card">
             <ChatThread conversationId={conversationId} assistantId={assistantId} />
-            <RailToggle conversationId={conversationId} strategy={strategy} />
+            <RailToggle source={source} />
           </div>
-          <RightRail
-            conversationId={conversationId}
-            strategy={strategy}
-            siteId={siteId}
-          />
+          <RightRail source={source} />
         </div>
       </ChatHelpersProvider>
     </AssistantRuntimeProvider>

@@ -27,6 +27,7 @@ vi.mock("@/state/strategy/useStepSnapshot", () => ({
 import { strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
 import { EVIDENCE_CARD } from "../content/parts/evidenceCardFixture";
 import { StrategyPanel } from "./StrategyPanel";
+import { useOwnerRailSource } from "./useOwnerRailSource";
 
 const STRATEGY: Strategy = {
   id: "conv-1",
@@ -52,7 +53,7 @@ const STRATEGY: Strategy = {
 
 function renderChecked(check: Parameters<typeof StrategyPanel>[0]["check"]) {
   render(
-    <StrategyPanel
+    <OwnerPanel
       check={check}
       strategy={STRATEGY}
       siteId="plasmodb"
@@ -115,7 +116,7 @@ describe("StrategyPanel (read-only rail)", () => {
 
   it("shows empty state when no steps", () => {
     render(
-      <StrategyPanel
+      <OwnerPanel
         check={null}
         strategy={null}
         siteId="plasmodb"
@@ -127,7 +128,7 @@ describe("StrategyPanel (read-only rail)", () => {
 
   it("renders compact step list and Open button when steps exist", () => {
     render(
-      <StrategyPanel
+      <OwnerPanel
         check={null}
         strategy={STRATEGY}
         siteId="plasmodb"
@@ -140,7 +141,7 @@ describe("StrategyPanel (read-only rail)", () => {
 
   it("Open button navigates to /strategy", () => {
     render(
-      <StrategyPanel
+      <OwnerPanel
         check={null}
         strategy={STRATEGY}
         siteId="plasmodb"
@@ -153,7 +154,7 @@ describe("StrategyPanel (read-only rail)", () => {
 
   it("Clicking a step row navigates to /strategy/step/:id", () => {
     render(
-      <StrategyPanel
+      <OwnerPanel
         check={null}
         strategy={STRATEGY}
         siteId="plasmodb"
@@ -185,7 +186,7 @@ function renderEmptyPanel(): void {
   qc.setQueryData(listStrategiesQueryOptions({ siteId: "plasmodb" }).queryKey, []);
   render(
     <QueryClientProvider client={qc}>
-      <StrategyPanel
+      <OwnerPanel
         check={null}
         strategy={null}
         siteId="plasmodb"
@@ -193,4 +194,19 @@ function renderEmptyPanel(): void {
       />
     </QueryClientProvider>,
   );
+}
+
+function OwnerPanel({
+  strategy,
+  siteId,
+  conversationId,
+  check,
+}: {
+  strategy: Strategy | null;
+  siteId: string;
+  conversationId: string;
+  check: Parameters<typeof StrategyPanel>[0]["check"];
+}) {
+  const source = useOwnerRailSource({ conversationId, strategy, siteId });
+  return <StrategyPanel source={source} check={check} />;
 }

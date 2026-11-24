@@ -1,7 +1,5 @@
-import type { Strategy } from "@strategist/shared";
 import { FlaskConical, ListChecks, Workflow, type LucideIcon } from "lucide-react";
 
-import { useEdaStore } from "@/state/eda";
 import {
   lastSeenFor,
   useRightRailStore,
@@ -10,6 +8,7 @@ import {
 
 import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { computeRailActivity } from "./railActivity";
+import type { RailSource } from "./railSource";
 
 export interface RailPanelButton {
   id: RightRailPanel;
@@ -26,19 +25,16 @@ const PANELS: { id: RightRailPanel; icon: LucideIcon; label: string }[] = [
   { id: "study", icon: FlaskConical, label: "Study" },
 ];
 
-export function useRailPanels(
-  conversationId: string,
-  strategy: Strategy | null,
-): RailPanelButton[] {
+export function useRailPanels(source: RailSource): RailPanelButton[] {
   const openPanel = useRightRailStore((s) => s.openPanel);
   const lastSeen = lastSeenFor(
     useRightRailStore((s) => s.lastSeen),
-    conversationId,
+    source.key,
   );
   const togglePanel = useRightRailStore((s) => s.togglePanel);
-  const studyOpen = useEdaStore((s) => s.analysis) !== null;
+  const studyOpen = source.study !== null;
   const activity = computeRailActivity(useChatHelpers().messages);
-  const strategyStepCount = strategy?.steps.length ?? 0;
+  const strategyStepCount = source.strategy?.steps.length ?? 0;
   const counts: Record<RightRailPanel, [seen: number, now: number]> = {
     strategy: [lastSeen.strategyStepCount, strategyStepCount],
     review: [lastSeen.reviewCount, activity.reviewCount],
@@ -58,6 +54,6 @@ export function useRailPanels(
     label,
     open: openPanel === id,
     hasUpdate: counts[id][0] !== counts[id][1],
-    toggle: () => togglePanel(conversationId, id, markers[id]),
+    toggle: () => togglePanel(source.key, id, markers[id]),
   }));
 }

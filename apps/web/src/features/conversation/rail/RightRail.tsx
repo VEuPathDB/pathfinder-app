@@ -1,6 +1,5 @@
 "use client";
 
-import type { Strategy } from "@strategist/shared";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useState } from "react";
 
@@ -19,18 +18,13 @@ import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { shouldAutoOpenReview } from "./autoOpenReview";
 import { EdaPanel } from "./EdaPanel";
 import { computeRailActivity } from "./railActivity";
+import type { RailSource } from "./railSource";
 import { ReviewPanel } from "./review/ReviewPanel";
 import { StrategyPanel } from "./StrategyPanel";
 
 const PANEL_TRANSITION = { type: "spring", stiffness: 380, damping: 36 } as const;
 
-interface RightRailProps {
-  conversationId: string;
-  strategy: Strategy | null;
-  siteId: string;
-}
-
-export function RightRail({ conversationId, strategy, siteId }: RightRailProps) {
+export function RightRail({ source }: { source: RailSource }) {
   const openPanel = useRightRailStore((s) => s.openPanel);
   const closePanel = useRightRailStore((s) => s.closePanel);
   const autoOpenedConversation = useRightRailStore((s) => s.autoOpenedConversation);
@@ -57,14 +51,14 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
   if (
     shouldAutoOpenReview({
       hasUserMessage: activity.hasUserMessage,
-      conversationId,
+      conversationId: source.key,
       autoOpenedConversation,
       autoOpenChecked,
     }) &&
     railMayOpenItself()
   ) {
-    setAutoOpenChecked(conversationId);
-    queueMicrotask(() => autoOpen(conversationId, "review"));
+    setAutoOpenChecked(source.key);
+    queueMicrotask(() => autoOpen(source.key, "review"));
   }
 
   return (
@@ -101,19 +95,10 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
                   className="h-full"
                 >
                   {openPanel === "strategy" && (
-                    <StrategyPanel
-                      strategy={strategy}
-                      siteId={siteId}
-                      conversationId={conversationId}
-                      check={check}
-                    />
+                    <StrategyPanel source={source} check={check} />
                   )}
-                  {openPanel === "review" && (
-                    <ReviewPanel conversationId={conversationId} strategy={strategy} />
-                  )}
-                  {openPanel === "study" && (
-                    <EdaPanel conversationId={conversationId} />
-                  )}
+                  {openPanel === "review" && <ReviewPanel source={source} />}
+                  {openPanel === "study" && <EdaPanel source={source} />}
                 </motion.div>
               </AnimatePresence>
             </div>

@@ -24,6 +24,7 @@ import { lastSeenFor, useRightRailStore } from "@/state/useRightRailStore";
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { RailToggle } from "./RailToggle";
 import { RightRail } from "./RightRail";
+import { useOwnerRailSource } from "./useOwnerRailSource";
 
 const EDA_MESSAGES: UIMessage[] = [
   {
@@ -57,8 +58,7 @@ function makeChat(messages: UIMessage[]): ChatHelpers {
 function renderRail(messages: UIMessage[]): void {
   render(
     <ChatHelpersProvider value={makeChat(messages)}>
-      <RailToggle conversationId="conv-1" strategy={null} />
-      <RightRail conversationId="conv-1" strategy={null} siteId="plasmodb" />
+      <OwnerRail conversationId="conv-1" />
     </ChatHelpersProvider>,
   );
 }
@@ -142,3 +142,17 @@ describe("RightRail eda marker", () => {
     expect(screen.getByText("Study has updates")).toBeInTheDocument();
   });
 });
+
+function OwnerRail({ conversationId }: { conversationId: string }) {
+  const source = useOwnerRailSource({
+    conversationId,
+    strategy: null,
+    siteId: "plasmodb",
+  });
+  return (
+    <>
+      <RailToggle source={source} />
+      <RightRail source={source} />
+    </>
+  );
+}
