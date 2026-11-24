@@ -4,7 +4,7 @@ from pydantic_ai.tools import RunContext, Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
-from strategist.ai.agents.tool_vocabulary import CHECK_READS
+from strategist.ai.agents.tool_vocabulary import CHECK_READS, READ_ONLY_TOOLS
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone.escape_hatch import (
     request_search_inspection,
@@ -110,6 +110,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
                     build_overrides=_verification_enum_overrides,
                 )
             ),
-            reads=CHECK_READS,
+            reads=READ_ONLY_TOOLS,
+            lasting=CHECK_READS,
         )
     )

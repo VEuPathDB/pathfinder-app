@@ -28,7 +28,6 @@ from strategist.ai.agents.state import (
 from strategist.ai.agents.strategy_instructions import pinned_discovered_searches
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone import catalog_discovery
-from strategist.ai.tools.standalone.catalog_discovery import AlreadyReadNotice
 from strategist.tests._support.qa_recording import client_recording
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.conftest import (
@@ -159,29 +158,9 @@ class TestTheSearchOverviewGate:
 
         assert captured["query"] == _GOAL
 
-    async def test_a_repeat_read_costs_no_wdk_call(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        ctx, client = _fixture_ctx(
-            AgentToolState(), monkeypatch, "search_genes_by_molecular_weight"
-        )
-
-        await catalog_discovery.get_search_overview(
-            ctx, search_name="GenesByMolecularWeight", record_type="transcript"
-        )
-        repeat = returned(
-            await catalog_discovery.get_search_overview(
-                ctx, search_name="GenesByMolecularWeight", record_type="transcript"
-            ),
-            AlreadyReadNotice,
-        )
-
-        assert repeat.kind == "already_read"
-        assert client.reads == ["GenesByMolecularWeight"]
-
 
 class TestTheParameterReadGate:
-    async def test_the_read_is_ledgered_and_the_vocabulary_snapshotted(
+    async def test_the_read_snapshots_the_vocabulary(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         state = AgentToolState()
@@ -199,19 +178,8 @@ class TestTheParameterReadGate:
             ),
             ParameterInfo,
         )
-        repeat = returned(
-            await catalog_discovery.get_parameter_options(
-                ctx,
-                search_name="GenesByLocation",
-                parameter_id="organismSinglePick",
-                record_type="transcript",
-            ),
-            AlreadyReadNotice,
-        )
 
         assert first.kind == "parameter_info"
-        assert repeat.kind == "already_read"
-        assert state.read_param_options == {"GenesByLocation|organismSinglePick||"}
         overview = state.get_overview("GenesByLocation")
         assert overview is not None
         assert "organismSinglePick" in overview.param_vocab
@@ -249,7 +217,7 @@ class TestTheParameterReadGate:
             client.contexts[-1]["organismSinglePick"] == '["Plasmodium falciparum 3D7"]'
         )
 
-    async def test_an_unknown_parameter_is_not_ledgered(
+    async def test_an_unknown_parameter_is_answered_with_the_real_ones(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         state = AgentToolState()
@@ -266,7 +234,6 @@ class TestTheParameterReadGate:
         )
 
         assert result.kind == "parameter_not_on_search"
-        assert state.read_param_options == set()
 
 
 def _registered_search(name: str, parameter_names: list[str]) -> SearchOverview:

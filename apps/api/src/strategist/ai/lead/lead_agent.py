@@ -197,7 +197,8 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
     return KeyedRefusalToolset(
         wrapped=ReadOnceToolset(
             wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS),
-            reads=RECORD_READS,
+            reads=READ_ONLY_TOOLS,
+            lasting=RECORD_READS,
         )
     )
 

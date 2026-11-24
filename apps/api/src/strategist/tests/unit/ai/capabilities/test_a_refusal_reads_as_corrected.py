@@ -80,8 +80,8 @@ async def test_a_read_sent_again_is_refused_and_reads_as_corrected() -> None:
         {
             "toolCallId": "call_1",
             "summary": (
-                "read_gene_record already answered these arguments in this run, in "
-                'call call_0 ({"gene_id": "g1"}). Read that answer;'
+                'read_gene_record answered these arguments in call call_0 ({"gene_id": '
+                '"g1"}), and nothing has changed since, so it did'
             ),
             "status": "corrected",
         }

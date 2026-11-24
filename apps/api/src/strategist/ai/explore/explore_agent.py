@@ -11,7 +11,7 @@ from pydantic_ai.toolsets import AbstractToolset, AgentToolset, FunctionToolset
 
 from strategist.ai.agents._instructions import pinned_run_budget, pinned_user_memories
 from strategist.ai.agents.research_reads import research_reads, research_served
-from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
+from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS, RECORD_READS
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.explore._explore_instructions import (
     EXPLORE_GENE_RECORD_RULE,
@@ -61,6 +61,7 @@ from strategist.ai.tools.standalone.record_reads import (
     read_search_table,
 )
 from strategist.ai.tools.toolsets import eda
+from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.model_catalog import EXPLORE_MODELS
 from strategist.platform.refusals import KeyedRefusalToolset, agent_capabilities
@@ -96,7 +97,11 @@ def build_explore_toolset() -> AbstractToolset[LeadDeps]:
         ],
     )
     return KeyedRefusalToolset(
-        wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS)
+        wrapped=ReadOnceToolset(
+            wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS),
+            reads=READ_ONLY_TOOLS,
+            lasting=RECORD_READS,
+        )
     )
 
 

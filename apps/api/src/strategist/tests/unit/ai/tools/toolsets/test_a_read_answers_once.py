@@ -1,15 +1,13 @@
-"""A read the wrapper lists answers each set of arguments once per run.
-
-The same read again fails without running and names the call that answered it,
-so a cycle over a few ids cannot spend the turn's budget.
-"""
+"""A read sent again with the same arguments runs once while nothing changes."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
 import pytest
+from assistant_core.conversation.history import elide_consumed
 from pydantic_ai import Agent, ModelRetry, RunContext
+from pydantic_ai.capabilities import ProcessHistory
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
@@ -20,9 +18,14 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
 
-from strategist.ai.agents.tool_vocabulary import CHECK_READS, RECORD_READS
+from strategist.ai.agents.tool_vocabulary import (
+    CHECK_READS,
+    READ_ONLY_TOOLS,
+    RECORD_READS,
+)
+from strategist.ai.explore.explore_agent import build_explore_toolset
 from strategist.ai.lead.lead_agent import build_lead_toolset
-from strategist.ai.tools.toolsets import frame, verification
+from strategist.ai.tools.toolsets import execution, frame, verification
 from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.platform.refusals import KeyedRefusalToolset
 
@@ -65,19 +68,34 @@ def _scripted(calls: list[tuple[str, dict[str, str]]]) -> FunctionModel:
     return FunctionModel(respond)
 
 
+def get_search_overview(ctx: RunContext[_Deps], search_name: str) -> str:
+    ctx.deps.reads.append(search_name)
+    return f"{search_name}: " + "parameter " * 60
+
+
 def _reading() -> ReadOnceToolset[_Deps]:
     return ReadOnceToolset(
-        wrapped=FunctionToolset([read_gene_record, think], max_retries=3),
-        reads=frozenset({"read_gene_record"}),
+        wrapped=FunctionToolset(
+            [read_gene_record, get_search_overview, think], max_retries=3
+        ),
+        reads=frozenset({"get_search_overview"}),
+        lasting=frozenset({"read_gene_record"}),
     )
 
 
 async def _run(
     calls: list[tuple[str, dict[str, str]]],
     toolset: ReadOnceToolset[_Deps] | None = None,
+    *,
+    elided: bool = False,
 ) -> tuple[_Deps, list[ToolReturnPart]]:
     deps = _Deps()
-    agent = Agent(_scripted(calls), deps_type=_Deps, toolsets=[toolset or _reading()])
+    agent = Agent(
+        _scripted(calls),
+        deps_type=_Deps,
+        toolsets=[toolset or _reading()],
+        capabilities=[ProcessHistory[_Deps](elide_consumed)] if elided else [],
+    )
     result = await agent.run("show me the five genes", deps=deps)
     parts: list[ToolReturnPart] = [
         part
@@ -111,10 +129,61 @@ async def test_the_repeat_names_the_call_that_answered_it() -> None:
     assert isinstance(repeat, ToolReturnPart)
     assert repeat.outcome == "failed"
     assert repeat.content == (
-        "read_gene_record already answered these arguments in this run, in call "
-        'call_0 ({"gene_id": "LdBPK_010310.1"}). Read that answer; the same read '
-        "does not run again."
+        'read_gene_record answered these arguments in call call_0 ({"gene_id": '
+        '"LdBPK_010310.1"}), and nothing has changed since, so it did not run '
+        "again and cost nothing. Read that answer above."
     )
+
+
+def _overviews(*names: str) -> list[tuple[str, dict[str, str]]]:
+    return [("get_search_overview", {"search_name": n}) for n in names]
+
+
+_SEARCHES = [f"GenesBySearch{i}" for i in range(12)]
+
+
+@pytest.mark.asyncio
+async def test_a_repeat_of_an_elided_answer_carries_the_answer_again() -> None:
+    deps, parts = await _run(_overviews(*_SEARCHES, _SEARCHES[0]), elided=True)
+
+    repeat = parts[-1]
+    assert deps.reads == _SEARCHES
+    assert repeat.outcome == "failed"
+    assert repeat.content == (
+        'get_search_overview answered these arguments in call call_0 ({"search_name": '
+        '"GenesBySearch0"}), and nothing has changed since, so it did not run again '
+        "and cost nothing. That answer is no longer shown above; it is: "
+        '"GenesBySearch0: ' + "parameter " * 60 + '"'
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_repeat_spends_no_tool_call_of_the_budget() -> None:
+    deps = _Deps()
+    agent = Agent(
+        _scripted(_overviews("GenesByText", "GenesByText", "GenesByText")),
+        deps_type=_Deps,
+        toolsets=[_reading()],
+    )
+
+    result = await agent.run("read it", deps=deps)
+
+    assert (deps.reads, result.usage().tool_calls) == (["GenesByText"], 1)
+
+
+@pytest.mark.asyncio
+async def test_a_write_lets_a_read_run_again_and_a_record_stays_held() -> None:
+    deps, _ = await _run(
+        [
+            *_overviews("GenesByText"),
+            *_reads(_SAMPLE[0]),
+            ("think", {"note": "a"}),
+            *_overviews("GenesByText"),
+            *_reads(_SAMPLE[0]),
+        ]
+    )
+
+    assert deps.reads == ["GenesByText", _SAMPLE[0], "GenesByText"]
 
 
 @pytest.mark.asyncio
@@ -143,14 +212,24 @@ async def test_another_run_answers_the_read_again() -> None:
     assert (first.reads, second.reads) == ([_SAMPLE[0]], [_SAMPLE[0]])
 
 
-def test_the_lead_reads_each_record_once() -> None:
+def test_the_lead_holds_every_read() -> None:
     keyed = build_lead_toolset()
 
     assert isinstance(keyed, KeyedRefusalToolset)
     toolset = keyed.wrapped
     assert isinstance(toolset, ReadOnceToolset)
-    assert toolset.reads == RECORD_READS
+    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)
     assert "read_gene_record" in RECORD_READS
+
+
+def test_explore_holds_every_read() -> None:
+    keyed = build_explore_toolset()
+
+    assert isinstance(keyed, KeyedRefusalToolset)
+    toolset = keyed.wrapped
+    assert isinstance(toolset, ReadOnceToolset)
+    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)
+    assert {"get_search_overview", "get_parameter_options"} <= READ_ONLY_TOOLS
 
 
 def test_a_check_reads_each_record_and_each_sample_once() -> None:
@@ -159,15 +238,24 @@ def test_a_check_reads_each_record_and_each_sample_once() -> None:
     assert isinstance(keyed, KeyedRefusalToolset)
     toolset = keyed.wrapped
     assert isinstance(toolset, ReadOnceToolset)
-    assert toolset.reads == CHECK_READS
+    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, CHECK_READS)
     assert {"get_sample_records", "get_strategy"} <= CHECK_READS
     assert RECORD_READS <= CHECK_READS
 
 
-def test_a_framing_pass_reads_each_record_once() -> None:
+def test_a_framing_pass_holds_every_read() -> None:
     keyed = frame.build_toolset()
 
     assert isinstance(keyed, KeyedRefusalToolset)
     toolset = keyed.wrapped
     assert isinstance(toolset, ReadOnceToolset)
-    assert toolset.reads == RECORD_READS
+    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)
+
+
+def test_a_build_pass_holds_every_read() -> None:
+    keyed = execution.build_toolset()
+
+    assert isinstance(keyed, KeyedRefusalToolset)
+    toolset = keyed.wrapped
+    assert isinstance(toolset, ReadOnceToolset)
+    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)

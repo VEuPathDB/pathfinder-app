@@ -6,11 +6,9 @@ the same step.
 """
 
 from dataclasses import replace
-from typing import Literal
 
 from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import count_noun, with_summary
-from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
@@ -38,28 +36,15 @@ from strategist.ai.tools.standalone._stated_values import typed_context_read
 from strategist.domain.strategy.requirement_reports import numbered_requirements
 
 
-class AlreadyReadNotice(CamelModel):
-    """Returned when the model re-reads something the agent state already holds.
-
-    The full payload is suppressed because the model already holds it.
-    """
-
-    kind: Literal["already_read"] = "already_read"
-    message: str
-    search_name: str
-    parameter_id: str | None = None
-
-
 async def get_search_overview(
     ctx: RunContext[AgentDeps],
     search_name: str,
     record_type: str | None = None,
-) -> ToolReturn[SearchOverviewResult | AlreadyReadNotice]:
+) -> ToolReturn[SearchOverviewResult]:
     """Get a high-level overview of a search: description, parameters (required/optional), and dependencies.
 
     MUST be called before creating a step with this search -- it registers the
-    search in the discovery gate and caches the parameter schema. Reading the
-    same search twice returns a short "already inspected" notice, not a re-dump.
+    search in the discovery gate and caches the parameter schema.
 
     Args:
         ctx: Agent run context.
@@ -67,21 +52,6 @@ async def get_search_overview(
         record_type: Record type. Auto-resolved from search name if omitted (recommended).
     """
     deps = ctx.deps
-    if deps.agent_state.get_overview(search_name) is not None:
-        return with_summary(
-            AlreadyReadNotice(
-                message=(
-                    f"You already inspected '{search_name}'; this is that read. "
-                    "A criterion that already runs it re-binds with no other "
-                    "read; a new criterion binds it from a catalog search answer "
-                    "that names it."
-                ),
-                search_name=search_name,
-            ),
-            f"{search_name} already read",
-            ctx=ctx,
-            status="warn",
-        )
     try:
         inspection = await inspect_search(
             deps.site_id,
@@ -111,7 +81,7 @@ async def get_parameter_options(
     query: str | list[str] | None = None,
     *,
     requirement: str | None = None,
-) -> ToolReturn[GetParameterOptionsResult | AlreadyReadNotice]:
+) -> ToolReturn[GetParameterOptionsResult]:
     """Get detailed parameter info including vocabulary/allowed values.
 
     For dependent parameters, pass context_values with the parent parameter's
@@ -171,29 +141,10 @@ async def get_parameter_options(
         for name, value in {**inherited, **explicit}.items()
         if name != parameter_id and name not in stale_names
     }
-    typed_context = merged or None
     asked = VocabNarrowing(query=query, organism_hints=deps.agent_state.organism_hints)
     narrowing = replace(
         asked, request=_requirement_words(deps.agent_state, requirement)
     )
-    read_key = deps.agent_state.param_read_key(
-        search_name, parameter_id, context_values=typed_context, terms=narrowing.terms
-    )
-    if deps.agent_state.was_param_read(read_key):
-        return with_summary(
-            AlreadyReadNotice(
-                message=(
-                    f"You already read options for '{parameter_id}' on "
-                    f"'{search_name}' with these exact context/query; same as "
-                    "before. Use the values you saw; don't re-read."
-                ),
-                search_name=search_name,
-                parameter_id=parameter_id,
-            ),
-            f"{parameter_id} on {search_name} already read",
-            ctx=ctx,
-            status="warn",
-        )
     try:
         result = await read_parameter_options(
             deps.site_id,
@@ -238,7 +189,6 @@ async def get_parameter_options(
             update={"note": " ".join(note for note in notes if note)}
         )
     _snapshot_param_vocab(deps, search_name, result)
-    deps.agent_state.mark_param_read(read_key)
     if result.vocab_lookup is not None:
         deps.agent_state.record_lookup(
             search_name, parameter_id, result.vocab_lookup, result.vocabulary()

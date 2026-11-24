@@ -4,7 +4,7 @@ from pydantic_ai.tools import RunContext, Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
-from strategist.ai.agents.tool_vocabulary import RECORD_READS
+from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS, RECORD_READS
 from strategist.ai.fact_sources import warm_fact_schemas
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._catalog_elsewhere import (
@@ -107,6 +107,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
                     explain=another_sites_entry,
                 )
             ),
-            reads=RECORD_READS,
+            reads=READ_ONLY_TOOLS,
+            lasting=RECORD_READS,
         )
     )

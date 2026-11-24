@@ -238,7 +238,7 @@ async def get_search_overview(
     ctx: RunContext[LeadDeps],
     search_name: str,
     record_type: str | None = None,
-) -> ToolReturn[SearchOverviewResult | catalog_discovery.AlreadyReadNotice]:
+) -> ToolReturn[SearchOverviewResult]:
     """Read one search: its description, its required and optional parameters,
     and which parameters depend on others. Read-only.
 
@@ -258,7 +258,7 @@ async def get_parameter_options(
     record_type: str | None = None,
     context_values: dict[str, JsonValue] | None = None,
     query: str | list[str] | None = None,
-) -> ToolReturn[GetParameterOptionsResult | catalog_discovery.AlreadyReadNotice]:
+) -> ToolReturn[GetParameterOptionsResult]:
     """Read the values one parameter of a search allows. Read-only.
 
     The answer is ``parameter_info`` with the vocabulary, or

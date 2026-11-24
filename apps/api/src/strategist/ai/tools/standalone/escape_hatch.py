@@ -25,10 +25,7 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import SearchOverviewResult
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.tools.standalone.catalog_discovery import (
-    AlreadyReadNotice,
-    get_search_overview,
-)
+from strategist.ai.tools.standalone.catalog_discovery import get_search_overview
 
 logger = get_logger(__name__)
 
@@ -38,7 +35,7 @@ async def request_search_inspection(
     search_name: str,
     why: str,
     record_type: str | None = None,
-) -> ToolReturn[SearchOverviewResult | AlreadyReadNotice]:
+) -> ToolReturn[SearchOverviewResult]:
     """Request inline inspection of a search outside discovery's commit set.
 
     Use sparingly - discovery is meant to surface every search the

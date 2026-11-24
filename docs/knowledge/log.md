@@ -2,6 +2,17 @@
 
 ## 2026-11-24
 
+* **A repeated read runs once while nothing changes, and is never starved.** `ReadOnceToolset`
+  wraps the Lead, Explore, a framing pass, a build pass and a check, and holds every read of
+  `READ_ONLY_TOOLS` with its answer until a call outside the reads runs (record reads, and a
+  check's strategy reads, for the run). A repeat with the same arguments runs nothing and is
+  not counted in the call budget; it names the earlier call while the model still sees that
+  answer, and carries the answer again once the history elided it. In the 76-call Explore turn
+  that stopped at the 80-call budget, all 14 repeats were of elided results, and so were the
+  overviews before each of the five `parameter_id "x"` reads that listed a search's
+  parameters. The framing tools' own "already read" notices for an overview and a parameter
+  read are gone.
+
 * **Take veupathdb-mcp 0.9.0b26 and assistant-core 0.9.0b6.** `read_radio_readings` marks a
   reading the site never narrows with `not_narrowed` and raises the site's refusal when the
   narrowing read failed, as `read_parameter_options` does. An elided tool result no longer
