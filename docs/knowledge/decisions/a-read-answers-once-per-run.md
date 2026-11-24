@@ -1,20 +1,23 @@
 ---
 type: Decision
 title: A read answers once per run
-description: A toolset wrapper holds the answer of each read for one run while nothing changes, and the same read again runs nothing, costs no tool call of the budget, and names the call that answered it while the model still sees that answer or carries the answer again once the history elided it; every agent holds every read. A read the site breaks off is one failed call that names the site's status, is not held, and never ends the turn.
+description: A capability on every agent of a turn holds the answer of each read until any write of the turn, and the same read again runs nothing, costs no tool call of the budget, and names the call that answered it while the model still sees that answer or carries the answer again once the history elided it; every agent holds every read. A read the site breaks off is one failed call that names the site's status, is not held, and never ends the turn.
 tags: [lead, verification, tools, cost]
 status: stable
 ---
 
 # The choice
 
-`ai/tools/toolsets/_read_once.py::ReadOnceToolset` wraps the toolset of the Lead, Explore,
-a framing pass, a build pass and a check, and holds every tool of `READ_ONLY_TOOLS`. A
-completed call is held by its arguments with its answer (`for_run` gives each run a fresh
-record). A call outside the held reads (a write, a sub-agent dispatch, a note) releases
-every held read except the `lasting` ones, whose answer no call of the run changes:
-`RECORD_READS` for the Lead, Explore and the passes that write, and `CHECK_READS` for a
-check, which writes no step. The same read again raises `CallRefused`: it runs nothing,
+`ai/capabilities/read_once.py::ReadOnce` is a capability of every agent of a turn: the
+Lead, Explore, a framing pass, a build pass and a check (`ReadOnce.of(role)`). It sees every
+call of its agent, whatever toolset holds the tool, and holds every tool of
+`READ_ONLY_TOOLS`. A completed call is held by its arguments with its answer and the turn's
+write count (`for_run` gives each run a fresh record). Each call outside the reads, by any
+agent of the turn, counts one write on `TurnMarkers.writes`, so an EDA export, a sub-agent's
+build or a note releases every held read but the `lasting` ones, whose answer no call of the
+run changes: `RECORD_READS` for the Lead, Explore and the passes that write, and
+`CHECK_READS` for a check, which writes no step. A read taken while a write of the same batch
+ran is held under the count it started with, so it runs again after that write. The same read again fails as a refused call: it runs nothing,
 spends no retry, and is not counted in the run's `tool_calls_limit` (pydantic-ai counts a
 call only when it succeeds). When the processed history still holds the first answer whole,
 the refusal names that call; when the runtime's elision digested it
@@ -54,7 +57,7 @@ corrective retry.
 A read with a
 deadline raises the same failure itself through `read_in_time`: `get_sample_records` and
 the check's column read at 20 s, `read_step_ids` at 20 s for a limited read and 60 s for a
-whole listing. Because the failure is raised, `ReadOnceToolset` holds nothing for it and the
+whole listing. Because the failure is raised, `ReadOnce` holds nothing for it and the
 same read may run again. An identity refusal (401, 403) is no outage: it propagates to the
 turn's error path, which asks the researcher to sign in. A write the site broke off
 propagates too. `read_step_ids` with a limit reads through `results.sample_page`, so it

@@ -194,6 +194,8 @@ class TurnMarkers(CamelModel):
     """
 
     message_id: UUID | None = None
+    # Each call of the turn outside the reads, by any agent, counts one write.
+    writes: int = 0
     # The questions open when the message arrived. A classification answers
     # these and never a question asked later under the same message.
     questions_at_arrival: list[str] = Field(default_factory=list)

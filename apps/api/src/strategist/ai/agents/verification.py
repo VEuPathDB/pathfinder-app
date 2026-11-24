@@ -31,6 +31,7 @@ from strategist.ai.agents.strategy_instructions import (
 from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.agents.verification_digest import hold_the_digest_to_the_evidence
 from strategist.ai.agents.vocabulary import with_vocabulary
+from strategist.ai.capabilities.read_once import ReadOnce
 from strategist.ai.capabilities.resilience import ToolResilience
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.graph.runtime import AgentDeps, turn_tool_sources
@@ -193,6 +194,7 @@ def build_verification_agent() -> VerificationAgent:
         toolsets=toolsets,
         capabilities=agent_capabilities(
             [
+                ReadOnce[AgentDeps].of("verification"),
                 SiteReadFailures[AgentDeps](),
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
                 AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),

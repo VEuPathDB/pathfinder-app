@@ -9,7 +9,6 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from strategist.ai.agents.state import AgentToolState, SearchOverview
 from strategist.ai.graph.runtime import AgentDeps, ServiceOutageMemory
 from strategist.ai.tools.toolsets._dynamic import EnumOverrides, ValidatingEnumToolset
-from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.ai.tools.toolsets.frame import _frame_enum_overrides, build_toolset
 from strategist.platform.refusals import KeyedRefusalToolset
@@ -150,9 +149,7 @@ async def test_set_structure_takes_the_structure_node_itself() -> None:
 def test_the_toolset_guards_its_enums_at_call_time() -> None:
     keyed = build_toolset()
     assert isinstance(keyed, KeyedRefusalToolset)
-    toolset = keyed.wrapped
-    assert isinstance(toolset, ReadOnceToolset)
-    refusals = toolset.wrapped
+    refusals = keyed.wrapped
     assert isinstance(refusals, RefusalMemoryToolset)
     guard = refusals.wrapped
     assert isinstance(guard, ValidatingEnumToolset)

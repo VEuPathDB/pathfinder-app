@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import pytest
 from assistant_core.conversation.history import elide_consumed
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
@@ -18,16 +20,19 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
 
+from strategist.ai.agents.execution import build_execution_agent
+from strategist.ai.agents.frame import build_frame_agent
+from strategist.ai.agents.roles import StageRole
 from strategist.ai.agents.tool_vocabulary import (
     CHECK_READS,
     READ_ONLY_TOOLS,
     RECORD_READS,
 )
-from strategist.ai.explore.explore_agent import build_explore_toolset
-from strategist.ai.lead.lead_agent import build_lead_toolset
-from strategist.ai.tools.toolsets import execution, frame, verification
-from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
-from strategist.platform.refusals import KeyedRefusalToolset
+from strategist.ai.agents.verification import build_verification_agent
+from strategist.ai.capabilities.read_once import ReadOnce
+from strategist.ai.explore.explore_agent import build_explore_agent
+from strategist.ai.graph.turn_records import TurnMarkers
+from strategist.ai.lead.lead_agent import build_lead_agent
 
 # The five genes the portal glycosome sample listed.
 _SAMPLE = [
@@ -42,6 +47,7 @@ _SAMPLE = [
 @dataclass
 class _Deps:
     reads: list[str] = field(default_factory=list)
+    turn_markers: TurnMarkers = field(default_factory=TurnMarkers)
 
 
 def read_gene_record(ctx: RunContext[_Deps], gene_id: str) -> str:
@@ -73,11 +79,11 @@ def get_search_overview(ctx: RunContext[_Deps], search_name: str) -> str:
     return f"{search_name}: " + "parameter " * 60
 
 
-def _reading() -> ReadOnceToolset[_Deps]:
-    return ReadOnceToolset(
-        wrapped=FunctionToolset(
-            [read_gene_record, get_search_overview, think], max_retries=3
-        ),
+_TOOLS = FunctionToolset([read_gene_record, get_search_overview, think], max_retries=3)
+
+
+def _reading() -> ReadOnce[_Deps]:
+    return ReadOnce(
         reads=frozenset({"get_search_overview"}),
         lasting=frozenset({"read_gene_record"}),
     )
@@ -85,16 +91,16 @@ def _reading() -> ReadOnceToolset[_Deps]:
 
 async def _run(
     calls: list[tuple[str, dict[str, str]]],
-    toolset: ReadOnceToolset[_Deps] | None = None,
     *,
     elided: bool = False,
 ) -> tuple[_Deps, list[ToolReturnPart]]:
     deps = _Deps()
+    processed = [ProcessHistory[_Deps](elide_consumed)] if elided else []
     agent = Agent(
         _scripted(calls),
         deps_type=_Deps,
-        toolsets=[toolset or _reading()],
-        capabilities=[ProcessHistory[_Deps](elide_consumed)] if elided else [],
+        toolsets=[_TOOLS],
+        capabilities=[_reading(), *processed],
     )
     result = await agent.run("show me the five genes", deps=deps)
     parts: list[ToolReturnPart] = [
@@ -163,7 +169,8 @@ async def test_a_repeat_spends_no_tool_call_of_the_budget() -> None:
     agent = Agent(
         _scripted(_overviews("GenesByText", "GenesByText", "GenesByText")),
         deps_type=_Deps,
-        toolsets=[_reading()],
+        toolsets=[_TOOLS],
+        capabilities=[_reading()],
     )
 
     result = await agent.run("read it", deps=deps)
@@ -205,57 +212,54 @@ async def test_a_tool_the_wrapper_does_not_list_runs_every_time() -> None:
 
 @pytest.mark.asyncio
 async def test_another_run_answers_the_read_again() -> None:
-    toolset = _reading()
-    first, _ = await _run(_reads(_SAMPLE[0]), toolset)
-    second, _ = await _run(_reads(_SAMPLE[0]), toolset)
+    held = _reading()
+    runs: list[list[str]] = []
+    for _ in range(2):
+        deps = _Deps()
+        agent = Agent(
+            _scripted(_reads(_SAMPLE[0])),
+            deps_type=_Deps,
+            toolsets=[_TOOLS],
+            capabilities=[held],
+        )
+        await agent.run("read it", deps=deps)
+        runs.append(deps.reads)
 
-    assert (first.reads, second.reads) == ([_SAMPLE[0]], [_SAMPLE[0]])
-
-
-def test_the_lead_holds_every_read() -> None:
-    keyed = build_lead_toolset()
-
-    assert isinstance(keyed, KeyedRefusalToolset)
-    toolset = keyed.wrapped
-    assert isinstance(toolset, ReadOnceToolset)
-    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)
-    assert "read_gene_record" in RECORD_READS
-
-
-def test_explore_holds_every_read() -> None:
-    keyed = build_explore_toolset()
-
-    assert isinstance(keyed, KeyedRefusalToolset)
-    toolset = keyed.wrapped
-    assert isinstance(toolset, ReadOnceToolset)
-    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)
-    assert {"get_search_overview", "get_parameter_options"} <= READ_ONLY_TOOLS
+    assert runs == [[_SAMPLE[0]], [_SAMPLE[0]]]
 
 
-def test_a_check_reads_each_record_and_each_sample_once() -> None:
-    keyed = verification.build_toolset()
+def test_each_run_holds_every_read_and_its_lasting_reads() -> None:
+    roles: tuple[StageRole, ...] = (
+        "lead",
+        "explore",
+        "frame",
+        "execution",
+        "verification",
+    )
+    held: dict[StageRole, ReadOnce[_Deps]] = {
+        role: ReadOnce[_Deps].of(role) for role in roles
+    }
 
-    assert isinstance(keyed, KeyedRefusalToolset)
-    toolset = keyed.wrapped
-    assert isinstance(toolset, ReadOnceToolset)
-    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, CHECK_READS)
-    assert {"get_sample_records", "get_strategy"} <= CHECK_READS
-    assert RECORD_READS <= CHECK_READS
+    assert {role: (h.reads, h.lasting) for role, h in held.items()} == {
+        "lead": (READ_ONLY_TOOLS, RECORD_READS),
+        "explore": (READ_ONLY_TOOLS, RECORD_READS),
+        "frame": (READ_ONLY_TOOLS, RECORD_READS),
+        "execution": (READ_ONLY_TOOLS, RECORD_READS),
+        "verification": (READ_ONLY_TOOLS, CHECK_READS),
+    }
 
 
-def test_a_framing_pass_holds_every_read() -> None:
-    keyed = frame.build_toolset()
-
-    assert isinstance(keyed, KeyedRefusalToolset)
-    toolset = keyed.wrapped
-    assert isinstance(toolset, ReadOnceToolset)
-    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)
+def _lasting(agent: Agent[Any, Any]) -> list[frozenset[str]]:
+    leaves: list[AbstractCapability[Any]] = []
+    agent._root_capability.apply(leaves.append)
+    return [leaf.lasting for leaf in leaves if isinstance(leaf, ReadOnce)]
 
 
-def test_a_build_pass_holds_every_read() -> None:
-    keyed = execution.build_toolset()
-
-    assert isinstance(keyed, KeyedRefusalToolset)
-    toolset = keyed.wrapped
-    assert isinstance(toolset, ReadOnceToolset)
-    assert (toolset.reads, toolset.lasting) == (READ_ONLY_TOOLS, RECORD_READS)
+def test_every_agent_of_a_turn_carries_the_holds() -> None:
+    assert [
+        _lasting(build_lead_agent()),
+        _lasting(build_explore_agent()),
+        _lasting(build_frame_agent()),
+        _lasting(build_execution_agent()),
+        _lasting(build_verification_agent()),
+    ] == [[RECORD_READS], [RECORD_READS], [RECORD_READS], [RECORD_READS], [CHECK_READS]]

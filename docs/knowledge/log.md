@@ -2,6 +2,12 @@
 
 ## 2026-11-24
 
+* **A held read is released by any write of the turn.** The repeat rule moved from a toolset
+  wrapper to `ReadOnce`, a capability of every agent of the turn, which sees calls of every
+  toolset. A call outside the reads, by any agent, counts one write on `TurnMarkers.writes`,
+  and a read is held only while that count is unchanged; an EDA export from another toolset no
+  longer leaves the pre-export strategy read held.
+
 * **A stated requirement no step meets blocks the build and the answer.**
   `requirement_coverage.requirements_no_step_meets` refuses a build and an edit, as
   `Problems` keyed `unmet_requirement`, while a hard requirement the researcher stated is
