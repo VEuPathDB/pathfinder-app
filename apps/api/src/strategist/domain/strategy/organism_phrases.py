@@ -80,3 +80,29 @@ def completed_entry(words: str, message: str, vocabulary: Sequence[str]) -> str 
         if _begins(named, span.entry)
     }
     return next(iter(begun)) if len(begun) == 1 else None
+
+
+def _in_order(named: tuple[str, ...], reading: tuple[str, ...]) -> bool:
+    rest = iter(reading[1:])
+    return reading[:1] == named[:1] and all(word in rest for word in named[1:])
+
+
+def _stated(named: tuple[str, ...], message: str) -> bool:
+    words = words_of(message)
+    return any(
+        tuple(words[k : k + len(reading)]) == reading
+        for reading in _readings(" ".join(named))
+        for k in range(len(words) - len(reading) + 1)
+    )
+
+
+def entry_holding(words: str, message: str, vocabulary: Sequence[str]) -> str | None:
+    named = tuple(words_of(words))
+    if not named or not _stated(named, message):
+        return None
+    holding = {
+        entry
+        for entry in vocabulary
+        if any(_in_order(named, reading) for reading in _readings(entry))
+    }
+    return next(iter(holding)) if len(holding) == 1 else None

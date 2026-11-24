@@ -2,6 +2,10 @@
 
 ## 2026-11-24
 
+* **A strain missing a word of its entry names that entry.** The organism reader binds the
+  one entry that holds every stated word in order ("Trypanosoma brucei TREU927" names
+  Trypanosoma brucei brucei TREU927); words two entries hold still go to the card.
+
 * **An edit keeps the values it did not state.** A commit sends a value the edit did not
   move in the form WDK holds it, and the plan keeps its own typed value; before, an
   organism edit stored a step's other values as the site's wire text.
