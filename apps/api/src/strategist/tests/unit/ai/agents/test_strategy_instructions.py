@@ -287,6 +287,29 @@ class TestTheRenderedGraph:
             f"b: GenesByMolecularWeight [leaf] -> INVALID: {refusal}"
         )
 
+    def test_an_invalid_value_names_its_parameter_and_every_message(self) -> None:
+        sync = WDKSyncState()
+        sync.step_validations["b"] = StepValidation.model_validate(
+            {
+                "level": "SEMANTIC",
+                "isValid": False,
+                "errors": {
+                    "general": [],
+                    "byKey": {"organism": ["Invalid value 'Nope'."]},
+                },
+            }
+        )
+
+        rendered = pinned_graph_state(
+            _graph_ctx(_session(_graph_with_a_combine(), sync))
+        )
+
+        assert rendered is not None
+        assert rendered.splitlines()[5] == (
+            "b: GenesByMolecularWeight [leaf] -> INVALID: organism: "
+            "Invalid value 'Nope'."
+        )
+
     def test_a_step_wdk_refused_carries_no_count(self) -> None:
         """The stored count is the search WDK still runs, not the edited one."""
         sync = WDKSyncState()
