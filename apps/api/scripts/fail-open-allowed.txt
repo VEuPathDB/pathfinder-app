@@ -100,7 +100,7 @@ services/strategies/organism_params.py:organism_parameters:(VEuPathDBError,OSErr
 services/strategies/organism_params.py:organism_taxa:(VEuPathDBError,OSError):continue the unread tree is recorded as unread before continue (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
 services/strategies/reading_check.py:site_spelling:(VEuPathDBError,TimeoutError):returnNone None is an unanswered check; the reading keeps its own spelling
 services/strategies/reconcile.py:_the_step_wdk_holds:VEuPathDBError:returnNone a 404 is a step WDK no longer holds, which the commit unmaps; any other failure raises
-services/strategies/search_sheets.py:_definition:(VEuPathDBError,OSError):returnNone a definition the catalog did not read leaves the search sheet-less, never read as empty
+services/strategies/search_sheets.py:_definition:(VEuPathDBError,OSError):returnNone an unread definition gives no radio pair, so a step is named less specifically and nothing binds from it (test_an_unread_definition_names_the_step_less_specifically)
 services/strategies/session_factory.py:_restore_wdk_tree:StrategyCompilationError:sync_state.wdk_step_tree=None a tree that does not compile is held as unknown, so the next push writes it
 services/strategies/sheet_params.py:_parameters_read:(VEuPathDBError,OSError):continue records Unread before continue (test_a_card_pick_on_an_unread_sheet_binds_nothing)
 services/strategies/sheet_params.py:_sheet_under:(VEuPathDBError,OSError):returnNone an unread dependent vocabulary keeps the published sheet
