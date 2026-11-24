@@ -19,6 +19,7 @@ from strategist.domain.strategy.constraints import (
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
+    CriterionRole,
     OperationalSpec,
     RequirementLink,
     SpecStructure,
@@ -208,7 +209,7 @@ def _orthologs_in(organism: str) -> Constraint:
     )
 
 
-def _step_to(cid: str, organism: str, search: str, role: str) -> Criterion:
+def _step_to(cid: str, organism: str, search: str, role: CriterionRole) -> Criterion:
     return Criterion(
         id=cid,
         text=f"orthologs in {organism}",
