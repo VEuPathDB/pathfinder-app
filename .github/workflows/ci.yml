@@ -17,7 +17,7 @@ concurrency:
 
 # The e2e shard count, and the sites every turn-driving test runs on.
 env:
-  E2E_SHARDS: 16
+  E2E_SHARDS: 4
   E2E_SITES: plasmodb,vectorbase
 
 jobs:
@@ -570,10 +570,11 @@ jobs:
         run: yarn vitest run --merge-reports --coverage
 
   # The full-stack tier builds once, runs E2E_SHARDS shards at two Playwright
-  # workers each and merges their reports. A push to main does not run it: the
-  # pull request that landed the change already did. It reaches live sites, so
-  # E2E_ENABLED stays off until it runs on replayed recordings
-  # (docs/superpowers/specs/2026-11-23-e2e-replays-recorded-wdk.md).
+  # workers each and merges their reports. The stack reaches VEuPathDB only
+  # through wdk-wire, which replays apps/web/e2e/wire and refuses the rest, so
+  # no shard holds a secret or reaches a site. E2E_ENABLED stays off until the
+  # first recordings are committed
+  # (docs/knowledge/decisions/e2e-replays-recorded-wdk.md).
   e2e-build:
     name: E2E build
     runs-on: ubuntu-latest
@@ -581,7 +582,6 @@ jobs:
     if: >-
       ${{ !cancelled()
         && vars.E2E_ENABLED == 'true'
-        && github.event_name != 'push'
         && needs.lint-web.result != 'failure'
         && needs.test-web.result != 'failure'
         && (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true') }}
@@ -615,6 +615,22 @@ jobs:
           cache-from: type=gha,scope=e2e-web
           cache-to: type=gha,scope=e2e-web,mode=max
 
+      # The proxy installs veupathdb-py at the tag the overlay names.
+      - name: Read the wire library tag
+        id: wire
+        run: echo "ref=$(sed -n 's/.*WIRE_VEUPATHDB_PY_REF:-\([^}]*\)}.*/\1/p' docker-compose.e2e-wire.yml)" >> "$GITHUB_OUTPUT"
+
+      - name: Build the wire image
+        uses: docker/build-push-action@v6
+        with:
+          context: deploy/wdk-wire
+          build-args: VEUPATHDB_PY_REF=${{ steps.wire.outputs.ref }}
+          tags: strategist-e2e-wire:ci
+          push: false
+          outputs: type=docker,dest=/tmp/strategist-wire.tar
+          cache-from: type=gha,scope=e2e-wire
+          cache-to: type=gha,scope=e2e-wire,mode=max
+
       # The image layers are gzip already, so the artifact stores them as they are.
       - name: Upload the images
         uses: actions/upload-artifact@v4
@@ -623,6 +639,7 @@ jobs:
           path: |
             /tmp/strategist-api.tar
             /tmp/strategist-web.tar
+            /tmp/strategist-wire.tar
           retention-days: 1
           compression-level: 0
 
@@ -633,7 +650,6 @@ jobs:
     if: >-
       ${{ !cancelled()
         && vars.E2E_ENABLED == 'true'
-        && github.event_name != 'push'
         && needs.lint-web.result != 'failure'
         && needs.test-web.result != 'failure'
         && (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true') }}
@@ -677,7 +693,7 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.e2e-shard-check.outputs.shards) }}
     env:
-      COMPOSE_FILE: docker-compose.yml:docker-compose.e2e.yml
+      COMPOSE_FILE: docker-compose.yml:docker-compose.e2e.yml:docker-compose.e2e-wire.yml
     steps:
       - uses: actions/checkout@v4
 
@@ -691,6 +707,7 @@ jobs:
         run: |
           docker load -i "$RUNNER_TEMP/e2e-images/strategist-api.tar"
           docker load -i "$RUNNER_TEMP/e2e-images/strategist-web.tar"
+          docker load -i "$RUNNER_TEMP/e2e-images/strategist-wire.tar"
 
       # Self-contained test env; secret is generated per run, never committed.
       # Compose interpolates the whole file, so SEARXNG_SECRET needs a value
@@ -750,31 +767,18 @@ jobs:
           docker compose --env-file .env.test logs --no-color api worker web | tail -120
           exit 1
 
-      # The suite acts as a registered VEuPathDB account; global setup signs
-      # in with these and exports the token the fixtures read.
+      # Each test signs its own token with the key wdk-wire made at start.
       - name: Run Playwright tests
         working-directory: apps/web
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
-          WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
-          WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
+          E2E_WIRE: replay
           SHARD: ${{ matrix.shard }}
         run: yarn playwright test --shard "$SHARD/$E2E_SHARDS" --reporter=blob
 
-      # A trace records request headers and typed values, so every VEuPathDB
-      # token and the account's email and password leave the blob before upload.
-      - name: Redact the account from the blob report
-        id: redact
-        if: ${{ !cancelled() }}
-        working-directory: apps/web
-        env:
-          WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
-          WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
-        run: node scripts/redact-traces.mjs blob-report
-
       # The blob holds every failed test's trace and snapshot for the merged report.
       - name: Upload the blob report
-        if: ${{ !cancelled() && steps.redact.outcome == 'success' }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: blob-report-${{ matrix.shard }}
@@ -788,12 +792,12 @@ jobs:
         if: failure()
         run: |
           docker compose --env-file .env.test ps -a
-          for c in api worker web db; do
+          for c in wdk-wire api worker web db; do
             docker inspect --format "$c: {{json .State}}" "pathfinder-app-$c-1" || true
           done
           free -m
           df -h /
-          docker compose --env-file .env.test logs --no-color api worker web db
+          docker compose --env-file .env.test logs --no-color wdk-wire catalogs-init api worker web db
 
       - name: Tear down
         if: always()
