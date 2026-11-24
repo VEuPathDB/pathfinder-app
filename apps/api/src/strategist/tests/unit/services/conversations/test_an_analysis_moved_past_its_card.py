@@ -6,6 +6,7 @@ import pytest
 from veupathdb.eda import EdaAnalysisDetail, EdaNotFoundError
 
 from strategist.domain.eda_thread import ConversationAnalysisView
+from strategist.domain.unread import Unread
 from strategist.services.conversations import thread_activity
 from strategist.services.conversations.thread_activity import (
     _moved_past,
@@ -75,7 +76,7 @@ async def test_a_card_with_no_stamp_is_not_compared_with_the_site(
 
 @pytest.mark.parametrize(
     ("held", "moved"),
-    [("2026-09-24T18:09:40", True), (_STAMP, False), ("", False), (None, False)],
+    [("2026-09-24T18:09:40", True), (_STAMP, False), ("", False)],
 )
 async def test_the_stamp_the_site_holds_decides(
     monkeypatch: pytest.MonkeyPatch, held: str | None, moved: bool
@@ -84,4 +85,16 @@ async def test_the_stamp_the_site_holds_decides(
     shown = _card("a1b2c3d4", 2, _STAMP)
 
     assert await _moved_past(_BOUND, shown) is moved
+    assert read == ["a1b2c3d4"]
+
+
+async def test_a_stamp_the_service_did_not_answer_is_unread(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    read = _site_holds(monkeypatch, None)
+    shown = _card("a1b2c3d4", 2, _STAMP)
+
+    assert await _moved_past(_BOUND, shown) == Unread(
+        reason="Study service error: GET /users/1/analyses/a1b2c3d4: no such analysis"
+    )
     assert read == ["a1b2c3d4"]

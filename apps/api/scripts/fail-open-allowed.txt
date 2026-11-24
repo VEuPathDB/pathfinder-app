@@ -49,7 +49,6 @@ services/conversations/service.py:ConversationService.delete:1 best effort: the 
 services/conversations/surgery_commit.py:_best_effort:1 best effort release after a failed surgery; the failure is raised by the caller
 services/conversations/surgery_commit.py:_release_uncommitted:1 keeps what an unconfirmed commit made rather than deleting it
 services/conversations/surgery_commit.py:commit_or_release:1 a failed rollback is logged and the commit's failure is raised
-services/conversations/thread_activity.py:_modification_time:1 None reads as 'not changed since shown'; the briefing claims no change it did not read
 services/eda/analysis_kinds.py:_kind_on_the_site:1 an unread kind is a pending check, never a kind (test_a_step_whose_search_was_not_read_is_a_pending_check)
 services/eda/catalog.py:_sync_from_first_answering_site:1 the study index is read from the next site that answers
 services/eda/compute.py:_as_float:1 text that is no number has no number

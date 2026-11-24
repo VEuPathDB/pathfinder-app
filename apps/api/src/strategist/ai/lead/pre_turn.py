@@ -103,7 +103,10 @@ async def strategist_pre_turn(
     attach_change_at_arrival(refreshed, context, change)
     briefed = attach_turn_briefing(refreshed, context, activity, answered=answered)
     return await attach_open_eda_analysis(
-        briefed, context, changed_after_the_card=activity.analysis is not None
+        briefed,
+        context,
+        changed_after_the_card=activity.analysis is not None
+        and activity.analysis.not_read is None,
     )
 
 

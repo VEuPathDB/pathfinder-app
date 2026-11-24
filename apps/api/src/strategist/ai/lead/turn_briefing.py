@@ -162,6 +162,11 @@ def _task_line(task: FinishedTask) -> str:
 
 
 def _analysis_line(drift: AnalysisDrift) -> str:
+    if drift.not_read is not None:
+        return (
+            f"- the open analysis ({drift.dataset_id}) could not be read to check "
+            f"for outside changes: {drift.not_read.reason}"
+        )
     return f"- the open analysis ({drift.dataset_id}) {ANALYSIS_CHANGED_AFTER_THE_CARD}"
 
 
