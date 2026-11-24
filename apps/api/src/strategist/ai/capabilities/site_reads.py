@@ -17,7 +17,7 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
 from veupathdb.errors import DataParsingError, ExternalServiceError, WDKError
 from veupathdb.jbrowse import JBrowseError
-from veupathdb.wdk.wdk_base import WDKModel
+from veupathdb.wdk import WDKModel
 
 from strategist.services.site_errors import site_status, site_words, unreached
 
