@@ -16,6 +16,13 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **The tree tells same-named entries apart (veupathdb-py 0.9.0b18, veupathdb-mcp
+  0.9.0b23).** A lookup over a tree groups entries by name and place, so "female
+  gametocytes" with Pf3D7 named binds the Pf3D7 assay alone; the e1 InterPro pair is still
+  one name. A multi-pick no lookup read is grouped from its whole vocabulary. `WDKModel` is
+  read from `veupathdb.wdk`. An expression read the site refused (400, 401, 403) is not
+  read, with its reason; only a 404 means the site serves no report.
+
 * **An unmeasured metric is never a number.** A ratio whose denominator is empty is an
   `Unread` naming the controls it lacks (`compute_metrics`), and a ratio that counts false
   positives needs negative controls. The scored table shows "not measured", the comparison
