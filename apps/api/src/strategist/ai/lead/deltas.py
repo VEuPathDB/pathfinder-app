@@ -156,7 +156,6 @@ class FrameResult(CamelModel):
     )
 
     gaps: Annotated[list[PassGap], OmittedFromInput] = Field(default_factory=list)
-    # The sentence that sends the request to another site. The dispatch sets it.
     route: Annotated[str, OmittedFromInput] = ""
 
     @computed
