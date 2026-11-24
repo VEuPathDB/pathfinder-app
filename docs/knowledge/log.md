@@ -2,6 +2,16 @@
 
 ## 2026-11-24
 
+* **The gates of cause G.** `scripts/check_fail_open.py` (pre-commit `fail-open-api`, CI
+  "Check that no handler fails open") fails an `except` handler in `ai/`, `services/` or
+  `domain/` that returns, assigns or passes an empty value, ends in `pass` or `continue`,
+  or only logs, unless `scripts/fail-open-allowed.txt` lists it by
+  `path:function:ordinal` with its reason; 111 handlers are listed, the memory index's
+  timeout was fixed instead (the briefing says the other memories were not counted). A test
+  holds every construction of a stated value source to `value_source.py` (the
+  `StatedSource` mint) and `stated_source.py` (its fields), and a type test holds every
+  result the Lead reads from a dispatch to no stored `summary: str`.
+
 * **VERIFY compares what the push sent, and an unread write is said.** VERIFY's `bound_values`
   compared the spec's `organism: ["Plasmodium"]` with the 61 leaves the push sent for that
   countOnlyLeaves parent and failed a correct step. `held_values.values_the_site_holds_otherwise`

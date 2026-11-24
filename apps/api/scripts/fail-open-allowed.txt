@@ -1,0 +1,112 @@
+# Handlers whose failure value is correct as written: path:function:ordinal reason.
+ai/agents/frame_expression_checks.py:_expressions:1 no bind admits an unparsable expression, so there is none to check (test_an_unparsable_expression_is_never_checked_or_bound)
+ai/agents/frame_reading_checks.py:_spelled:1 the refusal is recorded before continue and goes back to FRAME
+ai/audit/review.py:_synthesize:1 a stopped synthesis records its stop as the run's progress before return
+ai/capabilities/metering.py:charge_spend:1 best effort: a usage row the database refused changes no answer
+ai/conversation/_turn_helpers.py:_extract_user_question_answers:1 a data part of another shape is not a card answer
+ai/conversation/_turn_helpers.py:_extract_chunk:1 a writer payload that is no chunk envelope carries no chunk
+ai/conversation/title_generator.py:title_model_id:1 no model to title with means no title; the thread keeps its name
+ai/conversation/turn_stop.py:watch_for_cancel:1 the cancel watcher stops polling on a failed poll; the turn runs to its end
+ai/conversation/turn_stop.py:watch_for_cancel:2 a cancelled watcher ends
+ai/conversation/turn_title.py:write_turn_name:1 best effort: a rename past its wait keeps the name
+ai/conversation/turn_title.py:write_turn_name:2 best effort: a failed rename keeps the name
+ai/conversation/turn_title.py:_keep_the_name:1 best effort: the next turn names the thread
+ai/conversation/turn_title.py:_write_title:1 reports the title as not written
+ai/conversation/turn_title.py:_write_title:2 reports the title as not written
+ai/conversation/turn_title.py:_write_title:3 reports the title as not written; the next turn names the thread
+ai/graph/_lead_capture.py:_charge_token_delta:1 best effort: a usage row the database refused changes no answer
+ai/graph/_lead_capture.py:_persist_residual_quota:1 best effort: the residual is not marked charged, so nothing is counted twice
+ai/graph/nodes.py:_name_strategy_revision:1 best effort: a revision with no message name still restores
+ai/graph/nodes.py:_compact_the_notes:1 best effort: the notes stay as written when compaction fails
+ai/graph/nodes.py:_write_the_notes:1 reports the memory auto-write as not written; the reply stands
+ai/graph/stored_verdicts.py:refused_when_unreadable:1 an unreadable stored verdict loads as none, so the strategy reads unchecked (test_a_checkpoint_with_unreadable_fits_reloads_and_its_next_turn_runs)
+ai/graph/stored_verdicts.py:emptied_when_unreadable:1 unreadable stored fits load as none (test_a_checkpoint_with_unreadable_fits_reloads_and_its_next_turn_runs)
+ai/lead/_delete_rules.py:delete_cascade:1 a delete the graph refuses drops nothing; the delete itself is refused
+ai/lead/edit_refused_values.py:_params_wdk_named:1 a refusal whose rows name no parameter names none; the message quotes the refusal
+ai/lead/held_intent.py:_readings:1 None is the caller's 'ids not read' branch, never 'no ids'
+ai/lead/retrieval_toolset.py:_answer_fields:1 a tool answer that is not JSON has no fields to show
+ai/lead/score_counts.py:record_score_counts:1 an unread score tally records no comparison fact; nothing claims one
+ai/lead/sub_agent_events.py:_result_json:1 a result that does not serialize shows no JSON beside its summary
+ai/lead/sub_agent_stream.py:stream_sub_agent:1 the stop is recorded (stopped) before None, and the dispatch reports it
+ai/lead/verify_checks.py:read_the_columns:1 an unanswered column read is recorded as unanswered before continue
+ai/tools/standalone/_expression_check.py:read_expression_fit:1 no bind admits an unparsable expression (test_an_unparsable_expression_is_never_checked_or_bound)
+ai/tools/standalone/_frame_datasets.py:_ids:1 a value that is no id list holds no saved list ids
+ai/tools/standalone/_frame_sources.py:_number:1 text that is no number has no number
+ai/tools/standalone/_step_columns.py:_number:1 text that is no number has no number
+ai/tools/standalone/search_reads.py:_refuse_an_unlisted_search:1 a vague name looks up nothing; the search is still refused as unlisted
+services/audit/held_organisms.py:HeldOrganisms.of:1 unread organisms stay None, which the audit reads as unread
+services/audit/job.py:_defer:1 a job already queued is the job this defers
+services/audit/job.py:_carry:1 a run that needs a sign-in is halted (_halt) before return
+services/audit/planning.py:_reference_strain:1 None is 'provenance not read', never a reference strain
+services/audit/reviews.py:continue_review:1 a review already queued is the review this defers
+services/audit/reviews.py:queue_review:1 the resume pass queues a review this did not
+services/audit/sign_in.py:_kept_sign_in:1 a seal that does not open holds no sign-in; the run asks for one
+services/audit/sign_in.py:sign_in_holds:1 a token that does not decode is no registered sign-in
+services/conversations/begin.py:_persist_generated_title:1 best effort: the thread keeps its name
+services/conversations/begin.py:_persist_generated_title:2 best effort: the thread keeps its name
+services/conversations/responses.py:_compute_wdk_url:1 a thread on a site this deployment no longer serves lists with no link
+services/conversations/service.py:ConversationService.delete:1 best effort: the WDK copy outlives a deleted thread
+services/conversations/surgery_commit.py:_best_effort:1 best effort release after a failed surgery; the failure is raised by the caller
+services/conversations/surgery_commit.py:_release_uncommitted:1 keeps what an unconfirmed commit made rather than deleting it
+services/conversations/surgery_commit.py:commit_or_release:1 a failed rollback is logged and the commit's failure is raised
+services/conversations/thread_activity.py:_modification_time:1 None reads as 'not changed since shown'; the briefing claims no change it did not read
+services/eda/analysis_kinds.py:_kind_on_the_site:1 an unread kind is a pending check, never a kind (test_a_step_whose_search_was_not_read_is_a_pending_check)
+services/eda/catalog.py:_sync_from_first_answering_site:1 the study index is read from the next site that answers
+services/eda/compute.py:_as_float:1 text that is no number has no number
+services/eda/export.py:study_step_request:1 a step that is no EDA step has no study request
+services/eda/export.py:_document_of:1 a step with no readable analysis document has none to export
+services/eda/group_samples.py:group_samples:1 no count refuses nothing and states none (test_no_count_refuses_nothing)
+services/eda/private_datasets.py:_own:1 a dataset VDI no longer holds is not listed
+services/eda/thread_surgery.py:delete_released_document:1 keeps a document the study service refused to delete
+services/eda/thread_surgery.py:restore_thread_binding:1 a revert keeps the binding the study service refused to move
+services/eda/thread_surgery.py:branch_thread_binding:1 a branch opens with no study when the service refuses a document
+services/eval_data/extraction.py:_unparsed_strategy:1 nothing unredacted is staged
+services/eval_data/extraction.py:extract_eval_candidates:1 a candidate that fails redaction is refused, never staged
+services/eval_data/rated.py:stage_disliked_message:1 a message that fails redaction is not staged
+services/evidence/control_sets.py:_as_uuid:1 text that is no UUID names no saved control set
+services/experiment/variant_comparison.py:_result_count:1 None is an unread count, shown as unknown
+services/export/control_downloads.py:attach_sweep_download:1 a sweep whose export failed carries no download link
+services/export/sweeper.py:run_sweeper_loop:1 the expiry sweeper tries again next interval
+services/parameter_optimization/sweep.py:_number:1 text that is no number has no number
+services/provider_keys.py:_opened:1 a sealed key that does not open is refused by the caller as unreadable
+services/site_errors.py:_requested_url:1 an error with no request names no URL
+services/strategies/_tree_write.py:put_the_strategy_labels:1 best effort: WDK keeps its labels; the tree is written
+services/strategies/abandoned_mint.py:delete_released_mint:1 keeps a WDK strategy whose saved mark the site did not answer
+services/strategies/abandoned_mint.py:delete_released_mint:2 keeps a WDK strategy the site did not delete
+services/strategies/auto_import.py:auto_import_gene_set:1 a result that is no gene set imports none and leaves the latch off
+services/strategies/auto_import.py:auto_import_gene_set:2 best effort: the next write imports the set
+services/strategies/auto_import.py:import_gene_set_for_conversation:1 best effort: rolled back; the next write imports the set
+services/strategies/commit_tree.py:_Commit.validate:1 the refusal is recorded on the step (_refused) before continue
+services/strategies/commit_tree.py:_Commit._sort:1 best effort: an unsorted ranked result still holds every record
+services/strategies/data_marks.py:_assays:1 the failed read is recorded as Unread before continue
+services/strategies/gene_set_refresh.py:defer_the_gene_set_refresh:1 a refresh already queued is the refresh this defers
+services/strategies/live_counts.py:read_the_live_strategy:1 None is an unanswered read; the site read takes nothing
+services/strategies/live_counts.py:the_site_dropped_the_strategy:1 an unanswered read proves nothing gone (test_a_dropped_strategy_owes_no_verdict[unreached])
+services/strategies/live_counts.py:the_site_dropped_the_strategy:2 an unanswered listing proves nothing gone (test_a_dropped_strategy_owes_no_verdict[listing_unreached])
+services/strategies/measurements.py:TurnCounts._ask:1 None is an unread count, stated as not measured
+services/strategies/measurements.py:TurnCounts.reach:1 None is an unread reach, stated as not measured
+services/strategies/naming.py:_rename_the_imported_set:1 a gene set that is gone has no name to change
+services/strategies/naming.py:put_the_name_on_wdk:1 best effort: WDK keeps its name; the thread's name is written
+services/strategies/organism_params.py:organism_parameters:1 an unread mark leaves the scope unknown and refuses nothing (test_an_unread_mark_leaves_the_scopes_unknown_and_refuses_nothing)
+services/strategies/organism_params.py:organism_taxa:1 the unread tree is recorded as unread before continue (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
+services/strategies/organism_params.py:_site_organisms:1 an empty list places no entry, so the checks abstain (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
+services/strategies/reading_check.py:site_spelling:1 None is an unanswered check; the reading keeps its own spelling
+services/strategies/reconcile.py:held_by_id:1 a read-back that does not parse holds no settings, so no departure is claimed
+services/strategies/search_sheets.py:_definition:1 a definition the catalog did not read leaves the search sheet-less, never read as empty
+services/strategies/session_factory.py:_restore_wdk_tree:1 a tree that does not compile is held as unknown, so the next push writes it
+services/strategies/sheet_params.py:_parameters_read:1 records Unread before continue (test_a_card_pick_on_an_unread_sheet_binds_nothing)
+services/strategies/sheet_params.py:_sheet_under:1 an unread dependent vocabulary keeps the published sheet
+services/strategies/site_changes.py:_the_sites_tree:1 a site tree the snapshot cannot read takes nothing onto the graph
+services/strategies/site_changes.py:_arrivals_decoded:1 steps the site added that do not decode keep the graph's own shape
+services/strategies/site_counts.py:read_site_strategy:1 None makes every site check unchecked ('the site did not answer the strategy read')
+services/strategies/sync.py:step_tree_is_current:1 a tree that does not compile is not current, so it is pushed
+services/strategies/wdk_sync.py:lazy_fetch_wdk_detail:1 best effort: the thread shows what it holds
+services/strategies/wdk_sync.py:sync_is_saved_to_wdk:1 best effort: WDK keeps its saved mark; the thread's is written
+services/user_data.py:_purge_wdk_strategies:1 a site that does not answer keeps its WDK copies; the purge of the rest goes on
+services/user_data.py:_purge_wdk_strategies._delete_one:1 reports the strategy as not deleted
+domain/expression_fit.py:bound_expressions:1 no bind admits an unparsable expression (test_an_unparsable_expression_is_never_checked_or_bound)
+domain/log2_scale.py:fold_label:1 text that is no number has no fold label
+domain/strategy/linked_values.py:LinkedParam.number:1 text that is no number has no number
+domain/strategy/one_sided.py:_default_end:1 a default that is no range has no end
+domain/strategy/one_sided.py:_scalar_number:1 text that is no number has no number
+domain/strategy/value_source.py:_number_of:1 text that is no number has no number

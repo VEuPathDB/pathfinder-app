@@ -203,6 +203,13 @@ repos:
         types: [python]
         files: ^apps/api/.*
         stages: [manual]
+      - id: fail-open-api
+        name: fail-open handler check (api)
+        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run python scripts/check_fail_open.py"
+        language: system
+        pass_filenames: false
+        files: ^apps/api/(src/strategist/(ai|services|domain)/.*\.py|scripts/(check_fail_open\.py|fail-open-allowed\.txt))$
+        stages: [manual]
       - id: shared-ts-openapi
         name: the committed spec generates types that compile (shared-ts)
         entry: bash -c "cd packages/shared-ts && yarn check:generated"
