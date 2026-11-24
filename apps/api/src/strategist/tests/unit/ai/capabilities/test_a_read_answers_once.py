@@ -278,7 +278,7 @@ async def test_an_answer_the_next_request_elides_is_carried_again() -> None:
     names = [f"GenesBySearch{i}" for i in range(10)]
     _, parts = await _run(_overviews(*names, names[0]), elided=True)
 
-    assert parts[-1].content.endswith(
+    assert str(parts[-1].content).endswith(
         'That answer is no longer shown above; it is: "GenesBySearch0: '
         + "parameter " * 60
         + '"'
@@ -316,7 +316,9 @@ async def test_a_held_repeat_spends_no_call_of_a_tools_cap() -> None:
         ["S0", "S1"],
         ["success", "success", "failed"],
     )
-    assert parts[-1].content.startswith("get_search_overview answered these arguments")
+    assert str(parts[-1].content).startswith(
+        "get_search_overview answered these arguments"
+    )
 
 
 @pytest.mark.asyncio
@@ -326,6 +328,6 @@ async def test_a_loop_of_held_repeats_is_warned_then_stops_the_run() -> None:
     _, parts = await _guarded(_overviews("S0", "S0", "S0", "S0"), guard)
 
     assert [p.outcome for p in parts] == ["success", "failed", "failed", "failed"]
-    assert "This is a loop" in parts[2].content
-    assert "The run stops here." in parts[3].content
+    assert "This is a loop" in str(parts[2].content)
+    assert "The run stops here." in str(parts[3].content)
     assert guard.stopped_call_id == "call_3"
