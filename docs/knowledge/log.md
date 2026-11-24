@@ -2,6 +2,19 @@
 
 ## 2026-11-24
 
+* **Five rules that had copies have one home.** A thread with no study open
+  (`_eda_open.open_analysis`) and a dataset the catalog lacks (`_eda_open.dataset_study`); a
+  requirement number the list lacks (`requirement_reports.unlisted_numbers_sentence`); an
+  expression handle no expression stands for (`expression_handles.unheld_sentence`, read
+  through `AgentToolState.held_expressions`); a search that runs on an input step
+  (`record_classes.takes_an_input_step`) and the node a criterion takes
+  (`Criterion.node_kind`). A read-only count reads a phrase every message of the request
+  asks for, as FRAME does. A test per rule holds its sentence or attribute to one module.
+
+* **Prompt lines the code enforces are gone.** Fifteen lines or clauses of the FRAME,
+  Lead, BUILD, VERIFY, Explore and base instructions restated a refusal the code makes or a
+  tool the agent does not hold; each owner's test still runs.
+
 * **Take veupathdb-mcp 0.9.0b27.** It deletes `read_radio_readings`, `radio_readings` and
   `RadioReadings`, which nothing read; the binding test no longer names the reader.
 
