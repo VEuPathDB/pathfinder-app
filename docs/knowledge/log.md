@@ -2,6 +2,13 @@
 
 ## 2026-11-24
 
+* **The pinned strategy names what the site refused, whole.** A step's push error and its
+  first validation error were cut at 60 characters, which ended inside the parameter name of a
+  refusal such as "PlasmoDB did not take the strategy's steps: Parameter 'organism' does not
+  accept ...", so the building pass read no value to fix. Both render whole. Of the other fixed
+  cuts in `ai/`, each shortens a label beside an id or a value printed whole, a trace or a log
+  field, and stays.
+
 * **An export names its place and its cut as typed arguments.** `create_eda_step` takes one
   `placement`, a union by `kind` (`criterion`, `into_slot`, `replace`, `beside_root`; unset adds
   a new root), and one `volcano` that holds both thresholds and the direction. Pydantic refuses

@@ -184,11 +184,11 @@ def _render_step_suffix(
     if is_root:
         suffix_parts.append("root")
     if push_error:
-        suffix_parts.append(f"ERROR: {push_error[:60]}")
+        suffix_parts.append(f"ERROR: {push_error}")
     if validation and not validation.is_valid:
         general = validation.errors.general if validation.errors else []
         if general:
-            suffix_parts.append(f"INVALID: {str(general[0])[:60]}")
+            suffix_parts.append(f"INVALID: {general[0]}")
         else:
             suffix_parts.append("INVALID")
     if suffix_parts:

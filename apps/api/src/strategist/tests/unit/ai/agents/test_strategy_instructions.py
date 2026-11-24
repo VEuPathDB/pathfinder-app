@@ -13,7 +13,12 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
-from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StepKind,
+    StepValidation,
+    StrategyStep,
+)
 
 from strategist.ai.agents.strategy_instructions import (
     pinned_frame_workspace,
@@ -248,6 +253,35 @@ class TestTheRenderedGraph:
 
         assert rendered is not None
         assert "ERROR: 422 unprocessable" in rendered
+
+    def test_a_push_error_names_the_value_the_site_refused(self) -> None:
+        refusal = (
+            "PlasmoDB did not take the strategy's steps: Parameter 'organism' "
+            "does not accept 'Plasmodium vivax P01'."
+        )
+        sync = WDKSyncState()
+        sync.wdk_push_errors["b"] = refusal
+
+        rendered = pinned_graph_state(
+            _graph_ctx(_session(_graph_with_a_combine(), sync))
+        )
+
+        assert rendered is not None
+        assert f"ERROR: {refusal}" in rendered
+
+    def test_an_invalid_step_names_what_the_site_found_wrong(self) -> None:
+        refusal = "Parameter 'organism' does not accept 'Plasmodium knowlesi strain H'."
+        sync = WDKSyncState()
+        sync.step_validations["b"] = StepValidation.model_validate(
+            {"level": "SEMANTIC", "isValid": False, "errors": {"general": [refusal]}}
+        )
+
+        rendered = pinned_graph_state(
+            _graph_ctx(_session(_graph_with_a_combine(), sync))
+        )
+
+        assert rendered is not None
+        assert f"INVALID: {refusal}" in rendered
 
     def test_a_step_wdk_refused_carries_no_count(self) -> None:
         """The stored count is the search WDK still runs, not the edited one."""
