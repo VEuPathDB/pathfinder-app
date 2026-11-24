@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **A card question on a criterion answers only that criterion's requirements of its dimension.**
+  `recommended_drops` resolves a criterion id to the requirements it links whose kind is the
+  question's dimension, so a percentile question on a step that also links the organism may
+  recommend a cutoff; the ortholog question on the x5 transform is still refused.
+
 * **Free words never replace a stated value.** The word reader (`answer_values.stated_value`)
   is deleted. On a dimension of one value a card answer's typed words or note state no
   requirement and retire none; only a structured pick whose effect replaces the requirement

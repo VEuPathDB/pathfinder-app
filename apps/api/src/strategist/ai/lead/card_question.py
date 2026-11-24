@@ -54,13 +54,19 @@ class CardQuestion(ConsultQuestion):
         links: Mapping[str, Sequence[str]],
     ) -> list[str]:
         """Why a recommended pick would retire or replace a hard stated requirement:
-        its drop option, or any option but its keep on a question that replaces it
-        or names it or a criterion ``links`` ties to it."""
+        its drop option, or any option but its keep on a question that replaces it,
+        names it, or names a criterion ``links`` ties to it on the question's dimension."""
         recommended = [o.label for o in self.options if o.recommended]
         if not recommended:
             return []
         choices = requirement_choices(requirements)
-        tagged = {*self.replaces, self.requirement, *links.get(self.requirement, ())}
+        kinds = {c.id: c.kind for c in requirements}
+        answered_here = [
+            rid
+            for rid in links.get(self.requirement, ())
+            if kinds.get(rid) is self.dimension
+        ]
+        tagged = {*self.replaces, self.requirement, *answered_here}
         found: list[str] = []
         for number, held in numbered_requirements(requirements).items():
             if held.source is not ConstraintSource.USER_EXPLICIT or not held.hard:

@@ -172,3 +172,19 @@ async def test_a_recommended_option_that_changes_no_requirement_is_asked() -> No
     asked = await _ask(_widening("", []))
 
     assert asked == {"call_card": {}}
+
+
+async def test_a_criterion_question_on_another_dimension_may_recommend() -> None:
+    card = CardQuestion(
+        id="which_percentile",
+        prompt="Which percentile cutoff should the expression step use?",
+        kind="single_choice",
+        options=[
+            ConsultOption(label="Top 10 percent", recommended=True),
+            ConsultOption(label="Top 20 percent"),
+        ],
+        dimension=ConstraintKind.PERCENTILE,
+        requirement=_TRANSFORM,
+    )
+
+    assert await _ask(card) == {"call_card": {}}
