@@ -6,6 +6,8 @@ check as an answer from VEuPathDB.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import cast
 
 from assistant_core.graph.tool_summary import with_summary
@@ -20,7 +22,9 @@ from strategist.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
     graph_not_found,
 )
+from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.platform.errors import ErrorCode
+from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.commit import CommitResult
 
 
@@ -90,6 +94,14 @@ def operation_refused_message(detail: str, *, wrote: str) -> str:
         f"names and send it again, or report what could not be written and "
         f"stop. Do not offer to rebuild the strategy from scratch."
     )
+
+
+@contextmanager
+def departures_refused() -> Iterator[None]:
+    try:
+        yield
+    except PlanDeparturesError as exc:
+        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
 
 
 def wdk_refused_the_edit(result: CommitResult) -> ToolErrorPayload | None:

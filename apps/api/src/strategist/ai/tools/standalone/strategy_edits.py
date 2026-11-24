@@ -43,6 +43,7 @@ from strategist.ai.tools.standalone.strategy_refusals import (
     _no_graph,
     _refused,
     _step_edit_refused,
+    departures_refused,
     operation_refused_message,
     wdk_refused_the_edit,
 )
@@ -58,9 +59,8 @@ from strategist.domain.strategy.operations import (
     UpdateStepMetaOp,
     UpdateStepParamsOp,
 )
-from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.platform.errors import ErrorCode
-from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.commit import CommitResult, apply_and_commit
 from strategist.services.strategies.insert_saved import (
     insert_saved_into_conversation,
@@ -74,9 +74,8 @@ async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
     the catalog turns down is answered here.
     """
     try:
-        return await apply_and_commit(deps=deps.to_strategy_context(), op=op)
-    except PlanDeparturesError as exc:
-        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
+        with departures_refused():
+            return await apply_and_commit(deps=deps.to_strategy_context(), op=op)
     except ApplyError as exc:
         msg = operation_refused_message(str(exc), wrote="edit")
         raise ModelRetry(msg) from exc
@@ -350,14 +349,13 @@ async def insert_saved_strategy(
         )
 
     try:
-        result = await insert_saved_into_conversation(
-            deps=deps.to_strategy_context(),
-            target_step_id=target_step_id,
-            saved_wdk_strategy_id=saved_wdk_strategy_id,
-            operator=operator,
-        )
-    except PlanDeparturesError as exc:
-        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
+        with departures_refused():
+            result = await insert_saved_into_conversation(
+                deps=deps.to_strategy_context(),
+                target_step_id=target_step_id,
+                saved_wdk_strategy_id=saved_wdk_strategy_id,
+                operator=operator,
+            )
     except ApplyError as exc:
         msg = operation_refused_message(str(exc), wrote="insert")
         raise ModelRetry(msg) from exc

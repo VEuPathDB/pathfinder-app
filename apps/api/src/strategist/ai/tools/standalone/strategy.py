@@ -29,6 +29,7 @@ from strategist.ai.tools.standalone.graph_helpers import count_summary
 from strategist.ai.tools.standalone.strategy_refusals import (
     _no_graph,
     _refused,
+    departures_refused,
     operation_refused_message,
     wdk_refused_the_edit,
 )
@@ -41,10 +42,9 @@ from strategist.domain.strategy.build_outcome import (
     BuiltCounts,
     built_counts,
 )
-from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.strategies.commit import apply_operations_and_commit
 from strategist.services.strategies.result_list import live_result_list_url
 from strategist.services.strategies.spec_build import build_strategy_from_spec
@@ -151,14 +151,12 @@ async def build_strategy(
         )
         raise ModelRetry(msg)
 
-    try:
+    with departures_refused():
         outcome = await build_strategy_from_spec(
             deps=deps.to_strategy_context(),
             root=await typed_tree(deps.resolving(), root),
             description=description,
         )
-    except PlanDeparturesError as exc:
-        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
     url = live_result_list_url(session.site_id, session.sync_state)
     counts = built_counts(graph, session.sync_state)
     payload = _build_outcome_payload(outcome, graph, url, counts)
@@ -231,12 +229,11 @@ async def apply_operations(
 
     typed = await typed_operations(deps.resolving(), graph, operations)
     try:
-        result = await apply_operations_and_commit(
-            deps=deps.to_strategy_context(),
-            ops=typed,
-        )
-    except PlanDeparturesError as exc:
-        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
+        with departures_refused():
+            result = await apply_operations_and_commit(
+                deps=deps.to_strategy_context(),
+                ops=typed,
+            )
     except ApplyError as exc:
         # A refused batch rolls back, so the base revision stays valid.
         msg = (

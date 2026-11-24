@@ -47,6 +47,7 @@ from strategist.ai.tools.standalone._validation_helpers import (
 )
 from strategist.ai.tools.standalone.eda_analysis import bound_analysis
 from strategist.ai.tools.standalone.strategy_refusals import (
+    departures_refused,
     operation_refused_message,
     wdk_refused_the_edit,
 )
@@ -60,12 +61,11 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from strategist.domain.strategy.operations import GraphOperation
-from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
+from strategist.domain.strategy.operations.apply import ApplyError
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_edit_guard import spec_stated_values
 from strategist.domain.strategy.spec_hydration import criteria_listed_under
 from strategist.domain.strategy.step_words import StampedKind, StepWords, step_words
-from strategist.platform.refusals import ProblemsRefusal
 from strategist.services.eda.binding import read_analysis
 from strategist.services.eda.direction import selection_sentence
 from strategist.services.eda.steps import (
@@ -425,11 +425,10 @@ async def _commit_the_export(
     deps: StrategyMutationContext, ops: Sequence[GraphOperation], *, search_name: str
 ) -> CommitResult:
     try:
-        return await apply_operations_and_commit(deps=deps, ops=ops)
+        with departures_refused():
+            return await apply_operations_and_commit(deps=deps, ops=ops)
     except ValidationError as exc:
         raise validation_model_retry(exc, searchName=search_name) from exc
-    except PlanDeparturesError as exc:
-        raise ProblemsRefusal(exc.problems, closing="Nothing was written.") from exc
     except ApplyError as exc:
         msg = operation_refused_message(str(exc), wrote="export")
         raise ModelRetry(msg) from exc
