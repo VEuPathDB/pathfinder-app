@@ -32,7 +32,7 @@ from strategist.persistence.repositories import (
     ConversationRepository,
     ConversationUpdate,
 )
-from strategist.platform.errors import ErrorCode, NotFoundError
+from strategist.platform.errors import ErrorCode, NotFoundError, SiteUnavailableError
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.conversations import strategy_ops
 from strategist.services.conversations.authz import get_owned_thread
@@ -53,6 +53,7 @@ from strategist.services.conversations.update_input import (
     ConversationUpdateInput,
     strategy_write_of,
 )
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.insert_saved import (
     InsertSavedResult,
 )
@@ -263,6 +264,11 @@ class ConversationService:
                     wdk_strategy_id=wdk_id,
                     error=str(e),
                 )
+                raise SiteUnavailableError(
+                    conversation.site_id,
+                    "the strategy on the site was not deleted, so the "
+                    f"conversation is kept: {site_words(e)}",
+                ) from e
         await stop_turn_before_delete(conversation_id)
         await self._repo.delete(conversation_id, cascade=cascade)
         await self._session.commit()

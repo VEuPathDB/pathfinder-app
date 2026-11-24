@@ -53,7 +53,6 @@ services/audit/sign_in.py:sign_in_holds:(jwt.PyJWTError,ValidationError):returnF
 services/conversations/begin.py:_persist_generated_title:Exception:log best effort: the thread keeps its name
 services/conversations/begin.py:_persist_generated_title:Exception:return best effort: the thread keeps its name
 services/conversations/responses.py:_compute_wdk_url:SiteNotFoundError:returnNone a thread on a site this deployment no longer serves lists with no link
-services/conversations/service.py:ConversationService.delete:(VEuPathDBError,OSError,RuntimeError):log best effort: the WDK copy outlives a deleted thread
 services/conversations/surgery_commit.py:_best_effort:Exception:log best effort release after a failed surgery; the failure is raised by the caller
 services/conversations/surgery_commit.py:_release_uncommitted:Exception:return keeps what an unconfirmed commit made rather than deleting it
 services/conversations/surgery_commit.py:commit_or_release:Exception:log a failed rollback is logged and the commit's failure is raised
