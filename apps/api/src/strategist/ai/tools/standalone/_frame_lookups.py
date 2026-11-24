@@ -6,6 +6,12 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
+from veupathdb.domain.parameters import (
+    flatten_vocab,
+    name_past_accession,
+    same_named_groups,
+    vocab_paths,
+)
 from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -118,16 +124,31 @@ def pick_problems(
     )
 
 
+def _same_named(
+    state: AgentToolState, call: CriterionCall, param: WDKParameter
+) -> dict[str, tuple[str, ...]]:
+    """The groups of entries that share a name, from the lookup of the
+    parameter when one ran, else from its whole vocabulary."""
+    record = state.looked_up.get((call.search_name, param.name))
+    if record is not None:
+        return record.same_named
+    options = flatten_vocab(param.vocabulary)
+    labels = {option.value: name_past_accession(option) for option in options}
+    return {
+        labels[group[0]]: tuple(group)
+        for group in same_named_groups(options, vocab_paths(param.vocabulary))
+    }
+
+
 def _same_named_subsets(
     state: AgentToolState, definition: WDKSearch, call: CriterionCall
 ) -> Problems:
     found: list[Problem] = []
     for param in definition.parameters or []:
-        record = state.looked_up.get((call.search_name, param.name))
-        if param.type != "multi-pick-vocabulary" or record is None:
+        if param.type != "multi-pick-vocabulary":
             continue
         picks = call.terms(param.name)
-        for name, group in record.same_named.items():
+        for name, group in _same_named(state, call, param).items():
             held = [v for v in group if v in picks]
             named = any(_written_out(v, state.request_messages) for v in held)
             if not held or len(held) == len(group) or named:

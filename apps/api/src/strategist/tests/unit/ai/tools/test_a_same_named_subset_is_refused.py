@@ -10,6 +10,7 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
     VocabOption,
+    WDKVocabTerm,
     read_options,
 )
 
@@ -91,3 +92,39 @@ def test_an_entry_the_request_names_by_accession_binds() -> None:
     _bind(state, ["IPR050205"])
 
     assert state.request_messages == [f"{_MESSAGE} Use IPR050205."]
+
+
+def _without_a_lookup(picks: list[str]) -> None:
+    definition = suite_search("search_genes_by_interpro_domain")
+    terms = [
+        WDKVocabTerm((v["value"], v["display"], None)) for v in _E1["allowedValues"]
+    ]
+    parameters = [
+        p.model_copy(update={"vocabulary": terms, "display_type": "select"})
+        if p.name == _DOMAINS
+        else p
+        for p in definition.parameters or []
+    ]
+    definition = definition.model_copy(update={"parameters": parameters})
+    state = AgentToolState()
+    state.request_messages = [_MESSAGE]
+    call = CriterionCall(
+        criterion_id="c_serine_threonine_protein_kinase_interpro",
+        search_name=_INTERPRO,
+        text=_TEXT,
+        params={},
+    ).with_values({_DOMAINS: MultiPickValue(values=picks)})
+    refuse_problems(
+        pick_problems(state, definition, call, sheet_of(definition.parameters or []))
+    )
+
+
+def test_a_same_named_subset_no_lookup_read_is_refused_from_the_vocabulary() -> None:
+    with pytest.raises(ModelRetry) as refused:
+        _without_a_lookup(["IPR050205"])
+
+    assert "IPR050205 and IPR050236 share the name" in refused.value.message
+
+
+def test_both_same_named_entries_no_lookup_read_bind() -> None:
+    _without_a_lookup(["IPR050205", "IPR050236"])
