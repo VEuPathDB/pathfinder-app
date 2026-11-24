@@ -63,17 +63,10 @@ def roles_off(model_id: str, roles: Mapping[str, str]) -> str:
 
 
 @contextmanager
-def pinned_run(model_id: str | None, *, via_worker: bool) -> Iterator[dict[str, str]]:
+def pinned_run(model_id: str | None) -> Iterator[dict[str, str]]:
     if model_id is None:
         yield {}
         return
-    if via_worker:
-        msg = (
-            "a model for every role does not combine with --via-worker: the worker "
-            "runs the title generator, the note compactor and the injection judge "
-            "on its own models"
-        )
-        raise RunModelError(msg)
     with pin_every_role(model_id):
         roles = resolved_roles()
         off = roles_off(model_id, roles)

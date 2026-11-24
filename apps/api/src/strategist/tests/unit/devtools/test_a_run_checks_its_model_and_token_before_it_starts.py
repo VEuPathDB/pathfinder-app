@@ -156,7 +156,7 @@ def _sets_the_pin(path: Path) -> bool:
     return False
 
 
-def test_only_the_devtools_set_the_pin() -> None:
+def test_only_the_devtools_set_the_pin_and_the_worker_restores_it() -> None:
     root = Path(strategist.__file__).parent
     setters = sorted(
         path.relative_to(root).as_posix()
@@ -164,7 +164,11 @@ def test_only_the_devtools_set_the_pin() -> None:
         if path.relative_to(root).parts[0] != "tests" and _sets_the_pin(path)
     )
 
-    assert setters == ["devtools/run_models.py"]
+    assert setters == [
+        "devtools/run_models.py",
+        "jobs/impls/chat_turn_impl.py",
+        "jobs/job_context.py",
+    ]
 
 
 def test_a_model_the_deployment_does_not_pay_for_is_refused_by_name() -> None:

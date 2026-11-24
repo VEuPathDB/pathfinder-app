@@ -13,7 +13,10 @@ import { Figure } from "@/features/conversation/thread/Figure";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { tableNumberFor } from "./tableNumbers";
 
-const TRUNCATED_NOTE = "large results, overlap is a lower bound";
+function readCapNote(cap: number): string {
+  const read = cap.toLocaleString();
+  return `a variant past ${read} genes is read to its first ${read}, so "at least" marks a lower bound`;
+}
 
 const COLUMNS = [
   { head: "Variant" },
@@ -84,6 +87,21 @@ function uniqueGenes(genes: readonly UniqueGene[]) {
   );
 }
 
+function uniqueText(variant: VariantResult): string {
+  if (hasFailed(variant)) return "-";
+  if (variant.uniqueCount == null) return "not counted";
+  const count = variant.uniqueCount.toLocaleString();
+  return variant.uniqueAtLeast ? `at least ${count}` : count;
+}
+
+type Overlap = VariantComparison["overlaps"][number];
+
+function overlapText(overlap: Overlap): string {
+  const shared = overlap.shared.toLocaleString();
+  if (overlap.jaccard == null) return `at least ${shared} shared`;
+  return `${shared} shared, Jaccard ${String(overlap.jaccard)}`;
+}
+
 function rows(data: VariantComparison): ExhibitRow[] {
   const counted = countedInTheResult(data);
   return data.variants.map((variant) => ({
@@ -91,7 +109,7 @@ function rows(data: VariantComparison): ExhibitRow[] {
     cells: [
       variantLabel(variant),
       hasFailed(variant) ? "-" : variant.geneCount.toLocaleString(),
-      hasFailed(variant) ? "-" : variant.uniqueCount.toLocaleString(),
+      uniqueText(variant),
       ...(counted ? [variant.resultCount?.toLocaleString() ?? "-"] : []),
     ],
   }));
@@ -101,8 +119,8 @@ function rows(data: VariantComparison): ExhibitRow[] {
  * pairs overlap. */
 function notes(data: VariantComparison): ExhibitNote[] {
   const built: ExhibitNote[] = [];
-  if (data.truncated === true) {
-    built.push({ key: "truncated", label: "Note:", body: TRUNCATED_NOTE });
+  if (data.readCap != null) {
+    built.push({ key: "read-cap", label: "Note:", body: readCapNote(data.readCap) });
   }
   for (const variant of data.variants) {
     if (hasFailed(variant)) {
@@ -127,7 +145,7 @@ function notes(data: VariantComparison): ExhibitNote[] {
     built.push({
       key: `${overlap.a}|${overlap.b}`,
       label: `${overlap.a} vs ${overlap.b}:`,
-      body: `${overlap.shared.toLocaleString()} shared, Jaccard ${String(overlap.jaccard)}`,
+      body: overlapText(overlap),
     });
   }
   return built;

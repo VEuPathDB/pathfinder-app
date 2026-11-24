@@ -142,11 +142,12 @@ class CaseThreads:
 
 
 async def stored_verdicts(threads: CaseThreads) -> dict[str, ObservedVerdict]:
-    views = [
-        view
-        for conversation_id in threads.conversation_ids
-        for view in await conversation_verdicts(conversation_id, threads.user_id)
-    ]
+    async with attach_application():
+        views = [
+            view
+            for conversation_id in threads.conversation_ids
+            for view in await conversation_verdicts(conversation_id, threads.user_id)
+        ]
     return newest_verdicts(views)
 
 

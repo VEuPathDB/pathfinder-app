@@ -44,7 +44,7 @@ from strategist.ai.capabilities.security import warm_up_screening
 from strategist.ai.scripted import scripted
 from strategist.assistants.registry import get_assistant_registry
 from strategist.domain.strategy.operations.apply import ApplyError
-from strategist.jobs.job_context import WdkJobContext
+from strategist.jobs.job_context import TurnJobContext
 from strategist.platform.body_limit import RequestBodyLimitMiddleware
 from strategist.platform.config import Settings, get_settings
 from strategist.platform.error_handlers import (
@@ -245,7 +245,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     from strategist.jobs.app import procrastinate_app  # noqa: PLC0415
 
     # A durable call captures the caller's WDK token wherever it is made.
-    install_durable_job_context(WdkJobContext())
+    install_durable_job_context(TurnJobContext())
 
     # uvicorn binds only after this handler yields, so the warm-up runs beside
     # the server and ``/health/ready`` reports which catalogs are still loading.

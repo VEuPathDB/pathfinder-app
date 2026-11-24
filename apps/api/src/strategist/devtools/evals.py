@@ -166,7 +166,7 @@ def _run(args: argparse.Namespace) -> int:
             if args.wdk_token_env is None
             else chat.EnvToken.read(args.wdk_token_env)
         )
-        with run_models.pinned_run(args.model, via_worker=args.via_worker) as roles:
+        with run_models.pinned_run(args.model) as roles:
             identity = [] if token is None else [chat.identity_line(token)]
             run_lines = (
                 [*run_models.role_lines(roles), chat.identity_line(token)]

@@ -72,12 +72,13 @@ from strategist.devtools.turn_arc import TurnArc, read_arc
 from strategist.domain.modes import ThreadMode
 from strategist.jobs.app import procrastinate_app
 from strategist.jobs.auth_context import attach_application, attach_wdk_auth
-from strategist.jobs.job_context import WdkJobContext
+from strategist.jobs.job_context import TurnJobContext
 from strategist.jobs.payloads import ChatTurnPayload
 from strategist.persistence.repositories.user import UserRepository
 from strategist.platform.config import get_settings
 from strategist.platform.durable_worker import no_durable_worker
 from strategist.platform.model_catalog import install_catalog_prices
+from strategist.platform.pinned_model import pinned_model
 from strategist.platform.stage_sites import (
     SITES_CONFIG_VARIABLE,
     named_or_qa_sites_file,
@@ -643,7 +644,7 @@ async def _exec_one(
         # The debugger drives the turn itself, so it admits what the worker does.
         install_admitted_sources(admitted_tool_sources())
         install_catalog_prices()
-        install_durable_job_context(WdkJobContext())
+        install_durable_job_context(TurnJobContext())
         registry = get_assistant_registry()
         spec = await resolve_run_assistant(body.conversation_id, args.assistant)
         saver = await stack.enter_async_context(
@@ -672,11 +673,11 @@ async def _defer_chat_turn(payload: ChatTurnPayload) -> None:
         )
 
 
-async def _worker_payload(
+async def worker_payload(
     args: RunArgs,
-    capture: RunCapture,
     body: ChatRequestBody,
     *,
+    turn_id: UUID,
     wdk_token: str | None,
 ) -> ChatTurnPayload:
     """The job the worker runs. It names the assistant the thread is served by."""
@@ -684,10 +685,11 @@ async def _worker_payload(
     return ChatTurnPayload(
         body=body,
         user_id=args.user_id,
-        turn_id=capture.turn_id,
+        turn_id=turn_id,
         veupathdb_auth_token=wdk_token,
-        capture_dir=str(worker_llm_dir(capture.turn_id)),
+        capture_dir=str(worker_llm_dir(turn_id)),
         assistant_id=spec.assistant_id,
+        pinned_model=pinned_model(),
     )
 
 
@@ -697,7 +699,9 @@ async def _exec_via_worker(
     """Defers a real chat turn job to the worker and follows the thread's log until
     the turn ends, through every completion turn a parked durable task opens."""
     before = await latest_turn_boundary(args.conversation_id)
-    payload = await _worker_payload(args, capture, body, wdk_token=wdk_token)
+    payload = await worker_payload(
+        args, body, turn_id=capture.turn_id, wdk_token=wdk_token
+    )
     await _defer_chat_turn(payload)
     _say(args, "deferred to worker; waiting...")
 
@@ -1019,7 +1023,7 @@ def _run_roles(ns: argparse.Namespace) -> int:
 
 def _drive_command(command: str, ns: argparse.Namespace, argv: list[str]) -> int:
     try:
-        with run_models.pinned_run(ns.model_all, via_worker=ns.via_worker):
+        with run_models.pinned_run(ns.model_all):
             if command == "run":
                 return asyncio.run(run_once(parse_run_args(argv)))
             return asyncio.run(run_respond(parse_respond_args(argv)))

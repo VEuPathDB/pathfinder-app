@@ -100,6 +100,18 @@
   that renders "Not applied, waiting on your answer:" or "Not applied until the strategy is
   built:". The site route is its own `route`, a stopped pass is a `pass_stopped` gap, an
   unbound edit names its `refusal`, and `VerificationStopped.summary` is computed from its stop.
+* **A variant comparison states no count a partial read cannot give.** A variant whose
+  result passes `READ_CAP` (50,000) is read to the cap: its shared counts are lower bounds
+  with no Jaccard, its unique count is a lower bound, and every other variant's unique
+  count and genes are not given (`readCap`, `sharedAtLeast`, `uniqueAtLeast`).
+
+* **A worker run keeps the pinned model.** `--model` (evals) and `--model-all` (the
+  debugger) combine with `--via-worker`: the pin rides the chat-turn job and every durable
+  call, so a run with durable tools holds every role on one model.
+
+* **A strain missing a word of its entry names that entry.** The organism reader binds the
+  one entry that holds every stated word in order ("Trypanosoma brucei TREU927" names
+  Trypanosoma brucei brucei TREU927); words two entries hold still go to the card.
 
 * **An edit keeps the values it did not state.** A commit sends a value the edit did not
   move in the form WDK holds it, and the plan keeps its own typed value; before, an

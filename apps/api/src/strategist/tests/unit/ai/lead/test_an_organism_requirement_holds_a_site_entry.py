@@ -104,6 +104,56 @@ async def test_words_that_complete_to_a_stated_entry_hold_that_entry(
     assert deps.state.domain.organism_picks == []
 
 
+TREU927 = "Which Trypanosoma brucei TREU927 protein kinases have a signal peptide?"
+UKMEL1 = "Find Cryptosporidium meleagridis UKMEL1 genes with a signal peptide"
+LISTER = "Kinases of Trypanosoma brucei Lister 427"
+
+
+@pytest.mark.usefixtures("recorded_site_organisms")
+@pytest.mark.parametrize(
+    ("site", "message", "words", "entry"),
+    [
+        (
+            "tritrypdb",
+            TREU927,
+            "Trypanosoma brucei TREU927",
+            "Trypanosoma brucei brucei TREU927",
+        ),
+        (
+            "cryptodb",
+            UKMEL1,
+            "Cryptosporidium meleagridis UKMEL1",
+            "Cryptosporidium meleagridis strain UKMEL1",
+        ),
+    ],
+)
+async def test_words_one_entry_holds_in_order_hold_that_entry(
+    site: str, message: str, words: str, entry: str
+) -> None:
+    deps = _deps(site, message)
+
+    await hold_the_intent(deps, _intent(_organism(words, words)), message)
+
+    assert _held(deps) == [(entry, entry)]
+    assert deps.state.domain.organism_picks == []
+
+
+@pytest.mark.usefixtures("recorded_site_organisms", "_asks_the_service")
+async def test_words_two_entries_hold_in_order_are_asked_on_the_card() -> None:
+    use_decisions_transport(_unanswered)
+    deps = _deps("tritrypdb", LISTER)
+    words = "Trypanosoma brucei Lister 427"
+
+    await hold_the_intent(deps, _intent(_organism(words, words)), LISTER)
+
+    assert _held(deps) == [(words, None)]
+    [pick] = deps.state.domain.organism_picks
+    assert {
+        "Trypanosoma brucei Lister strain 427",
+        "Trypanosoma brucei Lister strain 427 2018",
+    } <= set(pick.offered)
+
+
 @pytest.mark.usefixtures("recorded_site_organisms")
 async def test_words_that_fold_to_an_entry_hold_that_entry() -> None:
     deps = _deps("plasmodb", SPACED)

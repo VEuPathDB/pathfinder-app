@@ -17,7 +17,7 @@ from veupathdb.testing import NEEDS_QA_RECORDING, needs_qa_recording
 from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import VEuPathDBClient, WDKSearchResponse
 
-from strategist.jobs.job_context import WdkJobContext, WdkJobState
+from strategist.jobs.job_context import TurnJobContext, TurnJobState
 from strategist.main import create_app
 from strategist.services.search_waits import researcher_search_turn
 
@@ -152,12 +152,12 @@ async def test_an_agent_turn_reads_a_definition_once(site: Site, as_ada: None) -
 
 
 async def test_a_background_job_reads_a_definition_once(site: Site) -> None:
-    state = WdkJobState.model_validate({"veupathdb_auth_token": "ada"})
+    state = TurnJobState.model_validate({"veupathdb_auth_token": "ada"})
 
-    async with WdkJobContext().restore(state):
+    async with TurnJobContext().restore(state):
         await site.read()
         await site.read()
-    async with WdkJobContext().restore(state):
+    async with TurnJobContext().restore(state):
         await site.read()
 
     assert site.reads == ["ada", "ada"]

@@ -38,7 +38,7 @@ from strategist.assistants.registry import get_assistant_registry
 from strategist.jobs.app import FINISHED_JOBS_DELETED, procrastinate_app
 from strategist.jobs.completion import open_completion_turn
 from strategist.jobs.impls import register_all_tools
-from strategist.jobs.job_context import WdkJobContext
+from strategist.jobs.job_context import TurnJobContext
 from strategist.jobs.logging_filters import install_procrastinate_redaction
 from strategist.jobs.runtime import build_worker_context
 from strategist.platform.config import Settings, get_settings
@@ -153,7 +153,7 @@ async def amain() -> None:
     # Turns run here, so this is the process where a declaration resolves.
     install_admitted_sources(admitted_tool_sources())
     register_all_tools()
-    install_durable_job_context(WdkJobContext())
+    install_durable_job_context(TurnJobContext())
     install_worker_context(build_worker_context)
     install_completion_turn(open_completion_turn)
     install_assistant_registry(get_assistant_registry())

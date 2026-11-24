@@ -35,3 +35,16 @@ async def test_each_ortholog_organism_the_site_lists_is_its_entry() -> None:
         organisms=["Plasmodium vivax P01", "Homo sapiens"]
     )
     assert named.picks == []
+
+
+async def test_an_ortholog_organism_one_entry_holds_in_order_is_that_entry() -> None:
+    message = "their orthologs in Trypanosoma brucei TREU927"
+    named = await named_organisms(
+        "tritrypdb",
+        [_orthologs("Trypanosoma brucei TREU927")],
+        message,
+        ["Trypanosoma brucei brucei TREU927", "Trypanosoma brucei gambiense DAL972"],
+    )
+
+    [held] = named.constraints
+    assert held.value == OrthologValue(organisms=["Trypanosoma brucei brucei TREU927"])

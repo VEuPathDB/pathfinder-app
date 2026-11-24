@@ -19,7 +19,7 @@ and every process installs the same one, so every process takes the same lock.
 
 **The turn.** `run_turn` runs every turn (a message, a completion turn, the chat
 debugger) under `services/search_waits.researcher_search_turn`, a client `search_turn`;
-`WdkJobContext.restore` runs every durable body under one; the served tool server runs
+`TurnJobContext.restore` runs every durable body under one; the served tool server runs
 each tool call under one. Other researchers' turns are not slowed by it.
 
 **The deployment line.** The api and the worker call

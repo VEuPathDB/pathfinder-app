@@ -28194,9 +28194,21 @@
             "title": "Shared",
             "type": "integer"
           },
+          "sharedAtLeast": {
+            "default": false,
+            "title": "Sharedatleast",
+            "type": "boolean"
+          },
           "jaccard": {
-            "title": "Jaccard",
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jaccard"
           }
         },
         "required": [
@@ -32149,11 +32161,6 @@
             "title": "Overlaps",
             "type": "array"
           },
-          "truncated": {
-            "default": false,
-            "title": "Truncated",
-            "type": "boolean"
-          },
           "resultStepId": {
             "anyOf": [
               {
@@ -32164,11 +32171,24 @@
               }
             ],
             "title": "Resultstepid"
+          },
+          "readCap": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "readOnly": true,
+            "title": "Readcap"
           }
         },
         "required": [
           "variants",
-          "overlaps"
+          "overlaps",
+          "readCap"
         ],
         "title": "VariantComparison",
         "type": "object"
@@ -32187,9 +32207,21 @@
             "title": "Genecount",
             "type": "integer"
           },
+          "readToCap": {
+            "default": false,
+            "title": "Readtocap",
+            "type": "boolean"
+          },
           "uniqueCount": {
-            "title": "Uniquecount",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uniquecount"
           },
           "sampleUniqueGenes": {
             "items": {
@@ -32226,6 +32258,11 @@
             },
             "title": "Differsby",
             "type": "object"
+          },
+          "uniqueAtLeast": {
+            "readOnly": true,
+            "title": "Uniqueatleast",
+            "type": "boolean"
           }
         },
         "required": [
@@ -32233,7 +32270,8 @@
           "searchName",
           "geneCount",
           "uniqueCount",
-          "sampleUniqueGenes"
+          "sampleUniqueGenes",
+          "uniqueAtLeast"
         ],
         "title": "VariantResult",
         "type": "object"

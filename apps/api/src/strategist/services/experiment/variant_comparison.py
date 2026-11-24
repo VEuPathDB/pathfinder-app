@@ -14,11 +14,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Sequence
 from itertools import combinations
+from typing import Self
 
 import httpx
-from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.platform.pydantic_base import CamelModel, computed
 from assistant_core.platform.types import JSONObject
-from pydantic import Field, JsonValue
+from pydantic import Field, JsonValue, model_validator
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import (
     ParamValue,
@@ -84,7 +85,17 @@ class PairwiseOverlap(CamelModel):
     a: str
     b: str
     shared: int
-    jaccard: float
+    shared_at_least: bool = False
+    jaccard: float | None
+
+    @model_validator(mode="after")
+    def _a_partial_read_has_no_jaccard(self) -> Self:
+        if (self.jaccard is None) != self.shared_at_least:
+            msg = (
+                f"the overlap of {self.a!r} and {self.b!r} holds jaccard {self.jaccard}"
+            )
+            raise ValueError(msg)
+        return self
 
 
 class UniqueGene(CamelModel):
@@ -98,7 +109,8 @@ class VariantResult(CamelModel):
     label: str
     search_name: str
     gene_count: int
-    unique_count: int
+    read_to_cap: bool = False
+    unique_count: int | None
     sample_unique_genes: list[UniqueGene]
     error: str | None = None
     # The strategy's result with this variant in place of the one step that
@@ -107,13 +119,34 @@ class VariantResult(CamelModel):
     # The wire value of each parameter whose value differs between the variants.
     differs_by: dict[str, str] = Field(default_factory=dict)
 
+    @computed
+    def unique_at_least(self) -> bool:
+        return self.read_to_cap and self.unique_count is not None
+
 
 class VariantComparison(CamelModel):
     variants: list[VariantResult]
     overlaps: list[PairwiseOverlap]
-    truncated: bool = False
     # The root step each ``result_count`` counts; None when none was counted.
     result_step_id: str | None = None
+
+    @computed
+    def read_cap(self) -> int | None:
+        return READ_CAP if any(v.read_to_cap for v in self.variants) else None
+
+    @model_validator(mode="after")
+    def _no_unique_genes_beside_a_partial_read(self) -> Self:
+        for variant in self.variants:
+            beside = any(
+                other.read_to_cap for other in self.variants if other is not variant
+            )
+            if beside and (variant.unique_count, variant.sample_unique_genes) != (
+                None,
+                [],
+            ):
+                msg = f"{variant.label!r} names unique genes beside a partial read"
+                raise ValueError(msg)
+        return self
 
     def fact(self) -> ComparisonFact:
         """The counts of the variants that ran."""
@@ -296,6 +329,32 @@ def _differs_by(specs: list[VariantSpec]) -> list[dict[str, str]]:
     return [{name: wire[name] for name in differing if name in wire} for wire in wires]
 
 
+def _unique(
+    found: dict[str, str | None], others: set[str]
+) -> tuple[int, list[UniqueGene]]:
+    unique = sorted(set(found) - others)
+    return len(unique), [
+        UniqueGene(gene_id=gene_id, product=found[gene_id])
+        for gene_id in unique[:_SAMPLE_UNIQUE]
+    ]
+
+
+def _overlap(
+    a: tuple[str, set[str]], b: tuple[str, set[str]], partial: set[str]
+) -> PairwiseOverlap:
+    (label_a, set_a), (label_b, set_b) = a, b
+    shared = len(set_a & set_b)
+    union = len(set_a | set_b)
+    at_least = bool({label_a, label_b} & partial)
+    return PairwiseOverlap(
+        a=label_a,
+        b=label_b,
+        shared=shared,
+        shared_at_least=at_least,
+        jaccard=None if at_least else round(shared / union, 4) if union else 0.0,
+    )
+
+
 async def run_variant_comparison(
     site_id: str,
     specs: list[VariantSpec],
@@ -303,53 +362,44 @@ async def run_variant_comparison(
     """Run each variant's search and compare result gene sets.
 
     ``gene_count`` is the variant's full WDK result count; overlap and
-    ``unique_count`` are computed over the retrieved IDs (capped at
-    ``READ_CAP``). ``truncated`` flags when any variant exceeded the cap,
-    so overlap figures are lower bounds.
+    ``unique_count`` are computed over the retrieved IDs, read up to
+    ``READ_CAP``. A shared count with a variant read to the cap is a lower
+    bound with no Jaccard, and a unique count beside such a variant is not given.
     """
     sem = asyncio.Semaphore(_CONCURRENCY)
     runs = await asyncio.gather(*(_run_one(site_id, s, sem) for s in specs))
 
-    # Only successful variants participate in overlap; errored ones are
-    # reported with their message but contribute no gene set.
     id_sets = {spec.label: set(found) for spec, found, _, err in runs if err is None}
-    truncated = any(total > len(found) for _, found, total, err in runs if err is None)
+    partial = {
+        spec.label
+        for spec, found, total, err in runs
+        if err is None and total > len(found)
+    }
 
     variants: list[VariantResult] = []
     for (spec, found, total, err), differs in zip(
         runs, _differs_by(specs), strict=True
     ):
-        others: set[str] = set()
-        for label, other_ids in id_sets.items():
-            if label != spec.label:
-                others |= other_ids
-        unique = sorted(set(found) - others)
+        others = {
+            gene
+            for label, other_ids in id_sets.items()
+            if label != spec.label
+            for gene in other_ids
+        }
+        counted = not partial - {spec.label}
+        unique_count, sample = _unique(found, others) if counted else (None, [])
         variants.append(
             VariantResult(
                 label=spec.label,
                 search_name=spec.search_name,
                 gene_count=total,
-                unique_count=len(unique),
-                sample_unique_genes=[
-                    UniqueGene(gene_id=gene_id, product=found[gene_id])
-                    for gene_id in unique[:_SAMPLE_UNIQUE]
-                ],
+                read_to_cap=spec.label in partial,
+                unique_count=unique_count,
+                sample_unique_genes=sample,
                 error=err,
                 differs_by=differs,
             )
         )
 
-    overlaps: list[PairwiseOverlap] = []
-    for (label_a, set_a), (label_b, set_b) in combinations(id_sets.items(), 2):
-        shared = set_a & set_b
-        union = set_a | set_b
-        overlaps.append(
-            PairwiseOverlap(
-                a=label_a,
-                b=label_b,
-                shared=len(shared),
-                jaccard=round(len(shared) / len(union), 4) if union else 0.0,
-            )
-        )
-
-    return VariantComparison(variants=variants, overlaps=overlaps, truncated=truncated)
+    overlaps = [_overlap(a, b, partial) for a, b in combinations(id_sets.items(), 2)]
+    return VariantComparison(variants=variants, overlaps=overlaps)

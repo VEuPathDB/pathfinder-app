@@ -29,6 +29,8 @@ from strategist.jobs import turn_keys
 from strategist.jobs.impls import chat_turn_impl
 from strategist.jobs.impls.chat_turn_impl import run_chat_turn
 from strategist.jobs.payloads import ChatTurnPayload
+from strategist.platform.pinned_model import pinned_model
+from strategist.tests._support.models import OPENAI_FLAGSHIP
 
 HOLDING_APPLICATION = "companion"
 
@@ -91,12 +93,14 @@ class _ObservingRunTurn:
     def __init__(self) -> None:
         self.observed_token: str | object | None = _sentinel
         self.observed_application: str | None = None
+        self.observed_pin: str | None = None
         self.call_count = 0
 
     async def __call__(self, **kwargs: Any) -> None:
         del kwargs
         self.observed_token = veupathdb_auth_token_ctx.get()
         self.observed_application = application_id_ctx.get()
+        self.observed_pin = pinned_model()
         self.call_count += 1
 
 
@@ -164,6 +168,54 @@ async def test_run_chat_turn_sets_ctxvar_from_payload(
     assert observer.observed_token == "user-token-abc"
     assert observer.observed_application == HOLDING_APPLICATION
     assert application_id_ctx.get() == DEFAULT_APPLICATION_ID
+
+
+@pytest.mark.asyncio
+async def test_a_pinned_payload_runs_the_turn_on_its_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observer = _ObservingRunTurn()
+    monkeypatch.setattr(chat_turn_impl, "run_turn", observer)
+    monkeypatch.setattr(chat_turn_impl, "lifespan_checkpointer", _fake_checkpointer_ctx)
+    monkeypatch.setattr(chat_turn_impl, "lifespan_memory_store", _fake_memory_ctx)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
+    payload = ChatTurnPayload(
+        body=_body(),
+        user_id=uuid4(),
+        turn_id=uuid4(),
+        assistant_id="strategist",
+        pinned_model=OPENAI_FLAGSHIP,
+    )
+
+    await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
+
+    assert (observer.observed_pin, pinned_model()) == (OPENAI_FLAGSHIP, None)
+
+
+@pytest.mark.asyncio
+async def test_a_payload_that_names_no_pin_runs_the_turn_unpinned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observer = _ObservingRunTurn()
+    monkeypatch.setattr(chat_turn_impl, "run_turn", observer)
+    monkeypatch.setattr(chat_turn_impl, "lifespan_checkpointer", _fake_checkpointer_ctx)
+    monkeypatch.setattr(chat_turn_impl, "lifespan_memory_store", _fake_memory_ctx)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
+    queued = ChatTurnPayload(
+        body=_body(), user_id=uuid4(), turn_id=uuid4(), assistant_id="strategist"
+    ).model_dump(mode="json", by_alias=True)
+    del queued["pinned_model"]
+
+    await run_chat_turn(queued)
+
+    assert (
+        ChatTurnPayload.model_validate(queued).pinned_model,
+        observer.call_count,
+    ) == (
+        None,
+        1,
+    )
+    assert observer.observed_pin is None
 
 
 @pytest.mark.asyncio

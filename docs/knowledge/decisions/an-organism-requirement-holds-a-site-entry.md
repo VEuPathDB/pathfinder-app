@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An organism requirement holds a site entry
-description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared. The gate binds the entry the researcher's message states whole or the one the words name exactly; otherwise the requirement holds no entry and the card asks which entry the researcher means, over ranked entries a Decisions choice may lead but never binds. Settling a Decisions choice at a floor, binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
+description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared. The gate binds the entry the researcher's message states whole, the one the words name exactly, or the one entry that holds every stated word in order; otherwise the requirement holds no entry and the card asks which entry the researcher means, over ranked entries a Decisions choice may lead but never binds. Settling a Decisions choice at a floor, binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
 tags: [requirements, verification, frame, decisions, organisms]
 generated: { by: claude-code/opus-5.5, at: 2026-11-03T00:00:00Z }
 status: stable
@@ -22,7 +22,14 @@ requirement (`ai/lead/organism_reader.py::named_organisms`):
    never bind: an entry the message does not state goes to step 2.
 2. Else the entry the words name exactly, folded as every vocabulary text is
    (`veupathdb.domain.parameters.exact_entry`), binds.
-3. Else the requirement holds no value and the thread holds the pick
+3. Else the one entry that holds every one of the words in order, its first
+   word the words' first word (the genus, possibly an initial), binds when the
+   message states the words (`organism_phrases.py::entry_holding`): "Trypanosoma
+   brucei TREU927" names Trypanosoma brucei brucei TREU927. Words two entries
+   hold, such as "Trypanosoma brucei Lister 427", and words with no genus, such
+   as "3D7", go to step 4. An ortholog organism is read the same way, and words
+   no step names stay as written.
+4. Else the requirement holds no value and the thread holds the pick
    (`ThreadRequirements.organism_picks`, an `OrganismPick` with the offered
    entries): the five entries `rank_entries` ranks nearest the words, led by the
    entry one Decisions choice over the site's entries picks under the
@@ -102,6 +109,9 @@ entry, the card led by the choice's pick with nothing bound ("malaria", the pick
 Plasmodium falciparum 3D7 first), the ranked entries when the service does not
 answer ("P. falciparum" and "3D7" lead with Plasmodium falciparum 3D7, "malaria"
 with Plasmodium malariae UG01), the card's answer and the build hold.
+`tests/unit/domain/strategy/test_a_strain_missing_a_word_names_its_one_entry.py`
+holds the in-order rule on the recorded TriTrypDB, CryptoDB and PiroplasmaDB
+lists, and the words two entries hold left unbound.
 `tests/unit/ai/lead/test_a_picked_plan_names_the_organism.py` holds the plan's
 exact naming and a species left to the card.
 `tests/unit/domain/strategy/test_an_organism_completes_to_an_entry_the_message_states.py`,

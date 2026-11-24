@@ -38,7 +38,9 @@ from strategist.ai.tools.standalone.separation import SEPARATION
 from strategist.domain.strategy.session import StrategySession
 from strategist.jobs.app import DURABLE_TASK_QUEUE
 from strategist.jobs.impls import register_all_tools
-from strategist.jobs.job_context import WdkJobContext, WdkJobState
+from strategist.jobs.job_context import TurnJobContext, TurnJobState
+from strategist.platform.pinned_model import pin_model, pinned_model
+from strategist.tests._support.models import OPENAI_FLAGSHIP
 from strategist.tests._support.search_load import TEXT_REPORT, a_counted_site
 
 _TASK_ID = UUID("00000000-0000-0000-0000-000000000001")
@@ -91,7 +93,7 @@ def dispatch(monkeypatch: pytest.MonkeyPatch) -> Iterator[_App]:
     monkeypatch.setattr(decorator, "create_background_task", _create)
     monkeypatch.setattr(service, "task_app", lambda: app)
     monkeypatch.setattr(decorator, "get_stream_writer", lambda: lambda _p: None)
-    install_durable_job_context(WdkJobContext())
+    install_durable_job_context(TurnJobContext())
     try:
         yield app
     finally:
@@ -166,14 +168,17 @@ async def test_a_deferred_call_carries_the_wdk_token_under_the_job_context(
             "lock": dispatch.configured[0]["lock"],
         },
     ]
-    assert dispatch.deferred[0]["job_context"] == {"veupathdb_auth_token": _TOKEN}
+    assert dispatch.deferred[0]["job_context"] == {
+        "veupathdb_auth_token": _TOKEN,
+        "pinned_model": None,
+    }
 
 
 def test_the_carried_token_masks_itself_and_reads_back_at_the_point_of_use() -> None:
     """A repr of the state never prints the credential the worker restores."""
     reset = veupathdb_auth_token_ctx.set(_TOKEN)
     try:
-        state = WdkJobContext().capture()
+        state = TurnJobContext().capture()
     finally:
         veupathdb_auth_token_ctx.reset(reset)
 
@@ -184,25 +189,39 @@ def test_the_carried_token_masks_itself_and_reads_back_at_the_point_of_use() -> 
         task_id=_TASK_ID,
         thread_id=_TASK_ID,
         job_context=state,
-    ).model_dump(mode="json")["job_context"] == {"veupathdb_auth_token": _TOKEN}
+    ).model_dump(mode="json")["job_context"] == {
+        "veupathdb_auth_token": _TOKEN,
+        "pinned_model": None,
+    }
 
 
 async def test_restoring_the_state_installs_the_token_for_the_body() -> None:
     """The body reads the caller's token, not the guest's."""
-    state = WdkJobState.model_validate({"veupathdb_auth_token": _TOKEN})
+    state = TurnJobState.model_validate({"veupathdb_auth_token": _TOKEN})
 
-    async with WdkJobContext().restore(state):
+    async with TurnJobContext().restore(state):
         assert veupathdb_auth_token_ctx.get() == _TOKEN
 
     assert veupathdb_auth_token_ctx.get() is None
 
 
+async def test_a_durable_call_carries_the_pinned_model_to_its_worker() -> None:
+    with pin_model(OPENAI_FLAGSHIP):
+        state = TurnJobContext().capture()
+    carried = TurnJobState.model_validate(state.model_dump(mode="json"))
+
+    async with TurnJobContext().restore(carried):
+        assert pinned_model() == OPENAI_FLAGSHIP
+
+    assert (state.pinned_model, pinned_model()) == (OPENAI_FLAGSHIP, None)
+
+
 async def test_a_durable_body_sends_one_search_per_site_at_a_time() -> None:
     """A durable body is a turn of its own for the search line."""
-    state = WdkJobState.model_validate({"veupathdb_auth_token": None})
+    state = TurnJobState.model_validate({"veupathdb_auth_token": None})
 
     with a_counted_site() as (client, load):
-        async with WdkJobContext().restore(state):
+        async with TurnJobContext().restore(state):
             await asyncio.gather(
                 client.post(TEXT_REPORT, json={}), client.post(TEXT_REPORT, json={})
             )

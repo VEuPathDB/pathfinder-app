@@ -102,7 +102,8 @@ async def test_compares_sizes_overlap_and_unique_genes(
     ov = result.overlaps[0]
     assert ov.shared == 2  # g3, g4 shared
     assert ov.jaccard == round(2 / 5, 4)  # 2 shared of 5 total
-    assert result.truncated is False
+    assert (ov.shared_at_least, result.read_cap) == (False, None)
+    assert [v.unique_at_least for v in result.variants] == [False, False]
 
 
 @pytest.mark.asyncio
@@ -242,7 +243,7 @@ async def test_a_transcript_search_reports_one_row_per_gene_under_the_cap(
     assert site.bodies[0]["viewFilters"] == [
         {"name": "representativeTranscriptOnly", "value": {}, "disabled": False}
     ]
-    assert result.truncated is False
+    assert result.read_cap is None
     assert result.variants[0].gene_count == _GENES
 
 

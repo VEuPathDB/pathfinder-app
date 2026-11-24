@@ -23,7 +23,10 @@ from strategist.domain.strategy.constraints import (
     OrganismValue,
     OrthologValue,
 )
-from strategist.domain.strategy.organism_phrases import completed_entry
+from strategist.domain.strategy.organism_phrases import (
+    completed_entry,
+    entry_holding,
+)
 from strategist.domain.strategy.organism_picks import OrganismPick
 
 ORGANISM_PARAMETER = "organism"
@@ -36,11 +39,11 @@ class NamedOrganisms:
 
 
 def _orthologs_named(
-    c: Constraint, message: str, vocabulary: Sequence[str]
+    c: Constraint, message: str, vocabulary: Sequence[str], options: list[VocabOption]
 ) -> Constraint:
     match c.value:
         case OrthologValue(organisms=organisms) as asked:
-            entries = [completed_entry(o, message, vocabulary) or o for o in organisms]
+            entries = [_entry(o, message, vocabulary, options) or o for o in organisms]
             named = asked.model_copy(update={"organisms": entries})
             return c.model_copy(update={"value": named})
         case _:
@@ -57,8 +60,10 @@ def _entry(
     words: str, message: str, vocabulary: Sequence[str], options: list[VocabOption]
 ) -> str | None:
     exact = exact_entry(options, words)
-    return completed_entry(words, message, vocabulary) or (
-        None if exact is None else exact.value
+    return (
+        completed_entry(words, message, vocabulary)
+        or (None if exact is None else exact.value)
+        or entry_holding(words, message, vocabulary)
     )
 
 
@@ -94,7 +99,7 @@ async def named_organisms(
     asked: list[tuple[Constraint, Resolution]] = []
     for c in constraints:
         if c.kind is ConstraintKind.ORTHOLOG:
-            named.append(_orthologs_named(c, message, vocabulary))
+            named.append(_orthologs_named(c, message, vocabulary, options))
             continue
         words = c.organism
         if c.kind is not ConstraintKind.ORGANISM or words is None or not vocabulary:
