@@ -1,17 +1,21 @@
 import { request } from "@playwright/test";
 
-/**
- * The registered VEuPathDB token every worker acts with. VEuPathDB refuses
- * guest service calls, so a run without it cannot reach any WDK-backed route.
- * The value is never logged.
- */
+import { heldTestToken } from "./wire";
+
 export function wdkTestToken(): string {
+  const token = heldTestToken();
+  if (token === "") {
+    throw new Error("No test holds a VEuPathDB token; read it inside a test.");
+  }
+  return token;
+}
+
+export function accountToken(): string {
   const token = process.env["WDK_TEST_TOKEN"] ?? "";
   if (token === "") {
     throw new Error(
-      "WDK_TEST_TOKEN is not set. VEuPathDB refuses guest service calls, so the " +
-        "e2e suite must run as a registered VEuPathDB account. Export the token " +
-        "in the shell that starts Playwright.",
+      "WDK_TEST_TOKEN is not set. A record run acts as the registered VEuPathDB " +
+        "account: export WDK_TEST_TOKEN, or WDK_TEST_EMAIL and WDK_TEST_PASSWORD.",
     );
   }
   return token;

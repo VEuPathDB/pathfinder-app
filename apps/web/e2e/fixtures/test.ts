@@ -5,22 +5,23 @@ import {
   continuePastDataNotice,
   createApiClient,
 } from "./api-client";
-import { WHOLE_ACCOUNT_TAG, holdAlone, holdShared } from "./account-lock";
 import { OwnedData } from "./owned-data";
 import { ChatPage } from "../pages/chat.page";
 import { SidebarPage } from "../pages/sidebar.page";
 import { GraphPage } from "../pages/graph.page";
 import { frameOnSite } from "../pages/navigation";
 import { SettingsPage } from "../pages/settings.page";
-import { wdkTestToken } from "./wdk-account";
+import { accountToken, wdkTestToken } from "./wdk-account";
+import { beginTest, endTest, holdTestToken, testToken, wireMode } from "./wire";
+import { cassetteId } from "./wire-recordings";
 import { BASE_PATH } from "@/lib/basePath";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
 /** Test-scoped fixtures (fresh per test). */
 type TestFixtures = {
+  _wire: string;
   _owned: OwnedData;
-  _accountHold: void;
   _deleteOwned: void;
   chatPage: ChatPage;
   sidebarPage: SidebarPage;
@@ -62,11 +63,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   siteId: [DEFAULT_SITE, { option: true, scope: "worker" }],
 
-  /**
-   * Each worker carries the registered VEuPathDB token in the `Authorization`
-   * cookie, which names the account's own Strategist user ahead of the dev login.
-   * So every worker acts as one user, and a test deletes only what it created.
-   */
   workerStorageState: [
     async ({ browser }, use, workerInfo) => {
       const id = workerInfo.workerIndex;
@@ -75,25 +71,13 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
       fs.mkdirSync(dir, { recursive: true });
 
-      // No page loads the app here: its own auth refresh would race the dev
-      // login for the session cookie the storage state saves.
       const context = await browser.newContext();
-      await addWebsiteLogin(context);
-
       const resp = await context.request.post(
         `${BASE_URL}/api/v1/dev/login?user_id=worker-${id}`,
         { headers: CSRF_HEADERS },
       );
       if (!resp.ok()) {
         throw new Error(`dev-login failed for worker-${id}: ${resp.status()}`);
-      }
-
-      // Continue past the data notice once per worker, the way a researcher
-      // does, so it is not over the app in every later spec.
-      const req = context.request;
-      const noticeResp = await continuePastDataNotice(req, BASE_URL);
-      if (!noticeResp.ok()) {
-        throw new Error(`data notice failed for worker-${id}: ${noticeResp.status()}`);
       }
 
       await context.storageState({ path: fileName });
@@ -110,33 +94,53 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
    */
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
+  _wire: [
+    async ({}, use, testInfo) => {
+      const file = path.relative(testInfo.project.testDir, testInfo.file);
+      const cassette = cassetteId(
+        testInfo.project.name,
+        file,
+        testInfo.titlePath.slice(1),
+      );
+      await beginTest(cassette);
+      holdTestToken(wireMode() === "replay" ? testToken(cassette) : accountToken());
+      try {
+        await use(cassette);
+      } finally {
+        holdTestToken("");
+      }
+      const report = await endTest(
+        cassette,
+        testInfo.status === testInfo.expectedStatus,
+      );
+      if (report !== "") {
+        throw new Error(
+          `${report}\n  The app sends something new: record this test on cedar:\n` +
+            `  scripts/e2e-wire.sh record --test '${file}:${testInfo.line}'`,
+        );
+      }
+    },
+    { auto: true, timeout: 60_000 },
+  ],
+
   _owned: async ({}, use) => {
     await use(new OwnedData());
   },
 
-  context: async ({ context, _owned }, use) => {
+  context: async ({ context, _owned, _wire }, use) => {
+    await addWebsiteLogin(context);
+    const notice = await continuePastDataNotice(context.request, BASE_URL);
+    if (!notice.ok()) {
+      throw new Error(`data notice for ${_wire}: ${notice.status()}`);
+    }
     _owned.watchPages(context);
     Object.defineProperty(context, "request", { value: _owned.track(context.request) });
     await use(context);
   },
 
-  _accountHold: [
-    async ({}, use, testInfo) => {
-      const release = testInfo.tags.includes(WHOLE_ACCOUNT_TAG)
-        ? await holdAlone()
-        : await holdShared();
-      try {
-        await use(undefined);
-      } finally {
-        await release();
-      }
-    },
-    { auto: true, timeout: 600_000 },
-  ],
-
   _deleteOwned: [
-    async ({ context, _owned, _accountHold }, use) => {
-      await use(_accountHold);
+    async ({ context, _owned, _wire }, use) => {
+      await use(undefined);
       await _owned.deleteAll(context.request, BASE_URL);
     },
     { auto: true, timeout: 240_000 },

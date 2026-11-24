@@ -12,7 +12,6 @@ import { BASE_PATH } from "@/lib/basePath";
 
 import { openNotes } from "../fixtures/rail";
 import { test, expect, APP_ROOT, BASE_URL, addWebsiteLogin } from "../fixtures/test";
-import { WHOLE_ACCOUNT_TAG } from "../fixtures/account-lock";
 import { prompt } from "../fixtures/arcs";
 import {
   type ApiClient,
@@ -180,7 +179,7 @@ async function secondUser(browser: Browser, userId: string): Promise<BrowserCont
   return context;
 }
 
-test.describe("Memory and notes", { tag: ["@turn", WHOLE_ACCOUNT_TAG] }, () => {
+test.describe("Memory and notes", { tag: "@turn" }, () => {
   test("M1 - Like an answer", async ({
     chatPage,
     settingsPage,

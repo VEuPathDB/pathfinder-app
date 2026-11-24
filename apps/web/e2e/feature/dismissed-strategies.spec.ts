@@ -1,5 +1,4 @@
 import { test, expect } from "../fixtures/test";
-import { WHOLE_ACCOUNT_TAG } from "../fixtures/account-lock";
 import type { Page } from "@playwright/test";
 import type { ChatPage } from "../pages/chat.page";
 import type { SidebarPage } from "../pages/sidebar.page";
@@ -71,161 +70,157 @@ function waitForRestore(page: Page, strategyId: string) {
   );
 }
 
-test.describe(
-  "Recently deleted conversations: complex flows",
-  { tag: WHOLE_ACCOUNT_TAG },
-  () => {
-    test.describe.configure({ mode: "serial" });
+test.describe("Recently deleted conversations: complex flows", () => {
+  test.describe.configure({ mode: "serial" });
 
-    test.beforeEach(async ({ chatPage, apiClient }) => {
-      // Purge prior conversations (incl. dismissed) so dismissed-count
-      // assertions aren't polluted by earlier tests in this serial suite.
-      await apiClient.delete("api/v1/user/data?deleteWdk=true");
-      await chatPage.goto();
-      await chatPage.newChat();
+  test.beforeEach(async ({ chatPage, apiClient }) => {
+    // Purge prior conversations (incl. dismissed) so dismissed-count
+    // assertions aren't polluted by earlier tests in this serial suite.
+    await apiClient.delete("api/v1/user/data?deleteWdk=true");
+    await chatPage.goto();
+    await chatPage.newChat();
+  });
+
+  test("delete -> restore -> delete -> restore round-trip", async ({
+    chatPage,
+    sidebarPage,
+    apiClient,
+    page,
+  }) => {
+    const strategyId = await makeWdkLinked(page, chatPage, sidebarPage, apiClient);
+
+    // First dismiss (UI state is the source of truth; a response-wait
+    // race on the second cycle made this flaky.)
+    await sidebarPage.delete(strategyId);
+    await expect(sidebarPage.item(strategyId)).not.toBeVisible({
+      timeout: 15_000,
     });
+    await sidebarPage.expectDismissedCount(1);
 
-    test("delete -> restore -> delete -> restore round-trip", async ({
+    // First restore
+    await sidebarPage.expandDismissed();
+    await sidebarPage.restoreDismissed(strategyId);
+    await expect(sidebarPage.item(strategyId)).toBeVisible({
+      timeout: 15_000,
+    });
+    await sidebarPage.expectNoDismissedSection();
+
+    // Second dismiss
+    await sidebarPage.delete(strategyId);
+    await expect(sidebarPage.item(strategyId)).not.toBeVisible({
+      timeout: 15_000,
+    });
+    await sidebarPage.expectDismissedCount(1);
+
+    // Second restore
+    await sidebarPage.expandDismissed();
+    await sidebarPage.restoreDismissed(strategyId);
+    await expect(sidebarPage.item(strategyId)).toBeVisible({
+      timeout: 15_000,
+    });
+    await sidebarPage.expectNoDismissedSection();
+
+    // API confirms fully active.
+    const resp = await apiClient.get(`api/v1/conversations/${strategyId}`);
+    expect(resp.ok()).toBeTruthy();
+  });
+
+  test("multiple dismissed strategies - restore one at a time", async ({
+    chatPage,
+    sidebarPage,
+    apiClient,
+    page,
+  }) => {
+    // Create first WDK strategy.
+    const id1 = await makeWdkLinked(
+      page,
       chatPage,
       sidebarPage,
       apiClient,
+      "find kinase genes",
+    );
+
+    // Create second WDK strategy (new chat first so sidebar has 2 items).
+    await startNewChat(page, sidebarPage);
+    const id2 = await makeWdkLinked(
       page,
-    }) => {
-      const strategyId = await makeWdkLinked(page, chatPage, sidebarPage, apiClient);
-
-      // First dismiss (UI state is the source of truth; a response-wait
-      // race on the second cycle made this flaky.)
-      await sidebarPage.delete(strategyId);
-      await expect(sidebarPage.item(strategyId)).not.toBeVisible({
-        timeout: 15_000,
-      });
-      await sidebarPage.expectDismissedCount(1);
-
-      // First restore
-      await sidebarPage.expandDismissed();
-      await sidebarPage.restoreDismissed(strategyId);
-      await expect(sidebarPage.item(strategyId)).toBeVisible({
-        timeout: 15_000,
-      });
-      await sidebarPage.expectNoDismissedSection();
-
-      // Second dismiss
-      await sidebarPage.delete(strategyId);
-      await expect(sidebarPage.item(strategyId)).not.toBeVisible({
-        timeout: 15_000,
-      });
-      await sidebarPage.expectDismissedCount(1);
-
-      // Second restore
-      await sidebarPage.expandDismissed();
-      await sidebarPage.restoreDismissed(strategyId);
-      await expect(sidebarPage.item(strategyId)).toBeVisible({
-        timeout: 15_000,
-      });
-      await sidebarPage.expectNoDismissedSection();
-
-      // API confirms fully active.
-      const resp = await apiClient.get(`api/v1/conversations/${strategyId}`);
-      expect(resp.ok()).toBeTruthy();
-    });
-
-    test("multiple dismissed strategies - restore one at a time", async ({
       chatPage,
       sidebarPage,
       apiClient,
+      "find transporter genes",
+    );
+
+    // Dismiss both. (UI state is the source of truth; response-waits raced.)
+    await sidebarPage.delete(id2);
+    await expect(sidebarPage.item(id2)).not.toBeVisible({ timeout: 15_000 });
+    await sidebarPage.expectDismissedCount(1);
+
+    // Wait for id1 to be visible after sidebar refetch before deleting it.
+    await expect(sidebarPage.item(id1)).toBeVisible({ timeout: 10_000 });
+
+    await sidebarPage.delete(id1);
+    await expect(sidebarPage.item(id1)).not.toBeVisible({ timeout: 15_000 });
+    await sidebarPage.expectDismissedCount(2);
+
+    // Expand dismissed - both visible.
+    await sidebarPage.expandDismissed();
+    await sidebarPage.expectDismissedItemVisible(id1);
+    await sidebarPage.expectDismissedItemVisible(id2);
+
+    // Restore one - count drops to 1.
+    await sidebarPage.restoreDismissed(id1);
+    await expect(sidebarPage.item(id1)).toBeVisible({ timeout: 15_000 });
+    await sidebarPage.expectDismissedCount(1);
+
+    // Restore the other - dismissed section disappears.
+    await sidebarPage.restoreDismissed(id2);
+    await expect(sidebarPage.item(id2)).toBeVisible({ timeout: 15_000 });
+    await sidebarPage.expectNoDismissedSection();
+  });
+
+  test("restored strategy is fully functional - can receive messages", async ({
+    chatPage,
+    sidebarPage,
+    apiClient,
+    page,
+  }) => {
+    const strategyId = await makeWdkLinked(
       page,
-    }) => {
-      // Create first WDK strategy.
-      const id1 = await makeWdkLinked(
-        page,
-        chatPage,
-        sidebarPage,
-        apiClient,
-        "find kinase genes",
-      );
-
-      // Create second WDK strategy (new chat first so sidebar has 2 items).
-      await startNewChat(page, sidebarPage);
-      const id2 = await makeWdkLinked(
-        page,
-        chatPage,
-        sidebarPage,
-        apiClient,
-        "find transporter genes",
-      );
-
-      // Dismiss both. (UI state is the source of truth; response-waits raced.)
-      await sidebarPage.delete(id2);
-      await expect(sidebarPage.item(id2)).not.toBeVisible({ timeout: 15_000 });
-      await sidebarPage.expectDismissedCount(1);
-
-      // Wait for id1 to be visible after sidebar refetch before deleting it.
-      await expect(sidebarPage.item(id1)).toBeVisible({ timeout: 10_000 });
-
-      await sidebarPage.delete(id1);
-      await expect(sidebarPage.item(id1)).not.toBeVisible({ timeout: 15_000 });
-      await sidebarPage.expectDismissedCount(2);
-
-      // Expand dismissed - both visible.
-      await sidebarPage.expandDismissed();
-      await sidebarPage.expectDismissedItemVisible(id1);
-      await sidebarPage.expectDismissedItemVisible(id2);
-
-      // Restore one - count drops to 1.
-      await sidebarPage.restoreDismissed(id1);
-      await expect(sidebarPage.item(id1)).toBeVisible({ timeout: 15_000 });
-      await sidebarPage.expectDismissedCount(1);
-
-      // Restore the other - dismissed section disappears.
-      await sidebarPage.restoreDismissed(id2);
-      await expect(sidebarPage.item(id2)).toBeVisible({ timeout: 15_000 });
-      await sidebarPage.expectNoDismissedSection();
-    });
-
-    test("restored strategy is fully functional - can receive messages", async ({
       chatPage,
       sidebarPage,
       apiClient,
-      page,
-    }) => {
-      const strategyId = await makeWdkLinked(
-        page,
-        chatPage,
-        sidebarPage,
-        apiClient,
-        "find membrane protein genes",
-      );
+      "find membrane protein genes",
+    );
 
-      // Dismiss it.
-      const dismissCompleted = waitForDismiss(page, strategyId);
-      await sidebarPage.delete(strategyId);
-      await dismissCompleted;
+    // Dismiss it.
+    const dismissCompleted = waitForDismiss(page, strategyId);
+    await sidebarPage.delete(strategyId);
+    await dismissCompleted;
 
-      await expect(sidebarPage.item(strategyId)).not.toBeVisible({
-        timeout: 10_000,
-      });
-      await sidebarPage.expectDismissedCount(1);
-
-      // Restore it.
-      await sidebarPage.expandDismissed();
-      const restoreCompleted = waitForRestore(page, strategyId);
-      await sidebarPage.restoreDismissed(strategyId);
-      await restoreCompleted;
-
-      await expect(sidebarPage.item(strategyId)).toBeVisible({
-        timeout: 15_000,
-      });
-
-      // Select the restored strategy.
-      await sidebarPage.selectConversation(strategyId);
-
-      // Send a new message to verify the conversation is fully functional.
-      await chatPage.send("find ribosomal genes");
-      await chatPage.expectAssistantMessage(/ribosomal genes/);
-
-      // API confirms strategy still exists and is accessible.
-      const resp = await apiClient.get(`api/v1/conversations/${strategyId}`);
-      expect(resp.ok()).toBeTruthy();
+    await expect(sidebarPage.item(strategyId)).not.toBeVisible({
+      timeout: 10_000,
     });
-  },
-);
+    await sidebarPage.expectDismissedCount(1);
+
+    // Restore it.
+    await sidebarPage.expandDismissed();
+    const restoreCompleted = waitForRestore(page, strategyId);
+    await sidebarPage.restoreDismissed(strategyId);
+    await restoreCompleted;
+
+    await expect(sidebarPage.item(strategyId)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Select the restored strategy.
+    await sidebarPage.selectConversation(strategyId);
+
+    // Send a new message to verify the conversation is fully functional.
+    await chatPage.send("find ribosomal genes");
+    await chatPage.expectAssistantMessage(/ribosomal genes/);
+
+    // API confirms strategy still exists and is accessible.
+    const resp = await apiClient.get(`api/v1/conversations/${strategyId}`);
+    expect(resp.ok()).toBeTruthy();
+  });
+});
