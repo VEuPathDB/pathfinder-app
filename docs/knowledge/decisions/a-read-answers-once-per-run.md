@@ -19,7 +19,7 @@ run changes: `RECORD_READS` for the Lead, Explore and the passes that write, and
 `CHECK_READS` for a check, which writes no step. A read taken while a write of the same batch
 ran is held under the count it started with, so it runs again after that write. The same read again fails as a refused call: it runs nothing,
 spends no retry, and is not counted in the run's `tool_calls_limit` (pydantic-ai counts a
-call only when it succeeds). When the processed history still holds the first answer whole,
+call only when it succeeds). When the history the next request shows (the elision and the compaction run over the history that holds this response's calls) still holds the first answer whole,
 the refusal names that call; when the runtime's elision digested it
 (`assistant_core.conversation.history.is_elided`) or compaction folded it, the refusal
 carries the answer again, so a model whose context lost the data is never starved. The

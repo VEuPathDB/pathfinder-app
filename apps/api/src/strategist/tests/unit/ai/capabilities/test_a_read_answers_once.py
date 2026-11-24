@@ -263,3 +263,15 @@ def test_every_agent_of_a_turn_carries_the_holds() -> None:
         _lasting(build_execution_agent()),
         _lasting(build_verification_agent()),
     ] == [[RECORD_READS], [RECORD_READS], [RECORD_READS], [RECORD_READS], [CHECK_READS]]
+
+
+@pytest.mark.asyncio
+async def test_an_answer_the_next_request_elides_is_carried_again() -> None:
+    names = [f"GenesBySearch{i}" for i in range(10)]
+    _, parts = await _run(_overviews(*names, names[0]), elided=True)
+
+    assert parts[-1].content.endswith(
+        'That answer is no longer shown above; it is: "GenesBySearch0: '
+        + "parameter " * 60
+        + '"'
+    )

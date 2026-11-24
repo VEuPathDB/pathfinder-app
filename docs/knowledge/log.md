@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **A held repeat judges elision by the next request.** `ReadOnce` runs the elision and the
+  compaction over the history that holds the current response's calls, which is what the next
+  request shows, so a repeat whose first answer that request digests carries the answer again
+  instead of pointing at a digest.
+
 * **A held read is released by any write of the turn.** The repeat rule moved from a toolset
   wrapper to `ReadOnce`, a capability of every agent of the turn, which sees calls of every
   toolset. A call outside the reads, by any agent, counts one write on `TurnMarkers.writes`,

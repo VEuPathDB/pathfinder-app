@@ -8,7 +8,11 @@ from dataclasses import dataclass, field, replace
 from typing import Any, Protocol, Self
 
 from assistant_core.capabilities.refused_calls import CallRefused
-from assistant_core.conversation.history import is_elided
+from assistant_core.conversation.history import (
+    compact_history,
+    elide_consumed,
+    is_elided,
+)
 from assistant_core.graph.tool_summary import summary_chunks
 from pydantic_ai import RunContext
 from pydantic_ai.capabilities.abstract import AbstractCapability, WrapToolExecuteHandler
@@ -57,7 +61,15 @@ class _Answer:
         return json.dumps(to_jsonable_python(shown, fallback=str))
 
 
-def _shown(messages: Sequence[ModelMessage], call_id: str) -> bool:
+def _shown(history: Sequence[ModelMessage], call_id: str) -> bool:
+    """Whether the next request shows the answer of ``call_id`` whole.
+
+    The history processors run again before that request, over a history that
+    holds this response's calls too, so they decide what it shows.
+    """
+    messages = list(history)
+    for process in (elide_consumed, compact_history):
+        messages = process(messages)
     return any(
         type(part) is ToolReturnPart
         and part.tool_call_id == call_id
