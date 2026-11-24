@@ -51,7 +51,7 @@ def _card(*options: ConsultOption) -> CardQuestion:
     )
 
 
-async def _ask(card: CardQuestion) -> None:
+async def _ask(card: CardQuestion) -> dict[str, dict[str, list[str]]]:
     state = pipeline_state(
         "veupathdb",
         user_prompt="Carry these to their syntenic orthologs in Toxoplasma gondii ME49.",
@@ -60,6 +60,7 @@ async def _ask(card: CardQuestion) -> None:
     await consult_can_ask(
         run_context_for(lead_deps(state), "call_card"), [card], reply="One question."
     )
+    return state.turn_markers.card_stand_ins
 
 
 async def test_the_recorded_card_that_recommends_widening_is_refused() -> None:
@@ -103,10 +104,14 @@ async def test_a_recommended_drop_is_refused_on_any_question() -> None:
 
 
 async def test_the_drop_offered_unrecommended_is_asked() -> None:
-    await _ask(_card(ConsultOption(label=_DROP), ConsultOption(label=_KEEP)))
+    asked = await _ask(_card(ConsultOption(label=_DROP), ConsultOption(label=_KEEP)))
+
+    assert asked == {"call_card": {}}
 
 
 async def test_the_keep_may_be_recommended() -> None:
-    await _ask(
+    asked = await _ask(
         _card(ConsultOption(label=_DROP), ConsultOption(label=_KEEP, recommended=True))
     )
+
+    assert asked == {"call_card": {}}

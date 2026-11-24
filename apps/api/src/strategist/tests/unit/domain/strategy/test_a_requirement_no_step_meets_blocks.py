@@ -120,7 +120,7 @@ def test_a_stated_requirement_no_step_meets_is_named_plainly() -> None:
 def test_a_requirement_the_researcher_dropped_does_not_block() -> None:
     held = [_ORGANISM, _SIGNAL]
 
-    assert requirements_no_step_meets(held, _recorded_x5()).empty
+    assert requirements_no_step_meets(held, _recorded_x5()).found == ()
 
 
 def test_it_blocks_the_answer() -> None:
