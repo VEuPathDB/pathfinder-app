@@ -66,6 +66,16 @@ def test_every_conversation_field_is_shown_or_cleared() -> None:
     assert not CONVERSATION_SHOWN & set(CONVERSATION_CLEARED)
 
 
+def test_the_viewer_reads_why_the_strategy_could_not_be_read() -> None:
+    unreadable = DETAIL.model_copy(
+        update={"steps": [], "strategy_unreadable": "root: one step twice"}
+    )
+
+    shown, _ = viewer_strategy(unreadable, token="tok-1", include_account_reads=False)
+
+    assert shown.strategy_unreadable == "root: one step twice"
+
+
 def test_every_step_field_is_shown_cleared_or_filtered() -> None:
     classes = (STEP_SHOWN, frozenset(STEP_CLEARED), STEP_FILTERED)
 
