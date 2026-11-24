@@ -1,22 +1,19 @@
 "use client";
 
-import type { Strategy } from "@strategist/shared";
-import { useQuery } from "@tanstack/react-query";
 import { runningPhase } from "@veupathdb/assistant-client";
 import { ListChecks } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { useEntrance, usePrefersReducedMotion } from "@/lib/motion";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
-import { useConversationExists } from "@/state/useConversationExists";
 
-import { isActiveTask, tasksListOptions } from "../../api/tasks";
 import {
   cardIsSuperseded,
   latestEvidenceCard,
 } from "../../content/evidence/evidenceCards";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { RailEmptyState, RailPanelShell } from "../RailPanelShell";
+import type { RailSource } from "../railSource";
 import { BuildProblems } from "./BuildProblems";
 import { CaveatList } from "./CaveatList";
 import { ChoiceList } from "./ChoiceList";
@@ -30,17 +27,9 @@ import { reviewModel } from "./reviewModel";
 import { SpotCheck } from "./SpotCheck";
 import { WorkingNow } from "./WorkingNow";
 
-interface ReviewPanelProps {
-  conversationId: string;
-  strategy: Strategy | null;
-}
-
-export function ReviewPanel({ conversationId, strategy }: ReviewPanelProps) {
+export function ReviewPanel({ source }: { source: RailSource }) {
+  const { strategy, activeTasks: tasks, owner } = source;
   const messages = useChatHelpers().messages;
-  const exists = useConversationExists(conversationId);
-  const tasks = (
-    useQuery({ ...tasksListOptions(conversationId), enabled: exists }).data?.tasks ?? []
-  ).filter((t) => isActiveTask(t.status));
   const reduced = usePrefersReducedMotion();
   const slide = useEntrance({
     initial: { height: 0, opacity: 0 },
@@ -104,12 +93,12 @@ export function ReviewPanel({ conversationId, strategy }: ReviewPanelProps) {
             </ReviewSection>
             <BuildProblems problems={model.buildProblems} />
             <SpotCheck check={model.spotCheck} />
-            <ChoiceList choices={model.choices} />
+            <ChoiceList choices={model.choices} changeable={owner !== null} />
             <CaveatList caveats={model.caveats} />
           </>
         )}
-        <NotesFold conversationId={conversationId} />
-        <MemoryFold messages={messages} />
+        {owner !== null && <NotesFold conversationId={owner.conversationId} />}
+        <MemoryFold messages={messages} manageable={owner !== null} />
       </motion.div>
     </RailPanelShell>
   );

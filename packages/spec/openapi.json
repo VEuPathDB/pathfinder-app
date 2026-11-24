@@ -6604,6 +6604,73 @@
         }
       }
     },
+    "/api/v1/shared/{token}/context": {
+      "get": {
+        "tags": [
+          "shared"
+        ],
+        "summary": "The strategy and study of a shared conversation, without the owner's private inputs.",
+        "operationId": "get_shared_context_api_v1_shared__token__context_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          },
+          {
+            "name": "X-Share-Password",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "X-Share-Password"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedContext"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/shared/{token}/copy": {
       "post": {
         "tags": [
@@ -8739,6 +8806,10 @@
           "includeAccountReads": {
             "type": "boolean",
             "title": "Includeaccountreads"
+          },
+          "includeContext": {
+            "type": "boolean",
+            "title": "Includecontext"
           }
         },
         "type": "object",
@@ -8746,7 +8817,8 @@
           "token",
           "public",
           "allowCopy",
-          "includeAccountReads"
+          "includeAccountReads",
+          "includeContext"
         ],
         "title": "ConversationShareView"
       },
@@ -18510,6 +18582,11 @@
             "type": "boolean",
             "title": "Includeaccountreads",
             "default": false
+          },
+          "includeContext": {
+            "type": "boolean",
+            "title": "Includecontext",
+            "default": true
           }
         },
         "type": "object",
@@ -18538,6 +18615,40 @@
         ],
         "title": "ShareState"
       },
+      "SharedContext": {
+        "properties": {
+          "strategy": {
+            "$ref": "#/components/schemas/ConversationResponse"
+          },
+          "study": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EdaAnalysisState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "privateInputs": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Privateinputs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "strategy",
+          "study",
+          "privateInputs"
+        ],
+        "title": "SharedContext"
+      },
       "SharedConversation": {
         "properties": {
           "name": {
@@ -18556,6 +18667,14 @@
             "type": "boolean",
             "title": "Allowcopy"
           },
+          "includeContext": {
+            "type": "boolean",
+            "title": "Includecontext"
+          },
+          "strategyRevision": {
+            "type": "string",
+            "title": "Strategyrevision"
+          },
           "cursor": {
             "type": "integer",
             "title": "Cursor"
@@ -18571,6 +18690,8 @@
           "siteId",
           "assistantId",
           "allowCopy",
+          "includeContext",
+          "strategyRevision",
           "cursor",
           "turnInFlight"
         ],
@@ -22931,6 +23052,7 @@
           "SHARE_LOCKED",
           "SHARE_COPY_NOT_ALLOWED",
           "SHARE_IS_PUBLIC",
+          "SHARE_CONTEXT_NOT_SHARED",
           "EDA_NO_OPEN_ANALYSIS",
           "EDA_COMPUTE_NOT_RUN",
           "SPECIALIST_PRECONDITION_FAILED",

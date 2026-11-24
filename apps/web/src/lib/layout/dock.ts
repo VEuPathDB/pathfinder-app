@@ -8,6 +8,7 @@ export type Side = "left" | "right";
 
 export interface DockInput {
   viewport: number;
+  leftDrawn: boolean;
   leftOpen: boolean;
   leftWidth: number;
   rightOpen: boolean;
@@ -23,14 +24,15 @@ export interface DockLayout {
 function chatWidth(input: DockInput, left: boolean, right: boolean): number {
   return (
     input.viewport -
-    NAV_RAIL_WIDTH_PX -
+    (input.leftDrawn ? NAV_RAIL_WIDTH_PX : 0) -
     (left ? input.leftWidth + SIDEBAR_SEPARATOR_PX : 0) -
     (right ? input.rightWidth : 0)
   );
 }
 
 export function dockLayout(input: DockInput): DockLayout {
-  const { leftOpen, rightOpen } = input;
+  const leftOpen = input.leftDrawn && input.leftOpen;
+  const { rightOpen } = input;
   if (chatWidth(input, leftOpen, rightOpen) >= MIN_CHAT_WIDTH_PX) {
     return { leftFloats: false, rightFloats: false };
   }

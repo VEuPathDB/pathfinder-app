@@ -12,7 +12,7 @@ interface EdaBinding {
   analysisId: string;
 }
 
-interface EdaAnalysisSnapshot {
+export interface EdaAnalysisSnapshot {
   analysisId: string;
   revision: number | null;
   siteId: string;
@@ -67,7 +67,7 @@ function supersedes(
   return payload.revision >= current.revision;
 }
 
-function snapshotOf(payload: EdaAnalysisState): EdaAnalysisSnapshot {
+export function analysisSnapshotOf(payload: EdaAnalysisState): EdaAnalysisSnapshot {
   return {
     analysisId: payload.analysisId,
     revision: payload.revision,
@@ -99,7 +99,7 @@ export const useEdaStore = createStore<EdaState>("EdaStore", (set) => ({
           datasetId: payload.datasetId,
           analysisId: payload.analysisId,
         },
-        analysis: snapshotOf(payload),
+        analysis: analysisSnapshotOf(payload),
         ...(switched ? { viz: {}, volcanoThresholds: DEFAULT_THRESHOLDS } : {}),
       };
     }),

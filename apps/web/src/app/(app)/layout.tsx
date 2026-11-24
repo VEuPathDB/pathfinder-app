@@ -34,7 +34,7 @@ import { NarrowBackdrop } from "@/lib/components/NarrowBackdrop";
 import { PHONE_QUERY } from "@/lib/layout/viewport";
 import { conversationIdFromPath } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
-import { useDockLayout } from "@/state/useDockLayout";
+import { LeftSidebarDrawn, useDockLayout } from "@/state/useDockLayout";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -43,7 +43,9 @@ export default function AppShellLayout({ children }: { children: React.ReactNode
     <SystemReadyGate>
       <FrameLocationReporter />
       <QueryBoundary loadingFallback={<LoadingScreen />} ErrorFallback={AppShellError}>
-        <AppShellInner>{children}</AppShellInner>
+        <LeftSidebarDrawn value>
+          <AppShellInner>{children}</AppShellInner>
+        </LeftSidebarDrawn>
       </QueryBoundary>
     </SystemReadyGate>
   );

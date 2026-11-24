@@ -3,7 +3,7 @@
 import { useAui } from "@assistant-ui/react";
 
 import { Button } from "@/components/ui/button";
-import { currentDockLayout } from "@/state/useDockLayout";
+import { currentDockLayout, useLeftSidebarDrawn } from "@/state/useDockLayout";
 import { countOf } from "@/lib/utils/countOf";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
@@ -16,13 +16,20 @@ const WHO: Record<Choice["source"], string> = {
   default: "Site default.",
 };
 
-export function ChoiceList({ choices }: { choices: readonly Choice[] }) {
+export function ChoiceList({
+  choices,
+  changeable,
+}: {
+  choices: readonly Choice[];
+  changeable: boolean;
+}) {
   const aui = useAui();
   const closePanel = useRightRailStore((s) => s.closePanel);
+  const leftDrawn = useLeftSidebarDrawn();
   if (choices.length === 0) return null;
   const change = (choice: Choice): void => {
     aui.composer().setText(`Change ${choice.param} (now ${choice.value}) to `);
-    if (currentDockLayout().rightFloats) closePanel();
+    if (currentDockLayout(leftDrawn).rightFloats) closePanel();
     queueMicrotask(focusComposer);
   };
   return (
@@ -40,16 +47,18 @@ export function ChoiceList({ choices }: { choices: readonly Choice[] }) {
               <p className="text-xs text-muted-foreground">{choice.param}</p>
               <p className="break-words text-sm text-foreground">{choice.value}</p>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => change(choice)}
-              aria-label={`Change ${choice.param}`}
-              className="h-7 px-2 text-xs text-primary transition-transform active:scale-[0.98]"
-            >
-              Change
-            </Button>
+            {changeable && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => change(choice)}
+                aria-label={`Change ${choice.param}`}
+                className="h-7 px-2 text-xs text-primary transition-transform active:scale-[0.98]"
+              >
+                Change
+              </Button>
+            )}
             <p className="col-span-2 text-xs text-muted-foreground">
               <span className="font-medium text-warning">{WHO[choice.source]}</span>{" "}
               {choice.sentence}

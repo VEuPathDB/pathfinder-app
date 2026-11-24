@@ -269,6 +269,14 @@
   so a build with no target ships no scripted model. `docker-compose.e2e.yml` and CI's e2e build name
   `target: e2e`; a unit test reads the three files.
 
+* **A share link can carry the strategy and its context.** A new link carries it unless the owner
+  clears "Include the strategy and its context" (`conversation_shares.include_context`; a link
+  made before the box keeps it out). `GET /api/v1/shared/{token}/context` serves the strategy and
+  the bound study redacted once on the server (`services/conversations/shared_context.py`), with
+  the input rule in `domain/private_inputs.py` and the upload predicate in
+  `domain/account_datasets.py`. See
+  [decisions/a-conversation-is-shared-by-a-link.md](decisions/a-conversation-is-shared-by-a-link.md).
+
 * **A refusal's check name comes from one closed set.** Every check a refusal names is a member of
   `domain/refusal.py::Check`, so a misspelled name fails the type check instead of opening a new
   budget; a test refuses a production key that names its check in free text. A key a call builds

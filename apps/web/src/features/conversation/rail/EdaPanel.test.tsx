@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({
 
 import { useEdaStore } from "@/state/eda";
 import { EdaPanel } from "./EdaPanel";
+import { useOwnerRailSource } from "./useOwnerRailSource";
 import { EDA_ANALYSIS_STATE_FIXTURE } from "../content/parts/edaPartFixtures";
 
 beforeEach(() => {
@@ -22,13 +23,13 @@ beforeEach(() => {
 
 describe("EdaPanel", () => {
   it("invites the researcher to ask for a study when nothing is bound", () => {
-    render(<EdaPanel conversationId="conv-1" />);
+    render(<OwnerPanel />);
     expect(screen.getByTestId("rail-eda-panel")).toHaveTextContent("No study is open");
   });
 
   it("names the bound study, the analysis and its filter count", () => {
     useEdaStore.getState().applyAnalysisState(EDA_ANALYSIS_STATE_FIXTURE);
-    render(<EdaPanel conversationId="conv-1" />);
+    render(<OwnerPanel />);
     const panel = screen.getByTestId("rail-eda-panel");
     expect(panel).toHaveTextContent(
       "Heat shock response in sensitive mutants (LRR5, DHC)",
@@ -44,20 +45,29 @@ describe("EdaPanel", () => {
       numFilters: 1,
       numComputations: 0,
     });
-    render(<EdaPanel conversationId="conv-1" />);
+    render(<OwnerPanel />);
     const panel = screen.getByTestId("rail-eda-panel");
     expect(panel).toHaveTextContent("1 filter · 0 computations");
   });
 
   it("opens the tab from the header action", async () => {
     useEdaStore.getState().applyAnalysisState(EDA_ANALYSIS_STATE_FIXTURE);
-    render(<EdaPanel conversationId="conv-1" />);
+    render(<OwnerPanel />);
     await userEvent.click(screen.getByRole("button", { name: "Open study" }));
     expect(pushMock).toHaveBeenCalledWith("/conversation/conv-1/eda");
   });
 
   it("has no open action when nothing is bound", () => {
-    render(<EdaPanel conversationId="conv-1" />);
+    render(<OwnerPanel />);
     expect(screen.queryByTestId("rail-eda-open")).toBe(null);
   });
 });
+
+function OwnerPanel() {
+  const source = useOwnerRailSource({
+    conversationId: "conv-1",
+    strategy: null,
+    siteId: "plasmodb",
+  });
+  return <EdaPanel source={source} />;
+}

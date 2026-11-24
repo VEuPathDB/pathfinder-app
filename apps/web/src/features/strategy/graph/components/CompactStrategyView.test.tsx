@@ -295,3 +295,63 @@ describe("a strategy whose branches are themselves combines", () => {
     expect(screen.getAllByTestId(/^compact-step-row-/)).toHaveLength(7);
   });
 });
+
+describe("a step whose input is private", () => {
+  afterEach(() => cleanup());
+
+  it("marks the step and leaves its neighbours alone", () => {
+    render(
+      <CompactStrategyView
+        strategy={COMBINE_STRATEGY}
+        privateStepIds={new Set(["step_a"])}
+      />,
+    );
+    expect(screen.getByTestId("compact-step-private-step_a")).toHaveTextContent(
+      "Private list",
+    );
+    expect(screen.queryByTestId("compact-step-private-step_b")).toBeNull();
+    expect(screen.queryByTestId("compact-step-private-step_c")).toBeNull();
+  });
+
+  it("marks a disconnected step", () => {
+    const detached: Strategy = {
+      ...COMBINE_STRATEGY,
+      steps: [
+        ...COMBINE_STRATEGY.steps,
+        { ...SIMPLE_STRATEGY.steps[0]!, id: "step_x" },
+      ],
+    };
+    render(
+      <CompactStrategyView strategy={detached} privateStepIds={new Set(["step_x"])} />,
+    );
+    expect(
+      within(screen.getByTestId("compact-strategy-orphans")).getByTestId(
+        "compact-step-private-step_x",
+      ),
+    ).toHaveTextContent("Private list");
+  });
+});
+
+describe("disconnected steps", () => {
+  afterEach(() => cleanup());
+
+  const detached: Strategy = {
+    ...COMBINE_STRATEGY,
+    steps: [...COMBINE_STRATEGY.steps, { ...SIMPLE_STRATEGY.steps[0]!, id: "step_x" }],
+  };
+
+  it("offers no way to remove them when no removal is given", () => {
+    render(<CompactStrategyView strategy={detached} />);
+    expect(screen.getByTestId("compact-strategy-orphans")).toHaveTextContent(
+      "1 disconnected",
+    );
+    expect(screen.queryByRole("button", { name: /Remove all/ })).toBeNull();
+  });
+
+  it("removes every one of them through the removal it is given", () => {
+    const removed = vi.fn();
+    render(<CompactStrategyView strategy={detached} onRemoveOrphans={removed} />);
+    fireEvent.click(screen.getByRole("button", { name: /Remove all/ }));
+    expect(removed).toHaveBeenCalledWith(["step_x"]);
+  });
+});

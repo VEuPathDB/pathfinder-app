@@ -2,6 +2,9 @@
  * @vitest-environment jsdom
  */
 import { renderHook } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
+
+import { LeftSidebarDrawn } from "@/state/useDockLayout";
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -24,25 +27,29 @@ beforeEach(() => {
   openBothPanels();
 });
 
+function inShell({ children }: { children: ReactNode }) {
+  return createElement(LeftSidebarDrawn, { value: true }, children);
+}
+
 describe("useAutoCollapsePanels", () => {
   it("closes the left sidebar and the right rail on a narrow viewport", () => {
     setViewport(820);
 
-    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"), { wrapper: inShell });
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(true);
     expect(useRightRailStore.getState().openPanel).toBeNull();
   });
 
   it("keeps both open on a wide viewport", () => {
-    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"), { wrapper: inShell });
 
     expect(useLeftSidebarStore.getState().collapsed).toBe(false);
     expect(useRightRailStore.getState().openPanel).toBe("review");
   });
 
   it("closes both when the window narrows after mount", () => {
-    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"), { wrapper: inShell });
     expect(useRightRailStore.getState().openPanel).toBe("review");
 
     setViewport(700);
@@ -56,7 +63,7 @@ describe("useAutoCollapsePanels", () => {
 
   it("leaves a panel the reader opens on a narrow viewport alone until the next resize", () => {
     setViewport(820);
-    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"), { wrapper: inShell });
     expect(useRightRailStore.getState().openPanel).toBeNull();
 
     act(() => {
@@ -71,6 +78,7 @@ describe("useAutoCollapsePanels", () => {
   it("closes both drawers when a narrow window moves to another page", async () => {
     setViewport(390);
     const view = renderHook((path: string) => useAutoCollapsePanels(path), {
+      wrapper: inShell,
       initialProps: "/conversation/c1",
     });
     act(openBothPanels);
@@ -87,7 +95,7 @@ describe("useAutoCollapsePanels", () => {
     setViewport(980);
     useLeftSidebarStore.setState({ collapsed: true });
     useRightRailStore.getState().closePanel();
-    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"), { wrapper: inShell });
     act(() => {
       useRightRailStore.getState().openPanelId(CONVERSATION, "review", {});
     });
@@ -102,7 +110,7 @@ describe("useAutoCollapsePanels", () => {
 
   it("closes a docked rail that a narrowing window turns into a drawer", () => {
     useLeftSidebarStore.setState({ collapsed: true });
-    renderHook(() => useAutoCollapsePanels("/conversation/c1"));
+    renderHook(() => useAutoCollapsePanels("/conversation/c1"), { wrapper: inShell });
 
     setViewport(980);
     act(() => {
@@ -115,6 +123,7 @@ describe("useAutoCollapsePanels", () => {
   it("closes only the floating rail when a mid-width window moves to another page", async () => {
     setViewport(1200);
     const view = renderHook((path: string) => useAutoCollapsePanels(path), {
+      wrapper: inShell,
       initialProps: "/conversation/c1",
     });
     act(openBothPanels);
@@ -131,6 +140,7 @@ describe("useAutoCollapsePanels", () => {
 
   it("keeps both open when a wide window moves to another page", async () => {
     const view = renderHook((path: string) => useAutoCollapsePanels(path), {
+      wrapper: inShell,
       initialProps: "/conversation/c1",
     });
 

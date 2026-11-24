@@ -27,7 +27,7 @@ import { refetchStrategy, strategyQueryOptions } from "@/lib/api/strategy";
 import { getMyQuotaQueryKey } from "@strategist/shared/generated/hooks/useGetMyQuota";
 import { listScratchpadNotesQueryOptions } from "@strategist/shared/generated/hooks/useListScratchpadNotes";
 import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
-import { railMayOpenItself } from "@/state/useDockLayout";
+import { railMayOpenItself, useLeftSidebarDrawn } from "@/state/useDockLayout";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { useRightRailStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -76,6 +76,7 @@ export function useChatRuntime({
   chat: ChatHelpers;
 } {
   const queryClient = useQueryClient();
+  const leftDrawn = useLeftSidebarDrawn();
   const invalidateConversationList = () => {
     const siteId = useSessionStore.getState().selectedSite;
     void queryClient.invalidateQueries({
@@ -148,7 +149,7 @@ export function useChatRuntime({
         case "data-graph-snapshot": {
           const snapshot = graphSnapshotSchema.parse(dataPart.data);
           void refetchStrategy(queryClient, conversationId);
-          if (snapshot.nodes.length > 0 && railMayOpenItself()) {
+          if (snapshot.nodes.length > 0 && railMayOpenItself(leftDrawn)) {
             useRightRailStore.getState().openPanelId(conversationId, "strategy", {
               strategyStepCount: snapshot.nodes.length,
             });

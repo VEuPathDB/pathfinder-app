@@ -5,6 +5,7 @@ import { dockLayout, type DockInput } from "./dock";
 function input(overrides: Partial<DockInput> = {}): DockInput {
   return {
     viewport: 1440,
+    leftDrawn: true,
     leftOpen: true,
     leftWidth: 360,
     rightOpen: true,
@@ -57,5 +58,19 @@ describe("dockLayout", () => {
       leftFloats: true,
       rightFloats: false,
     });
+  });
+});
+
+describe("a page that draws no left side", () => {
+  it("gives the chat the nav rail's width and ignores a stored open sidebar", () => {
+    expect(
+      dockLayout(input({ viewport: 960, leftDrawn: false, lastOpened: "right" })),
+    ).toEqual({ leftFloats: false, rightFloats: false });
+    expect(
+      dockLayout(input({ viewport: 961, leftDrawn: false, leftOpen: false })),
+    ).toEqual({ leftFloats: false, rightFloats: false });
+    expect(
+      dockLayout(input({ viewport: 959, leftDrawn: false, leftOpen: false })),
+    ).toEqual({ leftFloats: false, rightFloats: true });
   });
 });

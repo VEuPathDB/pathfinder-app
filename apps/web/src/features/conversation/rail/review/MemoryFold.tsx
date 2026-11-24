@@ -23,7 +23,13 @@ export function recalledMemories(messages: readonly UIMessage[]): RecalledMemory
   return [...byKey.values()];
 }
 
-export function MemoryFold({ messages }: { messages: readonly UIMessage[] }) {
+export function MemoryFold({
+  messages,
+  manageable,
+}: {
+  messages: readonly UIMessage[];
+  manageable: boolean;
+}) {
   const focusMemory = useMemoryFocusStore((s) => s.focusMemory);
   const openSettings = useSettingsModalStore((s) => s.open);
   const memories = recalledMemories(messages);
@@ -45,26 +51,34 @@ export function MemoryFold({ messages }: { messages: readonly UIMessage[] }) {
                   <span className="shrink-0 rounded bg-muted px-1.5 text-xs text-muted-foreground">
                     {MEMORY_KIND_LABELS[memory.kind].one}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => focusMemory(memory.key, memory.kind)}
-                    className="min-w-0 truncate text-left text-foreground transition-colors duration-120 hover:text-primary"
-                  >
-                    {memory.name}
-                  </button>
+                  {manageable ? (
+                    <button
+                      type="button"
+                      onClick={() => focusMemory(memory.key, memory.kind)}
+                      className="min-w-0 truncate text-left text-foreground transition-colors duration-120 hover:text-primary"
+                    >
+                      {memory.name}
+                    </button>
+                  ) : (
+                    <span className="min-w-0 truncate text-foreground">
+                      {memory.name}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => openSettings("memory")}
-            className="h-7 self-start px-2 text-xs text-primary"
-          >
-            Manage memory
-          </Button>
+          {manageable && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => openSettings("memory")}
+              className="h-7 self-start px-2 text-xs text-primary"
+            >
+              Manage memory
+            </Button>
+          )}
         </div>
       </Fold>
     </ReviewSection>

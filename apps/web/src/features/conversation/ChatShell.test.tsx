@@ -117,6 +117,7 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
     vi.doMock("next/navigation", () => ({
       redirect: vi.fn(),
       usePathname: () => "/conversation/with-steps",
+      useRouter: () => ({ push: vi.fn() }),
     }));
     vi.doMock("@tanstack/react-query", async () => {
       const actual = await vi.importActual<ReactQueryExports>("@tanstack/react-query");
@@ -152,7 +153,7 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
       parseAsString: {},
     }));
     vi.doMock("./rail/StrategyPanel", () => ({
-      StrategyPanel: (props: { strategy: { id: string } | null; siteId: string }) => {
+      StrategyPanel: (props: unknown) => {
         strategyPanelSpy(props);
         return <div data-testid="strategy-panel" />;
       },
@@ -170,9 +171,11 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
     expect(strategyPanelSpy).toHaveBeenCalled();
     const lastCall = strategyPanelSpy.mock.calls.at(-1);
     if (lastCall === undefined) throw new Error("no call");
-    const props = lastCall[0] as { strategy: { id: string } | null; siteId: string };
-    expect(props.strategy?.id).toBe("with-steps");
-    expect(props.siteId).toBe("plasmodb");
+    const { source } = lastCall[0] as {
+      source: { strategy: { id: string } | null; siteId: string };
+    };
+    expect(source.strategy?.id).toBe("with-steps");
+    expect(source.siteId).toBe("plasmodb");
   });
 
   it("ChatView passes a strategy with no steps into the rail StrategyPanel (rail handles empty state)", async () => {
@@ -180,6 +183,7 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
     vi.doMock("next/navigation", () => ({
       redirect: vi.fn(),
       usePathname: () => "/conversation/no-steps",
+      useRouter: () => ({ push: vi.fn() }),
     }));
     vi.doMock("@tanstack/react-query", async () => {
       const actual = await vi.importActual<ReactQueryExports>("@tanstack/react-query");
@@ -215,10 +219,7 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
       parseAsString: {},
     }));
     vi.doMock("./rail/StrategyPanel", () => ({
-      StrategyPanel: (props: {
-        strategy: { steps: unknown[] } | null;
-        siteId: string;
-      }) => {
+      StrategyPanel: (props: unknown) => {
         strategyPanelSpy(props);
         return <div data-testid="strategy-panel" />;
       },
@@ -235,11 +236,10 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
     expect(strategyPanelSpy).toHaveBeenCalled();
     const lastCall = strategyPanelSpy.mock.calls.at(-1);
     if (lastCall === undefined) throw new Error("no call");
-    const props = lastCall[0] as {
-      strategy: { steps: unknown[] } | null;
-      siteId: string;
+    const { source } = lastCall[0] as {
+      source: { strategy: { steps: unknown[] } | null };
     };
-    expect(props.strategy?.steps).toEqual([]);
+    expect(source.strategy?.steps).toEqual([]);
   });
 
   it("ChatView does invoke redirect() when conversationId is an unknown id (not client-generated)", async () => {

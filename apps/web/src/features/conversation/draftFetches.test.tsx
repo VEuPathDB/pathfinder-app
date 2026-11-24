@@ -20,8 +20,8 @@ vi.mock("next/navigation", () => ({
 
 const railSites = vi.hoisted((): string[] => []);
 vi.mock("./rail/RightRail", () => ({
-  RightRail: ({ siteId }: { siteId: string }) => {
-    railSites.push(siteId);
+  RightRail: ({ source }: { source: { siteId: string } }) => {
+    railSites.push(source.siteId);
     return null;
   },
 }));

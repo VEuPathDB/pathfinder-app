@@ -18,8 +18,10 @@ import { goToSiteSignIn } from "@/lib/siteSignIn";
 
 import {
   passwordHeader,
+  sharedContextOptions,
   sharedHeadOptions,
   sharedMessagesOptions,
+  sharedRailSource,
   sharedRefusalOf,
 } from "./sharedConversation";
 import { SharedThread } from "./SharedThread";
@@ -132,6 +134,15 @@ function SharedOpen({
   const [shown, setShown] = useState(messages.data);
   if (messages.data !== undefined && messages.data !== shown) setShown(messages.data);
   const thread = messages.data ?? shown;
+  const context = useQuery({
+    ...sharedContextOptions(token, password, head.cursor, head.strategyRevision),
+    enabled: head.includeContext,
+    placeholderData: keepPreviousData,
+  });
+  const rail =
+    head.includeContext && context.data !== undefined
+      ? sharedRailSource(token, head, context.data)
+      : null;
   return (
     <div className="flex h-full min-h-0 flex-col bg-card">
       <header
@@ -174,6 +185,7 @@ function SharedOpen({
             key={thread.cursor}
             id={`shared-${token}`}
             messages={thread.messages}
+            rail={rail}
           />
         )}
       </div>

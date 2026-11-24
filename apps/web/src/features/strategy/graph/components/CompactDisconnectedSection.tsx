@@ -1,10 +1,10 @@
 "use client";
 
-import type { Step, Strategy } from "@strategist/shared";
+import type { Step } from "@strategist/shared";
 import { Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useDeleteOperation } from "@/features/strategy/graph/hooks/useDeleteOperation";
+import { PrivateListMark } from "@/features/strategy/graph/components/CompactRows";
 import { inferStepKind } from "@/features/strategy/graph";
 import { cn } from "@/lib/utils/cn";
 
@@ -15,25 +15,20 @@ const KIND_DOT: Record<string, string> = {
 };
 
 interface DisconnectedSectionProps {
-  strategy: Strategy;
   orphans: Step[];
+  privateStepIds?: ReadonlySet<string>;
+  onRemoveOrphans?: (stepIds: string[]) => void;
   onStepClick?: (stepId: string) => void;
   selectedStepId?: string | null;
 }
 
 export function CompactDisconnectedSection({
-  strategy,
   orphans,
+  privateStepIds,
+  onRemoveOrphans,
   onStepClick,
   selectedStepId = null,
 }: DisconnectedSectionProps) {
-  const deleteOp = useDeleteOperation(strategy.id);
-  const handleClear = () => {
-    deleteOp.requestDeleteMany(
-      orphans.map((s) => s.id),
-      { skipConfirm: true },
-    );
-  };
   return (
     <section
       data-testid="compact-strategy-orphans"
@@ -41,25 +36,30 @@ export function CompactDisconnectedSection({
     >
       <header className="mb-1 flex items-center justify-between gap-2 px-1 text-xs font-medium text-warning">
         <span>{orphans.length} disconnected</span>
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          onClick={handleClear}
-          className="h-6 gap-1 px-1.5 text-xs text-warning hover:text-warning"
-        >
-          <Trash2 className="size-3" aria-hidden /> Remove all
-        </Button>
+        {onRemoveOrphans !== undefined && (
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            onClick={() => onRemoveOrphans(orphans.map((step) => step.id))}
+            className="h-6 gap-1 px-1.5 text-xs text-warning hover:text-warning"
+          >
+            <Trash2 className="size-3" aria-hidden /> Remove all
+          </Button>
+        )}
       </header>
-      <p className="px-1 pb-1 text-xs text-muted-foreground">
-        These steps aren&apos;t connected and block save. Remove or wire them up in the
-        full editor.
-      </p>
+      {onRemoveOrphans !== undefined && (
+        <p className="px-1 pb-1 text-xs text-muted-foreground">
+          These steps aren&apos;t connected and block save. Remove or wire them up in
+          the full editor.
+        </p>
+      )}
       <ol className="flex flex-col gap-0.5">
         {orphans.map((step) => (
           <OrphanRow
             key={step.id}
             step={step}
+            isPrivate={privateStepIds?.has(step.id) ?? false}
             isSelected={step.id === selectedStepId}
             {...(onStepClick !== undefined && { onStepClick })}
           />
@@ -71,11 +71,17 @@ export function CompactDisconnectedSection({
 
 interface OrphanRowProps {
   step: Step;
+  isPrivate: boolean;
   onStepClick?: (stepId: string) => void;
   isSelected?: boolean;
 }
 
-function OrphanRow({ step, onStepClick, isSelected = false }: OrphanRowProps) {
+function OrphanRow({
+  step,
+  isPrivate,
+  onStepClick,
+  isSelected = false,
+}: OrphanRowProps) {
   const kind = inferStepKind(step);
   const dot = KIND_DOT[kind] ?? "bg-muted";
   const displayName = step.displayName ?? step.searchName ?? step.id;
@@ -95,6 +101,7 @@ function OrphanRow({ step, onStepClick, isSelected = false }: OrphanRowProps) {
           className={cn("inline-block size-2 shrink-0 rounded-full", dot)}
         />
         <span className="flex-1 truncate">{displayName}</span>
+        {isPrivate && <PrivateListMark stepId={step.id} />}
       </button>
     </li>
   );
