@@ -2,6 +2,14 @@
 
 ## 2026-11-24
 
+* **A card offers dropping a stated requirement and never recommends it.** `consult_can_ask`
+  refuses a card whose recommended option is the "Drop <requirement>" option of a hard
+  requirement the researcher stated, or any recommended option but "Keep <requirement>" on a
+  question about that requirement (`CardQuestion.recommended_drops`). The drop is offered by
+  that label, which binds the withdrawal, so a picked drop leaves the ledger. A Lead card that
+  recommended "Use all orthologs in Toxoplasma gondii ME49" over the stated syntenic
+  orthologs is refused.
+
 * **A repeated read runs once while nothing changes, and is never starved.** `ReadOnceToolset`
   wraps the Lead, Explore, a framing pass, a build pass and a check, and holds every read of
   `READ_ONLY_TOOLS` with its answer until a call outside the reads runs (record reads, and a

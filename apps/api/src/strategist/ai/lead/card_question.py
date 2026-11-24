@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from assistant_core.graph.turn_state import ConsultQuestion
 from pydantic import Field, model_validator
 
 from strategist.domain.reply_note import A_RECORD
-from strategist.domain.strategy.constraints import CONSTRAINT_KINDS, ConstraintKind
+from strategist.domain.strategy.constraints import (
+    CONSTRAINT_KINDS,
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+from strategist.domain.strategy.question_options import Keep, TypedOption, Withdraw
+from strategist.domain.strategy.questions import requirement_choices
+from strategist.domain.strategy.requirement_reports import numbered_requirements
 
 
 class CardQuestion(ConsultQuestion):
@@ -37,6 +47,35 @@ class CardQuestion(ConsultQuestion):
             "the question asks for a stand-in."
         ),
     )
+
+    def recommended_drops(self, requirements: Sequence[Constraint]) -> list[str]:
+        """Why this question recommends an option that drops or replaces a hard
+        requirement the researcher stated, one sentence per requirement."""
+        recommended = [o.label for o in self.options if o.recommended]
+        if not recommended:
+            return []
+        choices = requirement_choices(requirements)
+        found: list[str] = []
+        for number, held in numbered_requirements(requirements).items():
+            if held.source is not ConstraintSource.USER_EXPLICIT or not held.hard:
+                continue
+            drop = _label_of(choices, Withdraw(constraint_id=held.id))
+            keep = _label_of(choices, Keep(constraint_id=held.id))
+            asked = self.requirement in {number, held.id}
+            dropping = [
+                label
+                for label in recommended
+                if label == drop or (asked and label != keep)
+            ]
+            if dropping:
+                found.append(
+                    f"{number} is the researcher's requirement "
+                    f"'{held.requested_value}'. A card offers dropping it as "
+                    f"'{drop}' and recommends no option that drops or replaces it: "
+                    f"the question recommends {', '.join(repr(x) for x in dropping)}. "
+                    f"Recommend '{keep}' or no option."
+                )
+        return found
 
     @model_validator(mode="after")
     def _is_written_for_the_researcher(self) -> CardQuestion:
@@ -73,3 +112,7 @@ class CardQuestion(ConsultQuestion):
             )
             raise ValueError(msg)
         return self
+
+
+def _label_of(choices: Mapping[str, TypedOption], binding: Withdraw | Keep) -> str:
+    return next(label for label, option in choices.items() if option.binding == binding)

@@ -13,15 +13,14 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import ParameterInfo, list_organisms
 
 from strategist.ai.graph.state import PipelineState
+from strategist.ai.lead.answer_requirements import answer_requirement
 from strategist.ai.lead.answers_text import answers_text
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.card_reply import CardReply
 from strategist.ai.lead.card_sheets import card_sheets, picks_on_unread_sheets
-from strategist.ai.lead.organism_reader import site_entry
 from strategist.ai.lead.readings import picks_their_criteria_refuse, refused_picks
 from strategist.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.domain.clipped import clipped_text
 from strategist.domain.strategy.card_answers import (
     option_refusal,
     spec_bound_by_card,
@@ -31,8 +30,6 @@ from strategist.domain.strategy.constraints import (
     STRATEGY_SCOPES,
     Constraint,
     ConstraintKind,
-    ConstraintSource,
-    OrganismValue,
 )
 from strategist.domain.strategy.genome_group_steps import spec_read_on_genomes
 from strategist.domain.strategy.operator_reading import with_operator
@@ -57,7 +54,6 @@ from strategist.domain.strategy.questions import (
 from strategist.domain.strategy.readings import ReadingChooser, ReadValues
 from strategist.domain.strategy.requirement_reports import numbered_requirements
 
-_LABEL_LIMIT = 120
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
 
 
@@ -93,46 +89,14 @@ async def consult_can_ask(
     ctx: RunContext[LeadDeps], questions: list[CardQuestion], *, reply: CardReply
 ) -> None:
     del reply
+    requirements = ctx.deps.state.domain.requirements
+    drops = [why for q in questions for why in q.recommended_drops(requirements)]
+    if drops:
+        raise ModelRetry(" ".join(drops))
     cards = ctx.deps.state.turn_markers.card_stand_ins
     call = ctx.tool_call_id or ""
     if call not in cards:
         cards[call] = card_stand_ins(questions, ctx.deps.state.domain.requirements)
-
-
-def _answer_requirement(
-    prompt: str,
-    labels: list[str],
-    note: str,
-    dimension: ConstraintKind,
-    organisms: Sequence[str],
-) -> Constraint | None:
-    """The words an answer states as a requirement on the question's
-    dimension, or None when it states none. Words on the organism dimension
-    state the one organism of the site they name, and none otherwise."""
-    stated = "; ".join(labels) if labels else note
-    if not stated:
-        return None
-    label = clipped_text(prompt or stated, _LABEL_LIMIT)
-    if dimension is not ConstraintKind.ORGANISM:
-        return Constraint(
-            kind=dimension,
-            requested_value=stated,
-            label=label,
-            source=ConstraintSource.USER_EXPLICIT,
-            hard=True,
-        )
-    entry = site_entry(stated, organisms)
-    if entry is None:
-        return None
-    return Constraint(
-        kind=dimension,
-        requested_value=entry,
-        label=label,
-        source=ConstraintSource.USER_EXPLICIT,
-        quote=stated,
-        hard=True,
-        value=OrganismValue(organism=entry),
-    )
 
 
 def _name_the_organism(
@@ -260,7 +224,7 @@ def apply_option_bindings(
             if question is not None
             else dimensions.get(answer.prompt, ConstraintKind.UNTYPED)
         )
-        stated = _answer_requirement(
+        stated = answer_requirement(
             answer.prompt, words, answer.note, dimension, organisms
         )
         if stated is not None:
@@ -357,7 +321,10 @@ async def consult_user(
     which binds a value. A question of your own may offer options; a picked
     one that binds no recorded value comes back as the researcher's words,
     as an answer in the free-text note does. 'Drop <requirement>' and 'Keep
-    <requirement>' bind a requirement the conversation holds, and a reading a
+    <requirement>' bind a requirement the conversation holds; a card offers
+    'Drop <requirement>' for a requirement the researcher stated and never
+    recommends it or any other option of a question about that requirement
+    but 'Keep <requirement>'. A reading a
     framing pass named, offered as written, states that reading. A question
     that asks for a stand-in names in ``replaces`` the numbers of the ledger's
     requirements the stand-in takes the place of.
