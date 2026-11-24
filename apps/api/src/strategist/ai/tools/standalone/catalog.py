@@ -2,8 +2,9 @@
 transforms, phyletic codes and example public strategies."""
 
 from collections.abc import Sequence
-from typing import Literal, cast
+from typing import cast
 
+from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
@@ -11,7 +12,6 @@ from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, model_validator
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import get_site
 from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
 from veupathdb_mcp.catalog import (
@@ -20,7 +20,7 @@ from veupathdb_mcp.catalog import (
     VagueSearchQueryError,
     universal_searches,
 )
-from veupathdb_mcp.tool_payloads import SearchListing, TransformListing
+from veupathdb_mcp.tool_payloads import SearchListing
 
 from strategist.ai.agents.state import CatalogHit, CatalogRead
 from strategist.ai.graph.runtime import AgentDeps
@@ -29,7 +29,13 @@ from strategist.ai.tools.standalone._catalog_elsewhere import (
     rank_other_sites,
     with_other_sites,
 )
-from strategist.services.strategies.record_classes import search_record_types
+from strategist.domain.unread import Unread
+from strategist.services.strategies.record_classes import (
+    ListedTransform,
+    plan_classes,
+    search_record_types,
+    transforms_accepting,
+)
 
 logger = get_logger(__name__)
 
@@ -161,21 +167,24 @@ async def search_for_searches(
     state = ctx.deps.agent_state
     elsewhere = await rank_other_sites(ctx, query)
     results = with_other_sites(results, elsewhere, state.elsewhere, ctx.deps.site_id)
-    shown = state.record_elsewhere(
-        (match.card for match in elsewhere),
-        await own_search_names(ctx.deps.site_id) if elsewhere else frozenset(),
-    )
     summary = f"{found} searches on {get_site(ctx.deps.site_id).name}"
-    others = len({entry.site_id for entry in shown})
-    if others:
-        sites = "site" if others == 1 else "sites"
-        summary += f"; related experiments on {others} other {sites} (for reference)"
-    return with_summary(
-        results,
-        summary,
-        ctx=ctx,
-        status="ok" if found else "empty",
-    )
+    match elsewhere:
+        case Unread(reason=reason):
+            summary += f"; other sites not read: {reason}"
+            status: ToolSummaryStatus = "warn"
+        case ranked:
+            shown = state.record_elsewhere(
+                (match.card for match in ranked),
+                await own_search_names(ctx.deps.site_id) if ranked else frozenset(),
+            )
+            others = len({entry.site_id for entry in shown})
+            if others:
+                sites = "site" if others == 1 else "sites"
+                summary += (
+                    f"; related experiments on {others} other {sites} (for reference)"
+                )
+            status = "ok" if found else "empty"
+    return with_summary(results, summary, ctx=ctx, status=status)
 
 
 def _ranking_note(matches: list[SearchMatch], site_id: str, query: str) -> str | None:
@@ -240,22 +249,37 @@ async def browse_search_categories(
 
 
 def record_a_listing(
-    ctx: RunContext[AgentDeps],
-    tool: Literal["list_searches", "list_transforms"],
-    record_type: str,
-    listed: Sequence[SearchListing | TransformListing],
+    ctx: RunContext[AgentDeps], record_type: str, listed: Sequence[SearchListing]
 ) -> None:
     """Record a listing the model was shown, in its order and with no scores."""
     ctx.deps.record_catalog_read(
         CatalogRead(
             tool_call_id=ctx.tool_call_id or "",
-            tool=tool,
+            tool="list_searches",
             record_type=record_type,
             hits=[
                 CatalogHit.model_validate(
                     listing.model_dump() | {"record_type": record_type}
                 )
                 for listing in listed
+            ],
+        )
+    )
+
+
+def record_transforms(
+    ctx: RunContext[AgentDeps],
+    classes: frozenset[str] | None,
+    listed: Sequence[ListedTransform],
+) -> None:
+    ctx.deps.record_catalog_read(
+        CatalogRead(
+            tool_call_id=ctx.tool_call_id or "",
+            tool="list_transforms",
+            record_type="",
+            accepting=classes,
+            hits=[
+                CatalogHit.model_validate(listing.model_dump()) for listing in listed
             ],
         )
     )
@@ -278,7 +302,7 @@ async def list_searches(
     """
     listings = await tool_payloads.list_search_listings(ctx.deps.site_id, record_type)
     shown = [listing for listing in listings if listing.name]
-    record_a_listing(ctx, "list_searches", record_type, shown)
+    record_a_listing(ctx, record_type, shown)
     names = [listing.name for listing in shown]
     return with_summary(
         names,
@@ -289,25 +313,25 @@ async def list_searches(
 
 async def list_transforms(
     ctx: RunContext[AgentDeps],
-    record_type: str,
 ) -> ToolReturn[list[JSONObject]]:
-    """List available transform and combine operations (with descriptions).
+    """List the transform and combine operations that run on the plan's steps.
 
-    Returns searches that chain onto a previous step's results -- such as
-    ortholog transforms, weight filters, span logic, and boolean combines.
+    Returns the searches that chain onto a previous step's results, such as
+    ortholog transforms, weight filters and span logic, across every record
+    type of the site, each with the record type it is listed under. With a
+    bound criterion it lists the ones whose input step may hold the record
+    type of a bound criterion; with none bound it lists every one.
 
     Args:
         ctx: Agent run context.
-        record_type: The record type whose transforms are listed, one that
-            get_record_types names for this site.
     """
-    transforms = await tool_payloads.list_transform_listings(
-        ctx.deps.site_id, record_type
-    )
-    record_a_listing(ctx, "list_transforms", record_type, transforms)
+    classes = plan_classes(ctx.deps.agent_state.operational_spec_draft)
+    transforms = await transforms_accepting(ctx.deps.site_id, classes)
+    record_transforms(ctx, classes, transforms)
+    taking = ", ".join(sorted(classes)) if classes else "any record type"
     return with_summary(
         [transform.model_dump(by_alias=True) for transform in transforms],
-        f"{len(transforms)} transforms on {record_type}",
+        f"{len(transforms)} transforms that take {taking}",
         ctx=ctx,
     )
 
@@ -359,9 +383,5 @@ async def search_example_plans(
         query: User goal / query to match against public strategies.
         limit: Max number of results to return.
     """
-    try:
-        plans = await tool_payloads.rank_example_plans(ctx.deps.site_id, query, limit)
-    except (VEuPathDBError, OSError) as exc:
-        logger.warning("Failed to fetch public strategies", error=str(exc))
-        return with_summary([], "0 example plans", ctx=ctx, status="warn")
+    plans = await tool_payloads.rank_example_plans(ctx.deps.site_id, query, limit)
     return with_summary(plans, f"{len(plans)} example plans", ctx=ctx)

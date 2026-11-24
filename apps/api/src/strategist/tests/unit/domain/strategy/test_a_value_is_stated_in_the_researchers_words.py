@@ -11,6 +11,8 @@ from veupathdb.domain.parameters import (
 )
 
 from strategist.domain.strategy.value_source import (
+    ParamSheet,
+    source_kind,
     stated_by_labels,
     stated_run,
     value_source,
@@ -48,12 +50,14 @@ _TRITRYPDB = [
 
 
 def _source(value: ParamValue, texts: list[str], display_name: str = "") -> str:
-    return value_source(
-        value,
-        placeholder=False,
-        unset=False,
-        request_texts=texts,
-        display_name=display_name,
+    return source_kind(
+        value_source(
+            value,
+            placeholder=False,
+            unset=False,
+            request_texts=texts,
+            sheet=ParamSheet(display_name=display_name),
+        )
     )
 
 

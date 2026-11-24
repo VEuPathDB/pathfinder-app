@@ -62,15 +62,16 @@ def snapshot_as_plan(
     longer parses.
     """
     plan = without_wdk_ids(strategy_ast)
-    ast = parse_strategy_ast(plan)
-    if ast is None:
-        return MaterializedStrategy(
-            strategy_ast=plan,
-            record_type=record_type,
-            step_count=step_count,
-            wdk_strategy_id=None,
-        )
-    return _plan_only(ast)
+    match parse_strategy_ast(plan):
+        case StrategyAst() as ast:
+            return _plan_only(ast)
+        case _:
+            return MaterializedStrategy(
+                strategy_ast=plan,
+                record_type=record_type,
+                step_count=step_count,
+                wdk_strategy_id=None,
+            )
 
 
 def _plan_only(ast: StrategyAst, refusal: str | None = None) -> MaterializedStrategy:
@@ -107,13 +108,15 @@ async def materialize_strategy_snapshot(
     ``record_type`` and ``step_count`` are the recorded readings that stand in
     when the stored tree no longer parses.
     """
-    fresh = parse_strategy_ast(without_wdk_ids(strategy_ast))
-    if fresh is None:
-        return snapshot_as_plan(
-            strategy_ast,
-            record_type=record_type,
-            step_count=step_count,
-        )
+    match parse_strategy_ast(without_wdk_ids(strategy_ast)):
+        case StrategyAst() as fresh:
+            pass
+        case _:
+            return snapshot_as_plan(
+                strategy_ast,
+                record_type=record_type,
+                step_count=step_count,
+            )
     session = build_strategy_session(
         site_id=site_id,
         strategy_graph=PersistedStrategyGraph(

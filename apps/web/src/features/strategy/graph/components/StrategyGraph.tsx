@@ -10,6 +10,7 @@ import {
   type SyncState,
 } from "@/features/strategy/graph/components/CanvasTopbar";
 import { EmptyState } from "@/features/strategy/graph/components/EmptyState";
+import { UnreadableState } from "@/features/strategy/graph/components/UnreadableState";
 import { EdgeContextMenu } from "@/features/strategy/graph/components/EdgeContextMenu";
 import { GraphActionConfirm } from "@/features/strategy/graph/components/GraphActionConfirm";
 import { OrthologSheet } from "@/features/strategy/graph/components/OrthologSheet";
@@ -64,6 +65,11 @@ function StrategyGraphInner({
       const target = (strategy?.steps ?? []).find((s) => s.id === focusStepId);
       if (target !== undefined) g.setSelectedStep(target);
     }
+  }
+
+  const unreadable = strategy?.strategyUnreadable ?? null;
+  if (unreadable !== null) {
+    return <UnreadableState reason={unreadable} />;
   }
 
   if (strategy == null || strategy.steps.length === 0) {

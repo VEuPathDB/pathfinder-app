@@ -60,7 +60,11 @@ class StructureDrop(CamelModel):
 
     @classmethod
     def of(cls, drop: OrganismDrop | DuplicateDrop) -> StructureDrop:
-        return cls(criterion_id=drop.criterion_id, met=drop.met, fate=drop.fate)
+        match drop:
+            case DuplicateDrop():
+                return cls(criterion_id=drop.criterion_id, met=True, fate=drop.fate)
+            case OrganismDrop():
+                return cls(criterion_id=drop.criterion_id, met=False, fate=drop.fate)
 
 
 class SetStructureResult(CamelModel):
@@ -337,10 +341,5 @@ async def _organism_folded(
             {cid: counted[key] for cid, key in keyed.items() if key in counted}
         )
     return fold_organism_universe(
-        draft,
-        proposed,
-        organisms,
-        state.stated_requirements,
-        counts,
-        live_step_ids=live,
+        draft, proposed, organisms, counts, live_step_ids=live
     )

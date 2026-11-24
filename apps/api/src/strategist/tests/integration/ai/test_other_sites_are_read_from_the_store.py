@@ -80,6 +80,7 @@ async def test_a_ranked_card_is_read_and_its_references_recorded(
     ctx = agent_run_context(agent_state=AgentToolState())
 
     ranked = await rank_other_sites(ctx, CRYPTO_CARD.index_text())
+    assert isinstance(ranked, list)
     ctx.deps.agent_state.record_elsewhere((match.card for match in ranked), frozenset())
     read = returned(await read_experiment(ctx, "DS_63b0de882c"), ExperimentRead)
 
@@ -105,4 +106,5 @@ async def test_the_callers_own_site_is_never_ranked(two_sites: None) -> None:
 
     ranked = await rank_other_sites(ctx, CRYPTO_CARD.index_text())
 
+    assert isinstance(ranked, list)
     assert "cryptodb" not in {match.card.site_id for match in ranked}

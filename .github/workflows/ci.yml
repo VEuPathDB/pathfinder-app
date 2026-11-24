@@ -202,6 +202,10 @@ jobs:
         working-directory: apps/api
         run: uv run python scripts/check_weak_assertions.py
 
+      - name: Check that no handler fails open
+        working-directory: apps/api
+        run: uv run python scripts/check_fail_open.py
+
       - name: Check file sizes
         working-directory: apps/api
         run: uv run python scripts/check_max_lines.py

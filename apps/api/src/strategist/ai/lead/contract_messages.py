@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from strategist.domain.strategy.build_outcome import BuildOutcome
 from strategist.domain.strategy.operational_spec import Criterion
 
 
@@ -19,30 +18,6 @@ def off_topic_essay_message(max_chars: int) -> str:
         f"sentences, under {max_chars} characters, naming what Strategist does "
         f"and inviting the user to rephrase. No code block, no draft, no answer "
         f"to what was asked."
-    )
-
-
-def unverified_build_message(
-    outcome: BuildOutcome | None, root: int | None, *, could_not_finish: bool
-) -> str:
-    """Why a turn that built something is asked to verify before it answers.
-
-    ``root`` is the count the facts show for the strategy. The check is asked
-    for once. A reason stands only after a check of this turn stopped or was
-    refused, so the reply cannot decline a check it never tried.
-    """
-    pushed = len(outcome.pushed_step_ids) if outcome is not None else 0
-    count = "unknown" if root is None else str(root)
-    move = (
-        "Call verify_strategy, or set `unverifiedReason` to why it cannot run "
-        "and state it in your reply."
-        if could_not_finish
-        else "Call verify_strategy. `unverifiedReason` is accepted only after a "
-        "check of this turn stopped or was refused."
-    )
-    return (
-        f"This turn changed the strategy - {pushed} step(s) on VEuPathDB, root "
-        f"count {count} - and nothing verified the result. {move}"
     )
 
 

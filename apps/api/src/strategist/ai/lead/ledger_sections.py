@@ -212,6 +212,7 @@ class BuildSection(CamelModel):
         """A build ran and every step it named reached VEuPathDB non-empty."""
         return (
             self.outcome is not None
+            and self.outcome.not_read is None
             and self.failed_count == 0
             and self.skipped_count == 0
             and not self.zero_result_steps

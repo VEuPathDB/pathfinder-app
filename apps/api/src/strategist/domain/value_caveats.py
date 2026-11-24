@@ -12,8 +12,8 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field
 
 from strategist.domain.strategy.measurement_clauses import shown_value
+from strategist.domain.strategy.measurement_kinds import CountedKind
 from strategist.domain.strategy.operational_spec import (
-    CountedKind,
     Criterion,
     Measurement,
     OperationalSpec,

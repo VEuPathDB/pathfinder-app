@@ -204,7 +204,7 @@ def _edit_run(
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = after
-        return FrameResult(disposition="spec_ready", summary="reframed")
+        return FrameResult(disposition="spec_ready", notes="reframed")
 
     async def _fake_commit(**kwargs: Any) -> CommitResult:
         committed.extend(kwargs["ops"])

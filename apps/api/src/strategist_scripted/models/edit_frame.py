@@ -134,7 +134,7 @@ def _swap(node: StructureNode, old: str, new: StructureNode) -> StructureNode:
 def _final(summary: str) -> ToolCallPart:
     return scripted_call(
         "final_result",
-        {"summary": summary, "disposition": "spec_ready", "openQuestions": []},
+        {"notes": summary, "disposition": "spec_ready", "openQuestions": []},
     )
 
 

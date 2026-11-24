@@ -67,7 +67,7 @@ async def _read_a_paper(agent_deps: AgentDeps) -> None:
 def _a_pass_that_reads_a_paper(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _fake(**kwargs: Any) -> FrameResult:
         await _read_a_paper(kwargs["agent_deps"])
-        return FrameResult(disposition="needs_user", summary="which dataset?")
+        return FrameResult(disposition="needs_user", notes="which dataset?")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 

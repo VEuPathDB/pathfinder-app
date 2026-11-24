@@ -71,7 +71,7 @@ def _stub_stream(
 async def test_spec_ready_over_an_empty_draft_is_a_retry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _stub_stream(monkeypatch, FrameResult(disposition="spec_ready", summary="done"))
+    _stub_stream(monkeypatch, FrameResult(disposition="spec_ready", notes="done"))
 
     deps = _deps()
 
@@ -94,7 +94,7 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
         monkeypatch,
         FrameResult(
             disposition="needs_user",
-            summary="which dataset?",
+            notes="which dataset?",
             open_questions=[
                 SlotQuestion(
                     question="Which gametocyte RNA-seq study?",
@@ -135,7 +135,7 @@ async def test_a_slot_question_is_recorded_with_options_that_set_the_slot(
         monkeypatch,
         FrameResult(
             disposition="needs_user",
-            summary="which dataset?",
+            notes="which dataset?",
             open_questions=[
                 SlotQuestion(
                     question="Which gametocyte RNA-seq study?",
@@ -166,7 +166,7 @@ async def test_a_slot_question_is_recorded_with_options_that_set_the_slot(
 async def test_a_pass_that_asks_nothing_records_no_question(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    delta = FrameResult(disposition="spec_ready", summary="bound one")
+    delta = FrameResult(disposition="spec_ready", notes="bound one")
     _stub_stream(monkeypatch, delta, binds=True)
     deps = _deps()
 
@@ -182,7 +182,7 @@ async def test_a_pass_that_asks_nothing_records_no_question(
 async def test_spec_ready_with_one_bound_criterion_passes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    delta = FrameResult(disposition="spec_ready", summary="bound one")
+    delta = FrameResult(disposition="spec_ready", notes="bound one")
     _stub_stream(monkeypatch, delta, binds=True)
     deps = _deps()
 
@@ -199,7 +199,7 @@ async def test_spec_ready_with_one_bound_criterion_passes(
 async def test_second_empty_result_becomes_needs_user(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _stub_stream(monkeypatch, FrameResult(disposition="spec_ready", summary="done"))
+    _stub_stream(monkeypatch, FrameResult(disposition="spec_ready", notes="done"))
     deps = _deps()
 
     with pytest.raises(ModelRetry):
@@ -216,13 +216,13 @@ async def test_second_empty_result_becomes_needs_user(
 
     assert isinstance(result, FrameResult)
     assert result.disposition == "needs_user"
-    assert "no bound criterion" in result.summary
+    assert "no bound criterion" in result.gaps[0].sentence
 
 
 async def test_a_needs_user_result_over_an_empty_draft_is_not_a_retry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    delta = FrameResult(disposition="needs_user", summary="which dataset?")
+    delta = FrameResult(disposition="needs_user", notes="which dataset?")
     _stub_stream(monkeypatch, delta)
 
     deps = _deps()
@@ -255,7 +255,7 @@ async def test_an_exhausted_budget_still_reports_the_draft(
 
     assert isinstance(result, FrameResult)
     assert result.disposition == "needs_user"
-    assert "budget" in result.summary
+    assert "budget" in result.gaps[0].sentence
 
 
 @pytest.fixture
@@ -453,4 +453,4 @@ async def test_a_stop_that_bound_nothing_is_not_dispatched_again(
     assert isinstance(result, FrameResult)
     assert len(barren_dispatches) == 1
     assert result.disposition == "needs_user"
-    assert "no criteria bound" in result.summary
+    assert "no criteria bound" in result.gaps[0].sentence

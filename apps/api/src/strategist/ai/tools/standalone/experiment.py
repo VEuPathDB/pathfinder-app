@@ -40,6 +40,7 @@ from strategist.ai.tools.standalone.saved_control_sets import unattached_set
 from strategist.domain.evidence import (
     NamedControlSet,
 )
+from strategist.domain.unread import Unread
 from strategist.platform.durable_worker import durable_agent_tool
 from strategist.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from strategist.services.evidence.control_sets import (
@@ -49,7 +50,10 @@ from strategist.services.evidence.control_sets import (
 )
 from strategist.services.evidence.optimization import tunable_parameters_of_search
 from strategist.services.experiment.controls_search import controls_search
-from strategist.services.experiment.metrics import metrics_from_control_result
+from strategist.services.experiment.metrics import (
+    metric_text,
+    metrics_from_control_result,
+)
 from strategist.services.experiment.published_names import published_names
 from strategist.services.export.control_downloads import attach_control_downloads
 
@@ -62,31 +66,35 @@ def _control_scores(counts: ControlCounts) -> str:
     Precision and MCC need a negative set. A test that ran none reports
     recall alone, and a test of negatives alone counts what it returned.
     """
-    if counts.positive_controls_count is None and counts.negative_controls_count:
+    if counts.positive_controls_count is None and not counts.negative_controls_count:
+        return "no controls tested"
+    if counts.positive_controls_count is None:
         return (
             f"{counts.negative_controls_count} negative controls: "
             f"{counts.negative_intersection or 0} returned"
         )
     metrics = metrics_from_control_result(counts.measured())
     scored = (
-        f"precision {metrics.precision:.2f}, MCC {metrics.mcc:.2f}"
+        f"precision {metric_text(metrics.precision)}, MCC {metric_text(metrics.mcc)}"
         if counts.negative_controls_count is not None
         else "no negative controls tested"
     )
     return (
         f"{counts.positive_intersection or 0} of "
         f"{counts.positive_controls_count or 0} positive controls recovered; "
-        f"recall {metrics.sensitivity:.2f}, {scored}"
+        f"recall {metric_text(metrics.sensitivity)}, {scored}"
     )
 
 
 def controls_summary(counts: ControlCounts) -> str:
     """What the test recovered, how well it scored, and what a sweep could vary."""
-    knobs = (
-        f"tunable parameters: {', '.join(counts.tunable_parameters)}"
-        if counts.tunable_parameters
-        else "no tunable parameters"
-    )
+    match counts.tunable_parameters:
+        case Unread(reason=reason):
+            knobs = f"tunable parameters not read: {reason}"
+        case [*names] if names:
+            knobs = f"tunable parameters: {', '.join(names)}"
+        case _:
+            knobs = "no tunable parameters"
     return f"{_control_scores(counts)}; {knobs}"
 
 

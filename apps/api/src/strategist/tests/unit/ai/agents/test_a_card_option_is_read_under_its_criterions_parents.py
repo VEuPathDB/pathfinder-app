@@ -23,7 +23,7 @@ from strategist.domain.strategy.operational_spec import (
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.services.strategies import sheet_params
-from strategist.services.strategies.sheet_params import criterion_sheets
+from strategist.services.strategies.sheet_params import criterion_sheets, read_sheets
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import client_search, suite_search
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
@@ -114,7 +114,9 @@ async def test_a_frame_card_offers_a_facet_member_of_the_criterions_organism() -
 async def test_two_criteria_on_one_search_read_their_own_organisms() -> None:
     spec = OperationalSpec(criteria=[_snps("c_pf", _PF), _snps("c_pv", _VIVAX)])
 
-    sheets = await criterion_sheets("plasmodb", spec.criteria, {_SEARCH: _PUBLISHED})
+    sheets = read_sheets(
+        await criterion_sheets("plasmodb", spec.criteria, {_SEARCH: _PUBLISHED})
+    )
     refusals = {
         criterion_id: option_refusal(
             spec,

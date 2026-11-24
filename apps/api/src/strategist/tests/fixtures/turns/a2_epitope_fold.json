@@ -1,0 +1,74 @@
+{
+  "provenance": "cedar ~/proto/ec-release/apps/api/runs/a2 (ec-release-check, plasmodb Build): tools/36-set_criterion.json (c_epitope), tools/46-set_criterion.json (c_phylogeny), tools/49-set_structure.json, the organism requirement R1 of state/frame.json",
+  "epitope": {
+    "args": {
+      "criterion_id": "c_epitope",
+      "text": "evidence of immune epitopes mapped to Plasmodium falciparum",
+      "search_name": "GenesWithEpitopes",
+      "role": "filter",
+      "params": {
+        "organism": [
+          "Plasmodium falciparum"
+        ],
+        "peptide_mismatch": "No",
+        "taxon_match": "No",
+        "protein_match": "Yes"
+      },
+      "why": {
+        "basis": "parameter",
+        "term": "Include Matches from other Species?",
+        "reason": "Restricting to epitopes from the target species avoids importing cross-species evidence while retaining non-exact full-protein matches supported by the site's default setting."
+      },
+      "answers": [
+        {
+          "requirement": "R1",
+          "param": "organism"
+        }
+      ]
+    },
+    "result": "c_epitope set to GenesWithEpitopes, 882 genes, sets Organism"
+  },
+  "phylogeny": {
+    "args": {
+      "criterion_id": "c_phylogeny",
+      "text": "phylogenetic conservation across Plasmodium species; an ortholog in at least one of the 60 listed genomes, using Plasmodium falciparum 3D7 as the reference organism",
+      "search_name": "GenesByOrthologPattern",
+      "role": "filter",
+      "params": {
+        "included_species": "padl, pber, pbil, pblg, pccb, pcha, pcoa, pcym, pcyn, pfac, pfad, pfag, pfai, pfal, pfga, pfgb, pfgn, pfhb, pfke, pfkh, pfkt, pfml, pfnc, pfnf, pfng, pfra, pfsd, pfsg, pfsn, pftg, pgab, pgal, pgas, pinu, pkah, pkno, pknp, pmal, pova, powp, ppra, preg, prei, prel, pvbd, pvce, pvcr, pvin, pvip, pviv, pvld, pvlk, pvpc, pvpv, pvpw, pvvc, pyoe, pyoy, pyxn, pyyx",
+        "excluded_species": "n/a",
+        "organism": [
+          "Plasmodium falciparum 3D7"
+        ]
+      },
+      "why": {
+        "basis": "organism",
+        "term": "Plasmodium falciparum 3D7",
+        "reason": "The researcher selected Plasmodium falciparum 3D7 as the reference organism for the ortholog-pattern search."
+      },
+      "answers": [
+        {
+          "requirement": "R1",
+          "param": "organism"
+        },
+        {
+          "requirement": "R5",
+          "param": "included_species"
+        }
+      ]
+    },
+    "result": "c_phylogeny set to GenesByOrthologPattern, 2,876 genes, covers Plasmodium falciparum 3D7"
+  },
+  "structure": {
+    "result": "Structure set: 7 searches; dropped c_epitope",
+    "fate": "c_epitope (evidence of immune epitopes mapped to Plasmodium falciparum) is dropped: it links only the organism Plasmodium falciparum 3D7, which c_phylogeny already runs on, so that organism value meets it."
+  },
+  "organismRequirement": {
+    "id": "3835d9742e45",
+    "kind": "organism",
+    "requestedValue": "Plasmodium falciparum",
+    "label": "Plasmodium falciparum",
+    "quote": "Plasmodium falciparum",
+    "value": null
+  }
+}

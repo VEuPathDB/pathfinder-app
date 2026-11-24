@@ -49,7 +49,7 @@ def _deps(monkeypatch: pytest.MonkeyPatch) -> LeadDeps:
                 result_count=1033,
             )
         )
-        return FrameResult(disposition="spec_ready", summary="signal peptide bound")
+        return FrameResult(disposition="spec_ready", notes="signal peptide bound")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _signal_peptide)
     return lead_deps(

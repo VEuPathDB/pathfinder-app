@@ -29,6 +29,63 @@
   strategy only, and a sweep is refused on a strategy with no built step. A plan departure is turned into its refusal by one `departures_refused`, and
   `apply_operations` states a batch of one operation at least on its argument type.
 
+* **A step whose sheet under its own parents was not read is refused.**
+  `sheets_under_their_parents` gives `Unread` for it, and both readers (`stated_spec_of`,
+  the replay's reading) refuse through `read_or_refuse` with the site's reason; the
+  published sheet never stands in for the vocabulary under moved parents.
+
+* **A turn's snapshot is named when it is written.** The turn's assistant message id rides
+  every strategy snapshot the turn writes (`writes_named_by`, `THE_TURNS_MESSAGE`), so no
+  separate naming step can fail after the reply and leave an undo to skip the turn. An undo
+  returns to the newest earlier snapshot outside the last change's turn
+  (`newest_turn_end_unlike(apart_from=...)`), a canvas write included.
+
+* **Fail-opens the batch-2 review and the allowlist audit found.** A read-back that does not
+  parse, an analysis stamp, a turn-start site read, a site tree or added steps that do not
+  decode, and a vocabulary under moved parents are each `Unread` with a reason the briefing,
+  the build outcome or the card states, never "nothing moved". A ranking the site did not sort
+  is the root's failure. A name the site refused is said in the rename's answer; a saved mark,
+  a site delete and a card answer that do not land refuse the request. The fail-open gate keys
+  a handler by `path:function:caught:default` and reaches nested, keyword and helper-log
+  shapes; every allowlisted handler was driven by a test or a probe, and 56 of its 105 lines
+  name the test. Only a `StatedSource` binds a stated value (`bind_values`,
+  `criterion_restated`), and a pending plan reaches the Lead only as `rendered`.
+
+* **The gates of cause G.** `scripts/check_fail_open.py` (pre-commit `fail-open-api`, CI
+  "Check that no handler fails open") fails an `except` handler in `ai/`, `services/` or
+  `domain/` that returns, assigns or passes an empty value, ends in `pass` or `continue`,
+  or only logs, unless `scripts/fail-open-allowed.txt` lists it by
+  `path:function:ordinal` with its reason; 111 handlers are listed, the memory index's
+  timeout was fixed instead (the briefing says the other memories were not counted). A test
+  holds every construction of a stated value source to `value_source.py` (the
+  `StatedSource` mint) and `stated_source.py` (its fields), and a type test holds every
+  result the Lead reads from a dispatch to no stored `summary: str`.
+
+* **VERIFY compares what the push sent, and an unread write is said.** VERIFY's `bound_values`
+  compared the spec's `organism: ["Plasmodium"]` with the 61 leaves the push sent for that
+  countOnlyLeaves parent and failed a correct step. `held_values.values_the_site_holds_otherwise`
+  compares the leaves the push sends (`as_tree_leaves` over the catalog's definition, read only
+  for a multi-pick), returns `Unread` when the definition or the site's values were not read or
+  decode only to their wire text (`unchecked`, `site_unanswered`), and calls a bound name the
+  site holds no value for a difference. The site read's take is unchanged. A recovery whose
+  commit failed names "the strategy was not re-read after the recovery" on its outcome, and a
+  write whose read-back failed names it (`WDKSyncState.strategy_not_read`, `BuildOutcome.not_read`,
+  "- not read back" in the ledger). A stored plan whose tree does not load refuses the thread
+  (`STRATEGY_AST_CORRUPT`), `parse_strategy_ast` returns `Unread` for a tree that does not
+  validate, so an adopted snapshot that does not parse is refused rather than clearing the
+  thread, and a failed strategy write raises `STRATEGY_NOT_SAVED` to the turn.
+
+* **An edit that asks says nothing was applied.** An edit that ended on a question returned
+  FRAME's draft as its `summary`, a past-tense account of a plan no push wrote, and the Lead
+  told the researcher the kinase step ran on GT1 while the tree kept ME49 and 11 genes.
+  `EditDelta.summary` is computed: "Nothing was applied: the strategy is unchanged." on
+  `needs_user` and `unbound`, empty on an applied edit, whose change the diff and the facts
+  part carry; a validator refuses an operation or a diff on an edit that applied nothing.
+  FRAME writes `notes`, which the Lead reads only as a `PendingPlan` (`domain/pending_plan.py`)
+  that renders "Not applied, waiting on your answer:" or "Not applied until the strategy is
+  built:". The site route is its own `route`, a stopped pass is a `pass_stopped` gap, an
+  unbound edit names its `refusal`, and `VerificationStopped.summary` is computed from its stop.
+
 * **An edit keeps the values it did not state.** A commit sends a value the edit did not
   move in the form WDK holds it, and the plan keeps its own typed value; before, an
   organism edit stored a step's other values as the site's wire text.
@@ -42,6 +99,77 @@
   step settings model, filters on the step write, the strategy read of weight, filters and
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
+
+* **The tree tells same-named entries apart (veupathdb-py 0.9.0b18, veupathdb-mcp
+  0.9.0b23).** A lookup over a tree groups entries by name and place, so "female
+  gametocytes" with Pf3D7 named binds the Pf3D7 assay alone; the e1 InterPro pair is still
+  one name. A multi-pick no lookup read is grouped from its whole vocabulary. `WDKModel` is
+  read from `veupathdb.wdk`. An expression read the site refused (400, 401, 403) is not
+  read, with its reason; only a 404 means the site serves no report.
+
+* **An unmeasured metric is never a number.** A ratio whose denominator is empty is an
+  `Unread` naming the controls it lacks (`compute_metrics`), and a ratio that counts false
+  positives needs negative controls. The scored table shows "not measured", the comparison
+  ranks by its objective only where it is measured, else by recall and says so, and the
+  table's objective is the metric it ranked by. `ExperimentMetrics.total_results` and
+  `LeadRunCapture.new_messages`, which nothing read, are deleted.
+
+* **A choice is among one parameter's entries.** "Compare Pf3D7 versus PvP01" bound one
+  organism per criterion and showed each as Strategist's choice. An entry another criterion
+  of the spec binds on the same parameter (`taken_elsewhere`), or one named only inside a
+  bound or taken entry's name, is no untaken alternative; FRAME judges the criteria of the
+  same search again when a binding takes the other side. "and/or" and "(or X)" join an
+  alternative as "or" does.
+
+* **The sweep's open rows are settled by a test each.** A card pick on a criterion whose
+  sheet the site did not answer bound the InterPro term as a bare string under no label; it
+  is now refused with the site's words (`parameters_of_searches` holds an `Unread` per
+  search). A card pick of an expression handle the thread no longer holds is refused by name
+  instead of leaving the spec as it was. An unanswered record-type list keeps
+  `build_phyletic_expression` offered, so its call fails with the site's words instead of
+  the tool vanishing. A pick taken from a read states its count on the type. Rows whose
+  abstention is the honest answer are pinned: an unanswered read never drops a verdict, an
+  unread organism mark or list refuses no INTERSECT, an unread analysis kind stays a pending
+  check, and an unanswered Decisions call keeps the local ranking.
+
+* **Unread is said, never defaulted (the sweep's rows outside A+B).** A sweep with no
+  negative controls scored false positives as 0 and precision as 1.0; it now measures neither,
+  ranks by recall, and its summary says "no negative controls: false positives not measured"
+  (`SweepResult.ranked_by`). A scored comparison's objective is a `Literal` of the metrics it
+  ranks by, and its summary quotes that metric. A refused tunable-parameter read, a failed
+  membership re-read, the researcher's datasets VDI did not list, and an expression summary
+  the site did not answer are each an `Unread` with its reason, said where the read is shown;
+  a site that serves no expression report still holds no summary. `search_example_plans`
+  no longer swallows a site failure. An index outage says "other sites not read" and "record
+  columns not read". A memory timeout adds one line to the turn briefing. An unread result
+  count is `None`, never 0.
+
+* **The runtime checks a changed strategy, then the Lead answers once.** The "nothing
+  verified the result" refusal fired in 25 of 58 recorded turns, and e2's second answer
+  passed with a made-up `unverifiedReason` while `verify_strategy` was offered. When the
+  Lead answers a turn that changed the strategy and dispatched no check, the Lead node now
+  appends a `verify_strategy` call to the run and resumes the Lead once from it, so the
+  check streams, parks and resumes as the Lead's own call. `unverified_reason`, the
+  `unverified_build` rule, its message, its `Check` key and `verification_pending` are
+  deleted. VERIFY adds a `records_read` check: unchecked with `site_unanswered` when every
+  record read it tried got no answer (diag-vaccine run5 t1), `no_check` when it read none.
+  The chat debugger writes `timing.json` for every run.
+
+* **A WDK reply that does not parse fails the call.** A tool body that validated a site
+  reply missing a required field raised a pydantic `ValidationError`, which pydantic-ai
+  turned into a corrective retry labelled "Sent with arguments the tool does not accept".
+  `SiteReadFailures` now fails such a call on every tool, naming the reply model, and
+  FRAME, BUILD and VERIFY carry it beside the Lead, Explore and the auditor. A model built
+  from the call's arguments keeps its retry.
+
+* **A mark that was not read is not a negative.** b1 framed a Pexel list and an 80th
+  percentile on the Newbold blood-stage RNA-Seq search, and FRAME's card asked "No search on
+  this site states 'RNA-Seq evidence'. Drop it from the request?" because the marks were last
+  read for the spec the turn started with. `DataMarks.read_for` holds the searches the marks
+  were read for; `run_on` returns `Unread` for any other search and for a search or study
+  whose catalog read failed, and `_ground_data_type` maps `Unread` to not verified, never
+  ungroundable. `run_frame` re-reads the marks for the spec it wrote before the card, and
+  VERIFY reads them through the same `read_data_marks`.
 
 ## 2026-11-23
 
@@ -162,6 +290,50 @@
   rebuild dropped are deleted after the put. A draft or a refused step is a failed step of
   the build, a step above it is skipped, and no strategy is put. The WDK ids a recreate
   replaced are kept on the strategy row (`replaced_wdk_step_ids`) until a put deletes them.
+
+* **The organism fold drops by count only.** a2 bound `c_epitope` (GenesWithEpitopes, 882
+  genes) linked to the organism requirement alone, and `set_structure` dropped it because it
+  "links only the organism Plasmodium falciparum 3D7, which c_phylogeny already runs on", so
+  the final strategy no longer required the mapped epitopes the consult had promised.
+  `spec_fold._OrganismReading.redundancy` now finds a leaf redundant only when its count
+  equals the gene count of the organisms it binds (`universe_counts`); the link-only branch,
+  `OrganismDrop.met` and its sentence are gone, and `fold_organism_universe` no longer reads
+  the requirements. `StructureDrop.met` is true for a duplicate input only.
+
+* **A named alternative makes a choice.** e10 asked whether "an InterPro or Pfam search" finds
+  more genes than a gene name search; the binding took Pfam alone and the facts showed it as
+  the site's default with no word of the choice. `value_source` now returns
+  `chosen` when a request message joins the value to another entry of the parameter's
+  vocabulary the binding leaves out (by "or", "and", "versus", a comma or a slash), and the
+  label, taxon and dataset restatements go through `stated_source` in the same module. A
+  stated source is a `StatedSource` (`domain/strategy/stated_source.py`) only
+  `value_source.py` constructs, and `BoundValue.sourced` refuses the bare "stated". The
+  parameter's display name and vocabulary reach `value_source` as one `ParamSheet`.
+
+* **Entries that share a name are one name.** A lookup listed IPR050205 and IPR050236, both
+  "SERINE/THREONINE-PROTEIN KINASE", and one run bound IPR050205 alone (9 genes) while
+  another run of the same request bound all nine phrase entries (23 genes), with no word of
+  the choice. veupathdb-py 0.9.0b16 groups the entries whose
+  names past their accessions fold equal (`same_named_groups`): the exact step names none of
+  them for that name, and `VocabLookup.same_named` lists the groups a lookup kept.
+  `LookupRecord.same_named` (`ai/agents/lookup_record.py`) holds them by name, and
+  `_frame_lookups.pick_problems` refuses a multi-pick binding that holds part of a group
+  (`Check.SAME_NAMED_SUBSET`): "IPR050205 and IPR050236 share the name
+  'SERINE/THREONINE-PROTEIN KINASE'. Bind both, or ask which one on the card." An entry a
+  request message names by its accession binds alone.
+
+* **One transform reader, by the input class.** `list_transforms` took a free `record_type` and
+  listed the searches listed under it, so a transcript plan read with `record_type="gene"` saw
+  only `GenesFromTranscripts` and FRAME reported that the site has no orthology transform. It
+  now takes no argument: `services/strategies/record_classes.py::transforms_accepting` lists, across
+  every record type of the site, the transforms whose primary input accepts a record class of a
+  bound criterion (every transform when none is bound), each with the record type it is listed
+  under, so a protein plan on OrthoMCL still reads `GroupsFromSequences` under `group`.
+  `role_problems` names the same list. A FRAME `site_has_no_search` report stands only when a
+  catalog read of the pass covers the plan's record classes (`frame_result_checks._covers`); otherwise
+  FRAME is sent back once, and a report it keeps reaches the Lead as an `absence_not_read` gap
+  that names the read that answers it.
+
 * **One rename tool and one definition of obsolete.** The building pass held a second
   `rename_strategy` (`ai/tools/standalone/conversation.py`) that took a required description,
   wrote it as the strategy's stated description (sent to WDK at the next push in place of the

@@ -172,7 +172,7 @@ async def test_a_pass_that_saw_every_ranked_dataset_answers_as_today(
 
 
 @pytest.mark.asyncio
-async def test_an_unavailable_index_leaves_the_list_as_today(
+async def test_an_unavailable_index_says_other_sites_were_not_read(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     today = await _own_site_answer(monkeypatch)
@@ -183,7 +183,15 @@ async def test_an_unavailable_index_leaves_the_list_as_today(
     )
     state = AgentToolState()
 
-    assert await _answer(state) == today
+    assert await _answer(state) == [
+        *today,
+        {
+            "otherSites": {
+                "note": "Other sites not read: the search index did not answer.",
+                "experiments": [],
+            }
+        },
+    ]
     assert state.elsewhere == {}
 
 

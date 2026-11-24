@@ -21,10 +21,8 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone.catalog import (
     get_record_types,
     list_searches,
-    list_transforms,
     search_for_searches,
 )
-from strategist.ai.tools.toolsets.frame import _frame_enum_overrides
 from strategist.tests._support.tool_returns import returned
 from strategist.tests.unit.ai.tools.conftest import (
     agent_run_context,
@@ -400,65 +398,3 @@ class TestListSearches:
         )
 
         assert result == ["GenesByTaxon", "GenesByText"]
-
-
-class TestListTransforms:
-    async def test_it_records_the_transform_names(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        _serve_listing(
-            monkeypatch,
-            "list_transforms",
-            [
-                {
-                    "name": "GenesByOrthologs",
-                    "displayName": "Transform to Orthologs",
-                    "description": "Orthologs of the input genes.",
-                }
-            ],
-        )
-        state = AgentToolState()
-
-        result = returned(
-            await list_transforms(_ctx(state), record_type="transcript"),
-            list[JSONObject],
-        )
-
-        assert [row["name"] for row in result] == ["GenesByOrthologs"]
-        assert state.catalog_reads == [
-            CatalogRead(
-                tool_call_id="call_1",
-                tool="list_transforms",
-                record_type="transcript",
-                hits=[
-                    CatalogHit(
-                        name="GenesByOrthologs",
-                        display_name="Transform to Orthologs",
-                        description="Orthologs of the input genes.",
-                        record_type="transcript",
-                    )
-                ],
-            )
-        ]
-
-    async def test_a_listed_transform_passes_the_search_name_guard(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """A transform the model was shown can be inspected and bound."""
-        _serve_listing(
-            monkeypatch,
-            "list_transforms",
-            [
-                {
-                    "name": "GenesByOrthologs",
-                    "displayName": "Transform to Orthologs",
-                    "description": "Orthologs of the input genes.",
-                }
-            ],
-        )
-        state = AgentToolState()
-
-        await list_transforms(_ctx(state), record_type="transcript")
-
-        overrides = _frame_enum_overrides(_ctx(state))
-        assert "GenesByOrthologs" in overrides[("set_criterion", "search_name")]

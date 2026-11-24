@@ -14,6 +14,7 @@ from strategist.ai.agents.frame_option_checks import (
 )
 from strategist.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from strategist.ai.agents.frame_result_checks import (
+    hold_an_absence_to_a_read,
     hold_an_organism_to_a_step,
     hold_the_questions_to_a_dimension,
     hold_the_questions_to_the_draft,
@@ -30,6 +31,7 @@ from strategist.platform.refusals import ANSWER_REFUSALS_PER_KEY, last_answer
 
 _HELD_FIRST = (
     hold_the_reports_to_the_requirement_list,
+    hold_an_absence_to_a_read,
     hold_an_organism_to_a_step,
     hold_the_questions_to_a_dimension,
     hold_the_questions_to_the_draft,

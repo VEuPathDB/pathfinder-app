@@ -90,11 +90,11 @@ async def test_a_site_edit_is_decoded_under_the_class_wdk_states_for_the_step(
         asked.append(wire.record_class)
         return {}
 
-    monkeypatch.setattr(site_changes, "_decoded", _decoded)
+    monkeypatch.setattr(site_changes, "decoded_on_the_site", _decoded)
 
     live = _live(record_class_name, "GroupsByPhyleticPattern")
     tree = site_changes._the_sites_tree(live)
-    assert tree is not None
+    assert isinstance(tree, site_changes._SiteTree)
 
     await site_changes._take_the_sites_values(
         _groups_in_a_gene_strategy("GroupsByPhyleticPattern"),

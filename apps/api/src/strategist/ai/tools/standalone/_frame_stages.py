@@ -58,11 +58,10 @@ async def search_stage(
     ctx: RunContext[AgentDeps],
     stated: Criterion,
     definition: WDKSearch,
-    record_type: str,
     early: Problems,
 ) -> None:
     waiting_stage(ctx.deps.agent_state, stated, definition.url_segment, early)
-    found = early.plus(await role_problems(ctx, record_type, definition, stated.role))
+    found = early.plus(await role_problems(ctx, definition, stated.role))
     _refused(found, stated.id, definition.url_segment)
 
 
@@ -72,7 +71,6 @@ async def sheet_stage(
     call: CriterionCall,
     infos: list[ParameterInfo],
     definition: WDKSearch,
-    record_type: str,
     *,
     early: Problems,
     reading: str,
@@ -81,7 +79,7 @@ async def sheet_stage(
     found = (
         early.plus(answers_the_sheet_lacks(stated.answers, infos))
         .plus(reading_label_problems(state, stated.id, reading))
-        .plus(await role_problems(ctx, record_type, definition, stated.role))
+        .plus(await role_problems(ctx, definition, stated.role))
         .plus(unknown_names(call, infos))
         .plus(undecided(call, infos))
     )

@@ -52,7 +52,7 @@ describe("DataScoredComparison figure", () => {
   it("captions the figure with the variant count and the winning score", () => {
     inThread(<DataScoredComparison data={SCORED} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "Table 1. 2 variants, winner strict at 0.82",
+      "Table 1. 2 variants, winner strict at mcc 0.82",
     );
   });
 
@@ -216,6 +216,35 @@ describe("DataScoredComparison", () => {
     expect(screen.getByText("contains none of the control genes")).toBeInTheDocument();
   });
 
+  it("says a membership the site did not read was not read", () => {
+    inThread(
+      <DataScoredComparison
+        data={{
+          objective: "mcc",
+          winnerLabel: null,
+          variants: [
+            {
+              label: "top 5%",
+              searchName: "SB",
+              mcc: null,
+              f1: null,
+              precision: null,
+              sensitivity: null,
+              balancedAccuracy: null,
+              experimentId: null,
+              error: "scoring blew up",
+              controlHits: { reason: "HTTP 502: VEuPathDB service error" },
+            },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByText("membership not read: HTTP 502: VEuPathDB service error"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("contains none of the control genes")).toBeNull();
+  });
+
   it("shows a failed variant's error and no metrics", () => {
     inThread(
       <DataScoredComparison
@@ -276,5 +305,35 @@ describe("DataScoredComparison", () => {
     );
     const card = screen.getByTestId("data-scored-comparison");
     expect(within(card).queryByText("winner")).not.toBeInTheDocument();
+  });
+
+  it("shows an unmeasured metric as not measured and captions the ranking metric", () => {
+    const unmeasured = { reason: "no negative controls" };
+    inThread(
+      <DataScoredComparison
+        data={{
+          objective: "sensitivity",
+          winnerLabel: "strict",
+          variants: [
+            {
+              label: "strict",
+              searchName: "SA",
+              mcc: unmeasured,
+              f1: unmeasured,
+              precision: unmeasured,
+              sensitivity: 1,
+              balancedAccuracy: unmeasured,
+              experimentId: "exp_a",
+              error: null,
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "Table 1. 1 variants, winner strict at sensitivity 1.00",
+    );
+    const card = screen.getByTestId("data-scored-comparison");
+    expect(within(card).getAllByText("not measured")).toHaveLength(4);
   });
 });

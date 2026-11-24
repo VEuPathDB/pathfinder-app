@@ -15,7 +15,8 @@ from veupathdb.wdk import StrategyAPI, WDKStep, WDKStrategyDetails
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import site_changes
+from strategist.domain.unread import Unread
+from strategist.services.strategies import held_values, site_changes
 from strategist.services.strategies.sync_state import WDKSyncState
 
 _RECORDED = json.loads(
@@ -76,8 +77,10 @@ def _site_step(name: str, held: str) -> WDKStep:
     )
 
 
-async def _held_otherwise(name: str, bound: str, held: str) -> dict[str, str]:
-    return await site_changes.values_the_site_holds_otherwise(
+async def _held_otherwise(
+    name: str, bound: str, held: str
+) -> dict[str, str | None] | Unread:
+    return await held_values.values_the_site_holds_otherwise(
         _graph(name, bound).steps[_LEAF], _site_step(name, held), "orthomcl"
     )
 

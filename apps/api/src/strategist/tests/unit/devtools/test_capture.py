@@ -571,3 +571,13 @@ def test_a_terminal_call_the_model_kept_failing_reads_as_a_loop(
     kinds = [a["kind"] for a in json.loads((tmp_path / "diagnosis.json").read_text())]
     assert "loop" in kinds
     assert OUTPUT_TOOL in (tmp_path / "transcript.md").read_text()
+
+
+def test_flush_writes_the_turns_wall_time(tmp_path: Path) -> None:
+    cap = _new(tmp_path)
+
+    out = cap.flush()
+
+    timing = json.loads((out / "timing.json").read_text())
+    assert timing["ended"] >= timing["started"]
+    assert timing["wall_seconds"] == round(timing["ended"] - timing["started"], 3)

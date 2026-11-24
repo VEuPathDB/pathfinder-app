@@ -206,7 +206,7 @@ async def _restoring_edit(
         state.domain.operational_spec = _reframed()
         return FrameResult(
             disposition="spec_ready",
-            summary="reframed",
+            notes="reframed",
         )
 
     async def _fake_commit(**kwargs: Any) -> CommitResult:

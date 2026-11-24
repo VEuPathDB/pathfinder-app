@@ -25,7 +25,6 @@ from assistant_core.platform.types import PaidBy, ReasoningEffort
 from pydantic_ai.messages import (
     AgentStreamEvent,
     FunctionToolResultEvent,
-    ModelMessage,
     PartStartEvent,
 )
 from pydantic_ai.run import AgentRunResultEvent
@@ -102,7 +101,6 @@ class LeadRunCapture:
     model_answered: bool = False
     declined: ModelDeclinedError | None = None
 
-    new_messages: list[ModelMessage] = field(default_factory=list)
     finish_reason: str = "stop"
     response: LeadResponse | None = None
     tokens: int = 0

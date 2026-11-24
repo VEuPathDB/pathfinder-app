@@ -50,6 +50,7 @@ from strategist.domain.strategy.organism_scope import (
 )
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.types import SyncStateProtocol
+from strategist.domain.unread import Unread
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
 from strategist.services.experiment.column_tally import ColumnTallyRefusedError
 from strategist.services.experiment.paged_tally import (
@@ -60,10 +61,10 @@ from strategist.services.experiment.paged_tally import (
 from strategist.services.experiment.reporter_refusals import ReporterRefusedError
 from strategist.services.experiment.step_tally import CountedStep, run_step_tally
 from strategist.services.site_errors import answered_with_a_status
-from strategist.services.strategies.organism_params import organism_taxa
-from strategist.services.strategies.site_changes import (
+from strategist.services.strategies.held_values import (
     values_the_site_holds_otherwise,
 )
+from strategist.services.strategies.organism_params import organism_taxa
 from strategist.services.strategies.site_counts import read_site_strategy
 
 _RESULT_ORGANISMS = "the organisms of the result"
@@ -113,6 +114,7 @@ def _judged(
 
 async def _bound_values(judged: _Judged) -> SiteCheck:
     differing: list[HeldValue] = []
+    unread: list[Unread] = []
     compared = 0
     for step_id, site in judged.held.items():
         step = judged.graph.steps[step_id]
@@ -120,17 +122,16 @@ async def _bound_values(judged: _Judged) -> SiteCheck:
             continue
         compared += 1
         bound = encode_params(step.parameters)
-        moved = await values_the_site_holds_otherwise(step, site, judged.site_id)
-        differing.extend(
-            HeldValue(
-                step=judged.steps[step_id].named,
-                param=name,
-                bound=bound[name],
-                site=value,
-            )
-            for name, value in moved.items()
-        )
-    return bound_values_check(compared, differing)
+        named = judged.steps[step_id].named
+        match await values_the_site_holds_otherwise(step, site, judged.site_id):
+            case Unread(reason=reason):
+                unread.append(Unread(reason=f"{named}: {reason}"))
+            case moved:
+                differing.extend(
+                    HeldValue(step=named, param=name, bound=bound[name], site=value)
+                    for name, value in moved.items()
+                )
+    return bound_values_check(compared, differing, unread)
 
 
 def _join(judged: _Judged, step: StrategyStep) -> JoinedCounts | None:

@@ -9,6 +9,7 @@ from veupathdb.model import CamelModel
 from strategist.domain.strategy.orthology import OrganismChange
 from strategist.domain.strategy.session import StrategyGraph, strategy_root_id
 from strategist.domain.strategy.types import SyncStateProtocol
+from strategist.domain.unread import Unread
 
 NodeStatus = Literal["ok", "zero", "failed"]
 
@@ -117,6 +118,7 @@ class BuildOutcome:
     node_results: list[NodeResult] = field(default_factory=list)
     # Set when the records belong to another organism than the seed searched.
     organism_change: OrganismChange | None = None
+    not_read: Unread | None = None
 
     @property
     def fully_succeeded(self) -> bool:

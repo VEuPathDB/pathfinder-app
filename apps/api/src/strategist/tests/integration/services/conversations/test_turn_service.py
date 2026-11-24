@@ -24,8 +24,8 @@ from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.conversations.turns import (
     load_conversation,
     name_conversation_if_unnamed,
-    name_turn_strategy_revision,
     turn_start_revision_id,
+    writes_named_by,
 )
 
 
@@ -122,31 +122,27 @@ async def test_turn_start_revision_id_names_the_newest_snapshot(
     ]
 
 
-async def test_naming_a_revision_binds_it_to_the_turn_message(
+async def test_a_snapshot_written_in_a_turn_carries_the_turn_s_message(
     db_session: AsyncSession,
 ) -> None:
     conversation = await _thread(db_session)
-    revision = await StrategyRevisionRepository(db_session).record(
-        conversation.id,
-        ConversationStrategyView(record_type="transcript", step_count=1),
-    )
-    await db_session.commit()
-    assert revision is not None
     message_id = uuid4()
 
-    await name_turn_strategy_revision(
-        async_session_factory,
-        conversation_id=conversation.id,
-        message_id=message_id,
-    )
-
-    async with async_session_factory() as session:
-        named = await StrategyRevisionRepository(session).named_by(
+    with writes_named_by(message_id):
+        revision = await StrategyRevisionRepository(db_session).record(
             conversation.id,
-            message_id=message_id,
+            ConversationStrategyView(record_type="transcript", step_count=1),
         )
-    assert named is not None
-    assert named.id == revision.id
+    outside = await StrategyRevisionRepository(db_session).record(
+        conversation.id,
+        ConversationStrategyView(record_type="transcript", step_count=2),
+    )
+    await db_session.commit()
+
+    assert (
+        None if revision is None else revision.message_id,
+        None if outside is None else outside.message_id,
+    ) == (message_id, None)
 
 
 async def test_the_title_reaches_the_stored_strategy(db_session: AsyncSession) -> None:

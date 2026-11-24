@@ -90,7 +90,10 @@ def _curated(search_name: str, *, linked: bool = True) -> OperationalSpec:
 def _ground(
     spec: OperationalSpec, marks: DataMarks, asked: Constraint | None = None
 ) -> tuple[object, ...]:
-    [grounded] = ground_against_spec([asked or _asked()], spec, marks=marks)
+    read = marks.model_copy(
+        update={"read_for": frozenset(c.search_name for c in spec.criteria)}
+    )
+    [grounded] = ground_against_spec([asked or _asked()], spec, marks=read)
     return grounded.status, grounded.realized_value, grounded.note
 
 

@@ -165,7 +165,12 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
     assert isinstance(delta, VerificationDelta)
     [grounded] = derive_ledger(deps.state, None).constraints.grounded
     assert (seen, grounded.status, grounded.realized_value, delta.digest.success) == (
-        [DataMarks(uploads={_STEP: "rnaseqrc"})],
+        [
+            DataMarks(
+                uploads={_STEP: "rnaseqrc"},
+                read_for=frozenset({"GenesByDESeqUserDataset"}),
+            )
+        ],
         ConstraintStatus.GROUNDED,
         "rna_seq",
         True,

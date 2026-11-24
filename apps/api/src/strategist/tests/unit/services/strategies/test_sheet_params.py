@@ -8,8 +8,12 @@ import pytest
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKSearch
 
+from strategist.domain.unread import Unread
 from strategist.services.strategies import sheet_params
-from strategist.services.strategies.sheet_params import sheet_params_for_searches
+from strategist.services.strategies.sheet_params import (
+    parameters_of_searches,
+    sheet_params_for_searches,
+)
 from strategist.tests._support.record_classes import list_searches_under
 
 _SEARCH = "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC"
@@ -99,3 +103,19 @@ async def test_a_search_listed_under_no_record_type_has_no_sheet_and_says_why(
         [],
         [("the site lists no record type for the search", _SEARCH)],
     )
+
+
+async def test_a_search_the_catalog_cannot_read_is_unread_with_the_sites_words(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _refused(*_args: Any, **_kwargs: Any) -> WDKSearch:
+        raise _NO_SUCH_SEARCH
+
+    list_searches_under(monkeypatch, "transcript", [_SEARCH])
+    monkeypatch.setattr(sheet_params, "read_search_definition", _refused)
+
+    reads = await parameters_of_searches(site_id="plasmodb", search_names=[_SEARCH])
+
+    assert reads == {
+        _SEARCH: Unread(reason="HTTP 404: VEuPathDB service error: no such search")
+    }

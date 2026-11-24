@@ -39,6 +39,7 @@ from strategist.services.strategies.organism_params import organism_parameters
 from strategist.services.strategies.record_classes import search_record_types
 from strategist.services.strategies.search_sheets import radio_pairs_of
 from strategist.services.strategies.sheet_params import (
+    read_or_refuse,
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
@@ -216,8 +217,11 @@ async def _the_replay_reading(
     )
     return _Reading(
         sheets=sheets,
-        under_parents=await sheets_under_their_parents(
-            site_id=site_id, steps=steps, sheets=sheets
+        under_parents=read_or_refuse(
+            site_id,
+            await sheets_under_their_parents(
+                site_id=site_id, steps=steps, sheets=sheets
+            ),
         ),
         analyses=analyses_of(live),
         searches=searches,

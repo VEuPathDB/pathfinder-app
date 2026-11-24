@@ -1,0 +1,105 @@
+# Handlers whose failure value is correct as written: path:function:caught:default reason.
+ai/agents/frame_expression_checks.py:_expressions:ValidationError:continue no bind admits an unparsable expression, so there is none to check (test_an_unparsable_expression_is_never_checked_or_bound)
+ai/agents/frame_reading_checks.py:_spelled:ValidationError:continue the refusal is recorded and goes back to FRAME as a correction before continue
+ai/audit/review.py:_synthesize:SynthesisStoppedError:return a stopped synthesis records its stop as the run's progress, stores none, and charges its spend
+ai/capabilities/metering.py:charge_spend:SQLAlchemyError:log best effort: the spend misses the payer's monthly row; nothing the researcher reads changes (test_an_explore_turn_records_every_spend (happy path only))
+ai/conversation/_turn_helpers.py:_extract_chunk:ValidationError:returnNone a custom stream payload that is no chunk envelope carries no chunk to write ((callers covered by graph tests))
+ai/conversation/title_generator.py:title_model_id:LookupError:returnNone no model to title with gives the fallback title from the message (test_title_generator.py)
+ai/conversation/turn_stop.py:watch_for_cancel:Exception:return a failed cancel poll ends the watch and cancels nothing (test_a_failed_cancel_poll_stops_the_watcher.py::test_a_poll_that_fails_ends_the_watch_and_cancels_nothing)
+ai/conversation/turn_stop.py:watch_for_cancel:asyncio.CancelledError:return a watcher cancelled at turn end stops
+ai/conversation/turn_title.py:_keep_the_name:Exception:log best effort: the thread keeps its name; the next turn names it
+ai/conversation/turn_title.py:_write_title:Exception:returnFalse reports the title as not written, so no title chunk claims one
+ai/conversation/turn_title.py:_write_title:Exception:returnFalse#2 reports the title as not written
+ai/conversation/turn_title.py:_write_title:TimeoutError:returnFalse reports the title as not written; the next turn names the thread (test_turn_runner.py (happy path))
+ai/conversation/turn_title.py:write_turn_name:Exception:return best effort: a rename past its wait keeps the name and writes no title chunk
+ai/conversation/turn_title.py:write_turn_name:TimeoutError:return best effort: a failed rename keeps the name and writes no title chunk (test_a_turn_names_what_its_edits_outdated.py (happy path))
+ai/graph/_lead_capture.py:_charge_token_delta:SQLAlchemyError:return an uncharged delta stays unbilled on the capture, so the residual write at turn end charges it
+ai/graph/_lead_capture.py:_persist_residual_quota:SQLAlchemyError:return the quota misses the spend but the usage event and the checkpoint keep the true total (test_turn_total_survives_the_quota_write.py::test_a_refused_quota_write_bills_nothing_and_keeps_the_turn_total)
+ai/graph/explore_node.py:_read_and_run:MessageNotReadError:returnCardHold(resumed=set()) the reader's stop is the turn's reply (test_a_message_the_reader_could_not_read_ends_the_turn_saying_so)
+ai/graph/nodes.py:_compact_the_notes:Exception:compaction_run=None the notes stay uncompacted and nothing says they were compacted (test_finalize_after_an_explore_turn.py (path only))
+ai/graph/nodes.py:_write_the_notes:Exception:returnFalse reports the auto-write as not written, so the gene sets are offered again (test_memory_deadline.py::test_an_auto_write_that_raises_keeps_the_gene_sets_to_note)
+ai/graph/stored_verdicts.py:emptied_when_unreadable:ValidationError:return[] unreadable stored fits load as none (test_a_checkpoint_with_unreadable_fits_reloads_and_its_next_turn_runs)
+ai/graph/stored_verdicts.py:refused_when_unreadable:ValidationError:returnNone an unreadable stored verdict loads as none, so the strategy reads unchecked (test_a_checkpoint_with_unreadable_fits_reloads_and_its_next_turn_runs)
+ai/lead/_delete_rules.py:delete_cascade:ApplyError:return[] the card lists no other step, and the delete itself is refused by the same graph rule (test_a_delete_card_lists_what_goes.py (happy path))
+ai/lead/edit_refused_values.py:_params_wdk_named:pydantic.ValidationError:returnfrozenset() a refusal whose rows name no parameter names every step the edit wrote
+ai/lead/held_intent.py:_readings:(TooManyIdsError,NoGeneRecordsError):returnNone ids the gate could not read are held as unread, so the gate abstains and claims no record
+ai/lead/retrieval_toolset.py:_answer_fields:ValueError:return{} a research answer that is prose vouches for no source, so the reply links fewer pages
+ai/lead/score_counts.py:record_score_counts:ToolFailed:return an unread score tally records no comparison fact, and nothing states one (test_a_ranked_result_is_counted_by_score.py (happy path))
+ai/lead/sub_agent_events.py:_result_json:PydanticSerializationError:returnNone the trace row shows its summary with no JSON body
+ai/lead/sub_agent_stream.py:stream_sub_agent:(UsageLimitExceeded,ModelAPIError,UnexpectedModelBehavior,SearchNotServedError):returnNone the stop is recorded on the dispatch, which reports it (test_sub_agent_stream_stops.py::test_a_budget_stop_is_recorded_with_its_numbers)
+ai/lead/verify_checks.py:read_the_columns:ToolFailed:continue an unanswered column read is recorded as an unchecked check before continue
+ai/tools/standalone/_expression_check.py:read_expression_fit:ValidationError:returnNone no bind admits an unparsable expression (test_an_unparsable_expression_is_never_checked_or_bound)
+ai/tools/standalone/_frame_datasets.py:_ids:ValidationError:return[] a dataset value that is no id list (a saved dataset id) is left as bound
+ai/tools/standalone/_frame_sources.py:_number:ValueError:returnNone text that is no number is converted to no other scale
+ai/tools/standalone/_step_columns.py:_number:ValueError:returnNone a bin with no numeric bounds cannot meet a numeric threshold; records with no value are counted apart
+ai/tools/standalone/gene.py:resolve_gene_ids_to_records:NoGeneRecordsError:returnwith_summary(GeneResolveResult(records=[],total_count=0,error=exc.detail),f'0of{len(ids)}idsresolved',ctx=ctx,status='warn') the result carries the site's refusal as its error, status warn (test_a_site_with_no_gene_records_refuses_the_read_by_name)
+ai/tools/standalone/search_reads.py:_refuse_an_unlisted_search:VagueSearchQueryError:found=[] the search is unlisted, so it is refused; the lookup that was too vague offers no names
+domain/expression_fit.py:bound_expressions:ValidationError:continue no bind admits an unparsable expression (test_an_unparsable_expression_is_never_checked_or_bound)
+domain/log2_scale.py:fold_label:ValueError:return'' text that is no number has no fold label; the value is shown as written (unit domain/test_a_log2_value_shows_its_fold.py (success))
+domain/strategy/linked_values.py:LinkedParam.number:ValueError:returnNone a wire value that is no number is not compared as a number
+domain/strategy/one_sided.py:_default_end:ValidationError:returnNone a default that is no range gives no end, so no end is bound or claimed
+domain/strategy/one_sided.py:_scalar_number:ValueError:returnNone text that is no number is not a numeric default
+domain/strategy/value_source.py:_number_of:ValueError:returnNone text that is no number is read as words (unit domain/test_a_stored_value_has_a_display_form.py (related))
+services/audit/held_organisms.py:HeldOrganisms.of:(httpx.TransportError,VEuPathDBError,TimeoutError):log unread organisms stay None, so the genomes argument is not narrowed to a list it did not read
+services/audit/job.py:_carry:SignInNeededError:return a run that needs a sign-in is halted with SIGN_IN_NEEDED before return (integration/jobs/test_audit_run_halts_and_resumes.py)
+services/audit/job.py:_defer:AlreadyEnqueued:return the queueing lock holds a job for this run already, and that job runs (integration/jobs/test_audit_run_halts_and_resumes.py (resume path))
+services/audit/planning.py:_reference_strain:pydantic.ValidationError:returnNone unparsed provenance is "unknown", never a reference strain (unit/domain/audit/test_planning.py (use_of))
+services/audit/reviews.py:continue_review:AlreadyEnqueued:return a review already queued for the run is the review this defers (integration/jobs/test_audit_review_job.py)
+services/audit/reviews.py:queue_review:Exception:log the review is left waiting and the resume pass queues it
+services/audit/sign_in.py:_kept_sign_in:InvalidTag:returnNone a seal that does not open holds no sign-in; the run halts and asks for one (integration/jobs/test_audit_run_waits_and_sign_in.py)
+services/audit/sign_in.py:sign_in_holds:(jwt.PyJWTError,ValidationError):returnFalse a token that does not decode is no registered sign-in
+services/conversations/begin.py:_persist_generated_title:Exception:log best effort: the thread keeps its name and the next turn names it
+services/conversations/begin.py:_persist_generated_title:Exception:return best effort: the thread keeps its name (unit/services/conversations/test_a_begin_title_that_fails_is_logged.py)
+services/conversations/responses.py:_compute_wdk_url:SiteNotFoundError:returnNone a thread on a site this deployment does not serve lists with no link
+services/conversations/surgery_commit.py:_best_effort:Exception:log cleanup after a failed surgery whose own failure the caller raises
+services/conversations/surgery_commit.py:_release_uncommitted:Exception:return keeps what an unconfirmed commit made rather than deleting a mint a row may name
+services/conversations/surgery_commit.py:commit_or_release:Exception:log a failed rollback is logged and the commit's failure still reaches the caller
+services/eda/analysis_kinds.py:_kind_on_the_site:(VEuPathDBError,OSError,RuntimeError):returnNone an unread kind is a pending check, never a kind (test_a_step_whose_search_was_not_read_is_a_pending_check)
+services/eda/catalog.py:_sync_from_first_answering_site:(NotFoundError,SemanticIndexUnavailableError,OSError,httpx.HTTPError):continue warm-up reads the study index from the next site that answers; None when none does
+services/eda/compute.py:_as_float:ValueError:returnNone a statistic that is no number is counted as unparseable, never as 0
+services/eda/export.py:_document_of:ValidationError:returnNone a document that does not parse is shown as its raw parameters, never as a selection (note: the recut guard abstains for it) (unit/domain/strategy/test_an_analysis_criterion.py)
+services/eda/export.py:study_step_request:ValidationError:returnNone a step that carries no EDA parameters has no study request
+services/eda/group_samples.py:group_samples:(VEuPathDBError,httpx.HTTPError,ValidationError):returnNone no count refuses nothing and states none (test_no_count_refuses_nothing)
+services/eda/private_datasets.py:_own:VdiDatasetGoneError:returnNone a dataset VDI no longer holds is not listed
+services/eda/thread_surgery.py:branch_thread_binding:VEuPathDBError:returnNone a branch opens unbound when the study service refuses a document (invariant F7) (integration/persistence/test_fork_case_matrix.py::test_f7_a_study_service_refusal_leaves_the_branch_unbound)
+services/eda/thread_surgery.py:delete_released_document:RELEASE_FAILURES:return keeps a document the study service refused to delete; nothing claims it gone
+services/eda/thread_surgery.py:restore_thread_binding:VEuPathDBError:returnNone a revert keeps the binding the study service refused to move (thread-surgery invariant R7) (integration/persistence/test_revert_case_matrix.py::test_r7_a_study_service_refusal_leaves_the_binding_where_it_was)
+services/eval_data/extraction.py:_unparsed_strategy:ValidationError:returnNone nothing unredacted is staged (unit/services/eval_data/test_extracted_strategy.py)
+services/eval_data/extraction.py:extract_eval_candidates:ValidationError:continue a candidate that fails redaction is refused, never staged (unit/services/eval_data/test_extracted_strategy.py)
+services/eval_data/rated.py:stage_disliked_message:ValidationError:returnNone a message that fails redaction is not staged
+services/evidence/control_sets.py:_as_uuid:ValueError:returnNone text that is no UUID names no set, and the caller refuses with the sets it holds
+services/experiment/variant_comparison.py:_result_count:(VEuPathDBError,httpx.HTTPError):returnNone an unread in-place count is left out of the row, never shown as a number
+services/export/control_downloads.py:attach_sweep_download:(VEuPathDBError,OSError):return a sweep whose export failed carries no download link (integration/jobs/test_optimize_params_impl.py (success path))
+services/export/sweeper.py:run_sweeper_loop:Exception:log the expiry sweeper tries again next interval (unit/platform/test_startup_binds_before_warm_up.py (starts it))
+services/gene_records/read.py:_expression_of:(VEuPathDBError,OSError):returnNone only a 404 is a site that serves no report; any other failure is Unread (test_read_gene_record)
+services/parameter_optimization/sweep.py:_number:ValueError:returnNone a held value that is no number leaves the sweep's levels as written
+services/provider_keys.py:_opened:InvalidTag:returnNone a sealed key that does not open is refused as unreadable (unit/platform/test_model_keys.py (refusal path))
+services/site_errors.py:_requested_url:RuntimeError:returnNone an error with no request names no URL, so no site is blamed
+services/strategies/_tree_write.py:put_the_strategy_labels:VEuPathDBError:return WDK keeps its labels and the held name stays lagging, so the next push sends them again
+services/strategies/abandoned_mint.py:delete_released_mint:RELEASE_FAILURES:return a mint whose saved mark the site did not answer is kept, never deleted (integration test_abandoned_mint_released.py (other branches))
+services/strategies/abandoned_mint.py:delete_released_mint:RELEASE_FAILURES:return#2 a refused delete keeps the WDK strategy and the restore stands (integration test_abandoned_mint_released.py::test_a_refused_delete_still_leaves_the_thread_restored)
+services/strategies/auto_import.py:auto_import_gene_set:(EmptyGeneSetError,RecordsAreNotGenesError,TooManyGenesError):returnNone a result that is no gene set imports none and leaves the latch off (unit test_auto_import_empty.py::test_empty_result_creates_nothing_and_does_not_latch)
+services/strategies/auto_import.py:auto_import_gene_set:(VEuPathDBError,RuntimeError):returnNone no set is linked and the latch stays off; nothing claims a saved set and the next write imports it
+services/strategies/auto_import.py:import_gene_set_for_conversation:(VEuPathDBError,RuntimeError):returnNone rolled back; the next write's refresh imports the set (integration test_a_write_after_a_refused_import_imports_the_new_root.py (cap branch only))
+services/strategies/commit_tree.py:_Commit.validate:ValidationError:continue the refusal is recorded on the step before continue (unit test_a_refused_write_is_retried.py, test_a_commit_validates_each_written_step_once.py)
+services/strategies/data_marks.py:_assays:(VEuPathDBError,OSError):continue the failed read is recorded as Unread (unit domain/strategy/test_an_unread_mark_is_not_a_negative.py)
+services/strategies/gene_set_refresh.py:defer_the_gene_set_refresh:AlreadyEnqueued:return the queued refresh reads the latest stored strategy, so it covers this write
+services/strategies/live_counts.py:the_site_dropped_the_strategy:(VEuPathDBError,OSError):returnFalse an unanswered read proves nothing gone (test_a_dropped_strategy_owes_no_verdict[unreached])
+services/strategies/live_counts.py:the_site_dropped_the_strategy:(VEuPathDBError,OSError):returnFalse#2 an unanswered listing proves nothing gone (test_a_dropped_strategy_owes_no_verdict[listing_unreached])
+services/strategies/live_counts.py:the_site_dropped_the_strategy:WDKError:returnFalse a refusal other than a 404 proves nothing gone (test_a_dropped_strategy_owes_no_verdict[site_down])
+services/strategies/measurements.py:TurnCounts._ask:WDKError:returnNone an unread count is not cached and is stated as not measured
+services/strategies/measurements.py:TurnCounts.reach:(VEuPathDBError,TimeoutError):returnNone an unread reach is not cached and is stated as not measured
+services/strategies/naming.py:_rename_the_imported_set:NotFoundError:return a gene set that is gone has no name to change
+services/strategies/organism_params.py:_site_organisms:(VEuPathDBError,OSError):return[] an empty list places no entry, so the checks abstain (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
+services/strategies/organism_params.py:organism_parameters:(VEuPathDBError,OSError):continue an unread mark leaves the scope unknown and refuses nothing (test_an_unread_mark_leaves_the_scopes_unknown_and_refuses_nothing)
+services/strategies/organism_params.py:organism_taxa:(VEuPathDBError,OSError):continue the unread tree is recorded as unread before continue (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
+services/strategies/reading_check.py:site_spelling:(VEuPathDBError,TimeoutError):returnNone a pre-check that did not answer abstains; the bind validates the value again (unit ai/agents/test_a_reading_of_an_unknown_class_is_named_unchecked.py (related))
+services/strategies/reconcile.py:_the_step_wdk_holds:VEuPathDBError:returnNone a 404 is a step WDK no longer holds, which the commit unmaps; any other failure raises (test_a_step_wdk_answers_404_for_is_unmapped)
+services/strategies/search_sheets.py:_definition:(VEuPathDBError,OSError):returnNone an unread definition gives no radio pair, so a step is named less specifically and nothing binds from it (test_an_unread_definition_names_the_step_less_specifically)
+services/strategies/session_factory.py:_restore_wdk_tree:StrategyCompilationError:sync_state.wdk_step_tree=None a tree with an unpushed step is not the tree WDK holds, so the next push writes it
+services/strategies/sheet_params.py:_parameters_read:(VEuPathDBError,OSError):continue records Unread before continue (test_a_card_pick_on_an_unread_sheet_binds_nothing)
+services/strategies/site_counts.py:read_site_strategy:VEuPathDBError:returnNone None makes every site check unchecked and the card says not answered (unit test_evidence_card_assembly.py)
+services/strategies/sync.py:step_tree_is_current:StrategyCompilationError:returnFalse a tree that does not compile is not current, so it is pushed
+services/strategies/wdk_sync.py:lazy_fetch_wdk_detail:(VEuPathDBError,RuntimeError):log the thread shows the summary it holds and fetches again on the next open (integration test_a_saved_strategy_lists_its_count.py (success path))
+services/user_data.py:_purge_wdk_strategies._delete_one:(VEuPathDBError,OSError,RuntimeError):returnFalse a refused delete is reported as kept
+services/user_data.py:_purge_wdk_strategies:(VEuPathDBError,OSError,RuntimeError):continue an unreachable site keeps its strategies and the outcome reports them as kept

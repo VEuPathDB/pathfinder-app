@@ -16,6 +16,7 @@ from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.answers_text import answers_text
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.card_reply import CardReply
+from strategist.ai.lead.card_sheets import card_sheets, picks_on_unread_sheets
 from strategist.ai.lead.readings import picks_their_criteria_refuse, refused_picks
 from strategist.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from strategist.ai.lead.sub_agent_tools import LeadDeps
@@ -53,10 +54,6 @@ from strategist.domain.strategy.questions import (
 )
 from strategist.domain.strategy.readings import ReadingChooser, ReadValues
 from strategist.domain.strategy.requirement_reports import numbered_requirements
-from strategist.services.strategies.sheet_params import (
-    criterion_sheets,
-    parameters_of_searches,
-)
 
 _LABEL_LIMIT = 120
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
@@ -251,37 +248,6 @@ def apply_option_bindings(
     domain.operational_spec = domain.follow_readings(entry, domain.operational_spec)
 
 
-async def _card_sheets(
-    state: PipelineState, answers: Sequence[UserQuestionAnswer]
-) -> dict[str, list[ParameterInfo]]:
-    """Every published parameter of each criterion a picked option binds a value
-    on, the ones the site sets included, with each dependent vocabulary read
-    under the values that criterion holds, by criterion id."""
-    spec = state.domain.operational_spec
-    recorded = {q.question: q for q in state.domain.open_questions}
-    bound = {
-        values.criterion_id
-        for answer in answers
-        if (question := recorded.get(answer.prompt)) is not None
-        for option in question.options
-        if option.label in answer.chosen_labels
-        and (values := option.values_bound()) is not None
-    }
-    searches = (
-        {c.search_name for c in spec.criteria if c.id in bound and c.search_name}
-        if spec is not None
-        else set()
-    )
-    if spec is None or not searches:
-        return {}
-    published = await parameters_of_searches(
-        site_id=state.site_id, search_names=searches
-    )
-    return await criterion_sheets(
-        state.site_id, [c for c in spec.criteria if c.id in bound], published
-    )
-
-
 def _picks_that_are_no_value(
     state: PipelineState,
     answers: Sequence[UserQuestionAnswer],
@@ -378,9 +344,12 @@ async def consult_user(
     pending = state.pending_approval
     card = "" if pending is None else pending.tool_call_id
     answers = answered_on_the_card(state.user_question_answers.get(card, []), shown)
-    sheets = await _card_sheets(state, answers)
-    no_values = _picks_that_are_no_value(state, answers, sheets)
-    picked = _without_picks(answers, no_values)
+    sheets, unread = await card_sheets(state, answers)
+    unread_picks = picks_on_unread_sheets(state, answers, unread)
+    no_values = _picks_that_are_no_value(
+        state, _without_picks(answers, unread_picks), sheets
+    )
+    picked = _without_picks(answers, {*unread_picks, *no_values})
     refused = {
         **await picks_their_criteria_refuse(state, picked, sheets),
         **await refused_picks(state, picked),
@@ -397,6 +366,7 @@ async def consult_user(
             label: f"the site refused {label!r}, so it binds nothing: {why}"
             for label, why in refused.items()
         },
+        **unread_picks,
     }
     asked = with_summary(
         [_with_refusals(a, refusals) for a in answers],
@@ -411,7 +381,7 @@ async def consult_user(
             *refusals.values(),
         ]
     )
-    answers = _without_picks(answers, {*no_values, *refused})
+    answers = _without_picks(answers, {*unread_picks, *no_values, *refused})
     if answers:
         # Their answers are new requirements, so one more frame is licensed.
         state.turn_markers.framed = False

@@ -172,5 +172,5 @@ async def refused_picks(
                 except ValidationError as refusal:
                     refused[option.label] = str(refusal)
                 except UnknownExpressionError as unheld:
-                    refused[option.label] = f"{unheld.handle} names no held expression"
+                    refused[option.label] = str(unheld)
     return refused

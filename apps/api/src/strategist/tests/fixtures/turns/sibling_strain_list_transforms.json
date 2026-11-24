@@ -1,0 +1,15 @@
+{
+  "provenance": "cedar ~/proto/replay/runs/dafter-evals/runs/evals/an-edit-to-a-sibling-strain-binds-it: turn-2 tools/11-list_transforms.json and the step record class of turn-1 state/frame.json",
+  "planRecordClass": "transcript",
+  "listTransforms": {
+    "args": {"record_type": "gene"},
+    "result": "1 transforms on gene",
+    "output": [
+      {
+        "name": "GenesFromTranscripts",
+        "displayName": "Transform Transcripts to Genes",
+        "description": "Find genes from a result set of transcripts"
+      }
+    ]
+  }
+}

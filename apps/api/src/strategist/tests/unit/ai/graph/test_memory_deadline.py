@@ -15,7 +15,7 @@ from langgraph.runtime import Runtime
 from langgraph.store.postgres.aio import AsyncPostgresStore
 
 from strategist.ai.agents.state import CreatedGeneSet
-from strategist.ai.graph import _lead_turn, nodes
+from strategist.ai.graph import _lead_memory, nodes
 from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import (
     PhaseDisposition,
@@ -24,6 +24,7 @@ from strategist.ai.graph.state import (
     VerificationDigest,
 )
 from strategist.domain.strategy.session import StrategySession
+from strategist.domain.unread import Unread
 from strategist.tests._support.database import no_database
 from strategist.tests._support.logs import logged_events
 
@@ -110,9 +111,9 @@ async def test_retrieval_degrades_to_no_memories(
     del short_deadline
     runtime: Runtime[Context] = Runtime(context=_context())
 
-    found = await _lead_turn.retrieve_memories(_state(), runtime)
+    found = await _lead_memory.retrieve_memories(_state(), runtime)
 
-    assert found == []
+    assert found == Unread(reason="the memory store did not answer")
     assert logged_events(caplog.records) == [
         "memory retrieval timed out; the turn runs without memories"
     ]
@@ -125,7 +126,7 @@ async def test_retrieval_gives_up_at_the_deadline(short_deadline: None) -> None:
     started = loop.time()
     runtime: Runtime[Context] = Runtime(context=_context())
 
-    await _lead_turn.retrieve_memories(_state(), runtime)
+    await _lead_memory.retrieve_memories(_state(), runtime)
     elapsed = loop.time() - started
 
     assert 0.05 <= elapsed < 1.0

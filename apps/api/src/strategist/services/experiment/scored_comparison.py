@@ -10,6 +10,8 @@ This is the controls-based counterpart to the no-controls exploratory
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Literal
 
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
@@ -18,6 +20,7 @@ from veupathdb.errors import WDKError
 from veupathdb_mcp.controls import CONTROLS_PARAM, CONTROLS_SEARCH
 from veupathdb_mcp.wdk import extract_record_ids
 
+from strategist.domain.unread import Unread
 from strategist.services.experiment.service import run_experiment
 from strategist.services.experiment.types.experiment import (
     Experiment,
@@ -27,6 +30,7 @@ from strategist.services.experiment.variant_comparison import (
     VariantSpec,
     run_variant_search,
 )
+from strategist.services.site_errors import site_words
 
 _MAX_ERROR_CHARS = 200
 
@@ -35,23 +39,27 @@ class ScoredVariant(CamelModel):
     label: str
     search_name: str
     experiment_id: str | None = None
-    mcc: float | None = None
-    balanced_accuracy: float | None = None
-    f1: float | None = None
-    sensitivity: float | None = None
-    precision: float | None = None
+    mcc: float | Unread | None = None
+    balanced_accuracy: float | Unread | None = None
+    f1: float | Unread | None = None
+    sensitivity: float | Unread | None = None
+    precision: float | Unread | None = None
     error: str | None = None
-    control_hits: list[str] = Field(default_factory=list)
-    """The given control ids this variant's result contains, in the given order."""
+    control_hits: list[str] | Unread = Field(default_factory=list)
+    """The given control ids this variant's result contains, in the given order,
+    or why the result was not read."""
 
 
 class ScoredComparison(CamelModel):
     variants: list[ScoredVariant]
     winner_label: str | None
     objective: str
+    """The metric the variants were ranked by."""
 
 
-_RANK_BY: dict[str, Callable[[ScoredVariant], float | None]] = {
+type Objective = Literal["mcc", "balanced_accuracy", "f1", "precision", "sensitivity"]
+
+RANK_BY: dict[Objective, Callable[[ScoredVariant], float | Unread | None]] = {
     "mcc": lambda v: v.mcc,
     "balanced_accuracy": lambda v: v.balanced_accuracy,
     "f1": lambda v: v.f1,
@@ -83,14 +91,14 @@ def _first_field_error(exc: ValidationError) -> str:
 
 async def _hits_from_search(
     spec: VariantSpec, *, site_id: str, control_ids: list[str]
-) -> list[str]:
+) -> list[str] | Unread:
     """The control ids in this variant's result, read without scoring it."""
     if not control_ids:
         return []
     try:
         answer = await run_variant_search(site_id, spec)
-    except WDKError, httpx.HTTPError:
-        return []
+    except (WDKError, httpx.HTTPError) as exc:
+        return Unread(reason=site_words(exc))
     found = set(extract_record_ids(answer.records))
     return [gene for gene in control_ids if gene in found]
 
@@ -183,7 +191,7 @@ async def run_scored_comparison(
     *,
     positive_controls: list[str],
     negative_controls: list[str],
-    objective: str = "mcc",
+    objective: Objective = "mcc",
 ) -> ScoredComparison:
     """Run each variant as a scored experiment and rank by *objective*.
 
@@ -191,7 +199,6 @@ async def run_scored_comparison(
     variant carries one line saying why and is excluded from ranking; it still
     reports which of the control ids its result contains.
     """
-    rank_by = _RANK_BY.get(objective, _RANK_BY["mcc"])
     control_ids = list(dict.fromkeys([*positive_controls, *negative_controls]))
     scored = [
         await _score_one(
@@ -204,11 +211,54 @@ async def run_scored_comparison(
         )
         for v in variants
     ]
-    ranked = [(rank_by(s), s) for s in scored if s.error is None]
-    ok = [(score, s) for score, s in ranked if score is not None]
-    winner = max(ok, key=lambda pair: pair[0])[1] if ok else None
+    ranking = ranked_winner(scored, objective)
     return ScoredComparison(
         variants=scored,
-        winner_label=winner.label if winner else None,
-        objective=objective,
+        winner_label=None if ranking.winner is None else ranking.winner.label,
+        objective=ranking.metric,
     )
+
+
+@dataclass(frozen=True)
+class Ranking:
+    """The metric the variants rank by, the variant it puts first and its
+    score, and why the asked objective was not measured when it was not."""
+
+    metric: Objective
+    winner: ScoredVariant | None = None
+    score: float | None = None
+    unmeasured: Unread | None = None
+
+
+def _measured(
+    variants: list[ScoredVariant], objective: Objective
+) -> tuple[list[tuple[float, ScoredVariant]], Unread | None]:
+    found: list[tuple[float, ScoredVariant]] = []
+    unread: Unread | None = None
+    for variant in variants:
+        if variant.error is not None:
+            continue
+        match RANK_BY[objective](variant):
+            case Unread() as why:
+                unread = unread or why
+            case None:
+                pass
+            case score:
+                found.append((score, variant))
+    return found, unread
+
+
+def ranked_winner(variants: list[ScoredVariant], objective: Objective) -> Ranking:
+    """A variant ranks by the objective where it is measured, else by recall,
+    else no variant wins."""
+    asked, unmeasured = _measured(variants, objective)
+    if asked:
+        score, winner = max(asked, key=lambda pair: pair[0])
+        return Ranking(metric=objective, winner=winner, score=score)
+    recall, _ = _measured(variants, "sensitivity")
+    if recall:
+        score, winner = max(recall, key=lambda pair: pair[0])
+        return Ranking(
+            metric="sensitivity", winner=winner, score=score, unmeasured=unmeasured
+        )
+    return Ranking(metric=objective, unmeasured=unmeasured)

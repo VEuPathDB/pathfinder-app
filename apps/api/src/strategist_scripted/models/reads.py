@@ -277,9 +277,19 @@ def structure_dropped(messages: list[ModelMessage]) -> frozenset[str]:
     )
 
 
+class _PlanRead(ToolAnswer):
+    rendered: str = ""
+
+
 class _Summary(ToolAnswer):
-    summary: str = ""
+    route: str = ""
+    pending_plan: _PlanRead | None = None
     disposition: str = ""
+
+    @property
+    def said(self) -> str:
+        plan = "" if self.pending_plan is None else self.pending_plan.rendered
+        return " ".join(part for part in (self.route, plan) if part)
 
 
 def frame_is_ready(messages: list[ModelMessage]) -> bool:
@@ -295,7 +305,7 @@ def frame_summary(messages: list[ModelMessage]) -> str:
         for tool in ("frame_problem", "edit_strategy")
         if (read := last_return(messages, tool, _Summary)) is not None
     ]
-    return reads[-1].summary if reads else ""
+    return reads[-1].said if reads else ""
 
 
 class GeneRecord(ToolAnswer):

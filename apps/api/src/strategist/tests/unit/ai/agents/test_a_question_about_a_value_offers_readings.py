@@ -133,7 +133,7 @@ _H11_STATED = [
 ]
 _H11_FRAME = {
     "disposition": "needs_user",
-    "summary": "No clade code names the group.",
+    "notes": "No clade code names the group.",
     "openQuestions": [
         {
             "question": (

@@ -46,7 +46,7 @@ async def _write_strategy(conversation_id: UUID, ids: dict[str, int]) -> None:
 
 
 @pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
-async def test_a_later_change_is_read_against_the_snapshot_the_turn_named(
+async def test_a_later_change_is_read_against_the_snapshot_the_turn_ended_on(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     serve_recorded_plasmodb(
@@ -102,9 +102,7 @@ async def test_a_later_change_is_read_against_the_snapshot_the_turn_named(
         )
     assert before is not None
     assert before.revision == strategy_revision(three_step_ast(dict(_THREE)))
-    assert before.message_id is not None
-    assert latest is not None
-    assert latest.message_id is None
+    assert (before.message_id, latest is not None) == (None, True)
     assert answers == 1
     assert logged is not None
     assert logged > 0

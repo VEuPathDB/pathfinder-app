@@ -126,7 +126,7 @@ class _Undo:
 
         async def _frame(**_kwargs: Any) -> FrameResult:
             self.framed = True
-            return FrameResult(disposition="spec_ready", summary="reframed")
+            return FrameResult(disposition="spec_ready", notes="reframed")
 
         async def _commit(*, ops: list[GraphOperation], **_kwargs: Any) -> CommitResult:
             self.ops = ops

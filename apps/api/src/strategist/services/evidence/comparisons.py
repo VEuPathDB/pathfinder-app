@@ -97,7 +97,7 @@ async def run_scored_comparison(
     *,
     positive_controls: list[str],
     negative_controls: list[str],
-    objective: str = "mcc",
+    objective: scored_comparison.Objective = "mcc",
 ) -> scored_comparison.ScoredComparison:
     """Run each variant as a scored experiment and rank it by the objective."""
     return await scored_comparison.run_scored_comparison(

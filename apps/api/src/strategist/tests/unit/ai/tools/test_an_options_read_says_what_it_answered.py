@@ -15,7 +15,8 @@ from veupathdb_mcp.catalog import (
     ParentContextRequired,
 )
 
-from strategist.ai.agents.state import AgentToolState, LookupRecord
+from strategist.ai.agents.lookup_record import LookupRecord
+from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone import catalog_discovery
 from strategist.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 

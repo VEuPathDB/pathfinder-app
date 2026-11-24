@@ -1,6 +1,6 @@
 """Turn-level helpers for the Lead node.
 
-Memory retrieval at turn start, and what an answer - the user's click or the
+What an answer - the user's click or the
 worker's result - means for the run the turn parked. Reading the answer itself
 belongs to ``_lead_answers``, the durable park and its partition to
 ``_lead_durable``, and the cycle's shared mechanics to the runtime.
@@ -8,7 +8,6 @@ belongs to ``_lead_answers``, the durable park and its partition to
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -20,14 +19,7 @@ from assistant_core.graph.turn_state import (
     PendingApproval,
     PendingDurableCall,
 )
-from assistant_core.memory.deadline import (
-    MemoryStoreTimeoutError,
-    memory_store_deadline,
-)
-from assistant_core.memory.retrieval import RetrievalScope, retrieve_relevant_memories
-from assistant_core.memory.store import MemoryStore, StoredMemory
 from assistant_core.platform.logging import get_logger
-from langgraph.runtime import Runtime
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from pydantic_ai.tools import (
@@ -57,91 +49,13 @@ from strategist.ai.graph._lead_offers import (
     close_the_declined_card,
 )
 from strategist.ai.graph._lead_stops import stop_response
-from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import PipelineState
 from strategist.ai.lead.dispatch_resume import SubAgentOutcome, resume_sub_agent
 from strategist.ai.lead.intent_gate import bare_assent_refusal
 from strategist.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from strategist.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
-from strategist.domain.memory import MEMORY_KINDS, STANDING_MEMORY_KINDS, MemoryKind
 
 logger = get_logger(__name__)
-
-
-# The memories of one kind the index reads; the index says only how many there are.
-_INDEXED_PER_KIND = 100
-
-
-def _turn_scope(site_id: str) -> RetrievalScope:
-    """The memories a turn of this site reads: the standing kinds whole, and no
-    other kind ranked, since the Lead recalls those with search_memory."""
-    return RetrievalScope(
-        kinds=(),
-        always_kinds=STANDING_MEMORY_KINDS,
-        keep=lambda memory: memory.site_id in (None, site_id),
-    )
-
-
-async def retrieve_memories(
-    state: PipelineState,
-    runtime: Runtime[Context],
-) -> list[StoredMemory]:
-    """The standing memories a fresh turn pins, the researcher's preferences."""
-    if runtime.context is None or runtime.context.memory_store is None:
-        return []
-    if not state.user_prompt.strip():
-        return []
-    mem_store = MemoryStore(store=runtime.context.memory_store)
-    try:
-        async with memory_store_deadline("memory retrieval"):
-            return await retrieve_relevant_memories(
-                store=mem_store,
-                user_id=state.user_id,
-                query=state.user_prompt,
-                scope=_turn_scope(state.site_id),
-            )
-    except MemoryStoreTimeoutError as exc:
-        logger.warning(
-            "memory retrieval timed out; the turn runs without memories",
-            seconds=exc.seconds,
-        )
-        return []
-
-
-async def memory_index(
-    state: PipelineState,
-    runtime: Runtime[Context],
-) -> dict[MemoryKind, int]:
-    """How many memories of each kind but the standing ones the Lead can recall
-    on this site, a kind with none left out."""
-    if runtime.context is None or runtime.context.memory_store is None:
-        return {}
-    mem_store = MemoryStore(store=runtime.context.memory_store)
-    scope = _turn_scope(state.site_id)
-    kinds: list[MemoryKind] = [
-        k for k in MEMORY_KINDS if k not in STANDING_MEMORY_KINDS
-    ]
-    try:
-        async with memory_store_deadline("memory index"):
-            listed = await asyncio.gather(
-                *(
-                    mem_store.list_all(
-                        user_id=state.user_id, kind=k, limit=_INDEXED_PER_KIND
-                    )
-                    for k in kinds
-                )
-            )
-    except MemoryStoreTimeoutError as exc:
-        logger.warning(
-            "memory index timed out; the turn names no memory to recall",
-            seconds=exc.seconds,
-        )
-        return {}
-    counts: dict[MemoryKind, int] = {
-        kind: sum(1 for stored in found if scope.admits(stored.value))
-        for kind, found in zip(kinds, listed, strict=True)
-    }
-    return {kind: n for kind, n in counts.items() if n}
 
 
 class ConcurrentSubAgentApprovalsError(RuntimeError):

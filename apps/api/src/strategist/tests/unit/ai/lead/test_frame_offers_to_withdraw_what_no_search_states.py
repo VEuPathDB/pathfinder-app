@@ -87,7 +87,7 @@ def _deps(monkeypatch: pytest.MonkeyPatch, *asked: SlotQuestion) -> LeadDeps:
         )
         return FrameResult(
             disposition="needs_user",
-            summary="no bradyzoite percentile search",
+            notes="no bradyzoite percentile search",
             open_questions=list(asked),
         )
 

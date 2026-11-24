@@ -74,11 +74,9 @@ def test_a_negatives_only_test_counts_its_negatives() -> None:
     )
 
 
-def test_a_test_that_ran_no_controls_still_reads() -> None:
+def test_a_test_that_ran_no_controls_measures_nothing() -> None:
     assert controls_summary(ControlCounts()) == (
-        "0 of 0 positive controls recovered; "
-        "recall 0.00, no negative controls tested; "
-        "no tunable parameters"
+        "no controls tested; no tunable parameters"
     )
 
 

@@ -17,7 +17,7 @@ from veupathdb.domain.parameters import SinglePickValue
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.ai.graph.state import StrategyDomainState
-from strategist.ai.lead import lead_consult
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.lead_consult import consult_user
 from strategist.ai.lead.recorded_cards import card_questions
@@ -128,7 +128,7 @@ async def test_a_typed_card_answer_leaves_no_retired_row(
     async def _unread(**_kwargs: object) -> dict[str, list[ParameterInfo]]:
         return {}
 
-    monkeypatch.setattr(lead_consult, "parameters_of_searches", _unread)
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _unread)
     question = _comparison_question()
     deps = _deps(question)
     [card] = card_questions([question])

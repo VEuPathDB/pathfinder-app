@@ -19,7 +19,7 @@ PCA_RESULT: dict[str, Any] = {
 SWEEP_RESULT: dict[str, Any] = {
     "searchName": "GenesWithSignalPeptide",
     "objective": "mcc",
-    "best": {"score": 0.8},
+    "best": None,
     "controlSet": {"id": "cs-signal", "name": "signal peptide controls"},
     "variants": [
         {

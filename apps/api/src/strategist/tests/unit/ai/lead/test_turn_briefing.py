@@ -20,6 +20,7 @@ from strategist.domain.strategy.constraints import (
 from strategist.domain.strategy.data_marks import DataMarks
 from strategist.domain.strategy.expression_handles import expression_handle
 from strategist.domain.strategy.operational_spec import RequirementLink
+from strategist.domain.unread import Unread
 from strategist.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,
@@ -38,7 +39,8 @@ _MARKS = DataMarks(
     searches={
         _RNA_SEQ_PERCENTILE: "RNASeq",
         _MICROARRAY_PERCENTILE: "DNA Microarray Assay",
-    }
+    },
+    read_for=frozenset({_RNA_SEQ_PERCENTILE, _MICROARRAY_PERCENTILE}),
 )
 
 
@@ -97,6 +99,26 @@ def test_an_analysis_that_moved_past_its_card_is_named() -> None:
         "- the open analysis (DS_1234) changed after the card in this conversation"
         in briefing.render()
     )
+
+
+def test_an_analysis_whose_stamp_was_not_read_is_named() -> None:
+    briefing = compose_turn_briefing(
+        ThreadActivity(
+            analysis=AnalysisDrift(
+                dataset_id="DS_1234",
+                not_read=Unread(reason="the study service did not answer"),
+            )
+        ),
+        requirements=[],
+    )
+
+    lines = briefing.render().splitlines()
+    assert [line for line in lines if line.startswith("- the open analysis")] == [
+        (
+            "- the open analysis (DS_1234) could not be read to check for outside "
+            "changes: the study service did not answer"
+        )
+    ]
 
 
 def test_a_constraint_that_lost_its_grounding_is_named() -> None:
@@ -295,3 +317,15 @@ def test_a_weight_set_on_the_site_is_named_in_the_briefing() -> None:
     )
 
     assert "- top expression (step_expr): weight 3 -> 5" in briefing.render()
+
+
+def test_a_site_that_was_not_read_is_named_first() -> None:
+    unread = Unread(reason="the strategy was not read from the site: HTTP 503")
+    briefing = compose_turn_briefing(
+        ThreadActivity(site_not_read=unread), requirements=[]
+    )
+
+    assert briefing.render().splitlines()[1] == (
+        "- the strategy was not read from the site: HTTP 503; the strategy's counts "
+        "and any edit made on the site are as last read"
+    )

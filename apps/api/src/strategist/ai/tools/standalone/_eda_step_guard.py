@@ -37,6 +37,8 @@ from strategist.domain.strategy.operational_spec import ValueSource
 from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.value_source import (
+    ParamSheet,
+    source_kind,
     stated_words,
     value_source,
 )
@@ -140,13 +142,15 @@ def _bound_source(
     value: ParamValue, name: str, said: Sequence[str], picks: Sequence[str]
 ) -> tuple[ValueSource, str]:
     picked = next((p for p in picks if stated_words(value, [p], display_name=name)), "")
-    source = value_source(
-        value,
-        placeholder=False,
-        unset=False,
-        request_texts=said,
-        card_value=value if picked else None,
-        display_name=name,
+    source = source_kind(
+        value_source(
+            value,
+            placeholder=False,
+            unset=False,
+            request_texts=said,
+            card_value=value if picked else None,
+            sheet=ParamSheet(display_name=name),
+        )
     )
     return source, picked
 

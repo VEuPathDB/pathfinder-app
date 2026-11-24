@@ -122,7 +122,7 @@ async def _edit(
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = after
         return FrameResult(
-            disposition="spec_ready", summary="reframed", gaps=list(gaps or [])
+            disposition="spec_ready", notes="reframed", gaps=list(gaps or [])
         )
 
     async def _fake_commit(**_kwargs: Any) -> CommitResult:

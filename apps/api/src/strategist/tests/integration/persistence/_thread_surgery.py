@@ -17,7 +17,7 @@ from assistant_core.platform import db
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
-from veupathdb.domain.strategy import walk
+from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.eda import (
     EdaFilter,
     EdaStringSetFilter,
@@ -66,10 +66,10 @@ def step_ids_of(strategy_ast: JSONObject) -> dict[str, int]:
 
 def _plan_step_ids_of(strategy_ast: JSONObject) -> list[str]:
     """The tree's own step ids, in push order. Empty when it holds no tree."""
-    ast = parse_strategy_ast(strategy_ast)
-    if ast is None:
-        return []
-    return [node.id for node in walk(ast.root)]
+    match parse_strategy_ast(strategy_ast):
+        case StrategyAst() as ast:
+            return [node.id for node in walk(ast.root)]
+    return []
 
 
 @dataclass

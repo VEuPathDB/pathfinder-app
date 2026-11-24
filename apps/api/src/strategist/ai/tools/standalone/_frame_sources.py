@@ -11,6 +11,7 @@ from veupathdb.domain.parameters import (
     ParamValue,
     StringValue,
     UnboundParameter,
+    VocabOption,
     decimal_text,
 )
 from veupathdb.wdk import WDKSearch, WDKStringParam
@@ -29,10 +30,13 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
     RequirementLink,
 )
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.step_rationale import SearchRationale
 from strategist.domain.strategy.value_binding import bind_values, pick_terms
 from strategist.domain.strategy.value_source import (
+    ParamSheet,
     cut_from,
+    stated_source,
     stated_words,
     value_source,
 )
@@ -40,7 +44,12 @@ from strategist.services.strategies.parameter_rules import rules_of
 
 _NO_CARD: Mapping[str, BoundValue] = MappingProxyType({})
 _NO_QUOTES: Mapping[str, Sequence[str]] = MappingProxyType({})
+_NOTHING_TAKEN: Mapping[str, frozenset[str]] = MappingProxyType({})
 _TEXT: ParamKind = "string"
+
+
+def _vocabulary_of(info: ParameterInfo | None) -> list[VocabOption]:
+    return [] if info is None else info.vocabulary()
 
 
 def _set_by_site(info: ParameterInfo | None) -> bool:
@@ -67,6 +76,7 @@ def bound_values(
     reason: str,
     card_values: Mapping[str, BoundValue] = _NO_CARD,
     linked_quotes: Mapping[str, Sequence[str]] = _NO_QUOTES,
+    taken: Mapping[str, frozenset[str]] = _NOTHING_TAKEN,
 ) -> dict[str, BoundValue]:
     """Each resolved value read on the published sheet, with who set it. A value
     the site supplied or only the site sets is the default; a text whose words
@@ -76,33 +86,34 @@ def bound_values(
     bound: dict[str, BoundValue] = {}
     for name, held in bind_values(values, "default", infos).items():
         unset = held.unset or name in site_supplied
+        info = by_name.get(name)
         source = (
             "default"
-            if _set_by_site(by_name.get(name))
+            if _set_by_site(info)
             else value_source(
                 held.value,
                 placeholder=held.placeholder,
                 unset=unset,
                 request_texts=request_texts,
                 card_value=card_held.get(name),
-                display_name=held.display_name,
+                sheet=ParamSheet(
+                    display_name=held.display_name,
+                    vocabulary=tuple(_vocabulary_of(info)),
+                    taken_elsewhere=taken.get(name, frozenset()),
+                ),
             )
         )
-        if source == "stated" and cut_from(
-            held.value, linked_quotes.get(name, ()), request_texts
-        ):
-            source = "chosen"
-        basis = {
-            "stated": stated_words(
-                held.value,
-                request_texts,
-                display_name=held.display_name,
-                at_default=unset,
-            ),
-            "chosen": reason,
-            "card": card_values[name].basis if name in card_values else "",
-        }.get(source, "")
-        bound[name] = held.sourced(source, basis)
+        match source:
+            case StatedSource() if not cut_from(
+                held.value, linked_quotes.get(name, ()), request_texts
+            ):
+                bound[name] = held.sourced(source)
+            case StatedSource() | "chosen":
+                bound[name] = held.sourced("chosen", reason)
+            case "card":
+                bound[name] = held.sourced("card", card_values[name].basis)
+            case "default":
+                bound[name] = held.sourced("default")
     return bound
 
 
@@ -169,6 +180,7 @@ def stated_by_their_labels(
     labels: Sequence[Measurement],
     infos: list[ParameterInfo],
     request_texts: list[str],
+    taken: Mapping[str, frozenset[str]] = _NOTHING_TAKEN,
 ) -> dict[str, BoundValue]:
     """The values with each one a request message names by the labels the site
     gives it recorded as stated, with those words as its basis. A value only
@@ -189,7 +201,16 @@ def stated_by_their_labels(
             vocabulary=_vocabulary_holding(named, infos),
         )
         if run:
-            restated[name] = held.sourced("stated", run)
+            restated[name] = held.sourced(
+                stated_source(
+                    held.value,
+                    run,
+                    request_texts,
+                    _vocabulary_of(info),
+                    taken_elsewhere=taken.get(name, frozenset()),
+                ),
+                held.basis,
+            )
     return restated
 
 
@@ -197,10 +218,13 @@ def stated_by_their_taxa(
     bound: dict[str, BoundValue],
     trees: Mapping[str, OrganismTree],
     request_texts: list[str],
+    infos: list[ParameterInfo],
+    taken: Mapping[str, frozenset[str]] = _NOTHING_TAKEN,
 ) -> dict[str, BoundValue]:
     """The values with each organism pick whose taxon a message names recorded
     as stated, with that taxon and the words that name it. ``trees`` holds the
     organism tree of each organism parameter."""
+    by_name = {info.name: info for info in infos}
     restated = dict(bound)
     for name, held in bound.items():
         tree = trees.get(name)
@@ -209,8 +233,56 @@ def stated_by_their_taxa(
         named = tree.named(pick_terms(held.value), request_texts)
         if named is not None:
             taxon, words = named
-            restated[name] = held.sourced("stated", words, taxon=taxon)
+            vocabulary = _vocabulary_of(by_name.get(name))
+            restated[name] = held.sourced(
+                stated_source(
+                    held.value,
+                    words,
+                    request_texts,
+                    vocabulary,
+                    taxon,
+                    taken_elsewhere=taken.get(name, frozenset()),
+                ),
+                held.basis,
+            )
     return restated
+
+
+def restated_choices(
+    held: dict[str, BoundValue],
+    *,
+    infos: list[ParameterInfo],
+    labels: Sequence[Measurement],
+    trees: Mapping[str, OrganismTree],
+    request_texts: list[str],
+    taken: Mapping[str, frozenset[str]],
+) -> dict[str, BoundValue]:
+    """The chosen values, each judged again against the entries every other
+    criterion now binds, so a side of a comparison another criterion takes is
+    stated."""
+    by_name = {info.name: info for info in infos}
+    chosen = {name: b for name, b in held.items() if b.source == "chosen"}
+    for name, bound in chosen.items():
+        match value_source(
+            bound.value,
+            placeholder=bound.placeholder,
+            unset=bound.unset,
+            request_texts=request_texts,
+            sheet=ParamSheet(
+                display_name=bound.display_name,
+                vocabulary=tuple(_vocabulary_of(by_name.get(name))),
+                taken_elsewhere=taken.get(name, frozenset()),
+            ),
+        ):
+            case StatedSource() as stated if not cut_from(
+                bound.value, (), request_texts
+            ):
+                chosen[name] = bound.sourced(stated, bound.basis)
+            case _:
+                pass
+    labelled = stated_by_their_labels(chosen, labels, infos, request_texts, taken)
+    named = stated_by_their_taxa(labelled, trees, request_texts, infos, taken)
+    return {**held, **named}
 
 
 def chosen_reason(why: SearchChoice | None, chosen: ChosenWhy) -> str:

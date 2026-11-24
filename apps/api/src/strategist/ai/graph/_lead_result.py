@@ -20,7 +20,6 @@ def absorb_run_result(
     deps: LeadDeps,
 ) -> None:
     run_result = event.result
-    capture.new_messages = list(run_result.new_messages())
     response = run_result.response
     if response.finish_reason:
         capture.finish_reason = response.finish_reason

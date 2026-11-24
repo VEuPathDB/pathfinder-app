@@ -114,7 +114,6 @@ async def test_a_stopped_check_leaves_the_turn_unchecked(
     assert state.turn_verdict == _EARLIER
     assert state.checked_verdict is None
     assert record.facts.stopped_check == _STOP.render()
-    assert record.last_phase_stop == _STOP
     assert [
         key for _, key in collect_memory_candidates(state, counts=BuiltCounts())
     ] == []

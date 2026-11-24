@@ -140,7 +140,6 @@ def test_a_refused_build_is_stated_in_plain_words(
 
     mismatches = reconcile(report, record)
 
-    assert record.refused_dispatches == ("build_strategy",)
     assert names(calls)[-2:] == ["build_strategy", "final_result"]
     assert (report.prose.startswith("Nothing was built: "), _OWN in report.prose) == (
         True,

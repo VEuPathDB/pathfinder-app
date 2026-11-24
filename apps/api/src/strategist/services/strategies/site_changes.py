@@ -49,10 +49,16 @@ from veupathdb_mcp.wdk import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_settings_text import OWN_LINES
+from strategist.domain.unread import Unread
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
-from strategist.services.strategies.live_counts import read_the_live_strategy
+from strategist.services.strategies.live_counts import (
+    SiteRead,
+    read_the_live_strategy,
+    site_read,
+)
 from strategist.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
@@ -65,10 +71,12 @@ logger = get_logger(__name__)
 
 __all__ = [
     "SiteEdits",
+    "decoded_on_the_site",
+    "held_alike",
     "read_the_site_into_the_thread",
     "take_the_sites_edits",
     "take_what_the_site_holds",
-    "values_the_site_holds_otherwise",
+    "wire_of",
 ]
 
 
@@ -81,6 +89,7 @@ class SiteEdits(BaseModel):
     """The steps whose values the site moved."""
     reshaped: bool = False
     """Whether the graph took the site's tree."""
+    not_read: Unread | None = None
 
     @property
     def moved(self) -> bool:
@@ -101,14 +110,18 @@ async def take_the_sites_edits(
 ) -> SiteEdits:
     """Read the strategy on the site and take what it moved.
 
-    A strategy the site does not hold, or a read that fails, takes nothing.
+    A strategy the site does not hold takes nothing; a read that fails takes
+    nothing and says why.
     """
-    live = await read_the_live_strategy(sync_state, site_id)
-    if live is None:
-        return SiteEdits()
-    return await take_what_the_site_holds(
-        graph=graph, sync_state=sync_state, site_id=site_id, live=live
-    )
+    match await read_the_live_strategy(sync_state, site_id):
+        case WDKStrategyDetails() as live:
+            return await take_what_the_site_holds(
+                graph=graph, sync_state=sync_state, site_id=site_id, live=live
+            )
+        case Unread() as unread:
+            return SiteEdits(not_read=unread)
+        case _:
+            return SiteEdits()
 
 
 async def read_the_site_into_the_thread(
@@ -116,29 +129,31 @@ async def read_the_site_into_the_thread(
     session: StrategySession,
     conversation_id: UUID,
     db_session_factory: DBSessionFactory,
-) -> WDKStrategyDetails | None:
+) -> SiteRead:
     """Store what the site moved on the thread's strategy, and hand ``session`` it.
 
     The stored graph is read again under the thread's write lock, so the site's
     edit lands on the tree the last writer left. A thread with no steps has
     nothing the site can move, so its read takes no lock. The answer is the
-    site's strategy, or None when the site does not hold one or does not answer.
+    site's strategy, and why the site or its tree was not read.
     """
     held = session.sync_state
     if held is None or held.wdk_strategy_id is None or not held.wdk_step_ids:
-        return None
+        return SiteRead()
     graph = session.get_graph(None)
     if graph is None or not graph.steps:
-        return await read_the_live_strategy(held, session.site_id)
+        return site_read(await read_the_live_strategy(held, session.site_id))
     async with strategy_write_lock(conversation_id, db_session_factory) as locked:
         stored = await stored_strategy_session(locked, conversation_id, session.site_id)
         stored_graph = None if stored is None else stored.get_graph(None)
         if stored is None or stored_graph is None:
-            return None
+            return SiteRead()
         sync_state = ensure_sync_state(stored)
-        live = await read_the_live_strategy(sync_state, session.site_id)
-        if live is None:
-            return None
+        match await read_the_live_strategy(sync_state, session.site_id):
+            case WDKStrategyDetails() as live:
+                pass
+            case unread:
+                return site_read(unread)
         edits = await take_what_the_site_holds(
             graph=stored_graph,
             sync_state=sync_state,
@@ -146,7 +161,7 @@ async def read_the_site_into_the_thread(
             live=live,
         )
         if not edits.moved:
-            return live
+            return SiteRead(live=live, not_read=edits.not_read)
         written = StrategyMutationContext(
             site_id=session.site_id,
             strategy_session=stored,
@@ -159,7 +174,7 @@ async def read_the_site_into_the_thread(
         await defer_the_gene_set_refresh(written)
     session.graph = stored_graph
     session.sync_state = sync_state
-    return live
+    return SiteRead(live=live, not_read=edits.not_read)
 
 
 async def take_what_the_site_holds(
@@ -171,13 +186,17 @@ async def take_what_the_site_holds(
 ) -> SiteEdits:
     """Write onto the graph the values and the shape ``live`` moved."""
     local_of = {wdk_id: local for local, wdk_id in sync_state.wdk_step_ids.items()}
-    tree = _the_sites_tree(live)
-    if tree is None:
-        return SiteEdits()
+    match _the_sites_tree(live):
+        case Unread() as unread:
+            return SiteEdits(not_read=unread)
+        case tree:
+            pass
     valued = await _take_the_sites_values(graph, local_of, live, tree, site_id)
-    reshaped = await _take_the_sites_shape(
-        graph, sync_state, local_of, live, tree, site_id
-    )
+    match await _take_the_sites_shape(graph, sync_state, local_of, live, tree, site_id):
+        case Unread() as unread:
+            return SiteEdits(valued=valued, not_read=unread)
+        case reshaped:
+            pass
     if valued or reshaped:
         logger.info(
             "Took the site's edits onto the graph",
@@ -188,13 +207,13 @@ async def take_what_the_site_holds(
     return SiteEdits(valued=valued, reshaped=reshaped)
 
 
-def _the_sites_tree(live: WDKStrategyDetails) -> _SiteTree | None:
-    """The site's tree, or None when a step on it is not one the snapshot reads."""
+def _the_sites_tree(live: WDKStrategyDetails) -> _SiteTree | Unread:
+    """The site's tree, or why a step on it is not one the snapshot reads."""
     try:
         ast, wire = build_snapshot_from_wdk(live)
-    except DataParsingError, ValueError:
+    except (DataParsingError, ValueError) as exc:
         logger.warning("The site's tree is not readable", strategy_id=live.strategy_id)
-        return None
+        return Unread(reason=f"the site's tree was not read: {exc}")
     return _SiteTree(ast=ast, wire=wire)
 
 
@@ -219,7 +238,7 @@ async def _take_the_sites_values(
         if step is None:
             continue
         taken = step.kind is not StepKind.COMBINE and await _take_the_parameters(
-            step, wdk_step.search_name, _wire_of(wdk_step), site_id=site_id
+            step, wdk_step.search_name, wire_of(wdk_step), site_id=site_id
         )
         node = nodes.get(wdk_key)
         settled = node is not None and _take_the_settings(step, settings_of(node))
@@ -228,7 +247,7 @@ async def _take_the_sites_values(
     return moved
 
 
-def _wire_of(step: WDKStep) -> WireStep:
+def wire_of(step: WDKStep) -> WireStep:
     return WireStep(
         record_class=step.record_class_name,
         parameters=dict(step.search_config.parameters),
@@ -281,36 +300,31 @@ async def _differing(
         name
         for name, value in step.parameters.items()
         if name in wire.parameters
-        and not _held_alike(name, value, HeldValue(wire=wire.parameters[name]))
+        and not held_alike(name, value, HeldValue(wire=wire.parameters[name]))
     ]
     if not names:
         return {}
-    decoded = await _decoded(step.id, search_name, wire, site_id)
-    return {
-        name: decoded[name]
-        for name in names
-        if name in decoded
-        and not _held_alike(name, step.parameters[name], decoded[name])
-    }
+    match await decoded_on_the_site(step.id, search_name, wire, site_id):
+        case Unread():
+            return {}
+        case decoded:
+            return {
+                name: decoded[name]
+                for name in names
+                if name in decoded
+                and not held_alike(name, step.parameters[name], decoded[name])
+            }
 
 
-def _held_alike(name: str, held: ParamValue, read: ParamValue) -> bool:
+def held_alike(name: str, held: ParamValue, read: ParamValue) -> bool:
     return same_param_value(name, value_kind(held), held, read)
 
 
-async def values_the_site_holds_otherwise(
-    step: StrategyStep, site_step: WDKStep, site_id: str
-) -> dict[str, str]:
-    wire = _wire_of(site_step)
-    differing = await _differing(step, site_step.search_name, wire, site_id)
-    return {name: wire.parameters[name] for name in differing}
-
-
-async def _decoded(
+async def decoded_on_the_site(
     step_id: str, search_name: str, wire: WireStep, site_id: str
-) -> dict[str, ParamValue]:
+) -> dict[str, ParamValue] | Unread:
     """The values of one step's wire values, each held as the site holds it
-    where no kind reads it; empty when the site does not answer."""
+    where no kind reads it."""
     payload = StrategyAst(
         record_type=wire.record_class or "",
         root=StrategyStepNode(id=step_id, search_name=search_name),
@@ -319,9 +333,9 @@ async def _decoded(
         await canonicalize_synced_parameters(
             payload, get_strategy_api(site_id), {step_id: wire}
         )
-    except VEuPathDBError, OSError:
+    except (VEuPathDBError, OSError) as exc:
         logger.warning("The site's values did not decode", step_id=step_id)
-        return {}
+        return Unread(reason=site_words(exc))
     return dict(payload.root.parameters)
 
 
@@ -332,7 +346,7 @@ async def _take_the_sites_shape(
     live: WDKStrategyDetails,
     tree: _SiteTree,
     site_id: str,
-) -> bool:
+) -> bool | Unread:
     """Put the site's tree in the place of the tree the site held.
 
     Only a graph whose whole main tree is on the site has a WDK tree to
@@ -347,8 +361,9 @@ async def _take_the_sites_shape(
         for node in walk(tree.ast.root)
         if _held_step(graph, local_of, node.id) is None
     }
-    if not await _arrivals_decoded(tree, arrivals, site_id):
-        return False
+    match await _arrivals_decoded(tree, arrivals, site_id):
+        case Unread() as unread:
+            return unread
     root = _placed(tree.ast.root, graph, local_of)
     placed = flatten_tree(root)
     for gone in set(subtree_ids(root_id, graph.steps)) - placed.keys():
@@ -372,8 +387,8 @@ def _decodable(wire: WireStep) -> bool:
 
 async def _arrivals_decoded(
     tree: _SiteTree, arrivals: Mapping[str, StrategyStepNode], site_id: str
-) -> bool:
-    """Decode the values of each step the site added; False when one does not."""
+) -> bool | Unread:
+    """Decode the values of each step the site added, or say why they were not."""
     wire = {
         step_id: tree.wire[step_id]
         for step_id in arrivals
@@ -383,10 +398,17 @@ async def _arrivals_decoded(
         return True
     try:
         await canonicalize_synced_parameters(tree.ast, get_strategy_api(site_id), wire)
-    except VEuPathDBError, OSError:
+    except (VEuPathDBError, OSError) as exc:
         logger.warning("The site's added steps did not decode", steps=sorted(wire))
-        return False
-    return all(arrivals[step_id].parameters for step_id in wire)
+        return Unread(
+            reason=f"the steps the site added did not decode: {site_words(exc)}"
+        )
+    empty = sorted(step_id for step_id in wire if not arrivals[step_id].parameters)
+    if empty:
+        return Unread(
+            reason=f"the steps the site added did not decode: {', '.join(empty)}"
+        )
+    return True
 
 
 def _placed(

@@ -46,8 +46,9 @@ The entry is compared by equality:
   organism check, and one with no entry is `unchecked`;
 - FRAME's bind refusal names the entries the live requirements hold
   (`match_exact_option`), and a requirement with no entry names none;
-- the organism drop is met when the dropped criterion links only organism
-  requirements, each with an entry;
+- the organism fold drops a leaf only when its count equals its organisms'
+  gene count, so a criterion that links only organism requirements and counts
+  fewer genes narrows and stays;
 - `gene_record`'s `ortholog_organism` reads the rows whose organism is that
   name; when none is, the answer names the organisms the table holds nearest
   it, led by the one a Decisions choice picks under the turn's words.

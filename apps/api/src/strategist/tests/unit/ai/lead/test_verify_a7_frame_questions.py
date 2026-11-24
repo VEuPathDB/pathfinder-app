@@ -114,7 +114,7 @@ async def test_1b_a_budget_stop_that_asks_nothing_passes(
     assert isinstance(result, FrameResult), result
     assert result.disposition == "needs_user"
     assert result.open_questions == []
-    assert "tool budget" in result.summary
+    assert "tool budget" in result.gaps[0].sentence
 
 
 def _moves_a_built_value(found: OperationalSpec) -> OperationalSpec:

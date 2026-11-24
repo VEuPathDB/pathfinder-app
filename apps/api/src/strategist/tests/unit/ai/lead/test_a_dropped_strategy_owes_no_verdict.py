@@ -23,6 +23,7 @@ _FAILED = VerificationDigest(
 )
 _GONE = WDKError("Strategy ID 1001 does not exist.", status=404)
 _PROXY_404 = WDKError("<html>404 Not Found</html>", status=404)
+_UNREACHED = ConnectionRefusedError("connection refused")
 
 
 def _summary(strategy_id: int) -> WDKStrategySummary:
@@ -33,7 +34,9 @@ def _summary(strategy_id: int) -> WDKStrategySummary:
 
 class _Site:
     def __init__(
-        self, read: WDKError | None, listed: list[int] | WDKError | None
+        self,
+        read: WDKError | OSError | None,
+        listed: list[int] | WDKError | OSError | None,
     ) -> None:
         self.read = read
         self.listed = listed
@@ -48,7 +51,7 @@ class _Site:
     async def list_strategies(self) -> list[WDKStrategySummary]:
         self.asked.append("list")
         match self.listed:
-            case WDKError():
+            case WDKError() | OSError():
                 raise self.listed
             case None:
                 raise AssertionError
@@ -81,8 +84,10 @@ def _judged() -> StrategyDomainState:
             ["get 1001", "list"],
         ),
         (_Site(WDKError("upstream failed", status=502), None), True, ["get 1001"]),
+        (_Site(_UNREACHED, None), True, ["get 1001"]),
+        (_Site(_GONE, _UNREACHED), True, ["get 1001", "list"]),
     ],
-    ids=["gone", "listed", "site_down", "silent"],
+    ids=["gone", "listed", "site_down", "silent", "unreached", "listing_unreached"],
 )
 async def test_a_verdict_goes_only_when_the_listing_proves_the_strategy_gone(
     monkeypatch: pytest.MonkeyPatch, site: _Site, kept: bool, asked: list[str]

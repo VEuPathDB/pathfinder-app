@@ -426,7 +426,7 @@ class DisagreementThread:
             )
             result = FrameResult(
                 disposition=disposition,
-                summary="framed",
+                notes="framed",
                 open_questions=list(asks or []),
             )
             try:

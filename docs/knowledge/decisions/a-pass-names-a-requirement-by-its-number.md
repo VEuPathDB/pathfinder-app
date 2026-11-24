@@ -33,7 +33,7 @@ the problem and `what_to_do`, the sentence that says what the Lead does about it
 **A correction reaches the pass that made the mistake.** FRAME's agent has two
 output validators (`ai/agents/frame_result_checks.py`). A report whose number the
 list lacks is sent back with the numbers the list holds, up to
-[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md); after that the report is dropped and the summary says so. A pass that
+[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md); after that the report is dropped and FRAME's notes say so. A pass that
 stops on the user with a question that binds nothing
 (`ai/lead/frame_questions.py::questions_that_bind_to_nothing`) is sent back
 with the slots its draft holds, up to the same bound. FRAME keeps its history, its draft and
@@ -58,11 +58,11 @@ was refused again in 58 of 115 answers.
 
 **A notes field beside the list.** A replay with and without it gave the same
 reports, and with it the pass wrote a note in more than four of five answers
-that had nothing to report. `summary` carries what else the pass has to say.
+that had nothing to report. `notes` carries what else the pass has to say.
 
 **A field for a requirement the list lacks.** A replay that offered one, with the
 researcher's exact words, saw it used in none of 95 answers. A requirement the
-classification missed is said in `summary` and shows no gap row.
+classification missed is said in `notes` and shows no gap row.
 
 **A refusal sent to the Lead.** The Lead did not write the result and can only
 dispatch again. A replay of 47 saved passes that asked about a criterion their

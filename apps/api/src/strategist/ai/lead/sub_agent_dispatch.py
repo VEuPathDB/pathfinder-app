@@ -76,6 +76,8 @@ from strategist.domain.strategy.spec_tree import (
 from strategist.domain.strategy.step_words import added_searches, step_words
 from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.domain.strategy.types import SyncStateProtocol
+from strategist.domain.unread import Unread
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -341,8 +343,16 @@ async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOu
                 description=strategy_description(graph, root_id),
             ),
         )
-    except VEuPathDBError, ApplyError:
-        return prior
+    except (VEuPathDBError, ApplyError) as exc:
+        return replace(
+            prior,
+            not_read=Unread(
+                reason=(
+                    "the strategy was not re-read after the recovery: "
+                    f"{site_words(exc)}"
+                )
+            ),
+        )
     if committed.record_type is not None:
         graph.record_type = committed.record_type
     fresh = outcome_of(

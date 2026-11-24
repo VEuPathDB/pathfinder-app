@@ -24,6 +24,7 @@ from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_status import step_status
+from strategist.services.site_errors import site_words
 from strategist.services.strategies._tree_write import (
     StrategyRole,
     delete_what_the_tree_dropped,
@@ -40,8 +41,8 @@ from strategist.services.strategies._wdk_step_calls import (
     written_step,
 )
 from strategist.services.strategies.reconcile import (
+    held_after_the_put,
     held_before_the_commit,
-    held_by_id,
     learn_what_wdk_added,
     reconcile_sync_state_with_wdk,
 )
@@ -300,8 +301,9 @@ class _Commit:
         ]
         await self._sort(root.id, [*reweighed, *moved])
         await delete_what_the_tree_dropped(self.api, self.steps, self.sync_state)
-        live = await read_the_strategy(self.api, self.sync_state)
-        held = held_by_id(live, self.sync_state)
+        held = held_after_the_put(
+            await read_the_strategy(self.api, self.sync_state), self.sync_state
+        )
         for node in walk(root):
             learn_what_wdk_added(
                 self.steps[node.id], node, held.get(node.id), self.before.get(node.id)
@@ -318,10 +320,16 @@ class _Commit:
         try:
             await _sort_a_ranking(self.api, self.sync_state, self.steps, root_id, moved)
         except VEuPathDBError as exc:
-            logger.warning(
-                "The site did not sort the ranked result by score",
-                step_id=root_id,
-                error=str(exc)[:300],
+            site = get_site(self.site_id).display_name
+            self._fail(
+                StepPushFailure(
+                    step_id=root_id,
+                    search_name=wdk_search_name(self.steps[root_id]),
+                    error=(
+                        f"{site} did not sort the ranked result by score, so it "
+                        f"is not ranked: {site_words(exc)}"
+                    ),
+                )
             )
 
     def _departed(self, node: StrategyStepNode, holds: StepSettings | None) -> None:

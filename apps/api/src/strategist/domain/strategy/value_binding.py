@@ -18,7 +18,8 @@ from veupathdb.domain.parameters import (
 from veupathdb_mcp.catalog import ParameterInfo
 
 from strategist.domain.strategy.number_precision import shown_decimals
-from strategist.domain.strategy.operational_spec import BoundValue, ValueSource
+from strategist.domain.strategy.operational_spec import BoundValue
+from strategist.domain.strategy.stated_source import StatedSource, UnstatedSource
 from strategist.domain.strategy.value_label import value_label
 from strategist.domain.strategy.value_text import (
     bounds_text,
@@ -48,17 +49,16 @@ def _filter_words(value: ParamValue, info: ParameterInfo) -> str:
 
 def _bound(
     value: ParamValue,
-    source: ValueSource,
+    source: UnstatedSource | StatedSource,
     basis: str,
     info: ParameterInfo | None,
     sheet: Sequence[ParameterInfo],
 ) -> BoundValue:
     if info is None:
-        return BoundValue(value=value, source=source, basis=basis)
+        return BoundValue(value=value, source="held").sourced(source, basis)
     return BoundValue(
         value=value,
-        source=source,
-        basis=basis,
+        source="held",
         display_name=info.display_name,
         label=value_label(value, info, sheet),
         placeholder=info.is_placeholder(to_wire(value)),
@@ -69,12 +69,12 @@ def _bound(
         words=_filter_words(value, info),
         published_min=info.min,
         published_max=info.max,
-    )
+    ).sourced(source, basis)
 
 
 def bind_values(
     values: Mapping[str, ParamValue],
-    source: ValueSource,
+    source: UnstatedSource | StatedSource,
     sheet: Sequence[ParameterInfo],
     basis: str = "",
 ) -> dict[str, BoundValue]:
@@ -94,9 +94,7 @@ def read_again(
     """The values read on the sheet, each keeping who set it and why, and the
     label of the vocabulary it was bound under, which the sheet may lack."""
     return {
-        name: _kept(
-            held, bind_values({name: held.value}, held.source, sheet, held.basis)[name]
-        )
+        name: _kept(held, bind_values({name: held.value}, "held", sheet)[name])
         for name, held in values.items()
     }
 
@@ -104,6 +102,8 @@ def read_again(
 def _kept(held: BoundValue, read: BoundValue) -> BoundValue:
     return read.model_copy(
         update={
+            "source": held.source,
+            "basis": held.basis,
             "carried_from": held.carried_from,
             "taxon": held.taxon,
             "label": held.label or read.label,

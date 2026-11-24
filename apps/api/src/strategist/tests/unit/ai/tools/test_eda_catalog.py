@@ -8,6 +8,7 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
+from veupathdb.wdk.vdi.client import VdiServiceError
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone import eda_catalog
@@ -15,6 +16,7 @@ from strategist.ai.tools.standalone._eda_models import (
     EdaStudyDescription,
     EdaStudySearchResult,
 )
+from strategist.services.eda import private_datasets
 from strategist.services.eda.catalog import (
     NAME_MATCH_GUIDANCE,
     StudyCard,
@@ -33,7 +35,9 @@ from strategist.tests._support.eda_wire import (
     PHENOTYPE_STUDY,
 )
 from strategist.tests._support.recorded_vdi import no_own_datasets
+from strategist.tests._support.run_context import lead_run_context
 from strategist.tests._support.tool_returns import returned
+from strategist.tests.unit.ai.tools.conftest import summary_of
 
 StudyResolver = Any
 
@@ -320,3 +324,34 @@ async def test_an_unknown_dataset_id_raises_a_model_retry_naming_the_tool(
         await eda_catalog.describe_eda_study(lead_ctx, dataset_id="DS_nope")
     assert "DS_nope" in str(excinfo.value)
     assert "search_eda_studies" in str(excinfo.value)
+
+
+async def test_a_study_search_says_the_researchers_datasets_were_not_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def none(_site: str, _query: str, limit: int = 5) -> StudySearch:
+        del limit
+        return StudySearch(cards=[], catalog_size=0)
+
+    async def vdi_down(*_args: object) -> object:
+        msg = "VDI answered 503"
+        raise VdiServiceError(msg, status=503)
+
+    monkeypatch.setattr(eda_catalog, "search_studies", none)
+    monkeypatch.setattr(private_datasets, "own_datasets", vdi_down)
+
+    answered = await eda_catalog.search_eda_studies(
+        lead_run_context(tool_call_id="call_1"), query="heat shock"
+    )
+
+    result = returned(answered, EdaStudySearchResult)
+    unread = (
+        "your own datasets were not read: External service error: VEuPathDB user "
+        "datasets: VDI answered 503"
+    )
+    assert result.guidance.endswith(f" Y{unread[1:]}.")
+    chunk = summary_of(answered)
+    assert (chunk.data["summary"], chunk.data["status"]) == (
+        "No study matched heat shock; your own datasets were not read",
+        "warn",
+    )

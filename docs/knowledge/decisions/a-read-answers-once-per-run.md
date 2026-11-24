@@ -35,6 +35,14 @@ rule an audit run judges a failed unit by:
   `DataParsingError` or a `TrackReadError`: the site answered with something unreadable),
   a `GenomeIndexError`, a validation error, a status below 500;
 - a `ToolError` with no cause is the library's refusal of the arguments.
+A WDK reply that does not parse fails the call on every tool of every agent that
+carries tools, listed read or not (`unparsed_site_reply`): a pydantic `ValidationError`
+whose title names a `WDKModel` subclass, or a `DataParsingError` it caused, becomes
+`ToolFailed` naming the tool and the reply model, and charges no retry. A tool in
+`READ_ONLY_TOOLS` says nothing was read and the strategy is unchanged; any other tool
+says part of its change may already hold on the site and the strategy must be read
+again. A `ValidationError` from a model built from the call's arguments stays a
+corrective retry.
 A read with a
 deadline raises the same failure itself through `read_in_time`: `get_sample_records` and
 the check's column read at 20 s, `read_step_ids` at 20 s for a limited read and 60 s for a

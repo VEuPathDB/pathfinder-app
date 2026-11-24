@@ -11,7 +11,10 @@ from strategist.ai.lead.live_state import read_live_state
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone.graph_helpers import counted_records
 from strategist.ai.tools.standalone.stream_parts import strategy_meta_chunk
-from strategist.services.strategies.naming import rename_strategy_everywhere
+from strategist.services.strategies.naming import (
+    RenamedStrategy,
+    rename_strategy_everywhere,
+)
 
 NOT_STORED = (
     "The rename found no stored conversation, so nothing was renamed. Say so, "
@@ -23,12 +26,22 @@ NO_STRATEGY = (
 )
 
 
+def _renamed(stored: RenamedStrategy) -> str:
+    if stored.not_on_the_site is None:
+        return f"Renamed the strategy to {stored.name}."
+    return (
+        f"Renamed the strategy to {stored.name} here; the strategy on the site keeps "
+        f"its old name until the next change ({stored.not_on_the_site.reason})."
+    )
+
+
 async def rename_strategy(ctx: RunContext[LeadDeps], name: str) -> ToolReturn[str]:
     """Rename this conversation's strategy.
 
     Call it when the researcher asks for a new name for the strategy. The
     conversation, the strategy panel and the strategy on VEuPathDB all take the
-    new name at once; there is no card. Pass the name the user gave, word for
+    new name at once, and the answer says when VEuPathDB did not; there is no
+    card. Pass the name the user gave, word for
     word. A rename changes no step, so the turn reports ``strategy_changed``
     false. The answer states the name the store kept and the count the
     strategy returns now.
@@ -48,10 +61,10 @@ async def rename_strategy(ctx: RunContext[LeadDeps], name: str) -> ToolReturn[st
     )
     if stored is None:
         raise ModelRetry(NOT_STORED)
-    graph.name = stored
+    graph.name = stored.name
     live = await read_live_state(session, runtime.site_id)
     meta = [strategy_meta_chunk(session, graph)]
-    renamed = f"Renamed the strategy to {graph.name}."
+    renamed = _renamed(stored)
     if live.root_count is None:
         return with_summary(
             f"{renamed} The site gives no count for it now.",

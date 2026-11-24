@@ -85,8 +85,10 @@ Count, ortholog, text and property are compared only through links
 A data type is compared with what the site marks each criterion that links it
 runs on (`DataMarks.run_on`: the type of its upload, else the assay of its study
 or its search): grounded when one runs on the stated data, substituted when they
-run only on the other, ungroundable when none runs on expression data, and
-provisional while a linked analysis has not run. A record type is compared by
+run only on the other, not verified when the marks were not read for its search
+or the read failed (`Unread`), ungroundable when the marks were read and none runs
+on expression data, and provisional while a linked analysis has not run. FRAME
+re-reads the marks for the spec it wrote before it asks the card. A record type is compared by
 equality (`domain/requirement_checks.py::record_type_check`): an `answer` with the
 result step's class, a `through` with the class of any step of the tree. One typed
 table widens a class: `gene` is answered by `transcript` and by OrthoMCL's

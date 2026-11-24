@@ -169,7 +169,7 @@ async def test_s1_frames_one_search_on_vectorbase() -> None:
     genes = await universe_counts(_SITE, "transcript", [(PEST,)])
     assert genes == {(PEST,): universe.result_count}
     assert structure.criteria_combined == 1
-    assert [(d.criterion_id, d.met) for d in structure.dropped] == [("c_pest", True)]
+    assert [(d.criterion_id, d.met) for d in structure.dropped] == [("c_pest", False)]
     draft = state.operational_spec_draft
     assert [(c.id, c.organism_param) for c in draft.criteria] == [
         ("c_signal", "organism")

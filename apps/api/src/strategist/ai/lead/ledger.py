@@ -73,6 +73,12 @@ class InvestigationLedger(CamelModel):
     # own card shows it to a reader.
     open_analysis: OpenEdaAnalysis | None = Field(default=None, exclude=True)
 
+    def _not_read_lines(self) -> list[str]:
+        outcome = self.build.outcome
+        if outcome is None or outcome.not_read is None:
+            return []
+        return [f"- not read back: {outcome.not_read.reason}"]
+
     def _drop_reasons(self) -> list[str]:
         """Each dropped criterion with the reason the drop recorded.
 
@@ -141,6 +147,7 @@ class InvestigationLedger(CamelModel):
                     if self.build.stale_build is not None
                     else []
                 ),
+                *self._not_read_lines(),
                 f"- pushed: {self.build.pushed_count}",
                 f"- failed: {self.build.failed_count}",
                 f"- skipped: {self.build.skipped_count}",

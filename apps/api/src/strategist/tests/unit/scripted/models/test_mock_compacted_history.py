@@ -166,7 +166,7 @@ def test_an_edit_survives_the_compaction_of_its_own_history() -> None:
     call = _next_call(_compacted(_edit_order()))
 
     assert call.tool_name == "final_result"
-    assert call.args_as_dict()["summary"] == (
+    assert call.args_as_dict()["notes"] == (
         f"Moved min_tm on {_CRITERION}; the rest are unchanged."
     )
 

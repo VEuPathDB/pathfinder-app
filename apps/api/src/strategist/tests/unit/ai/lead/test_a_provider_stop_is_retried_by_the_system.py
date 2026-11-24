@@ -133,7 +133,7 @@ async def test_the_frame_is_sent_once_more_whatever_it_bound(
         kwargs["agent_deps"].agent_state.operational_spec_draft.criteria.append(
             Criterion(id="c1", text="kinases", search_name="GenesByText")
         )
-        return FrameResult(disposition="spec_ready", summary="framed")
+        return FrameResult(disposition="spec_ready", notes="framed")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _streamed)
     deps = lead_deps(pipeline_state(user_prompt="Find the kinases."))

@@ -105,7 +105,7 @@ def _stub_frame(
     async def _fake(**kwargs: Any) -> FrameResult:
         agent_deps: AgentDeps = kwargs["agent_deps"]
         agent_deps.agent_state.operational_spec_draft = after.model_copy(deep=True)
-        return FrameResult(disposition="spec_ready", summary="edited", changes=changes)
+        return FrameResult(disposition="spec_ready", notes="edited", changes=changes)
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 

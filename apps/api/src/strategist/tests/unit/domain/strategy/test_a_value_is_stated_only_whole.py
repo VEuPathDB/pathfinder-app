@@ -22,6 +22,7 @@ from veupathdb.domain.parameters import (
 )
 
 from strategist.domain.strategy.value_source import (
+    source_kind,
     stated_run,
     stated_texts,
     value_source,
@@ -47,7 +48,9 @@ _TM_REQUEST = (
 
 
 def _source(value: ParamValue, texts: list[str]) -> str:
-    return value_source(value, placeholder=False, unset=False, request_texts=texts)
+    return source_kind(
+        value_source(value, placeholder=False, unset=False, request_texts=texts)
+    )
 
 
 def test_a_boolean_the_model_composed_is_chosen() -> None:

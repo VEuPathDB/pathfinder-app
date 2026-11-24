@@ -3,7 +3,7 @@ reads, and the assay of the dataset record its study or its search names."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
@@ -12,6 +12,7 @@ from veupathdb_mcp.catalog import dataset_assay, study_assay
 
 from strategist.domain.strategy.data_marks import DataMarks
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
+from strategist.domain.unread import Unread
 from strategist.services.strategies.bound_uploads import uploads_the_specs_run_on
 from strategist.services.strategies.search_sheets import search_definitions
 from strategist.services.strategies.user_dataset_searches import OwnedUpload
@@ -26,40 +27,54 @@ def _curated_studies(criteria: Sequence[Criterion]) -> list[str]:
     )
 
 
-async def marks_with_uploads(
-    site_id: str,
-    specs: Sequence[OperationalSpec | None],
-    uploads: Mapping[str, OwnedUpload],
-) -> DataMarks:
-    """The marks of every criterion of the specs, beside the uploads they read.
+def _upload_type(upload: OwnedUpload | Unread) -> str | Unread:
+    match upload:
+        case Unread():
+            return upload
+        case OwnedUpload(type_name=type_name):
+            return type_name
 
-    A catalog the site does not answer marks no search and no study.
-    """
-    criteria = [c for spec in specs if spec is not None for c in spec.criteria]
-    searches: dict[str, str] = {}
-    studies: dict[str, str] = {}
-    try:
-        for name in sorted({c.search_name for c in criteria if c.search_name}):
-            if (assay := await dataset_assay(site_id, name)) is not None:
-                searches[name] = assay
-        for study in _curated_studies(criteria):
-            if (assay := await study_assay(site_id, study)) is not None:
-                studies[study] = assay
-    except (VEuPathDBError, OSError) as exc:
-        logger.warning("catalog marks unreadable", site_id=site_id, error=str(exc))
-    return DataMarks(
-        uploads={c: u.type_name for c, u in uploads.items()},
-        studies=studies,
-        searches=searches,
-    )
+
+type _AssayRead = Callable[[str, str], Awaitable[str | None]]
+
+
+async def _assays(
+    site_id: str, keys: Sequence[str], read: _AssayRead
+) -> dict[str, str | Unread]:
+    marks: dict[str, str | Unread] = {}
+    failed: Unread | None = None
+    for key in keys:
+        if failed is not None:
+            marks[key] = failed
+            continue
+        try:
+            assay = await read(site_id, key)
+        except (VEuPathDBError, OSError) as exc:
+            logger.warning("catalog marks unreadable", site_id=site_id, error=str(exc))
+            failed = Unread(reason=f"the site's catalog did not answer: {exc}")
+            marks[key] = failed
+            continue
+        if assay is not None:
+            marks[key] = assay
+    return marks
 
 
 async def read_data_marks(
     site_id: str, specs: Sequence[OperationalSpec | None]
 ) -> DataMarks:
-    """The marks of every criterion of the specs, with the uploads they read."""
+    """The marks of every criterion of the specs, with the uploads they read.
+
+    A search or a study whose catalog read fails is marked unread.
+    """
     sheets: dict[str, WDKSearch] = {}
     for spec in specs:
         sheets |= await search_definitions(site_id, spec)
     uploads = await uploads_the_specs_run_on(site_id, specs, sheets)
-    return await marks_with_uploads(site_id, specs, uploads)
+    criteria = [c for spec in specs if spec is not None for c in spec.criteria]
+    searches = sorted({c.search_name for c in criteria if c.search_name})
+    return DataMarks(
+        uploads={c: _upload_type(u) for c, u in uploads.items()},
+        searches=await _assays(site_id, searches, dataset_assay),
+        studies=await _assays(site_id, _curated_studies(criteria), study_assay),
+        read_for=frozenset(searches),
+    )

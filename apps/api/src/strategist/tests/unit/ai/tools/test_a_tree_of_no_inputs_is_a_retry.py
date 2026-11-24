@@ -45,7 +45,7 @@ async def test_an_intersect_of_nothing_is_answered_with_the_combine_shape() -> N
             return ModelResponse(
                 parts=[
                     ToolCallPart(
-                        tool_name="final_result", args={"summary": "no tree to set"}
+                        tool_name="final_result", args={"notes": "no tree to set"}
                     )
                 ]
             )

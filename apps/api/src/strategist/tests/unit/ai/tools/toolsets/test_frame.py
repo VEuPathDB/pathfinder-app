@@ -54,7 +54,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "list_gene_sets": (frozenset({"offset"}), frozenset()),
     "list_saved_strategies": (frozenset(), frozenset()),
     "list_searches": (frozenset({"record_type"}), frozenset({"record_type"})),
-    "list_transforms": (frozenset({"record_type"}), frozenset({"record_type"})),
+    "list_transforms": (frozenset(), frozenset()),
     "lookup_gene_records": (
         frozenset({"limit", "organism", "query"}),
         frozenset({"query"}),
@@ -121,7 +121,7 @@ async def test_a_site_with_no_expression_search_is_offered_no_builder(
 
 
 @pytest.mark.asyncio
-async def test_a_site_whose_record_types_are_unread_is_offered_no_builder(
+async def test_a_site_whose_record_types_are_unread_keeps_the_builder(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     site = serve_unanswered_record_types(monkeypatch)
@@ -129,8 +129,7 @@ async def test_a_site_whose_record_types_are_unread_is_offered_no_builder(
     first = await _mounted_tools("orthomcl")
     second = await _mounted_tools("orthomcl")
 
-    assert "build_phyletic_expression" not in first
-    assert set(first) == set(second) == set(_MOUNTED) - {"build_phyletic_expression"}
+    assert set(first) == set(second) == set(_MOUNTED)
     assert site.reads == 2
 
 

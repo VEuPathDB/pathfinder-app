@@ -60,12 +60,11 @@ asks it to write no number of the turn, it names a record only as `[record:<id>]
 turn vouches for its address. See [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)
 and [a refusal rests on typed state](a-refusal-rests-on-typed-state.md).
 
-The precondition gate reads which rule refused: `intent_gate.verification_pending` is
-the `unverified_build` key charged on `answer_ledger`, built and not verified, so a turn corrected for want
-of a check reaches `verify_strategy` and no other tool that writes. A refusal by any other rule
-narrows nothing; a refusal for an unbuilt EDA criterion leaves the EDA tools that build it.
-A build is finished before it is checked: `unverified_build` does not fire while a criterion
-waits for its export, because `unbuilt_eda_criterion` answers that reply. That rule asks for an
+No refusal narrows the tools a turn reaches; a refusal for an unbuilt EDA criterion leaves
+the EDA tools that build it. Since 2026-11-24 the `unverified_build` rule is removed: the Lead
+node makes the check itself ([the runtime checks a changed strategy, then the Lead answers](the-runtime-checks-a-changed-strategy-then-the-lead-answers.md)),
+and it owes none while a criterion waits for its export, because `unbuilt_eda_criterion`
+answers that reply. That rule asks for an
 export, not for an opened analysis: a final reply is refused while any waiting criterion has no
 exported step, and a reply that ends on a card is refused only when no analysis is open on the
 dataset of a waiting criterion, so a cut card asked during the build stands and a card asked

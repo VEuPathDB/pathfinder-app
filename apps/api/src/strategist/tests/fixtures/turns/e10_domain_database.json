@@ -1,0 +1,79 @@
+{
+  "provenance": "cedar ~/proto/ec-final/runs/e10 (microsporidiadb Build), tools/06-get_search_overview.json return (domain_database) and tools/11-set_criterion.json binding",
+  "message": "In E. bieneusi H348, does an InterPro or Pfam search for the polar tube protein family find more genes than a gene name search for polar tube protein?",
+  "searchName": "GenesByInterproDomain",
+  "domainDatabase": {
+    "name": "domain_database",
+    "displayName": "Domain Database",
+    "type": "single-pick-vocabulary",
+    "default": "Pfam",
+    "vocabulary": [
+      {
+        "value": "CDD",
+        "display": "CDD"
+      },
+      {
+        "value": "FunFam",
+        "display": "FunFam"
+      },
+      {
+        "value": "Gene3D",
+        "display": "Gene3D"
+      },
+      {
+        "value": "Hamap",
+        "display": "Hamap"
+      },
+      {
+        "value": "INTERPRO",
+        "display": "INTERPRO"
+      },
+      {
+        "value": "NCBIfam",
+        "display": "NCBIfam"
+      },
+      {
+        "value": "PANTHER",
+        "display": "PANTHER"
+      },
+      {
+        "value": "Pfam",
+        "display": "Pfam"
+      },
+      {
+        "value": "PIRSF",
+        "display": "PIRSF"
+      },
+      {
+        "value": "PRINTS",
+        "display": "PRINTS"
+      },
+      {
+        "value": "ProSiteProfiles",
+        "display": "ProSiteProfiles"
+      },
+      {
+        "value": "SFLD",
+        "display": "SFLD"
+      },
+      {
+        "value": "SMART",
+        "display": "SMART"
+      },
+      {
+        "value": "SUPERFAMILY",
+        "display": "SUPERFAMILY"
+      }
+    ]
+  },
+  "binding": {
+    "organism": [
+      "Enterocytozoon bieneusi H348"
+    ],
+    "domain_database": "Pfam",
+    "domain_typeahead": [
+      "PF17022"
+    ],
+    "domain_accession": "N/A"
+  }
+}

@@ -55,7 +55,7 @@ def _deps(monkeypatch: pytest.MonkeyPatch) -> LeadDeps:
         kwargs["agent_deps"].agent_state.operational_spec_draft.goal = _REQUEST
         return FrameResult(
             disposition="needs_user",
-            summary="no search states a predicted GPI anchor",
+            notes="no search states a predicted GPI anchor",
             open_questions=[_SUBSTITUTE],
             requirement_problems=site_lacks("R1", "R2"),
         )

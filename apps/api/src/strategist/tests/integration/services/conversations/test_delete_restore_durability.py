@@ -9,17 +9,21 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from typing import NoReturn
 from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from veupathdb.errors import WDKError
 
 from strategist.persistence.models import ConversationStrategy, User
 from strategist.persistence.repositories import ConversationRepository
 from strategist.platform.config import get_settings
+from strategist.platform.errors import SiteUnavailableError
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
+from strategist.services.conversations import service
 from strategist.services.conversations.service import ConversationService
 
 
@@ -134,3 +138,38 @@ async def test_restore_is_visible_to_the_next_request(
         stored = await ConversationRepository(fresh).get_by_id(conversation_id)
     assert stored is not None
     assert stored.dismissed_at is None
+
+
+_DOWN = WDKError("Service Unavailable", status=503)
+
+
+class _Unanswering:
+    async def delete_strategy(self, strategy_id: int) -> NoReturn:
+        del strategy_id
+        raise _DOWN
+
+
+async def test_a_site_delete_that_failed_keeps_the_thread(
+    db_session: AsyncSession,
+    session_maker: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service, "get_strategy_api", lambda _site: _Unanswering())
+    owner = await _make_user(db_session)
+    conversation_id = await _make_conversation(db_session, owner, wdk_strategy_id=555)
+
+    with pytest.raises(SiteUnavailableError) as refused:
+        await ConversationService(db_session).delete(
+            conversation_id, owner.id, delete_from_wdk=True, cascade=False
+        )
+
+    async with session_maker() as fresh:
+        stored = await ConversationRepository(fresh).get_by_id(conversation_id)
+    assert (stored is not None, refused.value.detail) == (
+        True,
+        (
+            "Could not connect to plasmodb (the strategy on the site was not "
+            "deleted, so the conversation is kept: HTTP 503: VEuPathDB service "
+            "error: Service Unavailable)."
+        ),
+    )

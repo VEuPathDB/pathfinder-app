@@ -79,3 +79,20 @@ class PhaseStop(CamelModel):
         if not self.refusal:
             return sentence
         return f"{sentence}; {self.tool_name} answered: {self.refusal}"
+
+
+def stop_phrase(stop: PhaseStop) -> str:
+    """Why a pass stopped, as the predicate of a sentence about the pass."""
+    match stop.reason:
+        case PhaseStopReason.BUDGET:
+            return "ran out of its tool budget"
+        case PhaseStopReason.TOOL_RETRIES:
+            return f"stopped when {stop.tool_name} refused every attempt"
+        case (
+            PhaseStopReason.REPEATED_CALL
+            | PhaseStopReason.CALL_CAP
+            | PhaseStopReason.OUTPUT_RETRIES
+            | PhaseStopReason.PROVIDER
+            | PhaseStopReason.SEARCH_NOT_SERVED
+        ):
+            return stop.phrase()

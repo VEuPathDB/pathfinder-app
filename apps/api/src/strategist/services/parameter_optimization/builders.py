@@ -15,6 +15,17 @@ class TrialMetrics:
     positive_hits: int | None
     negative_hits: int | None
 
+    @property
+    def specificity(self) -> float | None:
+        return None if self.fpr is None else 1.0 - self.fpr
+
+    @property
+    def precision(self) -> float | None:
+        if self.positive_hits is None or self.negative_hits is None:
+            return None
+        returned = self.positive_hits + self.negative_hits
+        return self.positive_hits / returned if returned > 0 else 0.0
+
 
 def _extract_trial_metrics(wdk_result: ControlTestResult) -> TrialMetrics:
     """Extract recall, FPR, result count, and hit counts from a control-test result."""

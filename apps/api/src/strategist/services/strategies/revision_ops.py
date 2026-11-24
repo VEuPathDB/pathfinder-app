@@ -7,18 +7,21 @@ from uuid import UUID
 
 from assistant_core.persistence.models import Conversation, Message
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy import StrategyAst
 
 from strategist.domain.last_change import LastChange, change_between
 from strategist.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_readings,
 )
+from strategist.domain.unread import Unread
 from strategist.persistence.models import StrategyRevisionView
 from strategist.persistence.repositories.conversation import ConversationRepository
 from strategist.persistence.repositories.conversation_update import ConversationUpdate
 from strategist.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
+from strategist.platform.errors import StrategyAstCorruptError
 from strategist.services.strategies.abandoned_mint import (
     ReleasableMint,
     abandoned_mint_to_release,
@@ -82,7 +85,10 @@ async def previous_revision(
     if latest is None:
         return None
     return await repo.newest_turn_end_unlike(
-        conversation_id, before_row_id=latest.id, revision=latest.revision
+        conversation_id,
+        before_row_id=latest.id,
+        revision=latest.revision,
+        apart_from=latest.message_id,
     )
 
 
@@ -94,13 +100,21 @@ async def last_change(
     """The thread's most recent change, read from its newest snapshot and the
     one before its last change. None when the thread holds no strategy."""
     latest = await StrategyRevisionRepository(session).latest(conversation_id)
-    ast = None if latest is None else parse_strategy_ast(latest.strategy_ast)
-    if ast is None:
+    if latest is None:
         return None
+    match parse_strategy_ast(latest.strategy_ast):
+        case StrategyAst() as ast:
+            pass
+        case _:
+            return None
     previous = await previous_revision(session, conversation_id=conversation_id)
-    return change_between(
-        None if previous is None else parse_strategy_ast(previous.strategy_ast), ast
-    )
+    if previous is None:
+        return change_between(None, ast)
+    match parse_strategy_ast(previous.strategy_ast):
+        case Unread():
+            return None
+        case before:
+            return change_between(before, ast)
 
 
 async def _write_strategy_state(
@@ -110,11 +124,15 @@ async def _write_strategy_state(
     state: MaterializedStrategy,
 ) -> None:
     """Write one adopted strategy state, or clear the thread's when it holds none."""
-    ast = parse_strategy_ast(state.strategy_ast)
     repo = ConversationRepository(session)
-    if ast is None:
-        await repo.clear_strategy(conversation_id)
-        return
+    match parse_strategy_ast(state.strategy_ast):
+        case Unread(reason=reason):
+            raise StrategyAstCorruptError(str(conversation_id), reason)
+        case None:
+            await repo.clear_strategy(conversation_id)
+            return
+        case ast:
+            pass
     await repo.update_conversation(
         conversation_id,
         ConversationUpdate(

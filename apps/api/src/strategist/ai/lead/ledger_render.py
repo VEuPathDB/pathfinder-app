@@ -187,6 +187,8 @@ def render_build_full(section: BuildSection) -> str:
     ]
     if o.organism_change is not None:
         parts.append(f"- records: {o.organism_change.line()}")
+    if o.not_read is not None:
+        parts.append(f"- not read back: {o.not_read.reason}")
     if o.failed_steps:
         parts.append("\n### Failed steps")
         parts.extend(

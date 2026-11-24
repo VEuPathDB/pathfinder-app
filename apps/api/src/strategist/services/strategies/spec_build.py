@@ -88,6 +88,7 @@ def outcome_of(
             if committed.put and count == 0
         ),
         organism_change=change,
+        not_read=sync_state.strategy_not_read,
     )
     outcome.node_results = node_results(nodes, sync_state, outcome)
     return outcome

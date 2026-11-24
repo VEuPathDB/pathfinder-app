@@ -50,7 +50,7 @@ def _refused(search: str = _DIAMOND) -> RequirementReport:
 def _pass(*reports: RequirementReport) -> FrameResult:
     return FrameResult(
         disposition="needs_user",
-        summary="The site refused the mapping search.",
+        notes="The site refused the mapping search.",
         requirement_problems=list(reports),
     )
 

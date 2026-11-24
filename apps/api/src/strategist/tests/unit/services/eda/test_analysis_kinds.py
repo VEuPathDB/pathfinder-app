@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import NumberValue, StringValue
-from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.domain.strategy import StepKind, StrategyStep, StrategyStepNode
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM, EDA_DATASET_ID_PARAM
 
 from strategist.domain.strategy.analysis_binding import AnalysisKind
+from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.step_words import StampedKind
-from strategist.services.eda.analysis_kinds import analysis_kinds_of
+from strategist.services.eda.analysis_kinds import (
+    analysis_kinds_of,
+    read_the_unread_kinds,
+    unread_analyses,
+)
 from strategist.services.eda.export import exported_analysis
 from strategist.tests._support.analysis_catalog import (
     DESEQ_SEARCH,
@@ -17,6 +22,7 @@ from strategist.tests._support.analysis_catalog import (
     WGCNA_SEARCH,
     serve_the_catalog,
 )
+from strategist.tests.fixtures.builders import add_step_to_graph
 from strategist.tests.unit.ai.lead._analysis_thread import document
 
 _DATASET = "DS_e973eadd57"
@@ -117,3 +123,28 @@ async def test_a_search_listed_under_no_record_type_is_not_read_under_another(
     )
 
     assert (kinds, read) == ({}, [])
+
+
+async def test_a_step_whose_search_was_not_read_is_a_pending_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_the_catalog(monkeypatch)
+    graph = StrategyGraph("g1", "DE", "plasmodb")
+    graph.record_type = "transcript"
+    add_step_to_graph(
+        graph,
+        StrategyStep(
+            id="step_de",
+            kind=StepKind.SEARCH,
+            search_name=UNREADABLE_SEARCH,
+            parameters=eda_node("step_de", UNREADABLE_SEARCH).parameters,
+        ),
+    )
+
+    await read_the_unread_kinds(site_id="plasmodb", graph=graph)
+
+    assert (graph.analysis_kind_of("step_de"), unread_analyses(graph)) == (
+        None,
+        ["step_de"],
+    )
+    assert graph.unreadable_searches == {UNREADABLE_SEARCH}

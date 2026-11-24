@@ -31,7 +31,7 @@ def work_orders(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     async def _asks(**kwargs: Any) -> FrameResult:
         orders.append(kwargs["work_order"])
-        return FrameResult(disposition="needs_user", summary="which evidence?")
+        return FrameResult(disposition="needs_user", notes="which evidence?")
 
     monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
     monkeypatch.setattr(edit_dispatch, "run_frame", _asks)

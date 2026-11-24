@@ -1,0 +1,614 @@
+{
+  "provenance": "cedar ~/proto/c1-check/runs/b1 (c1-check, plasmodb Build): the spec FRAME wrote (ledger.frame.spec) and the requirements the turn stated (ledger.userIntent.explicitConstraints) of state/frame.json",
+  "spec": {
+    "goal": "In Plasmodium falciparum 3D7, find genes on the Pexel motif exported-protein gene list (subcellular localization) that are also highly expressed, at or above the 80th expression percentile in a blood-stage sample of an RNA-Seq experiment.",
+    "interpretedGoal": "",
+    "organismScope": null,
+    "title": "",
+    "criteria": [
+      {
+        "id": "c_pexel_exported",
+        "text": "on the Pexel motif exported-protein gene list (subcellular localization) in Plasmodium falciparum 3D7",
+        "answers": [
+          {
+            "requirement": "e5bca75a7774",
+            "param": null,
+            "resultSize": false
+          },
+          {
+            "requirement": "1db2851297d5",
+            "param": "geneListParam",
+            "resultSize": false
+          }
+        ],
+        "searchName": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Cowman_RSRC",
+        "searchDisplayName": "Gene Lists from Pexel motif analysis of protein export to the erythrocyte membrane.",
+        "savedStrategyRef": null,
+        "recordClass": "transcript",
+        "role": "seed",
+        "organismParam": null,
+        "radioPairs": {},
+        "datasetOrganisms": [
+          "Plasmodium falciparum 3D7"
+        ],
+        "resolvedParams": {
+          "geneListDataset": {
+            "value": {
+              "type": "single-pick-vocabulary",
+              "value": "pfal3D7_subcellular_localization_Cowman_RSRC"
+            },
+            "source": "default",
+            "basis": "",
+            "carriedFrom": "",
+            "displayName": "Gene List Dataset",
+            "label": "",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": false,
+            "number": true,
+            "decimals": null,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          },
+          "geneListParam": {
+            "value": {
+              "type": "single-pick-vocabulary",
+              "value": "RBC membrane Pexel motif"
+            },
+            "source": "default",
+            "basis": "",
+            "carriedFrom": "",
+            "displayName": "Gene List",
+            "label": "RBC membrane Pexel motif",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": true,
+            "number": true,
+            "decimals": null,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          }
+        },
+        "paramDisplayNames": {
+          "geneListParam": "Gene List",
+          "geneListDataset": "Gene List Dataset"
+        },
+        "measurements": [
+          {
+            "kind": "vocabulary_label",
+            "param": "geneListParam",
+            "count": null,
+            "label": "RBC membrane Pexel motif",
+            "reading": "RBC membrane Pexel motif",
+            "unchosen": [],
+            "unchosenCount": 0
+          }
+        ],
+        "openParams": [],
+        "confidence": 0.0,
+        "alternatives": [],
+        "resultCount": 316,
+        "analysis": null,
+        "needsAnalysisOn": null,
+        "rationale": {
+          "kind": "search",
+          "searchName": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Cowman_RSRC",
+          "basis": "parameter",
+          "term": "Gene List",
+          "reason": "The requested Pexel motif exported-protein list is the available gene-list value.",
+          "similarity": 0.7557469819616419,
+          "compared": [
+            {
+              "name": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_ApicoplastTargeting_RSRC",
+              "displayName": "Gene Lists from PlasmoAP motif for protein export to the apicoplast.",
+              "similarity": 0.7131989953928087
+            },
+            {
+              "name": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Haldar_RSRC",
+              "displayName": "Gene Lists from HT motif for protein export to the erythrocyte membrane.",
+              "similarity": 0.6838331522375545
+            },
+            {
+              "name": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_hyperLOPIT_Schizont_RSRC",
+              "displayName": "Gene Lists from Schizont spatial proteome (hyperLOPIT)",
+              "similarity": 0.6278504608549472
+            }
+          ],
+          "query": "Pexel motif exported protein gene list subcellular localization Plasmodium falciparum 3D7",
+          "toolCallId": "call_lySXpx76dvEIhrafbepAhzTj",
+          "sources": [],
+          "derivedFrom": {
+            "geneListDataset": "pfal3D7_subcellular_localization_Cowman_RSRC",
+            "geneListParam": "RBC membrane Pexel motif"
+          },
+          "short": "sets Gene List",
+          "sentence": "Gene List: The requested Pexel motif exported-protein list is the available gene-list value."
+        },
+        "acceptedReading": null,
+        "genomeGroup": null,
+        "requiredGenomesName": "",
+        "absenceOf": ""
+      },
+      {
+        "id": "c_high_blood_rnaseq",
+        "text": "at or above the 80th expression percentile in a blood-stage Plasmodium falciparum 3D7 RNA-Seq sample",
+        "answers": [
+          {
+            "requirement": "e5bca75a7774",
+            "param": null,
+            "resultSize": false
+          },
+          {
+            "requirement": "e6d64ae76c74",
+            "param": "min_expression_percentile",
+            "resultSize": false
+          },
+          {
+            "requirement": "8dbc0f179be2",
+            "param": "samples_percentile_generic",
+            "resultSize": false
+          },
+          {
+            "requirement": "739b3956e59e",
+            "param": "profileset_generic",
+            "resultSize": false
+          }
+        ],
+        "searchName": "GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCPercentile",
+        "searchDisplayName": "P. falciparum 3D7 Blood stage transcriptome (3D7) RNA-Seq (percentile)",
+        "savedStrategyRef": null,
+        "recordClass": "transcript",
+        "role": "filter",
+        "organismParam": null,
+        "radioPairs": {},
+        "datasetOrganisms": [
+          "Plasmodium falciparum 3D7"
+        ],
+        "resolvedParams": {
+          "profileset_generic": {
+            "value": {
+              "type": "single-pick-vocabulary",
+              "value": "P. falciparum Newbold mRNA Seq dataunstranded"
+            },
+            "source": "default",
+            "basis": "",
+            "carriedFrom": "",
+            "displayName": "Experiment",
+            "label": "Blood stage transcriptome (3D7)unstranded",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": true,
+            "number": true,
+            "decimals": null,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          },
+          "min_expression_percentile": {
+            "value": {
+              "type": "string",
+              "value": "80"
+            },
+            "source": "stated",
+            "basis": "80th",
+            "carriedFrom": "",
+            "displayName": "Minimum expression percentile",
+            "label": "",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": true,
+            "number": true,
+            "decimals": 0,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          },
+          "max_expression_percentile": {
+            "value": {
+              "type": "string",
+              "value": "100"
+            },
+            "source": "default",
+            "basis": "",
+            "carriedFrom": "",
+            "displayName": "Maximum expression percentile",
+            "label": "",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": true,
+            "number": true,
+            "decimals": 0,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          },
+          "any_or_all": {
+            "value": {
+              "type": "single-pick-vocabulary",
+              "value": "any"
+            },
+            "source": "default",
+            "basis": "",
+            "carriedFrom": "",
+            "displayName": "Matches Any or All Selected Samples?",
+            "label": "any",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": true,
+            "number": true,
+            "decimals": null,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          },
+          "protein_coding_only": {
+            "value": {
+              "type": "single-pick-vocabulary",
+              "value": "yes"
+            },
+            "source": "default",
+            "basis": "",
+            "carriedFrom": "",
+            "displayName": "Protein Coding Only:",
+            "label": "protein coding",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": true,
+            "number": true,
+            "decimals": null,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          },
+          "channel": {
+            "value": {
+              "type": "single-pick-vocabulary",
+              "value": "Channel 1"
+            },
+            "source": "default",
+            "basis": "",
+            "carriedFrom": "",
+            "displayName": "Channel :",
+            "label": "",
+            "placeholder": false,
+            "atDefault": true,
+            "visible": false,
+            "number": true,
+            "decimals": null,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          },
+          "samples_percentile_generic": {
+            "value": {
+              "type": "multi-pick-vocabulary",
+              "values": [
+                "0 hours",
+                "8 hours",
+                "16 hours",
+                "24 hours",
+                "32 hours",
+                "40 hours",
+                "48 hours"
+              ]
+            },
+            "source": "chosen",
+            "basis": "The request says a blood-stage sample without naming a time point, so the criterion covers every blood-stage sample listed in this experiment and uses any selected sample; the stated lower percentile bound is 80.",
+            "carriedFrom": "",
+            "displayName": "Samples",
+            "label": "0 hours, 8 hours, 16 hours, 24 hours, 32 hours, 40 hours, 48 hours",
+            "placeholder": false,
+            "atDefault": false,
+            "visible": true,
+            "number": false,
+            "decimals": null,
+            "taxon": null,
+            "words": "",
+            "publishedMin": null,
+            "publishedMax": null
+          }
+        },
+        "paramDisplayNames": {
+          "profileset_generic": "Experiment",
+          "samples_percentile_generic": "Samples",
+          "min_expression_percentile": "Minimum expression percentile",
+          "max_expression_percentile": "Maximum expression percentile",
+          "any_or_all": "Matches Any or All Selected Samples?",
+          "protein_coding_only": "Protein Coding Only:",
+          "channel": "Channel :"
+        },
+        "measurements": [
+          {
+            "kind": "vocabulary_label",
+            "param": "profileset_generic",
+            "count": null,
+            "label": "Blood stage transcriptome (3D7)unstranded",
+            "reading": "P. falciparum Newbold mRNA Seq dataunstranded",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "any_or_all",
+            "count": null,
+            "label": "any",
+            "reading": "any",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "protein_coding_only",
+            "count": null,
+            "label": "protein coding",
+            "reading": "yes",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "samples_percentile_generic",
+            "count": null,
+            "label": "0 hours",
+            "reading": "0 hours",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "samples_percentile_generic",
+            "count": null,
+            "label": "8 hours",
+            "reading": "8 hours",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "samples_percentile_generic",
+            "count": null,
+            "label": "16 hours",
+            "reading": "16 hours",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "samples_percentile_generic",
+            "count": null,
+            "label": "24 hours",
+            "reading": "24 hours",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "samples_percentile_generic",
+            "count": null,
+            "label": "32 hours",
+            "reading": "32 hours",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "samples_percentile_generic",
+            "count": null,
+            "label": "40 hours",
+            "reading": "40 hours",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "vocabulary_label",
+            "param": "samples_percentile_generic",
+            "count": null,
+            "label": "48 hours",
+            "reading": "48 hours",
+            "unchosen": [],
+            "unchosenCount": 0
+          },
+          {
+            "kind": "options_not_taken",
+            "param": "any_or_all",
+            "count": null,
+            "label": "",
+            "reading": "",
+            "unchosen": [
+              "all"
+            ],
+            "unchosenCount": 1
+          },
+          {
+            "kind": "options_not_taken",
+            "param": "protein_coding_only",
+            "count": null,
+            "label": "",
+            "reading": "",
+            "unchosen": [
+              "all"
+            ],
+            "unchosenCount": 1
+          }
+        ],
+        "openParams": [],
+        "confidence": 0.0,
+        "alternatives": [],
+        "resultCount": 2165,
+        "analysis": null,
+        "needsAnalysisOn": null,
+        "rationale": {
+          "kind": "search",
+          "searchName": "GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCPercentile",
+          "basis": "parameter",
+          "term": "Samples",
+          "reason": "The request says a blood-stage sample without naming a time point, so the criterion covers every blood-stage sample listed in this experiment and uses any selected sample; the stated lower percentile bound is 80.",
+          "similarity": 0.7695161889275044,
+          "compared": [
+            {
+              "name": "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile",
+              "displayName": "P. falciparum 3D7 Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes RNA-Seq (percentile)",
+              "similarity": 0.7607390570022994
+            },
+            {
+              "name": "GenesByRNASeqhpil2019_Aunin_Blood_Stage_ebi_rnaSeq_RSRCPercentile",
+              "displayName": "H. sp. ex Piliocolobus tephrosceles 2019 Blood stage transcriptome RNA-Seq (percentile)",
+              "similarity": 0.725603313279452
+            },
+            {
+              "name": "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCPercentile",
+              "displayName": "P. falciparum 3D7 Transcriptomes of 7 sexual and asexual life stages RNA-Seq (percentile)",
+              "similarity": 0.7476025639245037
+            }
+          ],
+          "query": "RNA-Seq expression percentile at least 80th percentile blood stage Plasmodium falciparum 3D7 sample",
+          "toolCallId": "call_EcYQ3DSLK57fEpGLNNuW2B8l",
+          "sources": [],
+          "derivedFrom": {
+            "profileset_generic": "P. falciparum Newbold mRNA Seq dataunstranded",
+            "min_expression_percentile": "80",
+            "max_expression_percentile": "100",
+            "any_or_all": "any",
+            "protein_coding_only": "yes",
+            "channel": "Channel 1",
+            "samples_percentile_generic": "[\"0 hours\", \"8 hours\", \"16 hours\", \"24 hours\", \"32 hours\", \"40 hours\", \"48 hours\"]"
+          },
+          "short": "sets Samples",
+          "sentence": "Samples: The request says a blood-stage sample without naming a time point, so the criterion covers every blood-stage sample listed in this experiment and uses any selected sample; the stated lower percentile bound is 80."
+        },
+        "acceptedReading": null,
+        "genomeGroup": null,
+        "requiredGenomesName": "",
+        "absenceOf": ""
+      }
+    ],
+    "structure": {
+      "root": {
+        "kind": "combine",
+        "criterionId": null,
+        "operator": "INTERSECT",
+        "inputs": [
+          {
+            "kind": "leaf",
+            "criterionId": "c_pexel_exported",
+            "operator": null,
+            "inputs": []
+          },
+          {
+            "kind": "leaf",
+            "criterionId": "c_high_blood_rnaseq",
+            "operator": null,
+            "inputs": []
+          }
+        ]
+      }
+    },
+    "dropped": [],
+    "openSlots": [],
+    "constraints": [],
+    "operatorReads": [
+      {
+        "criteria": [
+          "c_high_blood_rnaseq",
+          "c_pexel_exported"
+        ],
+        "built": "INTERSECT",
+        "read": "agrees",
+        "readOperator": "INTERSECT",
+        "confidence": 0.98,
+        "branches": [
+          [
+            "1db2851297d5"
+          ],
+          [
+            "e6d64ae76c74",
+            "8dbc0f179be2"
+          ]
+        ]
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "e5bca75a7774",
+      "kind": "organism",
+      "requestedValue": "Plasmodium falciparum 3D7",
+      "label": "Plasmodium falciparum 3D7",
+      "source": "user_explicit",
+      "quote": "In Plasmodium falciparum 3D7",
+      "beside": "",
+      "hard": true,
+      "value": {
+        "kind": "organism",
+        "organism": "Plasmodium falciparum 3D7"
+      }
+    },
+    {
+      "id": "1db2851297d5",
+      "kind": "property",
+      "requestedValue": "on the Pexel motif exported-protein gene list (subcellular localization)",
+      "label": "on the Pexel motif exported-protein gene list (subcellular localization)",
+      "source": "user_explicit",
+      "quote": "on the Pexel motif exported-protein gene list (subcellular localization)",
+      "beside": "",
+      "hard": true,
+      "value": {
+        "kind": "property",
+        "phrase": "on the Pexel motif exported-protein gene list (subcellular localization)"
+      }
+    },
+    {
+      "id": "e6d64ae76c74",
+      "kind": "percentile",
+      "requestedValue": "at or above the 80th expression percentile",
+      "label": "at or above the 80th expression percentile",
+      "source": "user_explicit",
+      "quote": "highly expressed, at or above the 80th expression percentile",
+      "beside": "",
+      "hard": true,
+      "value": {
+        "kind": "percentile",
+        "end": "top",
+        "share": 20.0
+      }
+    },
+    {
+      "id": "8dbc0f179be2",
+      "kind": "property",
+      "requestedValue": "expressed in a blood-stage sample",
+      "label": "expressed in a blood-stage sample",
+      "source": "user_explicit",
+      "quote": "in a blood-stage sample",
+      "beside": "",
+      "hard": true,
+      "value": {
+        "kind": "property",
+        "phrase": "expressed in a blood-stage sample"
+      }
+    },
+    {
+      "id": "739b3956e59e",
+      "kind": "data_type",
+      "requestedValue": "RNA-Seq evidence",
+      "label": "RNA-Seq evidence",
+      "source": "user_explicit",
+      "quote": "of an RNA-Seq experiment",
+      "beside": "",
+      "hard": true,
+      "value": {
+        "kind": "data_type",
+        "data": "rna_seq"
+      }
+    }
+  ]
+}

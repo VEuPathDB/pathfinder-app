@@ -27,9 +27,14 @@ from strategist.domain.evidence import (
     ControlTestEvidence,
     NamedControlSet,
 )
+from strategist.domain.unread import Unread
 from strategist.services.evidence.comparisons import run_scored_comparison
 from strategist.services.evidence.control_sets import get_control_set
-from strategist.services.experiment.scored_comparison import ScoredComparison
+from strategist.services.experiment.scored_comparison import (
+    Objective,
+    ScoredComparison,
+    ranked_winner,
+)
 
 
 def _filed(controls: list[str], hits: set[str]) -> ControlSetEvidence | None:
@@ -54,7 +59,11 @@ def _scored_runs(
     """One control result per variant the comparison scored."""
     runs: list[ControlTestRun] = []
     for variant in comparison.variants:
-        hits = set(variant.control_hits)
+        match variant.control_hits:
+            case Unread():
+                continue
+            case list() as found:
+                hits = set(found)
         positive, negative = _filed(positives, hits), _filed(negatives, hits)
         if variant.error is not None or (positive is None and negative is None):
             continue
@@ -77,7 +86,7 @@ async def compare_variants_scored(
     ctx: RunContext[LeadDeps],
     variants: ComparedVariants,
     control_set_id: ControlSetId,
-    objective: str = "mcc",
+    objective: Objective = "mcc",
 ) -> ToolReturn[ScoredComparison]:
     """Run each variant as a full scored run against a saved control
     set and rank them by ``objective`` (mcc | balanced_accuracy | f1 |
@@ -125,23 +134,37 @@ async def compare_variants_scored(
     )
     return with_summary(
         result,
-        _scored_line(result),
+        _scored_line(result, objective),
         ctx=ctx,
         extra=[chunk],
     )
 
 
-def _scored_line(comparison: ScoredComparison) -> str:
-    """How many variants scored, and which one won."""
+def _unread_memberships(comparison: ScoredComparison) -> str:
+    unread = [
+        v.label for v in comparison.variants if isinstance(v.control_hits, Unread)
+    ]
+    return f"; membership not read for {', '.join(unread)}" if unread else ""
+
+
+def _scored_line(comparison: ScoredComparison, objective: Objective) -> str:
+    """How many variants scored, which one won and by which metric, why the
+    objective was not measured when it was not, and whose membership was not
+    read."""
     total = len(comparison.variants)
     failed = sum(1 for v in comparison.variants if v.error is not None)
-    winner = next(
-        (v for v in comparison.variants if v.label == comparison.winner_label),
-        None,
-    )
-    if winner is None:
+    unread = _unread_memberships(comparison)
+    ranking = ranked_winner(comparison.variants, objective)
+    match ranking.unmeasured:
+        case Unread(reason=reason):
+            why = f"; {objective} not measured: {reason}"
+        case None:
+            why = ""
+    if ranking.winner is None or ranking.score is None:
         if failed:
-            return f"scoring failed for {failed} of {total} variants"
-        return f"{total} variants scored, no winner"
-    score = winner.mcc or 0.0
-    return f"{total} variants scored, winner {winner.label} at {score:.3f}"
+            return f"scoring failed for {failed} of {total} variants{why}{unread}"
+        return f"{total} variants scored, no winner{why}{unread}"
+    return (
+        f"{total} variants scored, winner {ranking.winner.label} at "
+        f"{ranking.metric} {ranking.score:.3f}{why}{unread}"
+    )

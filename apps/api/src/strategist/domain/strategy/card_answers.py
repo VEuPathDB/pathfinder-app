@@ -182,10 +182,7 @@ def spec_bound_by_card(
     of the value it replaces or the slot it fills; a gone criterion binds nothing."""
     if all(c.id != binding.criterion_id for c in spec.criteria):
         return spec
-    try:
-        params = resolved_params(binding.params, held_expressions(expressions, spec))
-    except UnknownExpressionError:
-        return spec
+    params = resolved_params(binding.params, held_expressions(expressions, spec))
     binding = binding.model_copy(update={"params": params})
     slots = [s for s in spec.open_slots if s.criterion_id == binding.criterion_id]
     return spec.model_copy(
@@ -217,6 +214,6 @@ def option_refusal(
         spec_bound_by_card(
             spec, binding, option_id="", sheets=sheets, expressions=expressions
         )
-    except ValidationError as refused:
+    except (ValidationError, UnknownExpressionError) as refused:
         return str(refused)
     return None

@@ -24,6 +24,7 @@ from strategist.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.services.strategies import search_sheets
 from strategist.services.strategies.parameter_rules import text_query
@@ -32,6 +33,8 @@ from strategist.tests._support.logs import logged_events
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.qa_recording import qa_recording
 from strategist.tests._support.recorded_searches import suite_search
+
+_STATED = StatedSource(words="")
 
 
 def _info(name: str, param_type: str = "string", **fields: object) -> ParameterInfo:
@@ -67,7 +70,7 @@ def _criterion(
         id=f"c_{search}",
         text=search,
         search_name=search,
-        resolved_params=bind_values(values, "stated", sheet),
+        resolved_params=bind_values(values, _STATED, sheet),
     )
 
 

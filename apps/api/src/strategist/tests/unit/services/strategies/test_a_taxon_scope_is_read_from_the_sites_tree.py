@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
+from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKSearch
 
 from strategist.domain.strategy.organism_scope import SiteTaxa
@@ -152,3 +153,40 @@ async def test_a_search_the_catalog_does_not_list_reads_no_tree(
     taxa = await organism_taxa("piroplasmadb", {_TAXON_SEARCH: "organism"})
 
     assert (taxa, definitions_read) == (SiteTaxa(listed=frozenset()), [])
+
+
+_DOWN = WDKError("Service Unavailable", status=503)
+
+
+async def _unanswered(*_args: Any) -> Any:
+    raise _DOWN
+
+
+async def test_an_unread_mark_leaves_the_scopes_unknown_and_refuses_nothing(
+    monkeypatch: pytest.MonkeyPatch, definitions_read: list[str]
+) -> None:
+    async def _no_dataset(_site: str, _search: str) -> list[str]:
+        return []
+
+    monkeypatch.setattr(organism_params, "organism_parameter", _unanswered)
+    monkeypatch.setattr(organism_params, "dataset_organisms", _no_dataset)
+    root = _intersect(_taxon("family", "Babesiidae"), _taxon("strain", _PARVA))
+
+    refusal = await tree_cross_organism_refusal("piroplasmadb", root)
+
+    assert (refusal, definitions_read) == (None, [])
+
+
+async def test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing(
+    monkeypatch: pytest.MonkeyPatch, definitions_read: list[str]
+) -> None:
+    monkeypatch.setattr(organism_params, "read_search_definition", _unanswered)
+    monkeypatch.setattr(organism_params, "list_organisms", _unanswered)
+    root = _intersect(_taxon("family", "Babesiidae"), _taxon("strain", _PARVA))
+
+    taxa = await organism_taxa("piroplasmadb", {_TAXON_SEARCH: "organism"})
+    refusal = await tree_cross_organism_refusal("piroplasmadb", root)
+
+    assert taxa == SiteTaxa(listed=frozenset())
+    assert not taxa.places("Babesiidae")
+    assert refusal is None

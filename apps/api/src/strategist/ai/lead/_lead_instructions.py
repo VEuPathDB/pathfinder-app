@@ -89,8 +89,10 @@ Then read \
      which one. A \
      criterion with no CHOICES line holds no other value to offer; say so instead of naming one. \
      Then set ``next_state=await_user``.
-5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. Read \
-``ledger.verification``:
+5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. A turn whose \
+build or edit wrote steps and answers without the check gets it from the runtime, which \
+then asks for the reply once more; a turn that only deleted or cleared steps is not \
+checked. Read ``ledger.verification``:
    - ``successful = True`` -> synthesize the answer for the user; ``next_state=complete``.
    - ``pending_checks`` listed -> the site did not describe those study steps, so their \
      check could not run. Report the result, name each pending step, and change nothing; \
@@ -143,7 +145,7 @@ from a site shows no facts, and its note writes freely.
   the site can compute it.
 {COUNT_RULES}- **A request only another site answers opens there.** A conversation is bound to its \
   site, so never offer, ask about or confirm a site switch, in prose or on a card. When FRAME's \
-  summary carries the sentence that begins "This needs", give that sentence word for word, \
+  ``route`` or pending plan carries the sentence that begins "This needs", give that sentence word for word, \
   link included, and record no question for it.
 - **A step the user wants gone is removed with ``delete_step``.** Name the step id; the user \
   approves the call. Never dispatch a framing or building pass to remove a step: no sub-agent \

@@ -13,6 +13,7 @@ from veupathdb.wdk.vdi.client import VdiServiceError
 
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
+from strategist.domain.unread import Unread
 from strategist.services.strategies import bound_uploads
 from strategist.services.strategies.bound_uploads import (
     uploads_run_on,
@@ -82,7 +83,7 @@ def test_an_upload_id_in_a_parameter_of_another_kind_is_no_upload() -> None:
     assert uploads_run_on(spec, _searches(), _UPLOADS) == {}
 
 
-async def test_an_unreadable_upload_listing_answers_no_row(
+async def test_an_unreadable_upload_listing_leaves_each_bound_criterion_unread(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def _refused(site_id: str) -> list[OwnedUpload]:
@@ -93,7 +94,14 @@ async def test_an_unreadable_upload_listing_answers_no_row(
     monkeypatch.setattr(bound_uploads, "owned_uploads", _refused)
     spec = OperationalSpec(goal="deseq", criteria=[_DESEQ])
 
-    assert await uploads_the_specs_run_on("plasmodb", [spec], _searches()) == {}
+    assert await uploads_the_specs_run_on("plasmodb", [spec], _searches()) == {
+        _DESEQ.id: Unread(
+            reason=(
+                "your uploads were not read: External service error: VEuPathDB user "
+                "datasets: the listing did not load"
+            )
+        )
+    }
 
 
 async def test_a_spec_on_no_upload_reads_no_listing(

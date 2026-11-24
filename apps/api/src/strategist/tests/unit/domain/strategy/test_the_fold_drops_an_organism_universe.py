@@ -60,6 +60,7 @@ def _pest_universe(text: str = f"{PEST} genes") -> Criterion:
             },
             defaulted=["gene_model_char", "gene_or_transcript"],
         ),
+        result_count=PEST_GENES,
     )
 
 
@@ -162,13 +163,12 @@ def _fold(
         spec,
         tree,
         ORGANISMS,
-        (PEST_ORGANISM, *requirements),
         _counts(criteria) if counts is None else counts,
         live_step_ids=live,
     ).holding_open(requirements)
 
 
-def test_a_leaf_that_links_only_the_organism_is_dropped_and_met() -> None:
+def test_a_leaf_that_counts_its_organisms_genes_is_dropped() -> None:
     folded = _fold(
         _combine(CombineOp.INTERSECT, _leaf("c_pest"), _leaf("c_signal")),
         _pest_universe(),
@@ -176,12 +176,12 @@ def test_a_leaf_that_links_only_the_organism_is_dropped_and_met() -> None:
     )
 
     assert folded.structure.root == _leaf("c_signal")
-    assert [(d.criterion_id, d.met, d.carrier_ids) for d in folded.dropped] == [
-        ("c_pest", True, ("c_signal",))
+    assert [(d.criterion_id, d.carrier_ids) for d in folded.dropped] == [
+        ("c_pest", ("c_signal",))
     ]
     assert folded.dropped[0].fate == (
-        f"c_pest ('{PEST} genes') is dropped: it links only the organism {PEST}, "
-        f"which c_signal already runs on, so that organism value meets it."
+        f"c_pest ('{PEST} genes') is dropped: it matches all 13,845 genes of {PEST}, "
+        f"which c_signal already runs on, so it narrows nothing."
     )
 
 
@@ -206,8 +206,8 @@ def test_a_binding_that_matches_its_organism_universe_holds_its_link_open() -> N
     )
 
     assert folded.structure.root == _leaf("c_signal")
-    assert [(d.criterion_id, d.met, d.requirements) for d in folded.dropped] == [
-        ("c_isolates", False, (_VARIES,))
+    assert [(d.criterion_id, d.requirements) for d in folded.dropped] == [
+        ("c_isolates", (_VARIES,))
     ]
     assert folded.dropped[0].fate == (
         f"c_isolates ('do not vary much between isolates') is dropped: it matches "
@@ -311,7 +311,7 @@ def test_a_universe_the_search_decides_is_still_dropped() -> None:
         decided,
     )
 
-    assert [(d.criterion_id, d.met) for d in folded.dropped] == [("c_isolates", False)]
+    assert [d.criterion_id for d in folded.dropped] == ["c_isolates"]
 
 
 def test_an_input_of_another_organism_is_kept() -> None:

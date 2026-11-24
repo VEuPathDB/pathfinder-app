@@ -90,6 +90,7 @@ uv run pytest --override-ini "addopts=" --collect-only -q
 uv run pytest src/strategist/tests/ -q
 uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
+uv run python scripts/check_fail_open.py
 ```
 
 Both type checkers read the tests tree. `[tool.mypy]` and the repo-root
@@ -104,6 +105,17 @@ baselined file fails as soon as it grows past that count. `check_weak_assertions
 fails a test whose only assertions pin nothing, suppressed by
 `src/strategist/tests/.weak-baseline.txt`. An entry leaves either file when the
 file shrinks or the test gains a value assertion; an entry never enters one.
+
+`check_fail_open.py` fails an `except` handler in `ai/`, `services/` or `domain/` that
+returns, assigns or passes an empty value (`[]`, `{}`, `""`, `0`, `None`, `False`, `set()`,
+also as a keyword of a call and anywhere inside the handler, a conditional return included),
+ends in `pass` or `continue`, or logs (through the logger or a helper named for logging) and
+falls through with no raise and no return. A handler whose failure value is correct is listed
+in `scripts/fail-open-allowed.txt` by its identity, `path:function:caught:default` (`#2` for
+a second alike handler in the function), with its reason, so a new handler never inherits an
+old line's reason; a line whose handler is gone fails too. `or <literal>`,
+`.get(key, default)`, conditional and non-literal fallbacks outside a handler are out of its
+reach; the types that carry an unread value (`Unread`, an unchecked `SiteCheck`) hold those.
 
 The collect runs with `addopts` cleared, so it reaches the tiers the default
 run deselects. An opt-in tier is invisible to every other command here, and a

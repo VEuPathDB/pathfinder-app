@@ -44,7 +44,7 @@ def _context() -> RunContext[AgentDeps]:
 
 def _result(*numbers: str) -> FrameResult:
     return FrameResult(
-        summary="No search on this site states a predicted GPI anchor.",
+        notes="No search on this site states a predicted GPI anchor.",
         requirement_problems=[
             RequirementReport(
                 requirement=number, problem=RequirementProblem.SITE_HAS_NO_SEARCH
@@ -78,7 +78,7 @@ def test_a_number_the_list_lacks_is_sent_back_with_the_numbers_it_holds() -> Non
             "requirement_problems names R5, and the list holds R1, R2. A report "
             "names a requirement by its number in 'Requirements the researcher "
             "stated'. Use one of those numbers, or leave the entry out and say it "
-            "in summary."
+            "in notes."
         )
     ]
     assert let_through(held, result) == _result("R2").with_gap(

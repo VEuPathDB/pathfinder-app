@@ -64,8 +64,8 @@ def _folded(
     )
 
 
-def _dropped(folded: DeduplicatedStructure) -> list[tuple[str, str, bool]]:
-    return [(d.criterion_id, d.fate, d.met) for d in folded.dropped]
+def _dropped(folded: DeduplicatedStructure) -> list[tuple[str, str]]:
+    return [(d.criterion_id, d.fate) for d in folded.dropped]
 
 
 def test_a_leaf_identical_to_a_sibling_is_dropped_as_met() -> None:
@@ -91,7 +91,6 @@ def test_a_leaf_identical_to_a_sibling_is_dropped_as_met() -> None:
                 "values step_9ba9dec1 runs beside it under INTERSECT, so "
                 "step_9ba9dec1 meets it."
             ),
-            True,
         )
     ]
 

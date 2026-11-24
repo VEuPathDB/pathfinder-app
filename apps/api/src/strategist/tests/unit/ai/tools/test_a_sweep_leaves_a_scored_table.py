@@ -7,12 +7,17 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+import pytest
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 
 from strategist.ai.tools.standalone import optimization
+from strategist.domain.evidence import NamedControlSet
 from strategist.services.experiment.scored_comparison import ScoredComparison
-from strategist.services.parameter_optimization.config import SweepVariantResult
+from strategist.services.parameter_optimization.config import (
+    SweepResult,
+    SweepVariantResult,
+)
 from strategist.tests._support.qa_recording import qa_recording
 
 _RESULT: dict[str, Any] = json.loads(
@@ -48,8 +53,9 @@ def test_the_table_ranks_signalp_41_first() -> None:
     assert table.winner_label == "SignalP-4.1"
     assert table.objective == "f1"
     best = table.variants[0]
-    scores = (best.sensitivity, best.precision, best.f1)
-    assert [None if x is None else round(x, 3) for x in scores] == [0.95, 0.987, 0.968]
+    assert best.sensitivity == pytest.approx(0.95, abs=5e-4)
+    assert best.precision == pytest.approx(0.987, abs=5e-4)
+    assert best.f1 == pytest.approx(0.968, abs=5e-4)
     assert best.search_name == "GenesWithSignalPeptide"
 
 
@@ -71,3 +77,28 @@ def test_a_setting_restated_in_another_order_does_not_vary() -> None:
     ]
 
     assert optimization._varied(variants) == ["signalp_version"]
+
+
+def test_a_sweep_with_no_negatives_says_false_positives_were_not_measured() -> None:
+    sweep = SweepResult(
+        variants=[
+            SweepVariantResult(
+                variant_id="v1", status="success", score=0.75, recall=0.75
+            )
+        ],
+        best=None,
+        search_name="GenesWithSignalPeptide",
+        objective="f1",
+        control_set=NamedControlSet(id="cs-1", name="Signal peptide controls"),
+    )
+
+    assert optimization.sweep_summary(sweep) == (
+        "1 settings tried, best recall 0.750; no negative controls: false "
+        "positives not measured"
+    )
+
+
+def test_the_recorded_sweep_summary_names_its_objective() -> None:
+    sweep = SweepResult.model_validate(_RESULT["result"])
+
+    assert optimization.sweep_summary(sweep) == "3 settings tried, best f1 0.968"

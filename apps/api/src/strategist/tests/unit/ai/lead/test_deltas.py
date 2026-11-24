@@ -15,7 +15,7 @@ from strategist.domain.strategy.questions import SlotQuestion
 
 
 def test_frame_result_disposition_default_spec_ready() -> None:
-    result = FrameResult(summary="bound 3 criteria")
+    result = FrameResult(notes="bound 3 criteria")
     assert result.disposition == "spec_ready"
     assert result.open_questions == []
 
@@ -23,7 +23,7 @@ def test_frame_result_disposition_default_spec_ready() -> None:
 def test_frame_result_needs_user_carries_questions() -> None:
     """An open slot names the dimension its answer states."""
     result = FrameResult(
-        summary="one open slot",
+        notes="one open slot",
         disposition="needs_user",
         open_questions=[
             SlotQuestion(
@@ -64,7 +64,7 @@ def test_verification_delta_carries_digest() -> None:
 def test_a_pass_that_stops_on_the_user_names_its_dimensionless_questions() -> None:
     """A question that decides nothing leaves the next turn nothing to bind."""
     result = FrameResult(
-        summary="one open slot",
+        notes="one open slot",
         disposition="needs_user",
         open_questions=[SlotQuestion(question="Which RNA-seq dataset?")],
     )
@@ -75,7 +75,7 @@ def test_a_pass_that_stops_on_the_user_names_its_dimensionless_questions() -> No
 def test_a_pass_that_asks_nothing_takes_any_question_list() -> None:
     """The refusal is about a pass that stops on the user, and only that."""
     result = FrameResult(
-        summary="bound them all",
+        notes="bound them all",
         open_questions=[SlotQuestion(question="Which RNA-seq dataset?")],
     )
 

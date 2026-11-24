@@ -21,8 +21,10 @@ from veupathdb_mcp.catalog import (
 )
 from veupathdb_mcp.wdk import GeneExpressionSummary
 
+from strategist.domain.unread import Unread
 from strategist.services.gene_records import read
 from strategist.services.gene_records.read import (
+    ExpressionSummary,
     UnknownGeneRecordError,
     read_the_gene_record,
 )
@@ -393,7 +395,7 @@ async def test_the_site_summary_of_the_expression_rides_the_record(
 
     found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
 
-    assert found.expression is not None
+    assert isinstance(found.expression, ExpressionSummary)
     assert found.expression.headline == "Highest in the tachyzoite stage"
     assert found.expression.experiments == 12
     assert found.expression.covers_part_of_the_experiments is True
@@ -404,8 +406,8 @@ async def test_a_site_that_serves_no_expression_report_still_answers(
 ) -> None:
     async def _refuses(site_id: str, gene_id: str) -> GeneExpressionSummary:
         del site_id, gene_id
-        refusal = "no expression reporter here"
-        raise WDKError(refusal, status=500)
+        refusal = "Not Found"
+        raise WDKError(refusal, status=404)
 
     monkeypatch.setattr(read, "get_gene_expression_summary", _refuses)
     api = _GeneRecord(_record(dict(_SRS29B), {}))
@@ -464,3 +466,47 @@ async def test_markup_in_a_table_cell_is_stripped() -> None:
     found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
 
     assert found.orthologs[0].organism == "P. vivax P01"
+
+
+async def test_a_report_the_site_did_not_answer_is_not_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _down(site_id: str, gene_id: str) -> GeneExpressionSummary:
+        del site_id, gene_id
+        msg = "Request failed after retries: ReadTimeout"
+        raise WDKError(msg, status=502)
+
+    monkeypatch.setattr(read, "get_gene_expression_summary", _down)
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.expression == Unread(
+        reason=(
+            "the expression summary was not read: HTTP 502: VEuPathDB service "
+            "error: Request failed after retries: ReadTimeout"
+        )
+    )
+    assert found.summary_line().endswith("; the expression summary was not read")
+
+
+@pytest.mark.parametrize("status", [400, 401, 403])
+async def test_a_report_the_site_refused_is_not_read(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    async def _refused(site_id: str, gene_id: str) -> GeneExpressionSummary:
+        del site_id, gene_id
+        msg = "Refused"
+        raise WDKError(msg, status=status)
+
+    monkeypatch.setattr(read, "get_gene_expression_summary", _refused)
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.expression == Unread(
+        reason=(
+            f"the expression summary was not read: HTTP {status}: VEuPathDB "
+            "service error: Refused"
+        )
+    )

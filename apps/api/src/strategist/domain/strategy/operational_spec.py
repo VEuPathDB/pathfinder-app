@@ -16,12 +16,21 @@ from veupathdb.model import CamelModel
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 from strategist.domain.strategy.constraints import Constraint
 from strategist.domain.strategy.genome_group import GenomeGroup
+from strategist.domain.strategy.measurement_kinds import (
+    TAKEN_FROM_A_READ,
+    MeasurementKind,
+)
 from strategist.domain.strategy.named_taxa import NamedTaxon
 from strategist.domain.strategy.number_precision import rounded_number
 from strategist.domain.strategy.operator_reads import OperatorReading
 from strategist.domain.strategy.ranking import Weight
 from strategist.domain.strategy.readings import AcceptedReading, why_no_readings
 from strategist.domain.strategy.saved_strategy_ref import SavedStrategyRef
+from strategist.domain.strategy.stated_source import (
+    StatedSource,
+    UnstatedSource,
+    sourced_fields,
+)
 from strategist.domain.strategy.step_rationale import (
     AnalysisRationale,
     ChosenRationale,
@@ -102,38 +111,10 @@ class BoundValue(CamelModel):
         return self.model_copy(update={"carried_from": criterion_id})
 
     def sourced(
-        self,
-        source: ValueSource,
-        basis: str = "",
-        taxon: NamedTaxon | None = None,
+        self, source: UnstatedSource | StatedSource, basis: str = ""
     ) -> BoundValue:
         """The value with who set it decided, and the words that decided it."""
-        return self.model_copy(
-            update={"source": source, "basis": basis, "taxon": taxon}
-        )
-
-
-CountedKind = Literal[
-    "loosest_bound",
-    "wildcard_phrase",
-    "phrase_reading",
-    "words_reading",
-    "site_search_reach",
-    "any_strain",
-    "all_strains",
-    "site_default",
-    "bound_count",
-    "reading",
-]
-MeasurementKind = Literal[
-    CountedKind,
-    "vocabulary_label",
-    "options_not_taken",
-    "not_measurable",
-    "picked_from_a_cut_list",
-    "picked_from_a_lookup",
-    "label_without_the_concept",
-]
+        return self.model_copy(update=sourced_fields(source, basis))
 
 
 class Measurement(CamelModel):
@@ -156,6 +137,13 @@ class Measurement(CamelModel):
     reading: str = ""
     unchosen: list[str] = Field(default_factory=list)
     unchosen_count: int = 0
+
+    @model_validator(mode="after")
+    def _a_pick_from_a_read_states_its_count(self) -> Measurement:
+        if self.kind in TAKEN_FROM_A_READ and self.count is None:
+            msg = f"a {self.kind} measurement states how many entries the pick took"
+            raise ValueError(msg)
+        return self
 
 
 class ParameterAlternatives(CamelModel):

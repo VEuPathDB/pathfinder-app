@@ -40,7 +40,7 @@ class BuiltPattern(CamelModel):
 class UnknownExpressionError(ValueError):
     def __init__(self, handle: str) -> None:
         self.handle = handle
-        super().__init__(handle)
+        super().__init__(f"{handle} names no held expression")
 
 
 def expression_handle(expression: str) -> str:

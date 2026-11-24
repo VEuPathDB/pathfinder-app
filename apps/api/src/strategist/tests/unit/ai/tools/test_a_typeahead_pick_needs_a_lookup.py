@@ -8,7 +8,8 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, StringValue
 
-from strategist.ai.agents.state import AgentToolState, LookupRecord
+from strategist.ai.agents.lookup_record import LookupRecord
+from strategist.ai.agents.state import AgentToolState
 from strategist.ai.tools.standalone._frame_lookups import pick_problems
 from strategist.ai.tools.standalone._frame_proposals import CriterionCall
 from strategist.domain.strategy.operational_spec import BoundValue, Criterion

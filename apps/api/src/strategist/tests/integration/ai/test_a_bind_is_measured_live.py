@@ -19,7 +19,8 @@ from veupathdb_mcp.catalog import (
     read_search_definition,
 )
 
-from strategist.domain.strategy.operational_spec import BoundValue, ValueSource
+from strategist.domain.strategy.operational_spec import BoundValue
+from strategist.domain.strategy.stated_source import StatedSource, UnstatedSource
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.services.strategies.measurements import (
     MEASUREMENT_BUDGET_SECONDS,
@@ -37,6 +38,8 @@ from strategist.tests._support.recorded_counts import (
     recorded_count,
     recorded_site_search,
 )
+
+_STATED = StatedSource(words="")
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -58,13 +61,13 @@ def registered(require_wdk_creds: str) -> Generator[None]:
 def _bound(
     params: dict[str, ParamValue],
     measured: str,
-    source: ValueSource,
+    source: UnstatedSource | StatedSource,
     sheet: list[ParameterInfo],
 ) -> dict[str, BoundValue]:
     """Each value bound on the published sheet, as a turn binds it."""
     return {
         name: bind_values(
-            {name: value}, source if name == measured else "stated", sheet
+            {name: value}, source if name == measured else _STATED, sheet
         )[name]
         for name, value in params.items()
     }
@@ -217,7 +220,7 @@ async def test_each_pick_is_labelled_from_the_live_vocabulary() -> None:
     )
 
     sheet = sheet_of(list(definition.parameters or []))
-    labels = vocabulary_labels(_bound(_percentile(), "", "stated", sheet), sheet)
+    labels = vocabulary_labels(_bound(_percentile(), "", _STATED, sheet), sheet)
 
     assert {m.param: m.label for m in labels.labels}["protein_coding_only"] == (
         "protein coding"
@@ -279,7 +282,7 @@ async def test_each_phyletic_code_is_labelled_and_counted_live() -> None:
     )
 
     sheet = sheet_of(list(definition.parameters or []))
-    labels = vocabulary_labels(_bound(params, "", "stated", sheet), sheet)
+    labels = vocabulary_labels(_bound(params, "", _STATED, sheet), sheet)
     measured = await _measured(
         "plasmodb", "GenesByOrthologPattern", params, "excluded_species"
     )

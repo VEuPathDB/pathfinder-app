@@ -15,6 +15,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
 )
+from strategist.domain.strategy.stated_source import StatedSource
 from strategist.domain.strategy.value_binding import bind_values
 from strategist.services.strategies.value_labels import (
     UnlabelledPick,
@@ -22,6 +23,8 @@ from strategist.services.strategies.value_labels import (
 )
 from strategist.tests._support.param_infos import sheet_of
 from strategist.tests._support.recorded_searches import suite_search
+
+_STATED = StatedSource(words="")
 
 _PCT = suite_search("search_genes_by_rnaseq_gomez_diaz_percentile")
 _SNPS = suite_search("search_genes_by_ngs_snps")
@@ -177,11 +180,11 @@ def test_the_bound_label_joins_the_label_of_each_term() -> None:
     read = [
         (
             vocabulary_labels(_bound(picks), _sheet()),
-            bind_values(picks, "stated", _sheet()),
+            bind_values(picks, _STATED, _sheet()),
         ),
         (
             vocabulary_labels(clauses, _snps_sheet()),
-            bind_values({_SAMPLES: clauses[_SAMPLES].value}, "stated", _snps_sheet()),
+            bind_values({_SAMPLES: clauses[_SAMPLES].value}, _STATED, _snps_sheet()),
         ),
     ]
 
@@ -202,6 +205,6 @@ def test_a_pick_label_that_leads_with_the_value_names_the_term_alone() -> None:
         "domain_typeahead": MultiPickValue(values=["PF00400"]),
     }
 
-    bound = bind_values(params, "stated", sheet)
+    bound = bind_values(params, _STATED, sheet)
 
     assert bound["domain_typeahead"].label == "WD domain, G-beta repeat"
