@@ -3,6 +3,8 @@ scale, then each value with who set it and the label the site gives it."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, ortho_taxonomy
@@ -15,6 +17,7 @@ from strategist.ai.tools.standalone._frame_sources import (
     card_values_of,
     on_the_sites_scale,
     quotes_by_param,
+    restated_choices,
     stated_by_their_labels,
     stated_by_their_taxa,
 )
@@ -28,10 +31,13 @@ from strategist.domain.strategy.named_taxa import (
 from strategist.domain.strategy.one_sided import with_open_ends_bound
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
+    Criterion,
     Measurement,
+    OperationalSpec,
     RequirementLink,
 )
 from strategist.domain.strategy.organism_steps import UNMARKED_ORGANISM_PARAMS
+from strategist.domain.strategy.value_source import taken_elsewhere
 from strategist.services.strategies.sheet_params import vocabularies_under
 
 
@@ -87,24 +93,81 @@ async def sourced_values(
     value a message names by its labels or by its taxon is stated. ``infos``
     is the published sheet, and each dependent vocabulary is read under the
     bound parents."""
+    draft = state.operational_spec_draft
+    taken = taken_elsewhere(draft, call.criterion_id)
     bound = bound_values(
         values,
         infos=await vocabularies_under(fetch_at, infos, values),
         site_supplied=site_supplied,
         request_texts=state.request_messages,
         reason=reason,
-        card_values=card_values_of(state.operational_spec_draft, call.criterion_id),
+        card_values=card_values_of(draft, call.criterion_id),
         linked_quotes=quotes_by_param(answers, state.stated_requirements),
+        taken=taken,
     )
     labels, unlabelled = await labelled_picks(fetch_at, infos, call, bound)
-    restated = stated_by_their_labels(bound, labels, infos, state.request_messages)
-    named = stated_by_their_taxa(
-        restated,
-        await _taxa_trees(site_id, definition),
-        state.request_messages,
-        infos,
+    restated = stated_by_their_labels(
+        bound, labels, infos, state.request_messages, taken
+    )
+    trees = await _taxa_trees(site_id, definition)
+    named = stated_by_their_taxa(restated, trees, state.request_messages, infos, taken)
+    state.operational_spec_draft = _siblings_judged_again(
+        draft,
+        call,
+        named,
+        infos=infos,
+        trees=trees,
+        request_texts=state.request_messages,
     )
     return named, labels, unlabelled
+
+
+def _siblings_judged_again(
+    draft: OperationalSpec,
+    call: CriterionCall,
+    bound: dict[str, BoundValue],
+    *,
+    infos: list[ParameterInfo],
+    trees: Mapping[str, OrganismTree],
+    request_texts: list[str],
+) -> OperationalSpec:
+    """The draft with each criterion of the same search judged again against
+    the values this binding takes, so the other side of a comparison it binds
+    is stated."""
+    held = draft.model_copy(
+        update={
+            "criteria": [
+                *(c for c in draft.criteria if c.id != call.criterion_id),
+                Criterion(
+                    id=call.criterion_id,
+                    text=call.text,
+                    search_name=call.search_name,
+                    resolved_params=bound,
+                ),
+            ]
+        }
+    )
+    return draft.model_copy(
+        update={
+            "criteria": [
+                c.model_copy(
+                    update={
+                        "resolved_params": restated_choices(
+                            c.resolved_params,
+                            infos=infos,
+                            labels=c.measurements,
+                            trees=trees,
+                            request_texts=request_texts,
+                            taken=taken_elsewhere(held, c.id),
+                        )
+                    }
+                )
+                if c.id != call.criterion_id and c.search_name == call.search_name
+                else c
+                for c in draft.criteria
+            ]
+        }
+    )
 
 
 __all__ = ["proposed_call", "sourced_values"]

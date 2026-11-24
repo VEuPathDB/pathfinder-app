@@ -16,6 +16,13 @@
   colocation, and a strategy read that states no saved-strategy id; with them come
   0.9.0b16's same-named vocabulary groups and the client pin of 0.9.0b21.
 
+* **A choice is among one parameter's entries.** "Compare Pf3D7 versus PvP01" bound one
+  organism per criterion and showed each as Strategist's choice. An entry another criterion
+  of the spec binds on the same parameter (`taken_elsewhere`), or one named only inside a
+  bound or taken entry's name, is no untaken alternative; FRAME judges the criteria of the
+  same search again when a binding takes the other side. "and/or" and "(or X)" join an
+  alternative as "or" does.
+
 * **The sweep's open rows are settled by a test each.** A card pick on a criterion whose
   sheet the site did not answer bound the InterPro term as a bare string under no label; it
   is now refused with the site's words (`parameters_of_searches` holds an `Unread` per
