@@ -17,7 +17,6 @@ ai/graph/_lead_capture.py:_charge_token_delta:SQLAlchemyError:return an uncharge
 ai/graph/_lead_capture.py:_persist_residual_quota:SQLAlchemyError:return the quota misses the spend but the usage event and the checkpoint keep the true total (test_turn_total_survives_the_quota_write.py::test_a_refused_quota_write_bills_nothing_and_keeps_the_turn_total)
 ai/graph/explore_node.py:_read_and_run:MessageNotReadError:returnCardHold(resumed=set()) the reader's stop is the turn's reply (test_a_message_the_reader_could_not_read_ends_the_turn_saying_so)
 ai/graph/nodes.py:_compact_the_notes:Exception:compaction_run=None the notes stay uncompacted and nothing says they were compacted (test_finalize_after_an_explore_turn.py (path only))
-ai/graph/nodes.py:_name_strategy_revision:SQLAlchemyError:log REAL and open: a turn end the database did not name is skipped by a later undo; how a turn end is marked awaits a decision
 ai/graph/nodes.py:_write_the_notes:Exception:returnFalse reports the auto-write as not written, so the gene sets are offered again (test_memory_deadline.py::test_an_auto_write_that_raises_keeps_the_gene_sets_to_note)
 ai/graph/stored_verdicts.py:emptied_when_unreadable:ValidationError:return[] unreadable stored fits load as none (test_a_checkpoint_with_unreadable_fits_reloads_and_its_next_turn_runs)
 ai/graph/stored_verdicts.py:refused_when_unreadable:ValidationError:returnNone an unreadable stored verdict loads as none, so the strategy reads unchecked (test_a_checkpoint_with_unreadable_fits_reloads_and_its_next_turn_runs)

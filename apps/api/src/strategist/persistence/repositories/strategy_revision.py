@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, desc, select, update
+from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyAst
 
@@ -22,6 +23,11 @@ from strategist.persistence.models import (
 from strategist.persistence.rows import rows_changed
 
 __all__ = ["StrategyRevisionRepository"]
+
+
+THE_TURNS_MESSAGE: ContextVar[UUID | None] = ContextVar(
+    "the_turns_message", default=None
+)
 
 
 class StrategyRevisionRepository:
@@ -65,32 +71,11 @@ class StrategyRevisionRepository:
             wdk_strategy_created_here=strategy.wdk_strategy_created_here,
             is_saved=strategy.is_saved,
             name=name,
-            message_id=message_id,
+            message_id=message_id or THE_TURNS_MESSAGE.get(),
         )
         self.session.add(row)
         await self.session.flush()
         return StrategyRevisionView.model_validate(row)
-
-    async def name_latest(
-        self,
-        conversation_id: UUID,
-        *,
-        message_id: UUID,
-    ) -> None:
-        """Record which message the thread's newest snapshot belongs to."""
-        newest = await self.session.scalar(
-            select(StrategyRevision.id)
-            .where(StrategyRevision.conversation_id == conversation_id)
-            .order_by(desc(StrategyRevision.id))
-            .limit(1),
-        )
-        if newest is None:
-            return
-        await self.session.execute(
-            update(StrategyRevision)
-            .where(StrategyRevision.id == newest)
-            .values(message_id=message_id),
-        )
 
     async def named_by(
         self,
@@ -124,15 +109,17 @@ class StrategyRevisionRepository:
         *,
         before_row_id: int,
         revision: str,
+        apart_from: UUID | None,
     ) -> StrategyRevisionView | None:
-        """The newest snapshot older than ``before_row_id`` that a turn ended on
-        and whose tree differs from ``revision``."""
+        """The newest snapshot older than ``before_row_id`` that a turn other than
+        ``apart_from``'s wrote and whose tree differs from ``revision``."""
         row = await self.session.scalar(
             select(StrategyRevision)
             .where(
                 StrategyRevision.conversation_id == conversation_id,
                 StrategyRevision.id < before_row_id,
                 StrategyRevision.message_id.is_not(None),
+                StrategyRevision.message_id.is_distinct_from(apart_from),
                 StrategyRevision.revision != revision,
             )
             .order_by(desc(StrategyRevision.id))

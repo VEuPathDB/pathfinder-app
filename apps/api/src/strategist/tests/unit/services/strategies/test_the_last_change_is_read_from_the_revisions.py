@@ -72,9 +72,14 @@ def _rows(
         *,
         before_row_id: int,
         revision: str,
+        apart_from: UUID | None,
     ) -> StrategyRevisionView | None:
         assert latest is not None
-        assert (before_row_id, revision) == (latest.id, latest.revision)
+        assert (before_row_id, revision, apart_from) == (
+            latest.id,
+            latest.revision,
+            latest.message_id,
+        )
         return previous
 
     monkeypatch.setattr(StrategyRevisionRepository, "latest", _latest)

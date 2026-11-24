@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator
+from contextlib import contextmanager
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
-from assistant_core.platform.db import DBSessionFactory, async_session_factory
+from assistant_core.platform.db import async_session_factory
 from veupathdb.domain.strategy import StrategyAst, extract_output_organisms, walk
 
 from strategist.domain.strategy.generated_name import (
@@ -24,6 +25,7 @@ from strategist.persistence.repositories import (
     ConversationUpdate,
 )
 from strategist.persistence.repositories.strategy_revision import (
+    THE_TURNS_MESSAGE,
     StrategyRevisionRepository,
 )
 from strategist.services.strategies.naming import (
@@ -179,16 +181,11 @@ async def turn_start_revision_id(conversation_id: UUID) -> int | None:
     return None if latest is None else latest.id
 
 
-async def name_turn_strategy_revision(
-    session_factory: DBSessionFactory,
-    *,
-    conversation_id: UUID,
-    message_id: UUID,
-) -> None:
-    """Record which message the strategy the turn left behind belongs to."""
-    async with session_factory() as session:
-        await StrategyRevisionRepository(session).name_latest(
-            conversation_id,
-            message_id=message_id,
-        )
-        await session.commit()
+@contextmanager
+def writes_named_by(message_id: UUID) -> Iterator[None]:
+    """Name every strategy snapshot written inside the block by the turn's message."""
+    held = THE_TURNS_MESSAGE.set(message_id)
+    try:
+        yield
+    finally:
+        THE_TURNS_MESSAGE.reset(held)

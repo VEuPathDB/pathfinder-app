@@ -85,7 +85,10 @@ async def previous_revision(
     if latest is None:
         return None
     return await repo.newest_turn_end_unlike(
-        conversation_id, before_row_id=latest.id, revision=latest.revision
+        conversation_id,
+        before_row_id=latest.id,
+        revision=latest.revision,
+        apart_from=latest.message_id,
     )
 
 
