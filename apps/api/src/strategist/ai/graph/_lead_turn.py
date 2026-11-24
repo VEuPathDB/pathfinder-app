@@ -87,6 +87,10 @@ _STORE_DOWN = Unread(reason="the memory store did not answer")
 MEMORY_NOT_READ = (
     f"Your saved preferences were not read this turn ({_STORE_DOWN.reason})."
 )
+MEMORY_NOT_COUNTED = (
+    f"Your other saved memories were not counted this turn ({_STORE_DOWN.reason}); "
+    "search_memory still reads them."
+)
 
 
 def recalled(
@@ -131,10 +135,23 @@ async def retrieve_memories(
         return _STORE_DOWN
 
 
+def indexed(
+    read: dict[MemoryKind, int] | Unread, domain: StrategyDomainState
+) -> dict[MemoryKind, int]:
+    match read:
+        case Unread():
+            domain.turn_briefing = "\n\n".join(
+                block for block in (domain.turn_briefing, MEMORY_NOT_COUNTED) if block
+            )
+            return {}
+        case counted:
+            return counted
+
+
 async def memory_index(
     state: PipelineState,
     runtime: Runtime[Context],
-) -> dict[MemoryKind, int]:
+) -> dict[MemoryKind, int] | Unread:
     """How many memories of each kind but the standing ones the Lead can recall
     on this site, a kind with none left out."""
     if runtime.context is None or runtime.context.memory_store is None:
@@ -155,11 +172,8 @@ async def memory_index(
                 )
             )
     except MemoryStoreTimeoutError as exc:
-        logger.warning(
-            "memory index timed out; the turn names no memory to recall",
-            seconds=exc.seconds,
-        )
-        return {}
+        logger.warning("memory index timed out", seconds=exc.seconds)
+        return _STORE_DOWN
     counts: dict[MemoryKind, int] = {
         kind: sum(1 for stored in found if scope.admits(stored.value))
         for kind, found in zip(kinds, listed, strict=True)

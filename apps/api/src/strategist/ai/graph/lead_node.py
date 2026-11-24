@@ -76,6 +76,7 @@ from strategist.ai.graph._lead_stops import (
 )
 from strategist.ai.graph._lead_turn import (
     TurnResumption,
+    indexed,
     memory_index,
     recalled,
     resolve_turn_resumption,
@@ -301,7 +302,7 @@ async def _run_lead_turn(
             )
         stored = recalled(stored, working_state.domain)
         memories = [s.value for s in stored]
-        working_state.domain.memory_index = index
+        working_state.domain.memory_index = indexed(index, working_state.domain)
         fresh = working_state.domain.memories_to_show(stored)
         if fresh:
             emit_chunk(writer, recalled_memories_event(memories=fresh))

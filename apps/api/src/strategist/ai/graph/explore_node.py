@@ -64,7 +64,12 @@ from strategist.ai.graph._lead_stops import (
     run_stop_reply,
     strategy_change,
 )
-from strategist.ai.graph._lead_turn import memory_index, recalled, retrieve_memories
+from strategist.ai.graph._lead_turn import (
+    indexed,
+    memory_index,
+    recalled,
+    retrieve_memories,
+)
 from strategist.ai.graph.rebuild import rebuilt_state
 from strategist.ai.graph.runtime import Context
 from strategist.ai.graph.state import PipelineState
@@ -114,7 +119,7 @@ async def _recalled(
         retrieve_memories(state, runtime), memory_index(state, runtime)
     )
     stored = recalled(read, state.domain)
-    state.domain.memory_index = index
+    state.domain.memory_index = indexed(index, state.domain)
     fresh = state.domain.memories_to_show(stored)
     if fresh:
         emit_chunk(writer, recalled_memories_event(memories=fresh))
