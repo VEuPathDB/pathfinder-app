@@ -9,7 +9,7 @@ from veupathdb.domain.strategy import (
     own_search_name,
 )
 
-from strategist.domain.strategy.session import StrategyGraph
+from strategist.domain.strategy.session import StrategyGraph, not_a_step
 
 
 @dataclass
@@ -22,11 +22,10 @@ class ApplyError(Exception):
     """Raised when the graph rejects an operation."""
 
 
-def _require(graph: StrategyGraph, step_id: str, label: str) -> StrategyStep:
+def _require(graph: StrategyGraph, step_id: str) -> StrategyStep:
     step = graph.steps.get(step_id)
     if step is None:
-        msg = f"{label} {step_id!r} not found"
-        raise ApplyError(msg)
+        raise ApplyError(not_a_step(step_id, sorted(graph.steps)))
     return step
 
 

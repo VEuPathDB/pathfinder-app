@@ -19,6 +19,7 @@ from strategist.ai.agents.state import CreatedGeneSet
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.stream_part_payloads import ListedGeneSet, ListedGeneSets
 from strategist.ai.tools.standalone._saved_here import saved_here
+from strategist.ai.tools.standalone._step_read import held_step
 from strategist.ai.tools.standalone.gene_set_models import (
     LISTING_PAGE,
     GeneSetCreatedResponse,
@@ -73,13 +74,13 @@ _STEP_HOLDS_NO_GENES = (
 )
 
 
-def _no_such_step(step_id: str, known: list[str]) -> str:
+def _not_pushed(step_id: str, pushed: list[str]) -> str:
     """Why a save that names a step the strategy has not pushed is refused."""
-    held = ", ".join(sorted(known)) or "none"
+    held = ", ".join(sorted(pushed)) or "none"
     return (
-        f"VALIDATION_ERROR: step_id={step_id!r} names no step this strategy "
-        f"has on VEuPathDB. The steps it has: {held}. Pass one of them, or "
-        f"pass none to save from the strategy's root step."
+        f"Step {step_id} is not on VEuPathDB yet, so it holds no genes to save. "
+        f"The steps VEuPathDB holds: {held}. Pass one of them, or pass none to "
+        f"save from the strategy's root step."
     )
 
 
@@ -94,8 +95,10 @@ def _wdk_provenance(session: StrategySession, step_id: str | None) -> WdkProvena
     sync_state = session.sync_state
     if graph is None or sync_state is None:
         return WdkProvenance()
+    if step_id is not None:
+        held_step(graph, step_id)
     if step_id is not None and step_id not in sync_state.wdk_step_ids:
-        raise ModelRetry(_no_such_step(step_id, list(sync_state.wdk_step_ids)))
+        raise ModelRetry(_not_pushed(step_id, list(sync_state.wdk_step_ids)))
     local_id = step_id or strategy_root_id(graph, sync_state)
     step = graph.get_step(local_id) if local_id is not None else None
     wdk_step_id = sync_state.wdk_step_ids.get(local_id or "")

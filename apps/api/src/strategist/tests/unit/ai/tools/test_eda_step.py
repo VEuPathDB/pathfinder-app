@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.eda import EdaAnalysisDetail
 from veupathdb.errors import ValidationError
 
@@ -209,6 +209,11 @@ async def test_attaching_into_a_slot_builds_the_slot_attach_point(
 ) -> None:
     applied: list[Any] = []
     _wire(monkeypatch, detail=phenotype_subset(), commit=recording_commit(applied))
+    graph = lead_ctx.deps.runtime.strategy_session.graph
+    assert graph is not None
+    graph.steps.update(
+        flatten_tree(StrategyStepNode(id="s1", search_name="GenesByTaxon"))
+    )
 
     await eda_step.create_eda_step(
         lead_ctx,

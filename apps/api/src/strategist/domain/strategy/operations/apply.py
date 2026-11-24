@@ -106,7 +106,7 @@ def _apply_add_leaf(graph: StrategyGraph, op: AddLeafOp) -> ApplyResult:
     _reject_existing(graph, step.id, "step id")
     graph.steps[step.id] = step
     if isinstance(op.attach, AttachIntoSlot):
-        target = _require(graph, op.attach.target_step_id, "target step")
+        target = _require(graph, op.attach.target_step_id)
         _set_input_slot(target, op.attach.slot, step.id)
     _settle(graph, step.id)
     return ApplyResult(description=f"Added {step.display_name or step.id}")
@@ -116,8 +116,8 @@ def _apply_add_combine(graph: StrategyGraph, op: AddCombineOp) -> ApplyResult:
     if op.left_id == op.right_id:
         msg = "combine inputs must differ"
         raise ApplyError(msg)
-    _require(graph, op.left_id, "combine input step")
-    _require(graph, op.right_id, "combine input step")
+    _require(graph, op.left_id)
+    _require(graph, op.right_id)
     _reject_existing(graph, op.step.id, "step id")
     combine = _step_from_node(op.step, StepKind.COMBINE)
     combine.primary_input_id = op.left_id
@@ -131,7 +131,7 @@ def _apply_add_combine(graph: StrategyGraph, op: AddCombineOp) -> ApplyResult:
 
 
 def _apply_add_transform(graph: StrategyGraph, op: AddTransformOp) -> ApplyResult:
-    _require(graph, op.input_id, "input step")
+    _require(graph, op.input_id)
     _reject_existing(graph, op.step.id, "step id")
     transform = _step_from_node(op.step, StepKind.TRANSFORM)
     transform.primary_input_id = op.input_id
@@ -149,7 +149,7 @@ def _apply_add_transform(graph: StrategyGraph, op: AddTransformOp) -> ApplyResul
 
 
 def _apply_replace_subtree(graph: StrategyGraph, op: ReplaceSubtreeOp) -> ApplyResult:
-    _require(graph, op.step_id, "step")
+    _require(graph, op.step_id)
     old_ids = set(subtree_ids(op.step_id, graph.steps))
     parent_info = graph.parent_of(op.step_id)
 
@@ -192,7 +192,7 @@ def _apply_replace_strategy(graph: StrategyGraph, op: ReplaceStrategyOp) -> Appl
 
 
 def _apply_update_params(graph: StrategyGraph, op: UpdateStepParamsOp) -> ApplyResult:
-    target = _require(graph, op.step_id, "step")
+    target = _require(graph, op.step_id)
     target.parameters = {**target.parameters, **op.parameters}
     held = graph.words.titles.get(op.step_id)
     if held is not None:
@@ -203,7 +203,7 @@ def _apply_update_params(graph: StrategyGraph, op: UpdateStepParamsOp) -> ApplyR
 def _apply_update_combine_operator(
     graph: StrategyGraph, op: UpdateCombineOperatorOp
 ) -> ApplyResult:
-    target = _require(graph, op.step_id, "step")
+    target = _require(graph, op.step_id)
     target.operator = op.operator
     target.colocation_params = op.colocation_params
     target.display_name = combine_name(
@@ -215,7 +215,7 @@ def _apply_update_combine_operator(
 
 
 def _apply_update_step_meta(graph: StrategyGraph, op: UpdateStepMetaOp) -> ApplyResult:
-    target = _require(graph, op.step_id, "step")
+    target = _require(graph, op.step_id)
     target.display_name = op.display_name
     return ApplyResult(description=f"Renamed {op.step_id}")
 
@@ -235,7 +235,7 @@ def _apply_duplicate_step(
     graph: StrategyGraph,
     op: DuplicateStepOp,
 ) -> ApplyResult:
-    source = _require(graph, op.source_step_id, "step")
+    source = _require(graph, op.source_step_id)
     if source.kind is not StepKind.SEARCH:
         msg = (
             "only a search step can be duplicated; "
@@ -296,8 +296,8 @@ def _refuse_a_wire_that_loops(graph: StrategyGraph, op: WireInputOp) -> None:
 
 
 def _apply_wire_input(graph: StrategyGraph, op: WireInputOp) -> ApplyResult:
-    target = _require(graph, op.target_step_id, "target step")
-    _require(graph, op.source_step_id, "source step")
+    target = _require(graph, op.target_step_id)
+    _require(graph, op.source_step_id)
     _refuse_a_wire_that_loops(graph, op)
     _set_input_slot(target, op.slot, op.source_step_id)
     if target.primary_input_id and target.secondary_input_id:

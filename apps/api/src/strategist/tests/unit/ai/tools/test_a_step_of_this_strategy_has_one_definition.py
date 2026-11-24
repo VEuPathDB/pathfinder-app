@@ -9,13 +9,21 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import TypeAdapter
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
 from strategist.ai.graph.runtime import AgentDeps
+from strategist.ai.tools.standalone._eda_step_arguments import IntoSlot
+from strategist.ai.tools.standalone._eda_step_write import export_write
+from strategist.ai.tools.standalone._validation_helpers import OperationPayload
+from strategist.ai.tools.standalone.gene_sets import save_gene_set
 from strategist.ai.tools.standalone.optimization import sweep_can_run
+from strategist.ai.tools.standalone.step_download import get_download_url
+from strategist.ai.tools.standalone.step_ids import read_step_ids
 from strategist.ai.tools.standalone.step_tally import step_columns
+from strategist.ai.tools.standalone.strategy import apply_operations
 from strategist.ai.tools.standalone.strategy_attach import add_step_filter
 from strategist.ai.tools.standalone.strategy_edits import (
     delete_step,
@@ -26,6 +34,7 @@ from strategist.ai.tools.standalone.strategy_edits import (
     update_step_metadata,
 )
 from strategist.domain.evidence import NamedControlSet
+from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import not_a_step
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import (
@@ -53,7 +62,75 @@ _GRAPH_ID_CALLS: dict[str, _Call] = {
     "replace_subtree": lambda c: replace_subtree(c, "ghost", stated_leaf("n")),
     "insert_saved_strategy": lambda c: insert_saved_strategy(c, "ghost", 7),
     "add_step_filter": lambda c: add_step_filter(c, "ghost", "f", "v"),
+    "save_gene_set": lambda c: save_gene_set(c, name="kinases", step_id="ghost"),
 }
+
+_WDK_ID_CALLS: dict[str, _Call] = {
+    "read_step_ids": lambda c: read_step_ids(c, 99),
+    "get_download_url": lambda c: get_download_url(c, 99),
+}
+
+
+@pytest.mark.parametrize("call", list(_WDK_ID_CALLS.values()), ids=_WDK_ID_CALLS)
+async def test_a_tool_refuses_a_wdk_step_id_the_strategy_did_not_build(
+    call: _Call,
+) -> None:
+    root = combine("step_c", leaf("step_a"), leaf("step_b"), CombineOp.INTERSECT)
+    deps = seed(root, {"step_a": 11, "step_b": 12, "step_c": 13})
+
+    with pytest.raises(ModelRetry) as refused:
+        await call(ctx(deps))
+
+    assert (
+        str(refused.value)
+        == "Step 99 is not a step of this strategy. It holds 11, 12, 13."
+    )
+
+
+async def test_a_batch_on_a_step_the_strategy_does_not_hold_names_what_it_holds() -> (
+    None
+):
+    root = combine("step_c", leaf("step_a"), leaf("step_b"), CombineOp.INTERSECT)
+    deps = seed(root, {"step_a": 11, "step_b": 12, "step_c": 13})
+    graph = deps.strategy_session.graph
+    assert graph is not None
+
+    with pytest.raises(ModelRetry) as refused:
+        await apply_operations(
+            ctx(deps),
+            base_revision=strategy_revision(graph.to_strategy_ast()),
+            operations=[
+                TypeAdapter(OperationPayload).validate_python(
+                    {"kind": "updateStepMeta", "stepId": "ghost", "displayName": "x"}
+                )
+            ],
+        )
+
+    assert str(refused.value).split('"')[1] == (
+        "Step ghost is not a step of this strategy. It holds step_a, step_b, step_c."
+    )
+
+
+def test_an_export_into_a_slot_of_no_held_step_is_refused() -> None:
+    root = combine("step_c", leaf("step_a"), leaf("step_b"), CombineOp.INTERSECT)
+    run = lead_run_context(strategy_session=session_with(root, {"step_a": 11}))
+    graph = run.deps.runtime.strategy_session.graph
+    assert graph is not None
+
+    with pytest.raises(ModelRetry) as refused:
+        export_write(
+            run,
+            graph,
+            leaf("step_export"),
+            placement=IntoSlot(
+                kind="into_slot", attach_to_step_id="ghost", slot="secondary"
+            ),
+            join=None,
+        )
+
+    assert str(refused.value) == (
+        "Step ghost is not a step of this strategy. It holds step_a, step_b, step_c."
+    )
 
 
 @pytest.mark.parametrize("call", list(_GRAPH_ID_CALLS.values()), ids=_GRAPH_ID_CALLS)

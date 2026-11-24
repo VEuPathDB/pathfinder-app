@@ -9,6 +9,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
+    StrategyStep,
     StrategyStepNode,
     generate_step_id,
 )
@@ -63,16 +64,13 @@ class ExportWrite(NamedTuple):
 
 
 def _refuse_an_occupied_slot(
-    ctx: RunContext[LeadDeps], graph: StrategyGraph, attach: AttachIntoSlot
+    ctx: RunContext[LeadDeps], target: StrategyStep, attach: AttachIntoSlot
 ) -> None:
     """An export fills a free slot, never one that already holds a step.
 
     A new step holds nothing, so filling an occupied slot would take the step
     that slot holds off the strategy with no delete and no record of the loss.
     """
-    target = graph.get_step(attach.target_step_id)
-    if target is None:
-        return
     occupant = (
         target.primary_input_id
         if attach.slot == "primary"
@@ -162,7 +160,7 @@ def export_write(
             return join_write(graph, node, _root_join(graph, operator))
         case IntoSlot(attach_to_step_id=target, slot=slot):
             attach = AttachIntoSlot(target_step_id=target, slot=slot)
-            _refuse_an_occupied_slot(ctx, graph, attach)
+            _refuse_an_occupied_slot(ctx, held_step(graph, target), attach)
             return ExportWrite(ops=[AddLeafOp(step=node, attach=attach)])
         case InPlaceOf(replace_step_id=replaced):
             held_step(graph, replaced)

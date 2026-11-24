@@ -18,9 +18,13 @@
 
 * **A step of the strategy has one definition.** Every tool that names a step, by its id or by
   its WDK id, refuses one the strategy does not hold through `_step_read.held_step` or
-  `held_wdk_step`, in the one sentence `session.not_a_step` writes; a step edit no longer
-  answers a missing step with an error payload, and a sweep is refused on a strategy with no
-  built step. A plan departure is turned into its refusal by one `departures_refused`, and
+  `held_wdk_step`, and the graph operations through `_graph_edit._require`, all in the one
+  sentence `session.not_a_step` writes, which lists the steps the strategy holds. So an
+  `apply_operations` batch and an export into a slot of no held step name the steps there are.
+  Two tools stay outside: `get_estimated_size`, which counts a step of an imported strategy, and
+  `run_control_tests_on_step`, whose worker reads the step from the account. A step edit no
+  longer answers a missing step with an error payload, a download names a step of this
+  strategy only, and a sweep is refused on a strategy with no built step. A plan departure is turned into its refusal by one `departures_refused`, and
   `apply_operations` states a batch of one operation at least on its argument type.
 
 * **An edit keeps the values it did not state.** A commit sends a value the edit did not
