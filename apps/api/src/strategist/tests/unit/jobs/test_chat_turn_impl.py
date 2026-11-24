@@ -193,6 +193,32 @@ async def test_a_pinned_payload_runs_the_turn_on_its_model(
 
 
 @pytest.mark.asyncio
+async def test_a_payload_that_names_no_pin_runs_the_turn_unpinned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observer = _ObservingRunTurn()
+    monkeypatch.setattr(chat_turn_impl, "run_turn", observer)
+    monkeypatch.setattr(chat_turn_impl, "lifespan_checkpointer", _fake_checkpointer_ctx)
+    monkeypatch.setattr(chat_turn_impl, "lifespan_memory_store", _fake_memory_ctx)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
+    queued = ChatTurnPayload(
+        body=_body(), user_id=uuid4(), turn_id=uuid4(), assistant_id="strategist"
+    ).model_dump(mode="json", by_alias=True)
+    del queued["pinned_model"]
+
+    await run_chat_turn(queued)
+
+    assert (
+        ChatTurnPayload.model_validate(queued).pinned_model,
+        observer.call_count,
+    ) == (
+        None,
+        1,
+    )
+    assert observer.observed_pin is None
+
+
+@pytest.mark.asyncio
 async def test_run_chat_turn_resets_ctxvar_after_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
