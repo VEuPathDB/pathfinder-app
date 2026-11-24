@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import inspect
+import json
 import types
 from collections.abc import Callable, Iterator
 from typing import Any, Union, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel
 
+from strategist.ai.graph.state import VerificationDigest
 from strategist.ai.lead import deltas
-from strategist.ai.lead.deltas import EditDelta, FrameResult
+from strategist.ai.lead.deltas import EditDelta, FrameResult, RecoveryDelta
 from strategist.ai.lead.edit_dispatch import edit_strategy
 from strategist.ai.lead.frame_dispatch import frame_problem
 from strategist.ai.lead.sub_agent_dispatch import build_strategy, recover_failed_steps
@@ -85,3 +87,46 @@ def test_a_sub_agents_prose_reaches_the_lead_only_as_a_pending_plan() -> None:
         PendingPlan | None,
         True,
     )
+
+
+_SUB_AGENT_OUTPUTS: list[type[BaseModel]] = [
+    FrameResult,
+    RecoveryDelta,
+    VerificationDigest,
+]
+
+_FREE_TEXT_THE_LEAD_READS = {
+    ("RecoveryDelta", "actionsTaken"): (
+        "what recovery says it did; the outcome the Lead reports is re-read from "
+        "the site after it"
+    ),
+    ("VerificationDigest", "prose"): (
+        "what the records VERIFY read look like; the verdict, checks and gaps "
+        "are computed"
+    ),
+    ("VerificationDigest", "keyFindings"): (
+        "observations beside the computed checks, never the verdict"
+    ),
+    ("VerificationDigest", "noteRefs"): "the ids of notes VERIFY wrote",
+}
+
+
+def _free_text(model: type[BaseModel]) -> set[tuple[str, str]]:
+    written = model.model_json_schema(mode="validation").get("properties", {})
+    read = model.model_json_schema(mode="serialization").get("properties", {})
+    return {
+        (model.__name__, name)
+        for name, field in written.items()
+        if name in read and _a_string(field)
+    }
+
+
+def _a_string(field: dict[str, Any]) -> bool:
+    text = json.dumps(field)
+    return '"type": "string"' in text and "enum" not in text and "$ref" not in text
+
+
+def test_every_free_text_a_sub_agent_writes_and_the_lead_reads_is_listed() -> None:
+    found = {key for model in _SUB_AGENT_OUTPUTS for key in _free_text(model)}
+
+    assert found == set(_FREE_TEXT_THE_LEAD_READS)
