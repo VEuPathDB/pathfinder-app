@@ -8,7 +8,11 @@
   published sheet never stands in for the vocabulary under moved parents. A narrowing
   the site refuses reaches that refusal: veupathdb-mcp 0.9.0b24 returns `NotNarrowed`
   instead of the static view, and `_sheet_under` reads through
-  `wdk_fetch_under_parents_at`, which raises it.
+  `wdk_fetch_under_parents_at`, which raises it. From 0.9.0b25 a site that did not answer
+  (`NarrowingFailed`) and a pair WDK never narrows (`NarrowingUnsupported`, organism with a
+  phyletic pattern, not sent) are two types; options read from the published view carry
+  `not_narrowed`, which `get_parameter_options` states. `site_words` drops httpx's
+  "for url ... For more information check" text and keeps the status and the reason.
 
 * **A turn's snapshot is named when it is written.** The turn's assistant message id rides
   every strategy snapshot the turn writes (`writes_named_by`, `THE_TURNS_MESSAGE`), so no

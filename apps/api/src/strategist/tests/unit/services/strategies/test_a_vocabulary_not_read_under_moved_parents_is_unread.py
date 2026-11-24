@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, StringValue
 
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.unread import Unread
@@ -46,3 +46,29 @@ async def test_a_vocabulary_the_site_refuses_under_moved_parents_is_unread(
             )
         )
     }
+
+
+async def test_an_ortholog_pattern_step_reads_its_published_sheet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    published = suite_search("search_genes_by_ortholog_pattern")
+    the_site_refuses_to_narrow(monkeypatch, published)
+    sheet = sheet_of(published.parameters or [])
+    criterion = Criterion(
+        id="profile",
+        text="genes with a falciparum ortholog",
+        search_name="GenesByOrthologPattern",
+        record_class="transcript",
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"]),
+                "included_species": StringValue(value="pfal"),
+            }
+        ),
+    )
+
+    sheets = await criterion_sheets(
+        "plasmodb", [criterion], {"GenesByOrthologPattern": sheet}
+    )
+
+    assert sheets == {"profile": sheet}
