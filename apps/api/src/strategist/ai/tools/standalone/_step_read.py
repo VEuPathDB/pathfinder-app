@@ -1,11 +1,15 @@
-"""Which step of the graph a WDK step id is, and what it is read as."""
+"""Which step of the graph a step id names, and what it is read as."""
 
 from __future__ import annotations
 
 from pydantic_ai import ModelRetry
 from veupathdb.domain.strategy import StepKind, StrategyStep
 
-from strategist.domain.strategy.session import StrategySession
+from strategist.domain.strategy.session import (
+    StrategyGraph,
+    StrategySession,
+    not_a_step,
+)
 from strategist.services.strategies.record_classes import step_record_class
 
 
@@ -21,6 +25,22 @@ def graph_step_id(session: StrategySession, wdk_step_id: int) -> str | None:
     )
 
 
+def held_step(graph: StrategyGraph, step_id: str) -> StrategyStep:
+    step = graph.steps.get(step_id)
+    if step is None:
+        raise ModelRetry(not_a_step(step_id, sorted(graph.steps)))
+    return step
+
+
+def held_wdk_step(session: StrategySession, wdk_step_id: int) -> StrategyStep:
+    graph = session.get_graph(None)
+    step_id = graph_step_id(session, wdk_step_id)
+    step = None if graph is None or step_id is None else graph.steps.get(step_id)
+    if step is None:
+        raise ModelRetry(not_a_step(wdk_step_id, session.wdk_step_ids()))
+    return step
+
+
 async def own_class(session: StrategySession, step: StrategyStep) -> str | None:
     graph = session.get_graph(None)
     if graph is None:
@@ -30,14 +50,7 @@ async def own_class(session: StrategySession, step: StrategyStep) -> str | None:
 
 async def read_as(session: StrategySession, wdk_step_id: int) -> tuple[str, str | None]:
     """The record type the step answers in, and the search it runs itself."""
-    graph = session.get_graph(None)
-    step_id = graph_step_id(session, wdk_step_id)
-    step = None if graph is None or step_id is None else graph.steps.get(step_id)
-    if step is None:
-        msg = (
-            f"Step {wdk_step_id} is not a step of this strategy, so it cannot be read."
-        )
-        raise ModelRetry(msg)
+    step = held_wdk_step(session, wdk_step_id)
     own = None if step.kind is StepKind.COMBINE else step.search_name
     record_type = await own_class(session, step)
     if record_type is None:
@@ -49,4 +62,4 @@ async def read_as(session: StrategySession, wdk_step_id: int) -> tuple[str, str 
     return record_type, own
 
 
-__all__ = ["graph_step_id", "own_class", "read_as"]
+__all__ = ["graph_step_id", "held_step", "held_wdk_step", "own_class", "read_as"]

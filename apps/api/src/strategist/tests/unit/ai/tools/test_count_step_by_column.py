@@ -150,7 +150,7 @@ async def test_a_step_the_strategy_does_not_hold_goes_back_to_the_model(
         await count_step_by_column(ctx, 1, "abbreviation")
 
     assert str(refused.value) == (
-        "Step 1 is not a step of this strategy. Its built steps: "
+        "Step 1 is not a step of this strategy. It holds "
         f"{_GROUPS_STEP}, {_PROTEINS_STEP}."
     )
     assert ran.asked == []
@@ -165,7 +165,7 @@ async def test_a_strategy_with_no_built_step_says_so(ran: _Ran) -> None:
         await count_step_by_column(ctx, 1, "abbreviation")
 
     assert str(refused.value) == (
-        "Step 1 is not a step of this strategy. This strategy has no built step yet."
+        "Step 1 is not a step of this strategy. It holds no step yet."
     )
     assert ran.asked == []
 

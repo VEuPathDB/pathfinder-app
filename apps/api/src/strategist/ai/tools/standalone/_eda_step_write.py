@@ -16,6 +16,7 @@ from veupathdb.model import CamelModel
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone._eda_step_spec import criterion_note
+from strategist.ai.tools.standalone._step_read import held_step
 from strategist.domain.strategy.combine_order import flat_join, wired_in_place
 from strategist.domain.strategy.operations import (
     AddCombineOp,
@@ -227,10 +228,5 @@ def export_write(
             f"slot alone."
         )
         raise ModelRetry(msg)
-    if replace_step_id not in graph.steps:
-        msg = (
-            f"No step {replace_step_id!r} in the strategy. It holds "
-            f"{sorted(graph.steps)}."
-        )
-        raise ModelRetry(msg)
+    held_step(graph, replace_step_id)
     return ExportWrite(ops=[ReplaceSubtreeOp(step_id=replace_step_id, subtree=node)])

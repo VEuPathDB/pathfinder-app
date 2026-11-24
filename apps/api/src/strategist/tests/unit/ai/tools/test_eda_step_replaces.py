@@ -143,7 +143,7 @@ class TestAnExportThatTakesAStepsPlace:
 
         message = str(excinfo.value)
         assert "step_gone" in message
-        assert "'step_c1', 'step_k1', 'step_k2'" in message
+        assert "It holds step_c1, step_k1, step_k2." in message
 
 
 class TestAReplacementThatReachesTheCommit:

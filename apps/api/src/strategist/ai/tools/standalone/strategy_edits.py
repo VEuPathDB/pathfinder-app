@@ -26,6 +26,7 @@ from strategist.ai.tools.standalone._spec_edit_checks import (
     refuse_a_write_the_spec_did_not_state,
 )
 from strategist.ai.tools.standalone._stated_values import typed_tree, typed_values
+from strategist.ai.tools.standalone._step_read import held_step
 from strategist.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
     StepTreePayload,
@@ -38,10 +39,10 @@ from strategist.ai.tools.standalone.graph_helpers import (
     with_full_graph,
 )
 from strategist.ai.tools.standalone.strategy_refusals import (
+    _graph_missing,
     _no_graph,
     _refused,
     _step_edit_refused,
-    _step_not_found,
     operation_refused_message,
     wdk_refused_the_edit,
 )
@@ -101,7 +102,7 @@ async def update_leaf_params(
     session = deps.strategy_session
     resolved = get_graph_and_step(session, graph_id, step_id)
     if isinstance(resolved, ToolErrorPayload):
-        return _step_not_found(ctx, resolved, step_id)
+        return _graph_missing(ctx, resolved)
     graph, step = resolved
 
     if step.kind is not StepKind.SEARCH:
@@ -143,7 +144,7 @@ async def update_combine_operator(
     session = deps.strategy_session
     resolved = get_graph_and_step(session, graph_id, step_id)
     if isinstance(resolved, ToolErrorPayload):
-        return _step_not_found(ctx, resolved, step_id)
+        return _graph_missing(ctx, resolved)
     graph, step = resolved
 
     if step.kind is not StepKind.COMBINE:
@@ -190,7 +191,7 @@ async def update_step_metadata(
     session = deps.strategy_session
     resolved = get_graph_and_step(session, graph_id, step_id)
     if isinstance(resolved, ToolErrorPayload):
-        return _step_not_found(ctx, resolved, step_id)
+        return _graph_missing(ctx, resolved)
     graph, step = resolved
 
     result = await _commit_or_retry(
@@ -243,12 +244,7 @@ async def delete_the_step(
     graph = get_graph(session, graph_id)
     if graph is None:
         return _no_graph(ctx, graph_id)
-    if step_id not in graph.steps:
-        msg = (
-            f"VALIDATION_ERROR: Step {step_id!r} not found. Valid step "
-            f"ids: {sorted(graph.steps.keys())}."
-        )
-        raise ModelRetry(msg)
+    held_step(graph, step_id)
     refuse_a_delete_the_graph_cannot_place(graph, session.sync_state, step_id, surface)
     refuse_a_delete_the_card_did_not_list(
         deps.turn_markers, ctx.tool_call_id, graph, session.sync_state, step_id
@@ -290,12 +286,7 @@ async def replace_subtree(
     graph = get_graph(session, graph_id)
     if graph is None:
         return _no_graph(ctx, graph_id)
-    if step_id not in graph.steps:
-        msg = (
-            f"VALIDATION_ERROR: Step {step_id!r} not found. Valid step "
-            f"ids: {sorted(graph.steps.keys())}."
-        )
-        raise ModelRetry(msg)
+    held_step(graph, step_id)
 
     subtree = await typed_tree(deps.resolving(), new_subtree)
     op = ReplaceSubtreeOp(step_id=step_id, subtree=subtree)
@@ -342,12 +333,7 @@ async def insert_saved_strategy(
     graph = get_graph(session, graph_id)
     if graph is None:
         return _no_graph(ctx, graph_id)
-    if target_step_id not in graph.steps:
-        msg = (
-            f"VALIDATION_ERROR: Step {target_step_id!r} not found. Valid "
-            f"step ids: {sorted(graph.steps.keys())}."
-        )
-        raise ModelRetry(msg)
+    held_step(graph, target_step_id)
 
     if deps.conversation_id is None or deps.db_session_factory is None:
         return with_summary(

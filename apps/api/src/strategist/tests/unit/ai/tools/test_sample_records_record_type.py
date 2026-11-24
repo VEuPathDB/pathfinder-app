@@ -72,7 +72,7 @@ async def test_a_session_with_no_record_type_reads_no_sample(
 
     assert (seen, str(refused.value)) == (
         [],
-        "Step 42 is not a step of this strategy, so it cannot be read.",
+        "Step 42 is not a step of this strategy. It holds no step yet.",
     )
 
 

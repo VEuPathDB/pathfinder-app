@@ -132,7 +132,14 @@ async def test_a_parameter_named_by_its_label_is_refused_before_the_card(
 @pytest.mark.foreign_tool_names(
     "the test agent holds the sweep without the live strategy read"
 )
-async def test_a_saved_control_set_is_controls_enough_for_the_card() -> None:
+async def test_a_saved_control_set_is_controls_enough_for_the_card(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _tunable(site_id: str, record_type: str, search_name: str) -> list[str]:
+        del site_id, record_type, search_name
+        return ["signalp_version"]
+
+    monkeypatch.setattr(optimization, "tunable_parameters_of_search", _tunable)
     call = ToolCallPart(
         tool_name="optimize_search_parameters",
         args={**_NO_CONTROLS, "control_set_id": _SAVED_SET_ID},
@@ -150,7 +157,13 @@ async def test_a_saved_control_set_is_controls_enough_for_the_card() -> None:
         toolsets=[build_sweep_toolset()],
         defer_model_check=True,
     )
-    deps = lead_deps(pipeline_state(user_prompt="Sweep it on my saved controls."))
+    deps = lead_deps(
+        pipeline_state(user_prompt="Sweep it on my saved controls."),
+        strategy_session=session_with(
+            StrategyStepNode(id="step_sp", search_name="GenesWithSignalPeptide"),
+            {"step_sp": 440606243},
+        ),
+    )
     deps.state.domain.attach_control_set(
         NamedControlSet(id=_SAVED_SET_ID, name="Signal peptide controls")
     )

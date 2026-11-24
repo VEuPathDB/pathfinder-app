@@ -19,7 +19,7 @@ from veupathdb_mcp.wdk import (
 )
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone._step_read import graph_step_id, read_as
+from strategist.ai.tools.standalone._step_read import held_wdk_step, read_as
 from strategist.ai.tools.standalone.column_tally import tally_line
 from strategist.ai.tools.standalone.graph_helpers import counted_noun
 from strategist.domain.column_reach import ColumnReach, TransformReach
@@ -50,17 +50,6 @@ class StepColumnPage(CamelModel):
     columns: list[StepColumn]
     reach: ColumnReach
     transforms: list[TransformReach]
-
-
-def _require_strategy_step(session: StrategySession, wdk_step_id: int) -> None:
-    if graph_step_id(session, wdk_step_id) is not None:
-        return
-    held = ", ".join(str(step) for step in session.wdk_step_ids())
-    built = (
-        f"Its built steps: {held}." if held else "This strategy has no built step yet."
-    )
-    msg = f"Step {wdk_step_id} is not a step of this strategy. {built}"
-    raise ModelRetry(msg)
 
 
 def _result_step(session: StrategySession) -> int | None:
@@ -111,7 +100,7 @@ async def step_columns(
         offset: The first column of the page, 0 for the first page.
     """
     session = ctx.deps.strategy_session
-    _require_strategy_step(session, wdk_step_id)
+    held_wdk_step(session, wdk_step_id)
     listed = await countable_columns(session.site_id, wdk_step_id)
     matching = [c for c in listed.columns if _matches(c, name, countable_only)]
     own = [c for c in listed.columns if c.countable]
@@ -185,7 +174,7 @@ async def count_step_by_column(
         top: The most values shown, from 1 to 200.
     """
     session = ctx.deps.strategy_session
-    _require_strategy_step(session, wdk_step_id)
+    held_wdk_step(session, wdk_step_id)
     record_type, own_search = await read_as(session, wdk_step_id)
     sync = session.sync_state
     strategy_id = None if sync is None else sync.wdk_strategy_id

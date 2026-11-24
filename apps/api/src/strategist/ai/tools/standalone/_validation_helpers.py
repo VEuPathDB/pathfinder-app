@@ -27,6 +27,7 @@ from strategist.ai.tools.standalone._stated_values import (
     StatedOperation,
     StatedStepNode,
 )
+from strategist.ai.tools.standalone._step_read import held_step
 from strategist.domain.strategy.operations import KINDS_A_BATCH_REFUSES
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.stated_shape import placeholder_names
@@ -205,25 +206,15 @@ def graph_not_found(graph_id: str | None) -> ToolErrorPayload:
     )
 
 
-def step_not_found(step_id: str) -> ToolErrorPayload:
-    """Builds the error payload for a missing step."""
-    return tool_error(
-        ErrorCode.STEP_NOT_FOUND, f"Step not found: {step_id}", stepId=step_id
-    )
-
-
 def get_graph_and_step(
     session: StrategySession, graph_id: str | None, step_id: str
 ) -> tuple[StrategyGraph, StrategyStep] | ToolErrorPayload:
-    """Looks up the graph and the step. A failure returns an error payload that the
-    caller can return without change."""
+    """Looks up the graph and the step. A missing graph returns an error payload
+    that the caller can return without change."""
     graph = get_graph(session, graph_id)
     if not graph:
         return graph_not_found(graph_id)
-    step = graph.get_step(step_id)
-    if not step:
-        return step_not_found(step_id)
-    return graph, step
+    return graph, held_step(graph, step_id)
 
 
 def validation_error_payload(

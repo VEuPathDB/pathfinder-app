@@ -50,15 +50,14 @@ def _no_graph(
     )
 
 
-def _step_not_found(
+def _graph_missing(
     ctx: RunContext[AgentDeps],
     payload: ToolErrorPayload,
-    step_id: str,
 ) -> ToolReturn[StepOkResponse | ToolErrorPayload]:
-    """The edit named a step the graph does not hold."""
+    """The edit named a graph the session does not hold."""
     return with_summary(
         payload,
-        f"No step {step_id} in the strategy",
+        "No such strategy in this conversation",
         ctx=ctx,
         status="warn",
     )
