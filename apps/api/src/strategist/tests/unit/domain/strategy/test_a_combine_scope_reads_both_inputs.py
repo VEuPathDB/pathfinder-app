@@ -4,7 +4,7 @@ import pytest
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
-from strategist.domain.site_checks import (
+from strategist.domain.organism_checks import (
     CountedOrganisms,
     OrganismCount,
     organism_check,

@@ -126,8 +126,10 @@ def test_a_requirement_the_researcher_dropped_does_not_block() -> None:
 def test_it_blocks_the_answer() -> None:
     grounded = {g.constraint.id: g for g in ground_against_spec(_HELD, _recorded_x5())}
 
-    assert (grounded[_SYNTENIC.id]).blocks
-    assert not (grounded[_SIGNAL.id]).blocks
+    assert (grounded[_SYNTENIC.id].blocks, grounded[_SIGNAL.id].blocks) == (
+        True,
+        False,
+    )
 
 
 async def test_it_blocks_the_build() -> None:

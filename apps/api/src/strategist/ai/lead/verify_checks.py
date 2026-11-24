@@ -18,19 +18,21 @@ from strategist.ai.tools.standalone.results import (
     READ_DEADLINE_SECONDS,
     read_step_columns,
 )
+from strategist.domain.organism_checks import (
+    CountedOrganisms,
+    OrganismCount,
+    UnreadOrganisms,
+    organism_check,
+)
 from strategist.domain.requirement_checks import grounded_check, record_type_check
 from strategist.domain.site_checks import (
-    CountedOrganisms,
     HeldValue,
     JoinedCounts,
-    OrganismCount,
     SiteCheck,
     SiteStep,
-    UnreadOrganisms,
     bound_values_check,
     combine_counts_check,
     expression_fit_checks,
-    organism_check,
     result_count_check,
     tally_checks,
     unanswered_checks,

@@ -27,16 +27,15 @@ _SINGLE_VALUED = [
 def test_words_that_name_no_value_state_no_requirement(
     dimension: ConstraintKind,
 ) -> None:
-    assert (
-        answer_requirement(
-            "Which value should replace this setting?",
-            [],
-            "proceed with defaults",
-            dimension,
-            ["Plasmodium falciparum 3D7"],
-        )
-        is None
+    stated = answer_requirement(
+        "Which value should replace this setting?",
+        [],
+        "proceed with defaults",
+        dimension,
+        ["Plasmodium falciparum 3D7"],
     )
+
+    assert [stated] == [None]
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from veupathdb.domain.parameters import MultiPickValue
 
-from strategist.domain.site_checks import (
+from strategist.domain.organism_checks import (
     CountedOrganisms,
     OrganismCount,
     organism_check,
