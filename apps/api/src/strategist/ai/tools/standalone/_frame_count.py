@@ -26,6 +26,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.platform.refusals import ProblemsRefusal, refuse_problems
 from strategist.services.strategies.obsolete_terms import obsolete_picks
+from strategist.services.strategies.record_classes import takes_an_input_step
 from strategist.services.strategies.wdk_counts import count_bound_criterion
 
 # A vocabulary of this size is a choice a reader holds in mind; a larger one is
@@ -61,7 +62,7 @@ async def bound_count(
     as the site's refusal for the pass. A client error refuses the binding; a
     server error is left to the resilience layer, which retries it.
     """
-    if resolved.open_slots or definition.allowed_primary_input_record_class_names:
+    if resolved.open_slots or takes_an_input_step(definition):
         return None
     try:
         return await count_bound_criterion(

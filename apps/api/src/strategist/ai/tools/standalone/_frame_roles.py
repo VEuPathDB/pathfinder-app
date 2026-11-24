@@ -11,6 +11,7 @@ from strategist.domain.refusal import Check, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import CriterionRole
 from strategist.services.strategies.record_classes import (
     plan_classes,
+    takes_an_input_step,
     transforms_accepting,
 )
 
@@ -34,10 +35,10 @@ async def role_problems(
     role: CriterionRole,
 ) -> Problems:
     """A transform runs on a previous step, and every other role runs alone."""
-    takes_an_input_step = bool(definition.allowed_primary_input_record_class_names)
+    runs_on_a_step = takes_an_input_step(definition)
     search_name = definition.url_segment
     key = RefusalKey(check=Check.ROLE)
-    if role == "transform" and not takes_an_input_step:
+    if role == "transform" and not runs_on_a_step:
         classes = plan_classes(ctx.deps.agent_state.operational_spec_draft)
         listings = await transforms_accepting(ctx.deps.site_id, classes)
         offered = sorted(listing.name for listing in listings)
@@ -49,7 +50,7 @@ async def role_problems(
             f'Bind it with role="filter" or role="seed", or name one of the '
             f"transforms that take {taking}: {', '.join(offered)}.",
         )
-    if role != "transform" and takes_an_input_step:
+    if role != "transform" and runs_on_a_step:
         return Problems.one(
             key,
             f"{search_name} runs on the results of a previous step, so it binds "

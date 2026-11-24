@@ -58,6 +58,7 @@ from strategist.platform.library_refusals import (
     library_rows,
 )
 from strategist.platform.refusals import ProblemsRefusal, refuse_problems
+from strategist.services.strategies.record_classes import takes_an_input_step
 
 
 @dataclass(frozen=True)
@@ -255,7 +256,7 @@ async def _other_sites_holding(
 
     Only a transform's organism tree names organisms, so nothing else asks.
     """
-    if not definition.allowed_primary_input_record_class_names:
+    if not takes_an_input_step(definition):
         return []
     if not tree_tops(definition, param_name):
         return []

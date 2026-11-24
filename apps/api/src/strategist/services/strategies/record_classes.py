@@ -34,12 +34,20 @@ from strategist.domain.strategy.record_class_check import (
 from strategist.services.strategies.step_search import COLOCATION_SEARCH
 
 
+def input_classes(search: WDKSearch) -> frozenset[str]:
+    return frozenset(search.allowed_primary_input_record_class_names or ())
+
+
+def takes_an_input_step(search: WDKSearch) -> bool:
+    return bool(input_classes(search))
+
+
 def record_classes_of(search: WDKSearch, listed_under: str) -> SearchRecordClasses:
     """What the search returns and what its input step may hold."""
     return SearchRecordClasses(
         display_name=search.display_name,
         returns=search.output_record_class_name or listed_under,
-        takes=tuple(search.allowed_primary_input_record_class_names or ()),
+        takes=tuple(input_classes(search)),
     )
 
 
@@ -79,7 +87,7 @@ async def site_transforms(site_id: str) -> dict[str, SearchRecordClasses]:
         search.url_segment: record_classes_of(search, record.url_segment)
         for record in await get_raw_record_types(site_id)
         for search in await get_raw_searches(site_id, record.url_segment)
-        if search.allowed_primary_input_record_class_names
+        if takes_an_input_step(search)
     }
 
 
@@ -104,9 +112,7 @@ async def transforms_accepting(
     for record in await get_raw_record_types(site_id):
         listed_under = record.url_segment
         takes = {
-            search.url_segment: frozenset(
-                search.allowed_primary_input_record_class_names or ()
-            )
+            search.url_segment: input_classes(search)
             for search in await get_raw_searches(site_id, listed_under)
         }
         found.extend(
