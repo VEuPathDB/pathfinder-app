@@ -35,7 +35,7 @@ from strategist.domain.unread import Unread
 from strategist.platform.errors import NotFoundError
 from strategist.services.gene_sets.homes import genomics_site_of
 from strategist.services.record_pages import record_page_url
-from strategist.services.site_errors import site_words, unreached
+from strategist.services.site_errors import site_status, site_words
 
 GENE_RECORD_TYPE = "gene"
 ORTHOLOGS_TABLE = "Orthologs"
@@ -269,12 +269,12 @@ async def gene_record_type(api: StrategyAPI, site_id: str) -> GeneRecordType:
 async def _expression_of(
     site_id: str, gene_id: str
 ) -> ExpressionSummary | Unread | None:
-    """The site's expression summary for the gene, where it generated one, or
-    why the site did not answer the read."""
+    """The site's expression summary for the gene, where it generated one; none
+    where the site serves no report; else why the read was not answered."""
     try:
         found = await get_gene_expression_summary(site_id, gene_id)
     except (VEuPathDBError, OSError) as exc:
-        if not unreached(exc):
+        if site_status(exc) == _NOT_FOUND_STATUS:
             return None
         return Unread(reason=f"the expression summary was not read: {site_words(exc)}")
     if found.summary is None:

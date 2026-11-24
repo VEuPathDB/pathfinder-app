@@ -488,3 +488,25 @@ async def test_a_report_the_site_did_not_answer_is_not_read(
         )
     )
     assert found.summary_line().endswith("; the expression summary was not read")
+
+
+@pytest.mark.parametrize("status", [400, 401, 403])
+async def test_a_report_the_site_refused_is_not_read(
+    monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    async def _refused(site_id: str, gene_id: str) -> GeneExpressionSummary:
+        del site_id, gene_id
+        msg = "Refused"
+        raise WDKError(msg, status=status)
+
+    monkeypatch.setattr(read, "get_gene_expression_summary", _refused)
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.expression == Unread(
+        reason=(
+            f"the expression summary was not read: HTTP {status}: VEuPathDB "
+            "service error: Refused"
+        )
+    )
