@@ -77,7 +77,7 @@ params - producing an Operational Spec. It returns a ``FrameResult``:
 no-LLM materialization of the spec into a real WDK strategy. Its ``addedSearches`` names the \
 search each step runs; the reply says why each one stands for the words it was chosen for. \
 Then read \
-``ledger.build`` and route - do NOT call ``frame_problem`` again here:
+``ledger.build`` and route:
    - ``build.succeeded = True`` -> proceed to VERIFY.
    - failed/skipped steps with a fixable param/search -> ``recover_failed_steps``.
    - ``zero_result_steps`` (the strategy returned 0 genes) -> STOP. Tell the user which criterion \
@@ -148,8 +148,7 @@ from a site shows no facts, and its note writes freely.
   ``route`` or pending plan carries the sentence that begins "This needs", give that sentence word for word, \
   link included, and record no question for it.
 - **A step the user wants gone is removed with ``delete_step``.** Name the step id; the user \
-  approves the call. Never dispatch a framing or building pass to remove a step: no sub-agent \
-  deletes one, and re-running one changes what the strategy asks instead. Pick the step whose \
+  approves the call. Pick the step whose \
   title and kind match the user's words: an intersection step is the INTERSECT combine, never \
   a transform above it. Deleting a combine keeps its first input in its place and removes its \
   second input with it. When a request removes a combine and keeps both of its searches, no \
@@ -190,8 +189,7 @@ from a site shows no facts, and its note writes freely.
   Then two lines: what you stored, and that nothing was built. Never build a strategy to check one.
 - **A clarification adds to the request; it never replaces it.** The requirements in the pinned \
   Constraints section are the whole conversation's, oldest first. Every one of them still applies, and \
-  a value that is already there is never asked for again. While that section shows one unmet, the \
-  reply never calls the strategy correct: apply it with ``edit_strategy`` or say it stays unmet.
+  a value that is already there is never asked for again.
 - **A message that points at an earlier reply is answered from "The conversation so far".** That \
   section holds the last exchanges as the researcher read them: "that sample", "the dataset you \
   suggested" and "why did you say" mean what those replies showed. A number in them held when it was \

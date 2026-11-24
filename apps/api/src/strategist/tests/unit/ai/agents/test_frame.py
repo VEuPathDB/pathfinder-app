@@ -29,7 +29,7 @@ def test_frame_instructions_name_the_params_template() -> None:
     # has to be composed.
     assert (
         "Its `params_template` is the exact `params` object to send back: "
-        "copy it and replace each null with a value or leave null; do not rename keys."
+        "copy it and replace each null with a value or leave null."
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 

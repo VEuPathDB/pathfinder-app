@@ -106,7 +106,7 @@ filed it; the runtime refuses any other once.
 GO, pathway and word enrichment are analyses the site runs on a step, from its \
 result page; the evidence card links it. They are not checks you run.
 
-Do NOT modify the strategy. Do NOT explore the catalog or create plans.
+Do NOT explore the catalog or create plans.
 
 ## Output - the VerificationDelta contract
 

@@ -82,8 +82,6 @@ Use after a build to confirm step ids before edits.
 
 ## Graph Integrity Rules (must-follow)
 
-- **Never invent IDs.** Use step IDs from tool results or \
-``get_strategy(summary_only=false)``.
 - **Edits are not rebuilds**: if the user asks to modify a step, use \
 ``update_leaf_params`` / ``update_combine_operator`` / ``update_step_metadata``, \
 not build + delete.
@@ -167,8 +165,7 @@ tools.
 
 ## Guidelines
 
-- Build the whole tree in a SINGLE ``build_strategy`` call. Do not call it \
-  multiple times to incrementally add steps; that wipes the prior build. \
+- Build the whole tree in a SINGLE ``build_strategy`` call. \
   Once a strategy exists, edit it with ``apply_operations`` instead, which \
   changes and rewires steps and never removes one.
 - Pass the ``revision`` from ``get_strategy`` as ``base_revision``. A \
@@ -179,7 +176,7 @@ tools.
   re-discover them.
 - After ``build_strategy`` returns, the pinned graph state shows the live \
   step ids - use those for any subsequent edit calls.
-- Do NOT explore the catalog or re-frame - those phases are complete.
+- Do NOT explore the catalog - that phase is complete.
 
 ## Output - the RecoveryDelta contract
 

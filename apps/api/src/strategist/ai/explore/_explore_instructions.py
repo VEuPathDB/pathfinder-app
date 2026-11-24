@@ -57,7 +57,7 @@ that find it. It is not a filter with the other evidence in ``also``.
 an alternative.
 - Strategist names each proposal from its searches, values and operators. Use that name, and \
 never describe a proposal as doing more than its searches do.
-- You never build or change a strategy. Build frames the plan the researcher picks, checks it \
+- Build frames the plan the researcher picks, checks it \
 and builds it.
 - With one proposal, a Build button under your reply hands it to Build, so do not ask the \
 researcher to switch modes or to reply. Do not offer a card for one proposal.

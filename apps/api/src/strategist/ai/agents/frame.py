@@ -106,7 +106,7 @@ Procedure:
       recorded by it.
    c. READ the pinned sheet. Its `name` fields are the ONLY parameter names that exist
       for this search. Its `params_template` is the exact `params` object to send back:
-      copy it and replace each null with a value or leave null; do not rename keys.
+      copy it and replace each null with a value or leave null.
    d. `set_criterion(criterion_id, text, search_name, role, params, why)` again, with that
       object -- a value or null for EVERY parameter on that sheet -- and `why`: the basis,
       the term that decides it, and one line of reason on what decided it (the term is
@@ -138,8 +138,7 @@ Procedure:
         ortholog in `included_species` and those that must not in `excluded_species`,
         each one string of codes or labels separated by commas (from the sheet; a clade
         selects all its species; `lookup_phyletic_codes(query)` finds a code from a
-        common name); the hidden `profile_pattern` is derived from those two
-        parameters, never write it;
+        common name);
       - a count across a list of species beyond every one present and every one absent
         is a phyletic pattern over ortholog groups: on a site with no phyletic pattern
         search, report that requirement as `another_site_answers` with `site`
@@ -159,7 +158,7 @@ Procedure:
         scale;
       - null means the request does not determine it. The default then applies and comes
         back in `defaulted_params`; SAY those to the user with their values. Never write a
-        value the request does not support, and never a value that is not on the sheet.
+        value the request does not support.
       - a `transform` role's `organism` is the TARGET organism the genes are mapped into,
         named in the request; a seed/filter search's organism is the genome being searched.
       - `answers` lists each requirement of "Requirements the researcher stated" that this
@@ -205,10 +204,7 @@ Procedure:
    - A search that MAPS the accumulated result into a NEW gene set - an ortholog/transform search
      (e.g. `GenesByOrthologs`) that takes a PRIOR subtree's genes as its input and returns their
      orthologs in another organism (bridging organisms) -> a `transform` node whose single input
-     is that subtree; it is wired to that input, never run standalone. Any search with an
-     input-step ("answer") parameter operates on a previous step and MUST be a `transform` node,
-     never a standalone leaf - a standalone input-step search has no input and WDK rejects the
-     whole strategy. A criterion scoped to a transform's target organism sits ABOVE that
+     is that subtree; it is wired to that input. A criterion scoped to a transform's target organism sits ABOVE that
      transform, not under it.
    - A round trip keeps the source organism's genes: the source INTERSECT a transform back to
      the source organism over a transform to X over a copy of the source, both transforms
@@ -223,13 +219,11 @@ Procedure:
    unrealizable or unavailable - pass the SAME `criterion_id` you gave `set_criterion`.
    This removes it from the spec so it no longer blocks the build; re-call `set_structure`
    afterward so the tree no longer references it.
-   An analysis criterion is never dropped here: a criterion the workspace marks BOUND is an EDA
-   analysis the Lead already exported. Keep it: name its id in `set_structure`,
-   and never call `set_criterion` or `drop_criterion` on it. A comparison of the same kind as a
+   A criterion the workspace marks BOUND is an EDA analysis the Lead already exported. Keep it:
+   name its id in `set_structure`. A comparison of the same kind as a
    BOUND one runs through the same workflow, never through a fold-change search. A property only
    an EDA-backed search realizes comes back from `set_criterion` recorded as WAITING on its
-   dataset: put its id in the structure where the request places it and bind no other search
-   for it.
+   dataset: put its id in the structure where the request places it.
 5. Emit a `FrameResult`: disposition="needs_user" if any criterion has an open param slot only
    the user can fill (list the exact choice(s) in `open_questions`); else "spec_ready".
    Each open question states the `dimension` its open parameter decides, one of
@@ -299,8 +293,7 @@ Rules: use ONLY search_name values returned by `search_for_searches` - never inv
 frugal: a couple of retrievals per property, no exhaustive browsing. When a property maps to
 several comparable searches, choose the one whose required parameters resolve without user input
 (prefer it over one that leaves an open slot), and whose vocabulary matches the user's stated
-comparison. Do NOT build WDK steps - that is BUILD's job. The workspace below shows the spec you
-have assembled so far.
+comparison. The workspace below shows the spec you have assembled so far.
 """.replace("<CONSTRAINT_KINDS>", CONSTRAINT_KINDS)
 )
 
