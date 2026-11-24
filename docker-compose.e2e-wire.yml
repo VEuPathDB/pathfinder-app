@@ -1,0 +1,98 @@
+# E2E replay overlay, layered on docker-compose.e2e.yml. The wdk-wire proxy
+# sits between the stack and every VEuPathDB host. api and worker reach WDK,
+# EDA and VDI only through it, it serves the key the suite's tokens are
+# verified with, and it answers from apps/web/e2e/wire/
+# (docs/knowledge/decisions/e2e-replays-recorded-wdk.md).
+#
+# The fence maps every host the stack may call to 127.0.0.1, so a client that
+# ignores the proxy settings gets a refused connection. The record overlay
+# (docker-compose.e2e-wire-record.yml) drops it.
+#
+# Usage: scripts/e2e-wire.sh replay
+
+x-fence: &fence
+  - "qa.veupathdb.org:127.0.0.1"
+  - "qa.plasmodb.org:127.0.0.1"
+  - "qa.toxodb.org:127.0.0.1"
+  - "qa.cryptodb.org:127.0.0.1"
+  - "qa.tritrypdb.org:127.0.0.1"
+  - "qa.fungidb.org:127.0.0.1"
+  - "qa.vectorbase.org:127.0.0.1"
+  - "api.openai.com:127.0.0.1"
+
+x-through-the-wire: &through-the-wire
+  HTTPS_PROXY: http://wdk-wire:8080
+  https_proxy: http://wdk-wire:8080
+  NO_PROXY: localhost,127.0.0.1,db,api,worker,web,wdk-wire,wdk-mcp,research-mcp,searxng
+  no_proxy: localhost,127.0.0.1,db,api,worker,web,wdk-wire,wdk-mcp,research-mcp,searxng
+  SSL_CERT_FILE: /wire/ca/mitmproxy-ca-cert.pem
+  # Tokens are verified against the key wdk-wire makes when it starts, which
+  # it serves on this name only.
+  VEUPATHDB_OAUTH_URL: https://auth.wire.test
+  # A snapshot older than its TTL is served and never rebuilt.
+  CATALOG_REFRESH_ENABLED: "false"
+
+x-after-the-wire: &after-the-wire
+  wdk-wire:
+    condition: service_healthy
+  catalogs-init:
+    condition: service_completed_successfully
+
+services:
+  wdk-wire:
+    image: strategist-e2e-wire:ci
+    pull_policy: never
+    build:
+      context: ./deploy/wdk-wire
+      args:
+        VEUPATHDB_PY_REF: ${WIRE_VEUPATHDB_PY_REF:-v0.9.0b19}
+    environment:
+      WIRE_MODE: ${WIRE_MODE:-replay}
+      WIRE_OAUTH_URL: https://auth.wire.test
+    volumes:
+      - ${WIRE_DIR:-./apps/web/e2e/wire}:/wire/recordings:${WIRE_ACCESS:-ro}
+      - ./e2e-sites.yaml:/wire/sites.yaml:ro
+      - wire_ca:/wire/ca
+    # The signing key and begin and end are served here; only loopback reaches it.
+    ports:
+      - "127.0.0.1:8181:8080"
+    extra_hosts: *fence
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/__wire/health')"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  catalogs-init:
+    image: strategist-e2e-api:ci
+    pull_policy: never
+    restart: "no"
+    entrypoint: ["python", "-c"]
+    command:
+      - |
+        import gzip, pathlib
+        source = pathlib.Path("/wire/recordings/catalogs")
+        for packed in sorted(source.glob("*.json.gz")):
+            target = pathlib.Path("/app/data/catalogs") / packed.name.removesuffix(".gz")
+            target.write_bytes(gzip.decompress(packed.read_bytes()))
+            print(f"unpacked {target.name}")
+    volumes:
+      - ${WIRE_DIR:-./apps/web/e2e/wire}:/wire/recordings:ro
+      - catalogs_cache:/app/data/catalogs
+
+  api:
+    environment: *through-the-wire
+    volumes:
+      - wire_ca:/wire/ca:ro
+    extra_hosts: *fence
+    depends_on: *after-the-wire
+
+  worker:
+    environment: *through-the-wire
+    volumes:
+      - wire_ca:/wire/ca:ro
+    extra_hosts: *fence
+    depends_on: *after-the-wire
+
+volumes:
+  wire_ca:

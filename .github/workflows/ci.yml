@@ -104,6 +104,10 @@ jobs:
         run: node scripts/check-test-sites.mjs
       - name: Check the checker
         run: node --test scripts/check-test-sites.test.mjs
+      - name: Check the wire recordings are redacted and under the cap
+        run: node scripts/check-wire-recordings.mjs
+      - name: Check the recordings checker
+        run: node --test scripts/check-wire-recordings.test.mjs
 
   check-release:
     name: Check release pins
@@ -457,6 +461,10 @@ jobs:
       - name: Check the trace redaction
         working-directory: apps/web
         run: node --test scripts/redact-traces.test.mjs
+
+      - name: Check the per-test wire token
+        working-directory: apps/web
+        run: node --test scripts/wire-recordings.test.mjs
 
       # Both ratchets are green on the trunk, so a red line here names a test
       # added without a value assertion or an index-based locator.
