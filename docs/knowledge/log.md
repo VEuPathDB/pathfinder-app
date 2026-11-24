@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **Take veupathdb-mcp 0.9.0b26 and assistant-core 0.9.0b6.** `read_radio_readings` marks a
+  reading the site never narrows with `not_narrowed` and raises the site's refusal when the
+  narrowing read failed, as `read_parameter_options` does. An elided tool result no longer
+  says "do not fetch again", and `is_elided` tells a digest from a whole result.
+
 * **An answer that names no organism keeps the stated one.** A card answer on the organism
   dimension becomes a requirement only when its words name one organism of the site
   (`organism_reader.site_entry`), and then it holds that entry as its value. Words that name
