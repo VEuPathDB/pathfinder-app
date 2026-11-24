@@ -71,6 +71,7 @@ from strategist.services.strategies.revision_ops import last_change
 from strategist.services.strategies.search_sheets import radio_pairs_of
 from strategist.services.strategies.sheet_params import (
     published_parameters_of_searches,
+    read_or_refuse,
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
@@ -430,10 +431,11 @@ async def stated_spec_of(
         site_id=site_id,
         search_names=search_names,
     )
-    under_parents = await sheets_under_their_parents(
-        site_id=site_id,
-        steps=steps_stated_by(hydrated, ast),
-        sheets=sheets,
+    under_parents = read_or_refuse(
+        site_id,
+        await sheets_under_their_parents(
+            site_id=site_id, steps=steps_stated_by(hydrated, ast), sheets=sheets
+        ),
     )
     marks = await organism_parameters(site_id, search_names)
     pairs = await radio_pairs_of(site_id, search_names)

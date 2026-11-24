@@ -27,6 +27,7 @@ from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.spec_hydration import StepRead, sheet_bound
 from strategist.domain.strategy.value_binding import parents_moved
 from strategist.domain.unread import Unread
+from strategist.platform.errors import SiteUnavailableError
 from strategist.services.site_errors import site_words
 from strategist.services.strategies.record_classes import search_record_types
 
@@ -101,6 +102,16 @@ def unread_sheets(reads: SheetReads) -> dict[str, Unread]:
             case _:
                 pass
     return unread
+
+
+def read_or_refuse(site_id: str, reads: SheetReads) -> dict[str, list[ParameterInfo]]:
+    """Every sheet read, or a refusal naming each one the site did not read."""
+    unread = unread_sheets(reads)
+    if unread:
+        raise SiteUnavailableError(
+            site_id, "; ".join(f"{key}: {u.reason}" for key, u in unread.items())
+        )
+    return read_sheets(reads)
 
 
 def read_sheets(reads: SheetReads) -> dict[str, list[ParameterInfo]]:
@@ -268,21 +279,18 @@ async def sheets_under_their_parents(
     site_id: str,
     steps: Iterable[StepRead],
     sheets: Mapping[str, Sequence[ParameterInfo]],
-) -> dict[str, list[ParameterInfo]]:
+) -> SheetReads:
     """The sheet of each step whose dependent picks its own parent values
-    answer, by step id. A step whose parents hold the published values reads
-    the published sheet, so it is left out, and so is a step the site cannot
-    read."""
-    under: dict[str, list[ParameterInfo]] = {}
+    answer, or why the site did not read it, by step id. A step whose parents
+    hold the published values reads the published sheet, so it is left out."""
+    under: SheetReads = {}
     for step in steps:
         search_name = step.node.search_name
         sheet = sheets.get(search_name)
         if sheet is None:
             continue
         values = sheet_bound(step.node.parameters, sheet)
-        match await _sheet_under(site_id, search_name, sheet, values, step.names):
-            case list() as read:
-                under[step.node.id] = read
-            case _:
-                pass
+        read = await _sheet_under(site_id, search_name, sheet, values, step.names)
+        if read is not None:
+            under[step.node.id] = read
     return under

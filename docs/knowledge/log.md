@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **A step whose sheet under its own parents was not read is refused.**
+  `sheets_under_their_parents` gives `Unread` for it, and both readers (`stated_spec_of`,
+  the replay's reading) refuse through `read_or_refuse` with the site's reason; the
+  published sheet never stands in for the vocabulary under moved parents.
+
 * **A turn's snapshot is named when it is written.** The turn's assistant message id rides
   every strategy snapshot the turn writes (`writes_named_by`, `THE_TURNS_MESSAGE`), so no
   separate naming step can fail after the reply and leave an undo to skip the turn. An undo

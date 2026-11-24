@@ -34,6 +34,7 @@ from strategist.domain.strategy.operational_spec import (
     StructureNode,
 )
 from strategist.domain.strategy.session import StrategyGraph
+from strategist.platform.errors import SiteUnavailableError
 from strategist.services.strategies import sheet_params
 from strategist.tests._support.bound_values import bound
 from strategist.tests._support.param_infos import sheet_of
@@ -271,7 +272,7 @@ async def test_a_step_with_no_dependent_parameter_reads_no_vocabulary(
     assert reads.contexts == []
 
 
-async def test_a_step_the_site_cannot_read_is_labelled_on_the_published_sheet(
+async def test_a_step_the_site_cannot_read_under_its_parents_is_refused(
     monkeypatch: pytest.MonkeyPatch, reads: _Reads
 ) -> None:
     def _unreadable(_site_id: str, _record_type: str, search_name: str) -> ParamFetcher:
@@ -283,12 +284,19 @@ async def test_a_step_the_site_cannot_read_is_labelled_on_the_published_sheet(
 
     monkeypatch.setattr(sheet_params, "wdk_fetch_at", _unreadable)
 
-    stated = await stated_spec_of(
-        _ast(_domain_step()), site_id="plasmodb", goal="genes with a KH domain"
-    )
+    with pytest.raises(SiteUnavailableError) as refused:
+        await stated_spec_of(
+            _ast(_domain_step()), site_id="plasmodb", goal="genes with a KH domain"
+        )
 
-    assert _label(stated) == ""
-    assert reads.contexts == []
+    assert (refused.value.detail, reads.contexts) == (
+        (
+            "Could not connect to plasmodb (dom: the vocabulary under the values it "
+            "holds was not read: HTTP 503: VEuPathDB service error: "
+            "GenesByInterproDomain is unreachable)."
+        ),
+        [],
+    )
 
 
 async def test_a_step_under_the_published_parents_reads_no_vocabulary(
