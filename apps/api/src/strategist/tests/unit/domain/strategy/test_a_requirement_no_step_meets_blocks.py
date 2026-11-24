@@ -11,6 +11,7 @@ from strategist.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    ConstraintStatus,
     OrganismValue,
     OrthologValue,
     PropertyValue,
@@ -189,3 +190,59 @@ def test_orthologs_no_step_carries_the_records_to_block() -> None:
             "strategy carries records to orthologs."
         )
     ]
+
+
+_TG = "Toxoplasma gondii ME49"
+_PV = "Plasmodium vivax P01"
+
+
+def _orthologs_in(organism: str) -> Constraint:
+    return Constraint(
+        id=f"r_{organism}",
+        kind=ConstraintKind.ORTHOLOG,
+        requested_value=f"orthologs in {organism}",
+        label=f"orthologs in {organism}",
+        source=ConstraintSource.USER_EXPLICIT,
+        quote=f"orthologs in {organism}",
+        value=OrthologValue(organisms=[organism]),
+    )
+
+
+def _step_to(cid: str, organism: str, search: str, role: str) -> Criterion:
+    return Criterion(
+        id=cid,
+        text=f"orthologs in {organism}",
+        search_name=search,
+        record_class="transcript",
+        role=role,
+        organism_param="organism",
+        resolved_params={"organism": _bound(MultiPickValue(values=[organism]))},
+    )
+
+
+def test_two_unlinked_ortholog_steps_meet_each_their_own_requirement() -> None:
+    spec = OperationalSpec(
+        criteria=[
+            _step_to("c_tg", _TG, "GenesByOrthologs", "transform"),
+            _step_to("c_pv", _PV, "GenesByOrthologs", "transform"),
+        ]
+    )
+    held = [_orthologs_in(_TG), _orthologs_in(_PV)]
+
+    grounded = ground_against_spec(held, spec)
+
+    assert [(g.status, g.blocks) for g in grounded] == [
+        (ConstraintStatus.GROUNDED, False),
+        (ConstraintStatus.GROUNDED, False),
+    ]
+    assert requirements_no_step_meets(held, spec).found == ()
+
+
+def test_a_phyletic_pattern_step_on_the_organism_meets_it() -> None:
+    spec = OperationalSpec(
+        criteria=[_step_to("c_pattern", _PV, "GenesByOrthologPattern", "seed")]
+    )
+
+    [grounded] = ground_against_spec([_orthologs_in(_PV)], spec)
+
+    assert (grounded.status, grounded.blocks) == (ConstraintStatus.GROUNDED, False)

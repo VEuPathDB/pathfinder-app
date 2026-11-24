@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **An unlinked ortholog requirement is met by any step that reaches its organisms.** A transform
+  or a phyletic-pattern step whose organisms hold every asked organism meets it, with the stated
+  synteny on a transform; the targets of all transforms are no longer pooled, so two ortholog
+  steps each meet their own requirement.
+
 * **An organism requirement is judged on its own branch.** The verdict reads the step that links
   it alone against the entry; an unlinked one needs records of the entry in the result and
   every record of an organism some requirement names (`OrganismAsked`), so a UNION of two asked

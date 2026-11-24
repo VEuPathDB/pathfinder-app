@@ -130,17 +130,9 @@ def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
             pass
         case _:
             return untyped(c)
-    linked = linking(c, realized.criteria) or [
-        k for k in realized.criteria if k.role == "transform"
-    ]
+    linked = linking(c, realized.criteria)
     if not linked:
-        return _missed(
-            c,
-            "",
-            "",
-            f"asked orthologs in {', '.join(asked.organisms)}, and no step of the "
-            "strategy carries records to orthologs",
-        )
+        return _ground_unlinked_ortholog(c, asked, realized)
     targets = {
         organism
         for k in linked
@@ -160,6 +152,37 @@ def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
     if asked.syntenic is None:
         return _met(c, "", shown)
     return _synteny(c, linked, shown, syntenic=asked.syntenic)
+
+
+_PATTERN = "GenesByOrthologPattern"
+
+
+def _ground_unlinked_ortholog(
+    c: Constraint, asked: OrthologValue, realized: RealizedSpec
+) -> GroundedConstraint:
+    """Met by any transform or phyletic-pattern step whose organisms hold every
+    asked one, with the stated synteny; unmet when no such step exists."""
+    wanted = set(asked.organisms)
+    reaching = [
+        k
+        for k in realized.criteria
+        if (k.role == "transform" or k.search_name == _PATTERN)
+        and wanted <= selected_organisms(k)
+    ]
+    shown = ", ".join(asked.organisms)
+    if not reaching:
+        note = (
+            f"asked orthologs in {shown}, and no step of the strategy carries "
+            "records to orthologs"
+        )
+        return _missed(c, "", "", note)
+    transforms = [k for k in reaching if k.role == "transform"]
+    if asked.syntenic is None or not transforms:
+        return _met(c, "", shown)
+    found = [_synteny(c, [k], shown, syntenic=asked.syntenic) for k in transforms]
+    return next(
+        (g for g in found if g.status is not ConstraintStatus.SUBSTITUTED), found[0]
+    )
 
 
 def _synteny(
