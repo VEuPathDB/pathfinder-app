@@ -50,14 +50,16 @@ _HELD = [_stated("secreted"), _stated("predicted GPI anchor")]
 
 
 def test_the_sentence_names_the_numbers_the_list_lacks_and_holds() -> None:
-    assert unlisted_numbers_sentence("answers", ["R2", "R9"], _HELD) == (
-        "answers names ['R9'], which 'Requirements the researcher stated' does "
-        "not hold. It holds R1, R2."
+    assert (
+        unlisted_numbers_sentence("answers", ["R1", "R2"], _HELD),
+        unlisted_numbers_sentence("answers", ["R2", "R9"], _HELD),
+    ) == (
+        None,
+        (
+            "answers names ['R9'], which 'Requirements the researcher stated' "
+            "does not hold. It holds R1, R2."
+        ),
     )
-
-
-def test_a_listed_number_makes_no_sentence() -> None:
-    assert unlisted_numbers_sentence("answers", ["R1", "R2"], _HELD) is None
 
 
 def test_a_criterion_answering_an_unlisted_number_is_refused_with_it() -> None:
