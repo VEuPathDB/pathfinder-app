@@ -1,7 +1,7 @@
 ---
 type: Decision
-title: An unlinked requirement is not verified and never blocks
-description: A hard requirement the verdict has no typed way to compare, because it is untyped or no criterion links it to a parameter or an analysis field, gives an unchecked check with its reason, is shown to the researcher as "not verified", and neither passes nor blocks the verdict. Grounding such a requirement by reading its words with patterns, and blocking the verdict until a link exists, were rejected.
+title: An unlinked requirement is not verified, and one no step states blocks
+description: A hard requirement the verdict has no typed way to compare, because it is untyped or no criterion links it to a parameter or an analysis field, gives an unchecked check with its reason, is shown to the researcher as "not verified", and neither passes nor fails the verdict. One that no step states at all blocks the build and the answer, which say plainly that no step meets it. Grounding such a requirement by reading its words with patterns was rejected.
 tags: [verification, requirements, trust]
 generated: { by: claude-code/opus-5.5, at: 2026-11-01T00:00:00Z }
 status: stable
@@ -43,17 +43,36 @@ text linked with no parameter and an ortholog with no linking transform are
 links is `no_step_states_it`; a record type or an organism with no value is
 `untyped`.
 
+# A requirement no step states blocks the build and the answer
+
+A hard requirement the researcher stated that no step of the spec states
+(`GroundedConstraint.met_by_no_step`: `ungroundable`, or `not_verified` with
+`no_step_states_it`) is refused before a build or an edit writes a step
+(`requirement_coverage.requirements_no_step_meets`, a `Problems` keyed
+`unmet_requirement` per requirement number), and `is_blocking` counts it, so a
+reply that ends the turn complete over it is refused and the reply says "The
+requirement '<words>' is not met by any step." A requirement the researcher
+dropped, by picking its "Drop <requirement>" option or saying so, has left the
+ledger first and blocks nothing. A strategy scope (organism, record type) has its
+own step check and is not counted here. A requirement with no typed value, and a
+value requirement no parameter carries, stay not verified and block nothing.
+
+The verdict's check row stays "Not verified". The change follows a transform
+that answered no requirement while it bound `isSyntenic=no` against the stated
+syntenic orthologs: the build went through and the reply presented 87 genes of
+all orthologs as the answer.
+
 # What was rejected
 
 **Grounding a requirement by patterns over its value.** The value is model
 text; a regex that finds "top 5 percent" or "p < 0.05" in it decides what the
 site is held to, and a value worded another way grounds differently or blocks.
 
-**Blocking the verdict until every hard requirement is linked.** A requirement
+**Failing the verdict until every hard requirement is linked.** A requirement
 the strategy has no parameter for is a fact about the site, not an error in the
-strategy; blocking on it fails a correct build, which is the fault the computed
-verdict was written to remove. Showing it "not verified" tells the researcher
-the same thing without calling the strategy wrong.
+strategy; failing on it fails a correct build, which is the fault the computed
+verdict was written to remove. The build and the answer are blocked only where no
+step states the requirement at all.
 
 **Passing an unlinked requirement.** Nothing compared it, so a pass would claim
 a check that did not run.

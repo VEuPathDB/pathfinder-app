@@ -380,6 +380,13 @@ class GroundedConstraint(CamelModel):
         return self.lifecycle.state in ("withdrawn", "replaced")
 
     @property
+    def met_by_no_step(self) -> bool:
+        """Whether no step of the strategy states the requirement."""
+        return self.status is ConstraintStatus.UNGROUNDABLE or (
+            self.unverified == "no_step_states_it"
+        )
+
+    @property
     def answered_by_a_parameter(self) -> bool:
         return self.status is ConstraintStatus.GROUNDED and bool(self.realized_param)
 
@@ -391,7 +398,7 @@ def is_blocking(grounded: GroundedConstraint) -> bool:
     return (
         grounded.constraint.source is ConstraintSource.USER_EXPLICIT
         and grounded.constraint.hard
-        and grounded.status in _UNMET
+        and (grounded.status in _UNMET or grounded.met_by_no_step)
     )
 
 

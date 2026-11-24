@@ -65,6 +65,7 @@ from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.operations import UpdateStrategyMetaOp
 from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.domain.strategy.orthology import organism_move_refusal
+from strategist.domain.strategy.requirement_coverage import requirements_no_step_meets
 from strategist.domain.strategy.revision import parse_strategy_ast, strategy_revision
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_diff import (
@@ -196,6 +197,9 @@ async def run_edit(
     )
     if moved is not None:
         refuse_and_restore(deps, moved)
+    unmet = requirements_no_step_meets(deps.state.domain.requirements, after)
+    if not unmet.empty:
+        refuse_problems_and_restore(deps, unmet)
     pushed = await _push_the_edit(
         deps=deps,
         after=after,

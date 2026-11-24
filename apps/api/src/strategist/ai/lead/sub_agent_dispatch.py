@@ -58,6 +58,7 @@ from strategist.domain.strategy.orthology import (
     organism_change,
     round_trip_refusal,
 )
+from strategist.domain.strategy.requirement_coverage import requirements_no_step_meets
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import (
     StrategyGraph,
@@ -77,6 +78,7 @@ from strategist.domain.strategy.step_words import added_searches, step_words
 from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.domain.strategy.types import SyncStateProtocol
 from strategist.domain.unread import Unread
+from strategist.platform.refusals import refuse_problems
 from strategist.services.site_errors import site_words
 from strategist.services.strategies.auto_import import (
     import_gene_set_for_conversation,
@@ -142,6 +144,7 @@ async def build_the_spec(deps: LeadDeps, *, call_id: str) -> ExecuteDelta:
     if asked:
         raise ModelRetry(organism_unnamed_message([pick.quote for _, pick in asked]))
     minted = minted_spec(domain.operational_spec)
+    refuse_problems(requirements_no_step_meets(domain.requirements, minted.spec))
     return await build_the_minted(deps, minted, call_id=call_id)
 
 

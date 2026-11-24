@@ -153,9 +153,10 @@ def test_a_reply_that_ends_the_turn_complete_over_it_is_refused() -> None:
     )
     assert found["unmet_requirement"] == (
         "The researcher stated 'Plasmodium species', and the strategy does not "
-        "answer it, so the turn is not complete. Set nextState to await_user and "
-        "say in the reply that 'Plasmodium species' stays unmet. When a search can "
-        "state it, apply it with edit_strategy first."
+        "answer it, so the turn is not complete and no result is presented as the "
+        "answer. Set nextState to await_user and say in the reply: The requirement "
+        "'Plasmodium species' is not met by any step. When a search can state it, "
+        "apply it with edit_strategy first."
     )
 
 

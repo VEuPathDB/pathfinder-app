@@ -2,6 +2,15 @@
 
 ## 2026-11-24
 
+* **A stated requirement no step meets blocks the build and the answer.**
+  `requirement_coverage.requirements_no_step_meets` refuses a build and an edit, as
+  `Problems` keyed `unmet_requirement`, while a hard requirement the researcher stated is
+  ungroundable or stated by no step, and `is_blocking` counts it, so a reply that ends the
+  turn complete over it is refused and must say "The requirement '<words>' is not met by any
+  step." A dropped requirement has left the ledger and blocks nothing. The transform that
+  answered no requirement while it bound `isSyntenic=no` against the stated syntenic
+  orthologs is now refused before it is written.
+
 * **A card offers dropping a stated requirement and never recommends it.** `consult_can_ask`
   refuses a card whose recommended option is the "Drop <requirement>" option of a hard
   requirement the researcher stated, or any recommended option but "Keep <requirement>" on a
