@@ -1,7 +1,7 @@
 ---
 type: Decision
-title: An unlinked requirement is not verified, and one no step states blocks
-description: A hard requirement the verdict has no typed way to compare, because it is untyped or no criterion links it to a parameter or an analysis field, gives an unchecked check with its reason, is shown to the researcher as "not verified", and neither passes nor fails the verdict. One that no step states at all blocks the build and the answer, which say plainly that no step meets it. Grounding such a requirement by reading its words with patterns was rejected.
+title: An unlinked requirement is not verified, and one the steps' values show unmet blocks
+description: A hard requirement the verdict has no typed way to compare, because it is untyped or no criterion links it to a parameter or an analysis field, gives an unchecked check with its reason, is shown to the researcher as "not verified", and neither passes nor fails the verdict. One the steps' values show unmet blocks the build and the answer, which say plainly that no step meets it; a missing link alone never blocks. Grounding such a requirement by reading its words with patterns was rejected.
 tags: [verification, requirements, trust]
 generated: { by: claude-code/opus-5.5, at: 2026-11-01T00:00:00Z }
 status: stable
@@ -20,8 +20,9 @@ and a check compares a requirement only through what the strategy binds for it:
 - A value requirement (percentile, fold change, significance, count) that no
   criterion links to a parameter or an analysis field gives `unchecked` with
   `no_value_to_compare`.
-- A text, ortholog or property requirement no criterion links gives `unchecked`
-  with `no_step_states_it`. A linked property shows "answered by step" and the
+- A text or property requirement no criterion links gives `unchecked` with
+  `no_step_states_it`; an ortholog requirement no criterion links is judged by
+  every transform's target organisms and `isSyntenic`. A linked property shows "answered by step" and the
   step's title; a linked text or ortholog is compared with the value the site
   holds.
 
@@ -43,24 +44,29 @@ text linked with no parameter and an ortholog with no linking transform are
 links is `no_step_states_it`; a record type or an organism with no value is
 `untyped`.
 
-# A requirement no step states blocks the build and the answer
+# A requirement the steps' values show unmet blocks the build and the answer
 
-A hard requirement the researcher stated that no step of the spec states
-(`GroundedConstraint.met_by_no_step`: `ungroundable`, or `not_verified` with
-`no_step_states_it`) is refused before a build or an edit writes a step
-(`requirement_coverage.requirements_no_step_meets`, a `Problems` keyed
-`unmet_requirement` per requirement number), and `is_blocking` counts it, so a
-reply that ends the turn complete over it is refused and the reply says "The
-requirement '<words>' is not met by any step." A requirement the researcher
-dropped, by picking its "Drop <requirement>" option or saying so, has left the
-ledger first and blocks nothing. A strategy scope (organism, record type) has its
-own step check and is not counted here. A requirement with no typed value, and a
-value requirement no parameter carries, stay not verified and block nothing.
+The block reads the steps' values, never a missing link. A hard requirement the
+researcher stated whose grounding the steps' values decide as `substituted` or
+`ungroundable` (`GroundedConstraint.blocks`, the one predicate) is refused before a
+build or an edit writes a step (`requirement_coverage.requirements_no_step_meets`,
+a `Problems` keyed `unmet_requirement` per requirement number), and the reply
+contract refuses a reply that ends the turn complete over it; the reply says "The
+requirement '<words>' is not met by any step." An ortholog requirement no
+criterion links is judged by the values of every transform of the spec: their
+target organisms and `isSyntenic`; with no transform at all, no step carries the
+records to orthologs, which is unmet. So an adopted separation offer or an EDA
+export, whose steps carry no links, is judged by what its steps hold. A
+requirement whose satisfaction the values cannot compute (a property or text no
+criterion links, an untyped value, a value requirement no parameter carries)
+stays not verified and blocks nothing. A requirement the researcher dropped, by
+picking its "Drop <requirement>" option or saying so, has left the ledger first.
 
-The verdict's check row stays "Not verified". The change follows a transform
-that answered no requirement while it bound `isSyntenic=no` against the stated
-syntenic orthologs: the build went through and the reply presented 87 genes of
-all orthologs as the answer.
+The change follows a transform that answered no requirement while it bound
+`isSyntenic=no` against the stated syntenic orthologs: the build went through and
+the reply presented 87 genes of all orthologs as the answer. The first version
+blocked any requirement no criterion linked; a separation offer, whose criteria
+carry no links, then read every stated property as unmet, so the block reads values.
 
 # What was rejected
 

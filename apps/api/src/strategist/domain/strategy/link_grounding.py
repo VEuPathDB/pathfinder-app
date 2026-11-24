@@ -130,9 +130,17 @@ def ground_ortholog(c: Constraint, realized: RealizedSpec) -> GroundedConstraint
             pass
         case _:
             return untyped(c)
-    linked = linking(c, realized.criteria)
+    linked = linking(c, realized.criteria) or [
+        k for k in realized.criteria if k.role == "transform"
+    ]
     if not linked:
-        return not_verified(c, "no_step_states_it", _NO_STEP)
+        return _missed(
+            c,
+            "",
+            "",
+            f"asked orthologs in {', '.join(asked.organisms)}, and no step of the "
+            "strategy carries records to orthologs",
+        )
     targets = {
         organism
         for k in linked

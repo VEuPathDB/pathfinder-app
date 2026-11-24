@@ -8,7 +8,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintStatus,
     GroundedConstraint,
     RecordTypeValue,
-    is_blocking,
 )
 
 _UNMET = frozenset({ConstraintStatus.SUBSTITUTED, ConstraintStatus.UNGROUNDABLE})
@@ -36,7 +35,7 @@ def grounded_check(grounded: GroundedConstraint) -> SiteCheck:
         return _judged(c, "unchecked", grounded.note, grounded.unverified)
     if grounded.status in _UNMET:
         said = grounded.note or f"the strategy states {grounded.realized_value}"
-        return _judged(c, "fail" if is_blocking(grounded) else "unchecked", said)
+        return _judged(c, "fail" if grounded.blocks else "unchecked", said)
     if grounded.status is ConstraintStatus.GROUNDED and grounded.realized_value:
         param = f"{grounded.realized_param} = " if grounded.realized_param else ""
         stated = f"the strategy states {param}{grounded.realized_value}"

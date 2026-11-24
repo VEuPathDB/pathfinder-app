@@ -13,7 +13,6 @@ from strategist.domain.strategy.constraints import (
     FoldChangeValue,
     FoldDirection,
     GroundedConstraint,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -84,7 +83,7 @@ class TestAFoldChangeIsComparedInTheParametersUnit:
             "1.5",
             "built 2.82843-fold (log2 1.5) where 1.5-fold was asked",
         )
-        assert is_blocking(grounded)
+        assert grounded.blocks
 
     def test_a_log2_cut_at_the_folds_log2_meets_it(self) -> None:
         held = _fold(1.5)
@@ -196,4 +195,4 @@ def test_a_fold_parameter_no_link_names_is_not_verified() -> None:
         ConstraintStatus.NOT_VERIFIED,
         "unchecked",
     )
-    assert not is_blocking(grounded)
+    assert not grounded.blocks

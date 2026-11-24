@@ -12,7 +12,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintSource,
     ConstraintStatus,
     FoldChangeValue,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -48,7 +47,7 @@ def test_every_requirement_is_provisional_while_no_search_is_bound() -> None:
         (c.id, ConstraintStatus.PROVISIONAL) for c in _REQUIREMENTS
     ]
     assert {g.note for g in grounded} == {"no search is bound yet"}
-    assert not any(is_blocking(g) for g in grounded)
+    assert not any(g.blocks for g in grounded)
 
 
 def test_a_criterion_with_no_search_binds_nothing() -> None:
@@ -86,7 +85,7 @@ def test_a_bound_search_no_fold_links_leaves_the_fold_not_verified() -> None:
 
     [fold] = ground_against_spec([two_fold], spec)
 
-    assert (fold.status, fold.realized_value, is_blocking(fold)) == (
+    assert (fold.status, fold.realized_value, fold.blocks) == (
         ConstraintStatus.NOT_VERIFIED,
         None,
         False,

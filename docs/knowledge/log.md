@@ -2,6 +2,14 @@
 
 ## 2026-11-24
 
+* **A requirement blocks only when the steps' values show it unmet.** The no-step block and the
+  reply contract read one predicate, `GroundedConstraint.blocks` (a hard requirement the
+  researcher stated, grounded `substituted` or `ungroundable`); `is_blocking` and
+  `met_by_no_step` are gone. A missing link no longer blocks: an ortholog requirement no
+  criterion links is judged by every transform's target organisms and `isSyntenic`, so an
+  adopted separation offer that states the signal peptide builds and answers, and the x5
+  transform with `isSyntenic=no` is still refused.
+
 * **The Lead reads how a repeat answers.** Its record rule says a read sent again runs nothing
   and costs nothing, names the call while its answer is shown and carries it once it is not.
 

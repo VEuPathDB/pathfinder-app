@@ -24,7 +24,6 @@ from strategist.ai.lead.ledger_sections import (
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_facts import turn_facts
 from strategist.domain.column_reach import StepReach
-from strategist.domain.strategy.constraints import is_blocking
 from strategist.domain.strategy.operational_spec import (
     Criterion,
 )
@@ -131,6 +130,6 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         unmet_requirements=tuple(
             g.constraint.requested_value
             for g in ledger.constraints.grounded
-            if is_blocking(g)
+            if g.blocks
         ),
     )

@@ -18,7 +18,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintSource,
     ConstraintStatus,
     GroundedConstraint,
-    is_blocking,
 )
 from strategist.domain.strategy.expression_handles import stated_text
 from strategist.domain.strategy.operational_spec import (
@@ -379,8 +378,8 @@ class ConstraintSection(CamelModel):
 
     @computed
     def unmet_count(self) -> int:
-        return sum(1 for g in self.grounded if is_blocking(g))
+        return sum(1 for g in self.grounded if g.blocks)
 
     @computed
     def blocking(self) -> bool:
-        return any(is_blocking(g) for g in self.grounded)
+        return any(g.blocks for g in self.grounded)

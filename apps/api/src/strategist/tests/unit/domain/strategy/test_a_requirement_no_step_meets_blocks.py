@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters import MultiPickValue, StringValue
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 
 from strategist.ai.graph.state import StrategyDomainState
 from strategist.ai.lead.limit_messages import unmet_requirement_message
@@ -14,7 +14,6 @@ from strategist.domain.strategy.constraints import (
     OrganismValue,
     OrthologValue,
     PropertyValue,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -58,11 +57,11 @@ _SYNTENIC = Constraint(
 _HELD = [_ORGANISM, _SIGNAL, _SYNTENIC]
 _UNMET = (
     "The requirement 'syntenic orthologs in Toxoplasma gondii ME49' is not met by "
-    "any step: no step of the strategy states it."
+    "any step: asked syntenic orthologs, isSyntenic holds 'no'."
 )
 
 
-def _bound(value: MultiPickValue | StringValue) -> BoundValue:
+def _bound(value: MultiPickValue | SinglePickValue) -> BoundValue:
     return BoundValue(value=value, source="stated")
 
 
@@ -93,11 +92,12 @@ def _recorded_x5() -> OperationalSpec:
                 search_name="GenesByOrthologs",
                 record_class="transcript",
                 role="transform",
+                organism_param="organism",
                 resolved_params={
                     "organism": _bound(
                         MultiPickValue(values=["Toxoplasma gondii ME49"])
                     ),
-                    "isSyntenic": _bound(StringValue(value="no")),
+                    "isSyntenic": _bound(SinglePickValue(value="no")),
                 },
             ),
         ],
@@ -126,8 +126,8 @@ def test_a_requirement_the_researcher_dropped_does_not_block() -> None:
 def test_it_blocks_the_answer() -> None:
     grounded = {g.constraint.id: g for g in ground_against_spec(_HELD, _recorded_x5())}
 
-    assert is_blocking(grounded[_SYNTENIC.id])
-    assert not is_blocking(grounded[_SIGNAL.id])
+    assert (grounded[_SYNTENIC.id]).blocks
+    assert not (grounded[_SIGNAL.id]).blocks
 
 
 async def test_it_blocks_the_build() -> None:
@@ -145,3 +145,45 @@ def test_the_answer_states_it_plainly() -> None:
         "The requirement 'syntenic orthologs in Toxoplasma gondii ME49' is not met "
         "by any step."
     ) in unmet_requirement_message(("syntenic orthologs in Toxoplasma gondii ME49",))
+
+
+def _adopted() -> OperationalSpec:
+    """A separation offer's tree: its leaf states the signal peptide and links nothing."""
+    return OperationalSpec(
+        criteria=[
+            Criterion(
+                id="cand_sp",
+                text="Signal Peptide Prediction",
+                search_name="GenesWithSignalPeptide",
+                record_class="transcript",
+                role="seed",
+            )
+        ],
+        structure=SpecStructure(
+            root=StructureNode(kind="leaf", criterion_id="cand_sp")
+        ),
+    )
+
+
+def test_a_requirement_the_steps_values_cannot_judge_does_not_block() -> None:
+    grounded = ground_against_spec([_SIGNAL], _adopted())
+
+    assert (
+        requirements_no_step_meets([_SIGNAL], _adopted()).found,
+        grounded[0].blocks,
+    ) == (
+        (),
+        False,
+    )
+
+
+def test_orthologs_no_step_carries_the_records_to_block() -> None:
+    problems = requirements_no_step_meets([_SYNTENIC], _adopted())
+
+    assert [p.sentence for p in problems.found] == [
+        (
+            "The requirement 'syntenic orthologs in Toxoplasma gondii ME49' is not met "
+            "by any step: asked orthologs in Toxoplasma gondii ME49, and no step of the "
+            "strategy carries records to orthologs."
+        )
+    ]

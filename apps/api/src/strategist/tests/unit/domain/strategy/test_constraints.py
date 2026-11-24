@@ -8,7 +8,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintSource,
     ConstraintStatus,
     GroundedConstraint,
-    is_blocking,
     merge_constraints,
     provisional_constraints,
 )
@@ -51,31 +50,31 @@ def test_blocking_only_for_user_explicit_unmet() -> None:
     assumed = explicit.model_copy(update={"source": ConstraintSource.ASSUMED})
 
     verdicts = [
-        is_blocking(
+        (
             GroundedConstraint(
                 constraint=explicit, status=ConstraintStatus.UNGROUNDABLE, note="x"
             )
-        ),
-        is_blocking(
+        ).blocks,
+        (
             GroundedConstraint(
                 constraint=explicit,
                 status=ConstraintStatus.SUBSTITUTED,
                 realized_value="microarray",
                 note="x",
             )
-        ),
-        is_blocking(
+        ).blocks,
+        (
             GroundedConstraint(
                 constraint=explicit,
                 status=ConstraintStatus.GROUNDED,
                 realized_value="RNA-Seq",
             )
-        ),
-        is_blocking(
+        ).blocks,
+        (
             GroundedConstraint(
                 constraint=assumed, status=ConstraintStatus.UNGROUNDABLE, note="x"
             )
-        ),
+        ).blocks,
     ]
 
     assert verdicts == [True, True, False, False]
@@ -93,7 +92,7 @@ def test_soft_user_explicit_constraint_does_not_block() -> None:
         realized_value="microarray",
     )
 
-    assert is_blocking(substituted) is False
+    assert substituted.blocks is False
 
 
 def test_provisional_constraints_are_pending_and_non_blocking() -> None:
@@ -103,7 +102,7 @@ def test_provisional_constraints_are_pending_and_non_blocking() -> None:
 
     assert grounded.status is ConstraintStatus.PROVISIONAL
     assert grounded.realized_value is None
-    assert is_blocking(grounded) is False
+    assert grounded.blocks is False
 
 
 class TestMergingRequirements:

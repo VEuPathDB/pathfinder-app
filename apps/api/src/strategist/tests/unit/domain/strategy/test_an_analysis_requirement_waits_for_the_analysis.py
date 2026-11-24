@@ -15,7 +15,6 @@ from strategist.domain.strategy.constraints import (
     FoldChangeValue,
     RequirementValue,
     SignificanceValue,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -83,7 +82,7 @@ def test_each_analysis_requirement_is_provisional_while_the_analysis_waits() -> 
     )
 
     assert [g.status for g in grounded] == [ConstraintStatus.PROVISIONAL] * 4
-    assert not any(is_blocking(g) for g in grounded)
+    assert not any(g.blocks for g in grounded)
 
 
 def test_an_analysis_holding_the_cuts_grounds_both_requirements() -> None:
@@ -113,4 +112,4 @@ def test_a_bound_search_and_no_link_leaves_the_threshold_not_verified() -> None:
     assert [(g.status, g.note) for g in grounded] == [
         (ConstraintStatus.NOT_VERIFIED, "no criterion links it to a parameter")
     ] * 2
-    assert not any(is_blocking(g) for g in grounded)
+    assert not any(g.blocks for g in grounded)

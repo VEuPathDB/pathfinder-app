@@ -10,7 +10,6 @@ from strategist.domain.strategy.constraints import (
     GroundedConstraint,
     PercentileEnd,
     PercentileValue,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.tests.unit.domain.strategy._linked_values import linked, requirement
@@ -59,7 +58,7 @@ def test_a_linked_bound_that_keeps_another_share_fails_its_check() -> None:
         "bound 80 means top 20%",
         "fail",
     )
-    assert is_blocking(grounded)
+    assert grounded.blocks
 
 
 def test_the_other_end_cut_short_of_the_full_scale_fails_its_check() -> None:
@@ -92,7 +91,7 @@ def test_a_share_no_link_bounds_is_not_verified_and_never_blocks(
         None,
         why,
     )
-    assert (check.status, is_blocking(grounded)) == ("unchecked", False)
+    assert (check.status, grounded.blocks) == ("unchecked", False)
 
 
 def test_a_percentile_held_with_no_value_is_not_verified() -> None:

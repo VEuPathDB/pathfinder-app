@@ -12,7 +12,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintStatus,
     GroundedConstraint,
     SignificanceValue,
-    is_blocking,
 )
 from strategist.domain.strategy.data_marks import DataMarks
 from strategist.domain.strategy.operational_spec import (
@@ -65,7 +64,7 @@ class TestGroundingAgainstTheBuiltSearch:
             ).model_copy(update={"value": SignificanceValue(at_most=0.05)})
         )
 
-        assert (grounded.status, grounded.realized_value, is_blocking(grounded)) == (
+        assert (grounded.status, grounded.realized_value, grounded.blocks) == (
             ConstraintStatus.NOT_VERIFIED,
             None,
             False,
@@ -135,7 +134,7 @@ class TestGroundingAHeldCombination:
                 "words"
             ),
         )
-        assert is_blocking(grounded) is False
+        assert grounded.blocks is False
 
     def test_a_combination_no_criterion_links_abstains(self) -> None:
         unlinked = [
