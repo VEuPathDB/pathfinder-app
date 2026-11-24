@@ -39,6 +39,7 @@ from strategist.domain.strategy.value_grounding import (
     ground_percentile,
     ground_significance,
 )
+from strategist.domain.strategy.words import words_of
 from strategist.domain.unread import Unread
 
 _SIGNIFICANCE_RE = re.compile(
@@ -201,7 +202,33 @@ def _realized_organism(c: Constraint, criterion: Criterion) -> tuple[str, str] |
     )
 
 
+def _broader(entry: str, selected: str) -> bool:
+    """Whether ``selected`` is a node above ``entry``, as a species is above its strains."""
+    named, held = words_of(entry), words_of(selected)
+    return len(held) < len(named) and named[: len(held)] == held
+
+
+def _a_broader_node(c: Constraint, realized: RealizedSpec) -> str | None:
+    """A node above the stated entry that a step selects while no step selects
+    the entry itself."""
+    organism = c.organism
+    if organism is None:
+        return None
+    selected = [s for k in realized.criteria for s in selected_organisms(k)]
+    if any(words_of(s) == words_of(organism) for s in selected):
+        return None
+    return next((s for s in selected if _broader(organism, s)), None)
+
+
 def _ground_organism(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    broader = _a_broader_node(c, realized)
+    if broader is not None:
+        return GroundedConstraint(
+            constraint=c,
+            status=ConstraintStatus.SUBSTITUTED,
+            realized_value=broader,
+            note=f"asked {c.organism}, and the strategy selects {broader}, a broader node",
+        )
     for criterion in realized.criteria:
         found = _realized_organism(c, criterion)
         if found is not None:

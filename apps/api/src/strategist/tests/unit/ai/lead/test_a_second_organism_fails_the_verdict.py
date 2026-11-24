@@ -152,7 +152,7 @@ async def test_a_step_whose_organism_column_holds_a_second_organism_fails(
         status="fail",
         evidence=(
             f"21 of the 4,200 records of step {_EXPORTED} ('Text') hold organisms the "
-            f"strategy does not select: {_PF_IT} (21)"
+            f"requirement does not name: {_PF_IT} (21)"
         ),
         requirement=_ORGANISM.id,
     )
@@ -227,7 +227,7 @@ async def test_a_large_result_is_counted_from_the_organism_full_report(
         "fail",
         (
             f"8,778 of the 8,778 records of step {_EXPORTED} ('Text') hold organisms "
-            "the strategy does not select: Toxoplasma gondii ME49 (8,778)"
+            "the requirement does not name: Toxoplasma gondii ME49 (8,778)"
         ),
     )
 

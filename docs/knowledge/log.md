@@ -2,6 +2,13 @@
 
 ## 2026-11-24
 
+* **A broader organism never meets a stated entry.** When no step selects a stated organism
+  entry and a step selects a node above it, grounding marks the requirement `substituted`
+  (blocking), and the organism check reads the result's rows against the requirement's own
+  entry: the n4 species binding for a 3D7 requirement fails with "165 of the 174 records ...
+  hold organisms the requirement does not name". The decision
+  `an-organism-requirement-holds-a-site-entry.md` is reopened on that evidence.
+
 * **The newest message's operator wins only above the floor.** A newest reading below
   `decisions_operator_min_confidence` no longer stands over a confident reading of the thread,
   so the card is asked; a confident one (dry-c's "flip the last combine ... to a UNION" read

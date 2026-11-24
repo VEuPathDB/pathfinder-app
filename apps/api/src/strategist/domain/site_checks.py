@@ -396,6 +396,8 @@ def organism_check(
     requirement: str,
     selected: SelectedOrganisms | None,
     read: CountedOrganisms | UnreadOrganisms | None,
+    *,
+    asked: str | None = None,
 ) -> SiteCheck:
     def judged(
         status: CheckStatus, evidence: str, why: UncheckedReason | None = None
@@ -427,13 +429,23 @@ def organism_check(
             f"{', '.join(sorted(selected.unplaced))} are not known",
             "no_check",
         )
-    outside = [row for row in found.rows if not selected.holds(row.organism)]
+    allowed = (
+        selected
+        if asked is None
+        else SelectedOrganisms(entries=frozenset({asked}), taxa=selected.taxa)
+    )
+    whose = (
+        "the strategy does not select"
+        if asked is None
+        else "the requirement does not name"
+    )
+    outside = [row for row in found.rows if not allowed.holds(row.organism)]
     if outside:
         held = sum(row.count for row in outside)
         return judged(
             "fail",
             f"{held:,} of the {found.total:,} records of {found.step} hold organisms "
-            f"the strategy does not select: {_listed(outside)}",
+            f"{whose}: {_listed(outside)}",
         )
     if sum(row.count for row in found.rows) < found.total:
         return judged(

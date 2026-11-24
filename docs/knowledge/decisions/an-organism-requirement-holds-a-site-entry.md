@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An organism requirement holds a site entry
-description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared. The gate binds the entry the researcher's message states whole, the one the words name exactly, or the one entry that holds every stated word in order; otherwise the requirement holds no entry and the card asks which entry the researcher means, over ranked entries a Decisions choice may lead but never binds. Settling a Decisions choice at a floor, binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
+description: An organism requirement's typed value is one entry of the site's organism list, compared by equality wherever an organism is compared, and met only by that entry or entries under it, never by a broader node. The gate binds the entry the researcher's message states whole, the one the words name exactly, or the one entry that holds every stated word in order; otherwise the requirement holds no entry and the card asks which entry the researcher means, over ranked entries a Decisions choice may lead but never binds. Settling a Decisions choice at a floor, binding the reading's words when they are an entry, keeping the word readings as the comparison, and refusing an ortholog organism the site's own list lacks were rejected.
 tags: [requirements, verification, frame, decisions, organisms]
 generated: { by: claude-code/opus-5.5, at: 2026-11-03T00:00:00Z }
 status: stable
@@ -46,11 +46,15 @@ requirement (`ai/lead/organism_reader.py::named_organisms`):
 The entry is compared by equality:
 
 - grounding: a criterion whose organism parameter selects the entry realizes
-  it; a criterion that links the requirement and holds a taxon pick realizes the
-  taxon;
+  it; when no step selects the entry and a step selects a node above it (a
+  species above a stated strain), the requirement is `substituted`, blocking,
+  never met; a criterion that links the requirement and holds a taxon pick
+  realizes the taxon;
 - the organism check: a requirement whose organisms the strategy selects, by
-  the entry itself or under an entry of the organism tree, carries the result
-  organism check, and one with no entry is `unchecked`;
+  the entry itself or under an entry of the organism tree, carries the organism
+  check, which reads the result's rows against the requirement's own entry and
+  the entries under it, so a row of another strain fails it; one with no entry is
+  `unchecked`;
 - FRAME's bind refusal names the entries the live requirements hold
   (`match_exact_option`), and a requirement with no entry names none;
 - the organism fold drops a leaf only when its count equals its organisms'
@@ -100,6 +104,18 @@ shown not verified instead.
 **Refusing an ortholog organism the site's organism list lacks.** The rows of a
 gene's ortholog table name the organisms of its ortholog group, which need not
 be the site's own, so the table is the list the name is compared with.
+
+# Reopened: a broader node never meets a stated entry
+
+The first version let a step that selects a broader node meet the entry under it:
+grounding realized the taxon, and the check passed every row the selection held.
+In uat-n4-plasmodb a researcher asked for Plasmodium falciparum 3D7 genes; FRAME
+bound the species node Plasmodium falciparum, the strategy returned 174 genes
+across the species' strains against 9 for 3D7, and the verdict reported them as
+meeting the 3D7 requirement. An organism requirement is now met only when a
+step's organism values are the stated entry or entries under it.
+`tests/unit/domain/strategy/test_a_broader_organism_does_not_meet_a_stated_entry.py`
+holds the grounding and the check on those counts.
 
 # What would prove this wrong
 

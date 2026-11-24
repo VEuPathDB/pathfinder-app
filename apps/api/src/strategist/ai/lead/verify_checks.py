@@ -268,7 +268,7 @@ async def _organism_checks(
         )
         carried = carried or names
         checks.append(
-            organism_check(c.requested_value, c.id, selected, counted)
+            organism_check(c.requested_value, c.id, selected, counted, asked=c.organism)
             if names
             else SiteCheck(
                 kind=ConstraintKind.ORGANISM,
