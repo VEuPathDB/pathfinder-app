@@ -15,6 +15,7 @@ from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import ValidationError
+from veupathdb.wdk import WDKStrategyDetails
 
 from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.operations import DeleteStepOp, GraphOperation
@@ -274,9 +275,11 @@ async def refresh_counts(
         )
         # The refresh exists to settle a count the stored one may contradict,
         # so a site that answers nothing is refused rather than confirmed.
-        live = await read_the_live_strategy(sync_state, site_id)
-        if live is None:
-            raise SiteUnavailableError(site_id, SITE_DID_NOT_ANSWER)
+        match await read_the_live_strategy(sync_state, site_id):
+            case WDKStrategyDetails() as live:
+                pass
+            case _:
+                raise SiteUnavailableError(site_id, SITE_DID_NOT_ANSWER)
         edits = await take_what_the_site_holds(
             graph=graph, sync_state=sync_state, site_id=site_id, live=live
         )

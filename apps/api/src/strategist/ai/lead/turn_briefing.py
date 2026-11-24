@@ -26,6 +26,7 @@ from strategist.domain.strategy.outside_changes import OutsideChanges, outside_c
 from strategist.domain.strategy.realized_spec import RealizedSpec
 from strategist.domain.strategy.spec_hydration import spec_from_ast
 from strategist.domain.strategy.step_settings_text import settings_change_text
+from strategist.domain.unread import Unread
 from strategist.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,
@@ -76,11 +77,16 @@ class TurnBriefing(BaseModel):
     tasks: list[FinishedTask] = Field(default_factory=list)
     analysis: AnalysisDrift | None = None
     constraints: list[ConstraintShift] = Field(default_factory=list)
+    site_not_read: Unread | None = None
 
     @property
     def moved(self) -> bool:
         return bool(
-            self.strategy.moved or self.tasks or self.analysis or self.constraints
+            self.strategy.moved
+            or self.tasks
+            or self.analysis
+            or self.constraints
+            or self.site_not_read
         )
 
     def render(self) -> str:
@@ -96,6 +102,7 @@ class TurnBriefing(BaseModel):
 
     def _lines(self) -> list[str]:
         return [
+            *([_site_line(self.site_not_read)] if self.site_not_read else []),
             *(_step_line(change) for change in self.strategy.changed),
             *(
                 f"- {step.label} ({step.step_id}): added"
@@ -157,6 +164,13 @@ def _step_line(change: StepChange) -> str:
     return f"- {label} ({change.step_id}): {', '.join(parts)}"
 
 
+def _site_line(unread: Unread) -> str:
+    return (
+        f"- {unread.reason}; the strategy's counts and any edit made on the site "
+        "are as last read"
+    )
+
+
 def _task_line(task: FinishedTask) -> str:
     return f"- {task.tool_name} {'failed' if task.failed else 'finished'}"
 
@@ -202,6 +216,7 @@ def compose_turn_briefing(
             marks=marks,
             links=links,
         ),
+        site_not_read=activity.site_not_read,
     )
 
 

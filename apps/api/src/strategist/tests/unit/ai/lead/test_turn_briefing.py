@@ -317,3 +317,15 @@ def test_a_weight_set_on_the_site_is_named_in_the_briefing() -> None:
     )
 
     assert "- top expression (step_expr): weight 3 -> 5" in briefing.render()
+
+
+def test_a_site_that_was_not_read_is_named_first() -> None:
+    unread = Unread(reason="the strategy was not read from the site: HTTP 503")
+    briefing = compose_turn_briefing(
+        ThreadActivity(site_not_read=unread), requirements=[]
+    )
+
+    assert briefing.render().splitlines()[1] == (
+        "- the strategy was not read from the site: HTTP 503; the strategy's counts "
+        "and any edit made on the site are as last read"
+    )

@@ -8,11 +8,14 @@ counts has to be checked against the server to mean anything.
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
+from pydantic import BaseModel, ConfigDict
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import WDKStrategyDetails, get_strategy_api
 
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.types import SyncStateProtocol
+from strategist.domain.unread import Unread
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -32,19 +35,19 @@ __all__ = [
 async def read_the_live_strategy(
     sync_state: SyncStateProtocol,
     site_id: str,
-) -> WDKStrategyDetails | None:
-    """The strategy as the site holds it now, or None when there is none to read.
-
-    An unsynced strategy and a failed read both answer None.
-    """
+) -> WDKStrategyDetails | Unread | None:
+    """The strategy as the site holds it now, None when there is none to read,
+    or why the site did not answer."""
     strategy_id = sync_state.wdk_strategy_id
     if strategy_id is None or not sync_state.wdk_step_ids:
         return None
     try:
         return await get_strategy_api(site_id).get_strategy(strategy_id)
-    except VEuPathDBError, OSError:
+    except (VEuPathDBError, OSError) as exc:
         logger.warning("Live strategy read failed", strategy_id=strategy_id)
-        return None
+        return Unread(
+            reason=f"the strategy was not read from the site: {site_words(exc)}"
+        )
 
 
 async def the_site_dropped_the_strategy(
@@ -96,8 +99,11 @@ async def read_wdk_step_counts(
     An empty mapping means "not known", never "nothing changed": an unsynced
     strategy and a failed read both produce it.
     """
-    live = await read_the_live_strategy(sync_state, site_id)
-    return {} if live is None else counts_the_site_holds(live, sync_state)
+    match await read_the_live_strategy(sync_state, site_id):
+        case WDKStrategyDetails() as live:
+            return counts_the_site_holds(live, sync_state)
+        case _:
+            return {}
 
 
 def take_the_sites_counts(
@@ -125,8 +131,26 @@ async def replace_counts_with_wdks(
     A read that answers nothing leaves the session as it stands and reports
     False, so a caller that must not confirm the stored numbers can refuse.
     """
-    live = await read_the_live_strategy(sync_state, site_id)
-    if live is None:
-        return False
-    take_the_sites_counts(graph=graph, sync_state=sync_state, live=live)
-    return True
+    match await read_the_live_strategy(sync_state, site_id):
+        case WDKStrategyDetails() as live:
+            take_the_sites_counts(graph=graph, sync_state=sync_state, live=live)
+            return True
+        case _:
+            return False
+
+
+class SiteRead(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    live: WDKStrategyDetails | None = None
+    not_read: Unread | None = None
+
+
+def site_read(read: WDKStrategyDetails | Unread | None) -> SiteRead:
+    match read:
+        case WDKStrategyDetails():
+            return SiteRead(live=read)
+        case Unread():
+            return SiteRead(not_read=read)
+        case _:
+            return SiteRead()

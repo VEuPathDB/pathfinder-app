@@ -87,7 +87,6 @@ services/strategies/auto_import.py:import_gene_set_for_conversation:(VEuPathDBEr
 services/strategies/commit_tree.py:_Commit.validate:ValidationError:continue the refusal is recorded on the step (_refused) before continue
 services/strategies/data_marks.py:_assays:(VEuPathDBError,OSError):continue the failed read is recorded as Unread before continue
 services/strategies/gene_set_refresh.py:defer_the_gene_set_refresh:AlreadyEnqueued:return a refresh already queued is the refresh this defers
-services/strategies/live_counts.py:read_the_live_strategy:(VEuPathDBError,OSError):returnNone None is an unanswered read; the site read takes nothing
 services/strategies/live_counts.py:the_site_dropped_the_strategy:(VEuPathDBError,OSError):returnFalse an unanswered read proves nothing gone (test_a_dropped_strategy_owes_no_verdict[unreached])
 services/strategies/live_counts.py:the_site_dropped_the_strategy:(VEuPathDBError,OSError):returnFalse#2 an unanswered listing proves nothing gone (test_a_dropped_strategy_owes_no_verdict[listing_unreached])
 services/strategies/live_counts.py:the_site_dropped_the_strategy:WDKError:returnFalse a refusal other than a 404 proves nothing gone (test_a_dropped_strategy_owes_no_verdict[site_down])
@@ -104,8 +103,6 @@ services/strategies/search_sheets.py:_definition:(VEuPathDBError,OSError):return
 services/strategies/session_factory.py:_restore_wdk_tree:StrategyCompilationError:sync_state.wdk_step_tree=None a tree that does not compile is held as unknown, so the next push writes it
 services/strategies/sheet_params.py:_parameters_read:(VEuPathDBError,OSError):continue records Unread before continue (test_a_card_pick_on_an_unread_sheet_binds_nothing)
 services/strategies/sheet_params.py:_sheet_under:(VEuPathDBError,OSError):returnNone an unread dependent vocabulary keeps the published sheet
-services/strategies/site_changes.py:_arrivals_decoded:(VEuPathDBError,OSError):returnFalse steps the site added that do not decode keep the graph's own shape
-services/strategies/site_changes.py:_the_sites_tree:(DataParsingError,ValueError):returnNone a site tree the snapshot cannot read takes nothing onto the graph
 services/strategies/site_counts.py:read_site_strategy:VEuPathDBError:returnNone None makes every site check unchecked ('the site did not answer the strategy read')
 services/strategies/sync.py:step_tree_is_current:StrategyCompilationError:returnFalse a tree that does not compile is not current, so it is pushed
 services/strategies/wdk_sync.py:lazy_fetch_wdk_detail:(VEuPathDBError,RuntimeError):log best effort: the thread shows what it holds

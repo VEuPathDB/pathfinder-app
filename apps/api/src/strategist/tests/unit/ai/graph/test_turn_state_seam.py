@@ -61,6 +61,7 @@ DOMAIN_FIELDS = {
     "last_evidence_card",
     "last_build_outcome",
     "stale_build",
+    "site_not_read",
     "created_gene_sets",
     "built_expressions",
     "computed_comparisons",

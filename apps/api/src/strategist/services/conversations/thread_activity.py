@@ -65,6 +65,7 @@ class ThreadActivity(BaseModel):
 
     finished_tasks: list[FinishedTask] = Field(default_factory=list)
     analysis: AnalysisDrift | None = None
+    site_not_read: Unread | None = None
 
 
 class _ShownAnalysis(BaseModel):

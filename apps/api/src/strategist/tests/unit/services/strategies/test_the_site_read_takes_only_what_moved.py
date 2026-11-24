@@ -23,6 +23,7 @@ from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.domain.strategy.session import StrategyGraph
+from strategist.domain.unread import Unread
 from strategist.services.strategies import site_changes
 from strategist.services.strategies.site_changes import (
     SiteEdits,
@@ -330,7 +331,15 @@ async def test_an_unreadable_site_tree_gives_nothing_not_even_a_value(
 
     edits = await _read_colocated(monkeypatch, graph, live)
 
-    assert (edits, graph.steps[_LEAF].parameters[_SCORE]) == (
-        SiteEdits(valued=[], reshaped=False),
+    assert (edits.moved, graph.steps[_LEAF].parameters[_SCORE]) == (
+        False,
         NumberValue(value=10),
+    )
+    assert edits.not_read == Unread(
+        reason="the site's tree was not read: Data parsing failed: span logic "
+        "step has no span_operation, span_strand, span_output, region_a, "
+        "span_begin_a, span_begin_direction_a, span_begin_offset_a, span_end_a, "
+        "span_end_direction_a, span_end_offset_a, region_b, span_begin_b, "
+        "span_begin_direction_b, span_begin_offset_b, span_end_b, "
+        "span_end_direction_b, span_end_offset_b"
     )

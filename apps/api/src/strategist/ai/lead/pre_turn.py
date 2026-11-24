@@ -137,7 +137,7 @@ def attach_turn_briefing(
     """
     spec = state.domain.operational_spec
     state.domain.turn_briefing = compose_turn_briefing(
-        activity,
+        activity.model_copy(update={"site_not_read": state.domain.site_not_read}),
         requirements=state.domain.requirements,
         answered=answered,
         live=live_tree(context.strategy_session.get_graph(None)),
@@ -184,11 +184,13 @@ async def refresh_live_strategy_state(
     working_state = state.model_copy(deep=True)
     # The site's own edits reach the stored graph first, so the replay below
     # plays them onto the spec like any change written outside the thread.
-    live = await read_the_site_into_the_thread(
+    site = await read_the_site_into_the_thread(
         session=context.strategy_session,
         conversation_id=state.conversation_id,
         db_session_factory=context.db_session_factory,
     )
+    live = site.live
+    working_state.domain.site_not_read = site.not_read
     if live is None:
         await forget_the_verdict_of_a_dropped_strategy(
             working_state.domain, context.strategy_session
