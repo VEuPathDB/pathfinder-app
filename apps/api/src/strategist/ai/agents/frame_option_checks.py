@@ -24,7 +24,11 @@ from strategist.domain.strategy.card_answers import option_refusal
 from strategist.domain.strategy.expression_handles import held_expressions, is_handle
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
-from strategist.services.strategies.sheet_params import criterion_sheets
+from strategist.services.strategies.sheet_params import (
+    criterion_sheets,
+    read_sheets,
+    unread_sheets,
+)
 
 
 def unheld_handles(question: SlotQuestion, held: dict[str, str]) -> list[str]:
@@ -125,15 +129,17 @@ async def hold_an_option_to_its_parameter(
 ) -> list[HeldAnswer]:
     state = ctx.deps.agent_state
     asked = {q.criterion_id for q in output.open_questions}
-    sheets = await criterion_sheets(
+    read = await criterion_sheets(
         ctx.deps.site_id,
         [c for c in state.operational_spec_draft.criteria if c.id in asked],
         state.infos_read_this_pass,
     )
+    sheets, unread = read_sheets(read), unread_sheets(read)
     unbindable = [
         (question, _unbindable(question, refusals))
         for question in output.open_questions
-        if (refusals := _refusals(question, state, sheets))
+        if question.criterion_id not in unread
+        and (refusals := _refusals(question, state, sheets))
     ]
     return [
         held(

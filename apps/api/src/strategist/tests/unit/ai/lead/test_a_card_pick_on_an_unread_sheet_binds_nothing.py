@@ -12,6 +12,7 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKSearch
 
 from strategist.ai.graph.state import StrategyDomainState
+from strategist.ai.lead import card_sheets
 from strategist.ai.lead.lead_consult import CardAnswer, consult_user
 from strategist.ai.lead.recorded_cards import card_questions
 from strategist.domain.strategy.operational_spec import (
@@ -64,24 +65,7 @@ def _criterion() -> Criterion:
     )
 
 
-async def test_a_pick_on_a_sheet_the_site_did_not_answer_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def _unanswered(*_args: Any) -> WDKSearch:
-        raise _DOWN
-
-    list_searches_under(monkeypatch, "transcript", [_SEARCH])
-    monkeypatch.setattr(sheet_params, "read_search_definition", _unanswered)
-    deps = lead_deps(
-        pipeline_state(
-            "plasmodb",
-            user_message_id=uuid4(),
-            domain=StrategyDomainState(
-                operational_spec=OperationalSpec(criteria=[_criterion()]),
-                open_questions=[_QUESTION],
-            ),
-        )
-    )
+async def _picked(deps: Any) -> list[str]:
     deps.state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_card", tool_name="consult_user"
     )
@@ -92,23 +76,75 @@ async def test_a_pick_on_a_sheet_the_site_did_not_answer_is_refused(
             )
         ]
     }
-
     returned = await consult_user(
         run_context_for(deps, "call_card"),
         questions=card_questions([_QUESTION]),
         reply="One value decides the domain step.",
     )
-
     part = ToolReturnPart(
         tool_name="consult_user", content=returned.return_value, tool_call_id="c"
     )
     answers = TypeAdapter(list[CardAnswer]).validate_json(part.model_response_str())
+    return [why for answer in answers for why in answer.refused]
+
+
+def _deps() -> Any:
+    return lead_deps(
+        pipeline_state(
+            "plasmodb",
+            user_message_id=uuid4(),
+            domain=StrategyDomainState(
+                operational_spec=OperationalSpec(criteria=[_criterion()]),
+                open_questions=[_QUESTION],
+            ),
+        )
+    )
+
+
+async def test_a_pick_on_a_sheet_the_site_did_not_answer_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _unanswered(*_args: Any) -> WDKSearch:
+        raise _DOWN
+
+    list_searches_under(monkeypatch, "transcript", [_SEARCH])
+    monkeypatch.setattr(sheet_params, "read_search_definition", _unanswered)
+    deps = _deps()
+
+    refused = await _picked(deps)
+
     spec = deps.state.domain.operational_spec
     assert spec is not None
     assert "domain_typeahead" not in spec.criteria[0].resolved_params
-    assert [why for answer in answers for why in answer.refused] == [
+    assert refused == [
         (
             f"the sheet of {_SEARCH} was not read, so {_KINASE!r} binds nothing: "
             "HTTP 503: VEuPathDB service error: Service Unavailable"
+        )
+    ]
+
+
+async def test_a_pick_under_moved_parents_the_site_did_not_read_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _unanswered(*_args: Any) -> list[Any]:
+        raise _DOWN
+
+    async def _published(**_kwargs: Any) -> dict[str, list[Any]]:
+        return {_SEARCH: []}
+
+    list_searches_under(monkeypatch, "transcript", [_SEARCH])
+    monkeypatch.setattr(card_sheets, "parameters_of_searches", _published)
+    monkeypatch.setattr(sheet_params, "parents_moved", lambda *_args: True)
+    monkeypatch.setattr(sheet_params, "vocabularies_under", _unanswered)
+    deps = _deps()
+
+    refused = await _picked(deps)
+
+    assert refused == [
+        (
+            f"the sheet of {_SEARCH} was not read, so {_KINASE!r} binds nothing: the "
+            "vocabulary under the values it holds was not read: HTTP 503: VEuPathDB "
+            "service error: Service Unavailable"
         )
     ]

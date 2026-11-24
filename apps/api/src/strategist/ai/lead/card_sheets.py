@@ -11,6 +11,7 @@ from strategist.services.strategies.sheet_params import (
     criterion_sheets,
     parameters_of_searches,
     read_sheets,
+    unread_sheets,
 )
 
 
@@ -36,17 +37,15 @@ async def card_sheets(
     if not searches:
         return {}, {}
     reads = await parameters_of_searches(site_id=state.site_id, search_names=searches)
-    unread: dict[str, Unread] = {}
-    for c in criteria:
-        match reads.get(c.search_name):
-            case Unread() as failed:
-                unread[c.id] = failed
-            case _:
-                pass
-    sheets = await criterion_sheets(
+    unread = {
+        c.id: failed
+        for c in criteria
+        if (failed := unread_sheets(reads).get(c.search_name)) is not None
+    }
+    under = await criterion_sheets(
         state.site_id, [c for c in criteria if c.id not in unread], read_sheets(reads)
     )
-    return sheets, unread
+    return read_sheets(under), {**unread, **unread_sheets(under)}
 
 
 def picks_on_unread_sheets(

@@ -102,7 +102,6 @@ services/strategies/reconcile.py:_the_step_wdk_holds:VEuPathDBError:returnNone a
 services/strategies/search_sheets.py:_definition:(VEuPathDBError,OSError):returnNone an unread definition gives no radio pair, so a step is named less specifically and nothing binds from it (test_an_unread_definition_names_the_step_less_specifically)
 services/strategies/session_factory.py:_restore_wdk_tree:StrategyCompilationError:sync_state.wdk_step_tree=None a tree that does not compile is held as unknown, so the next push writes it
 services/strategies/sheet_params.py:_parameters_read:(VEuPathDBError,OSError):continue records Unread before continue (test_a_card_pick_on_an_unread_sheet_binds_nothing)
-services/strategies/sheet_params.py:_sheet_under:(VEuPathDBError,OSError):returnNone an unread dependent vocabulary keeps the published sheet
 services/strategies/site_counts.py:read_site_strategy:VEuPathDBError:returnNone None makes every site check unchecked ('the site did not answer the strategy read')
 services/strategies/sync.py:step_tree_is_current:StrategyCompilationError:returnFalse a tree that does not compile is not current, so it is pushed
 services/strategies/wdk_sync.py:lazy_fetch_wdk_detail:(VEuPathDBError,RuntimeError):log best effort: the thread shows what it holds

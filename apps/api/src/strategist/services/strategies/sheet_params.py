@@ -91,6 +91,18 @@ async def _parameters_read(
     return sheets
 
 
+def unread_sheets(reads: SheetReads) -> dict[str, Unread]:
+    """Why each sheet that was not read was not read."""
+    unread: dict[str, Unread] = {}
+    for name, sheet in reads.items():
+        match sheet:
+            case Unread():
+                unread[name] = sheet
+            case _:
+                pass
+    return unread
+
+
 def read_sheets(reads: SheetReads) -> dict[str, list[ParameterInfo]]:
     """The sheets of the searches that were read."""
     sheets: dict[str, list[ParameterInfo]] = {}
@@ -182,10 +194,10 @@ async def _sheet_under(
     values: Mapping[str, ParamValue],
     names: Collection[str],
     record_type: str | None = None,
-) -> list[ParameterInfo] | None:
+) -> list[ParameterInfo] | Unread | None:
     """The sheet with each dependent vocabulary of these names read under the
-    values; None while their parents hold the published values, or when the site
-    cannot read it."""
+    values; None while their parents hold the published values or the search is
+    listed nowhere; else why the site did not read it."""
     if not parents_moved(values, names, sheet):
         return None
     try:
@@ -198,7 +210,12 @@ async def _sheet_under(
         logger.warning(
             "step vocabulary unreadable", search_name=search_name, error=str(exc)
         )
-        return None
+        return Unread(
+            reason=(
+                "the vocabulary under the values it holds was not read: "
+                f"{site_words(exc)}"
+            )
+        )
 
 
 async def read_card_values(
@@ -227,10 +244,11 @@ async def criterion_sheets(
     site_id: str,
     criteria: Iterable[Criterion],
     sheets: Mapping[str, Sequence[ParameterInfo]],
-) -> dict[str, list[ParameterInfo]]:
+) -> SheetReads:
     """The published sheet of each criterion's search with each dependent
-    vocabulary read under the values the criterion holds, by criterion id."""
-    read: dict[str, list[ParameterInfo]] = {}
+    vocabulary read under the values the criterion holds, or why it was not
+    read, by criterion id."""
+    read: SheetReads = {}
     for c in criteria:
         published = list(sheets.get(c.search_name, []))
         under = await _sheet_under(
@@ -262,7 +280,9 @@ async def sheets_under_their_parents(
         if sheet is None:
             continue
         values = sheet_bound(step.node.parameters, sheet)
-        read = await _sheet_under(site_id, search_name, sheet, values, step.names)
-        if read is not None:
-            under[step.node.id] = read
+        match await _sheet_under(site_id, search_name, sheet, values, step.names):
+            case list() as read:
+                under[step.node.id] = read
+            case _:
+                pass
     return under
