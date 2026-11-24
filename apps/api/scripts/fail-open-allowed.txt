@@ -76,7 +76,6 @@ services/strategies/auto_import.py:auto_import_gene_set:1 a result that is no ge
 services/strategies/auto_import.py:auto_import_gene_set:2 best effort: the next write imports the set
 services/strategies/auto_import.py:import_gene_set_for_conversation:1 best effort: rolled back; the next write imports the set
 services/strategies/commit_tree.py:_Commit.validate:1 the refusal is recorded on the step (_refused) before continue
-services/strategies/commit_tree.py:_Commit._sort:1 best effort: an unsorted ranked result still holds every record
 services/strategies/data_marks.py:_assays:1 the failed read is recorded as Unread before continue
 services/strategies/gene_set_refresh.py:defer_the_gene_set_refresh:1 a refresh already queued is the refresh this defers
 services/strategies/live_counts.py:read_the_live_strategy:1 None is an unanswered read; the site read takes nothing

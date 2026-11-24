@@ -75,7 +75,7 @@ async def test_an_unweighted_result_keeps_the_sites_sort(
     assert env.wdk.written("PATCH") == []
 
 
-async def test_a_sort_the_site_refuses_leaves_the_commit_whole(
+async def test_a_sort_the_site_refuses_is_the_roots_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     env = Env(monkeypatch)
@@ -83,5 +83,12 @@ async def test_a_sort_the_site_refuses_leaves_the_commit_whole(
 
     committed = await _commit(1, WDKSyncState())
 
-    assert (sorted(committed.pushed), committed.failures) == (["a", "b", "union"], [])
+    assert (sorted(committed.pushed), [f.step_id for f in committed.failures]) == (
+        ["a", "b", "union"],
+        ["union"],
+    )
+    assert committed.failures[0].error.startswith(
+        "PlasmoDB (Plasmodium) did not sort the ranked result by score, so it is not "
+        "ranked: HTTP 422"
+    )
     assert committed.sync is not None

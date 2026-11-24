@@ -24,6 +24,7 @@ from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_status import step_status
+from strategist.services.site_errors import site_words
 from strategist.services.strategies._tree_write import (
     StrategyRole,
     delete_what_the_tree_dropped,
@@ -319,10 +320,16 @@ class _Commit:
         try:
             await _sort_a_ranking(self.api, self.sync_state, self.steps, root_id, moved)
         except VEuPathDBError as exc:
-            logger.warning(
-                "The site did not sort the ranked result by score",
-                step_id=root_id,
-                error=str(exc)[:300],
+            site = get_site(self.site_id).display_name
+            self._fail(
+                StepPushFailure(
+                    step_id=root_id,
+                    search_name=wdk_search_name(self.steps[root_id]),
+                    error=(
+                        f"{site} did not sort the ranked result by score, so it "
+                        f"is not ranked: {site_words(exc)}"
+                    ),
+                )
             )
 
     def _departed(self, node: StrategyStepNode, holds: StepSettings | None) -> None:
