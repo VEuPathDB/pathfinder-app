@@ -8,6 +8,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform import db
 from veupathdb.domain.strategy import CombineOp, StrategyAst
 
+from strategist.domain.last_change import change_between
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.persistence.models import User
 from strategist.persistence.repositories.conversation import ConversationRepository
@@ -17,7 +18,7 @@ from strategist.persistence.repositories.strategy_revision import (
 )
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.conversations.turns import writes_named_by
-from strategist.services.strategies.revision_ops import previous_revision
+from strategist.services.strategies.revision_ops import last_change, previous_revision
 from strategist.tests.integration.persistence._strategy_shapes import three_step_ast
 
 
@@ -161,3 +162,44 @@ async def test_an_undo_after_a_turn_of_two_writes_returns_past_both(
     async with db.async_session_factory() as session:
         latest = await StrategyRevisionRepository(session).latest(conversation_id)
     assert [None if latest is None else latest.message_id is not None] == [True]
+
+
+async def test_a_save_in_a_later_turn_leaves_the_undo_at_the_turn_before(
+    patch_app_db_engine: None, db_cleaner: None
+) -> None:
+    del patch_app_db_engine, db_cleaner
+    conversation_id = await _seed_thread()
+    await _turn(conversation_id, (_joined(CombineOp.INTERSECT), False))
+    await _turn(
+        conversation_id,
+        (_joined(CombineOp.MINUS), False),
+        (_joined(CombineOp.UNION), False),
+    )
+    await _turn(conversation_id, (_joined(CombineOp.UNION), True))
+
+    assert await _previous(conversation_id) == strategy_revision(
+        _joined(CombineOp.INTERSECT)
+    )
+
+
+async def test_a_save_from_the_canvas_leaves_the_undo_at_the_turn_before(
+    patch_app_db_engine: None, db_cleaner: None
+) -> None:
+    del patch_app_db_engine, db_cleaner
+    conversation_id = await _seed_thread()
+    await _turn(conversation_id, (_joined(CombineOp.INTERSECT), False))
+    await _turn(
+        conversation_id,
+        (_joined(CombineOp.MINUS), False),
+        (_joined(CombineOp.UNION), False),
+    )
+    await _write(conversation_id, _joined(CombineOp.UNION), saved=True)
+
+    assert await _previous(conversation_id) == strategy_revision(
+        _joined(CombineOp.INTERSECT)
+    )
+    async with db.async_session_factory() as session:
+        change = await last_change(session, conversation_id=conversation_id)
+    assert change == change_between(
+        _joined(CombineOp.INTERSECT), _joined(CombineOp.UNION)
+    )

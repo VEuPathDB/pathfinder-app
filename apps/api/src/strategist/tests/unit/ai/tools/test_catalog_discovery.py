@@ -443,3 +443,31 @@ class TestTheOptionCountSummary:
 
         assert data["summary"] == "domain_typeahead: 300 of 340 options shown"
         assert data["status"] == "ok"
+
+    async def test_options_the_site_did_not_narrow_say_so(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        note = (
+            "not narrowed to your parent values; the site does not narrow organism "
+            "with a phyletic pattern"
+        )
+        info = _param_info(name="included_species", type="string", not_narrowed=note)
+        monkeypatch.setattr(
+            catalog_discovery, "read_parameter_options", AsyncMock(return_value=info)
+        )
+
+        returned = await catalog_discovery.get_parameter_options(
+            agent_run_context(),
+            search_name="GenesByOrthologPattern",
+            parameter_id="included_species",
+        )
+
+        data = TypeAdapter(dict[str, str]).validate_python(summary_of(returned).data)
+        assert (data["summary"], data["status"]) == (
+            (
+                "included_species: free-form string, no vocabulary, not narrowed "
+                "to its parents"
+            ),
+            "warn",
+        )
+        assert returned.return_value == info

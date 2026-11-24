@@ -46,7 +46,7 @@ async def _write_strategy(conversation_id: UUID, ids: dict[str, int]) -> None:
 
 
 @pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
-async def test_a_later_change_is_read_against_the_snapshot_the_turn_ended_on(
+async def test_an_undo_after_a_run_that_wrote_nothing_returns_to_the_write_before_it(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     serve_recorded_plasmodb(

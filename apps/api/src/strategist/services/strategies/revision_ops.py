@@ -74,21 +74,11 @@ async def previous_revision(
     *,
     conversation_id: UUID,
 ) -> StrategyRevisionView | None:
-    """The strategy the thread held before its last change.
-
-    It is the newest snapshot a turn ended on, older than the thread's newest
-    snapshot and with another tree. None when the thread holds no such
-    snapshot.
-    """
-    repo = StrategyRevisionRepository(session)
-    latest = await repo.latest(conversation_id)
-    if latest is None:
-        return None
-    return await repo.newest_turn_end_unlike(
-        conversation_id,
-        before_row_id=latest.id,
-        revision=latest.revision,
-        apart_from=latest.message_id,
+    """The strategy the thread held before its last change: the last snapshot
+    before the turn, or the write outside a turn, that reached its tree. None
+    when the thread holds no such snapshot."""
+    return await StrategyRevisionRepository(session).before_the_last_change(
+        conversation_id
     )
 
 

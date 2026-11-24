@@ -66,7 +66,7 @@ def fetched(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, str]]:
 
         return fetch_at
 
-    monkeypatch.setattr(sheet_params, "wdk_fetch_at", _fetch_at)
+    monkeypatch.setattr(sheet_params, "wdk_fetch_under_parents_at", _fetch_at)
     return contexts
 
 

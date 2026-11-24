@@ -271,6 +271,13 @@ def _has_vocabulary_type(info: ParameterInfo) -> bool:
 
 
 def _options_summary(parameter_id: str, info: ParameterInfo) -> str:
+    counted = _options_count(parameter_id, info)
+    if info.not_narrowed is None:
+        return counted
+    return f"{counted}, not narrowed to its parents"
+
+
+def _options_count(parameter_id: str, info: ParameterInfo) -> str:
     if info.allowed_values_total is not None:
         shown = len(info.allowed_values or [])
         return f"{parameter_id}: {shown} of {info.allowed_values_total} options shown"
@@ -281,6 +288,8 @@ def _options_summary(parameter_id: str, info: ParameterInfo) -> str:
 
 
 def _options_status(info: ParameterInfo) -> ToolSummaryStatus:
+    if info.not_narrowed is not None:
+        return "warn"
     if len(info.vocabulary()):
         return "ok"
     return "empty" if _has_vocabulary_type(info) else "ok"

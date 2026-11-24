@@ -142,7 +142,7 @@
     "src/strategist/tests/integration/devtools/test_a_forgotten_case_user_holds_no_memory.py::test_a_forgotten_user_holds_no_memory": 0.5745249079998302,
     "src/strategist/tests/integration/devtools/test_a_worker_run_follows_the_parked_turn.py::test_a_real_two_task_park_is_followed_to_the_completion_reply": 10.333024130000013,
     "src/strategist/tests/integration/devtools/test_a_worker_run_follows_the_parked_turn.py::test_the_run_waits_out_the_park_and_captures_the_answer": 1.5024855129999963,
-    "src/strategist/tests/integration/devtools/test_an_in_process_run_names_its_revision.py::test_a_later_change_is_read_against_the_snapshot_the_turn_named": 2.767618521000003,
+    "src/strategist/tests/integration/devtools/test_a_run_that_writes_nothing_is_no_change.py::test_an_undo_after_a_run_that_wrote_nothing_returns_to_the_write_before_it": 2.767618521000003,
     "src/strategist/tests/integration/devtools/test_chat_cli.py::test_a_debugger_run_stamps_this_application": 3.4019426980000276,
     "src/strategist/tests/integration/devtools/test_chat_cli.py::test_a_durable_call_is_declined_and_the_run_writes_its_artifacts": 6.122124615000018,
     "src/strategist/tests/integration/devtools/test_chat_cli.py::test_a_mocked_run_with_credentials_logs_in": 0.061824920999981714,

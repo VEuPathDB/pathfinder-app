@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, desc, select, true
+from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyAst
 
@@ -103,33 +103,49 @@ class StrategyRevisionRepository:
         )
         return None if row is None else StrategyRevisionView.model_validate(row)
 
-    async def newest_turn_end_unlike(
-        self,
-        conversation_id: UUID,
-        *,
-        before_row_id: int,
-        revision: str,
-        apart_from: UUID | None,
+    async def before_the_last_change(
+        self, conversation_id: UUID
     ) -> StrategyRevisionView | None:
-        """The newest snapshot older than ``before_row_id``, outside the turn of
-        ``apart_from`` when one is named, whose tree differs from ``revision``."""
-        other_turn = (
-            true()
-            if apart_from is None
-            else StrategyRevision.message_id.is_distinct_from(apart_from)
-        )
-        row = await self.session.scalar(
+        """The snapshot the thread held before the change that reached its tree.
+
+        The change is the turn, or the write outside a turn, that wrote the oldest
+        snapshot of the newest run holding the current tree; the result is the
+        last snapshot written before any snapshot of that change.
+        """
+        rows = (
+            await self.session.execute(
+                select(
+                    StrategyRevision.id,
+                    StrategyRevision.revision,
+                    StrategyRevision.message_id,
+                )
+                .where(StrategyRevision.conversation_id == conversation_id)
+                .order_by(desc(StrategyRevision.id))
+            )
+        ).all()
+        if not rows:
+            return None
+        reached = rows[0]
+        for row in rows:
+            if row.revision != rows[0].revision:
+                break
+            reached = row
+        change = [
+            row.id
+            for row in rows
+            if row.id == reached.id
+            or (reached.message_id is not None and row.message_id == reached.message_id)
+        ]
+        found = await self.session.scalar(
             select(StrategyRevision)
             .where(
                 StrategyRevision.conversation_id == conversation_id,
-                StrategyRevision.id < before_row_id,
-                other_turn,
-                StrategyRevision.revision != revision,
+                StrategyRevision.id < min(change),
             )
             .order_by(desc(StrategyRevision.id))
             .limit(1),
         )
-        return None if row is None else StrategyRevisionView.model_validate(row)
+        return None if found is None else StrategyRevisionView.model_validate(found)
 
     async def newest(
         self,
