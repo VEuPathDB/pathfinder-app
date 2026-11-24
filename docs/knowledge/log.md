@@ -2,6 +2,12 @@
 
 ## 2026-11-24
 
+* **The operator the current message states is the one read.** The operator reader keeps the
+  newest message's reading whenever that message names an operator for the combine, at any
+  confidence: below the floor it is `unsure` and asks nothing. The thread's older words are
+  read only when the newest message names no operator, so "flip the last combine to a UNION"
+  is never asked back as "Your words read as ... both ...".
+
 * **Nothing unknown becomes a default.** The decision
   `decisions/nothing-unknown-becomes-a-default.md` records cause G's rules G1-G5 (a typed
   `Unread` on a service read, an absence only over a catalog read, `stated` only through

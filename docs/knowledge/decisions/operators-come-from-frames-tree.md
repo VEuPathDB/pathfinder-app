@@ -30,8 +30,9 @@ runs over the draft, never inside FRAME's own tool loop (`ai/lead/frame_dispatch
   colocated, not combined directly and not stated; a combine of more than two
   inputs is asked intersect, union, not combined directly or not stated.
 - The newest message is read first, alone (`operator_reader._newest_first`). When
-  it states an operator at or above the floor, that reading stands and the history
-  is not read; otherwise the question is asked again over every message, oldest
+  it states an operator, at any confidence, that reading stands and the history is
+  not read: below the floor it is `unsure` and asks nothing. Only a newest message
+  that states no operator for the combine is asked again over every message, oldest
   first. A message that changes a combine therefore overrides the words that built
   it, and the order is enforced by code, not by asking the model which message won.
 - The answer is typed on the spec as an `OperatorReading` keyed by the combine's
