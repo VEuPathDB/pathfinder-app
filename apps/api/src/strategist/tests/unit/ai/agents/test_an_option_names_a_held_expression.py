@@ -16,6 +16,7 @@ from strategist.domain.strategy.constraints import ConstraintKind
 from strategist.domain.strategy.expression_handles import (
     BuiltPattern,
     expression_handle,
+    unheld_sentence,
 )
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading
@@ -66,10 +67,9 @@ def test_an_option_naming_an_unknown_handle_is_sent_back() -> None:
 
     assert said(held) == [
         (
-            f"c_more.{_EXPRESSION} offers {[_UNKNOWN]}, and no expression of this "
-            "conversation is held under that handle, so the card would bind "
-            "nothing. Offer a handle build_phyletic_expression returned, or build "
-            "the reading first."
+            f"{unheld_sentence(f'c_more.{_EXPRESSION}', [_UNKNOWN])} The card "
+            "would bind nothing. Offer a handle build_phyletic_expression "
+            "returned, or build the reading first."
         )
     ]
 

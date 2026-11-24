@@ -166,7 +166,10 @@ async def test_a_question_offering_an_unheld_handle_is_sent_back(
         )
 
     told = refused.value.message
-    assert (told.count(_ANY_GENOME), told.count("names " + _ANY_GENOME)) == (1, 0)
+    assert (told.count(_ANY_GENOME), told.count("The card would bind nothing")) == (
+        1,
+        1,
+    )
     assert sent == []
 
 

@@ -3,7 +3,6 @@ list lacks it, with the one sentence written in one place."""
 
 from __future__ import annotations
 
-import ast
 from pathlib import Path
 
 import pytest
@@ -32,6 +31,7 @@ from strategist.domain.strategy.requirement_reports import (
     unlisted_numbers_sentence,
 )
 from strategist.tests._support.held_answers import said
+from strategist.tests._support.string_literals import string_literals
 from strategist.tests.unit.ai.tools.conftest import agent_run_context
 
 _SOURCE = Path(requirement_reports.__file__).resolve().parents[2]
@@ -126,23 +126,8 @@ _WORDINGS = (
 )
 
 
-def _literal_texts(path: Path) -> list[str]:
-    return [
-        "".join(
-            part.value
-            for part in node.values
-            if isinstance(part, ast.Constant) and isinstance(part.value, str)
-        )
-        if isinstance(node, ast.JoinedStr)
-        else node.value
-        for node in ast.walk(ast.parse(path.read_text()))
-        if isinstance(node, ast.JoinedStr)
-        or (isinstance(node, ast.Constant) and isinstance(node.value, str))
-    ]
-
-
 def _states_the_rule(path: Path) -> bool:
-    return any(words in text for text in _literal_texts(path) for words in _WORDINGS)
+    return any(words in text for text in string_literals(path) for words in _WORDINGS)
 
 
 def test_the_sentence_is_written_in_one_module() -> None:

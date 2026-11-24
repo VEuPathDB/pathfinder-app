@@ -20,7 +20,7 @@ from strategist.ai.agents.unserved import UnservedSearch
 from strategist.domain.refusal import RefusalLedger
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.constraints import Constraint
-from strategist.domain.strategy.expression_handles import BuiltPattern
+from strategist.domain.strategy.expression_handles import BuiltPattern, held_expressions
 from strategist.domain.strategy.genome_group_steps import (
     criterion_keeping_its_reading,
 )
@@ -243,6 +243,9 @@ class AgentToolState:
 
     def record_read(self, search_name: str, infos: Iterable[ParameterInfo]) -> None:
         self.infos_read_this_pass[search_name] = list(infos)
+
+    def held_expressions(self) -> dict[str, str]:
+        return held_expressions(self.built_expressions, self.operational_spec_draft)
 
     def sets_the_site(self, search_name: str, param: str) -> bool:
         """Whether a sheet read this pass names the parameter as set by the site."""

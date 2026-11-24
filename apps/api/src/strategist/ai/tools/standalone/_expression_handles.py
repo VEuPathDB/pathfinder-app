@@ -13,8 +13,8 @@ from strategist.domain.strategy.expression_handles import (
     BuiltPattern,
     UnknownExpressionError,
     expression_handle,
-    held_expressions,
     resolved_params,
+    unheld_sentence,
 )
 
 
@@ -48,16 +48,13 @@ def with_stored_expressions(
             proposed = {PHYLETIC_EXPRESSION_PARAM: text}
         case _:
             return call, Problems()
-    held = held_expressions(state.built_expressions, state.operational_spec_draft)
     try:
-        resolved = resolved_params(proposed, held)
+        resolved = resolved_params(proposed, state.held_expressions())
     except UnknownExpressionError as exc:
+        said = unheld_sentence(PHYLETIC_EXPRESSION_PARAM, [exc.handle])
         return call, Problems.one(
             _EXPRESSION,
-            f"{PHYLETIC_EXPRESSION_PARAM} names {exc.handle}, and no expression of "
-            "this conversation is held under that handle: neither "
-            "build_phyletic_expression nor a bound criterion wrote it. Call "
-            "build_phyletic_expression and bind the handle it returns.",
+            f"{said} Call build_phyletic_expression and bind the handle it returns.",
         )
     return replace(call, params={**call.params, **resolved}), Problems()
 
