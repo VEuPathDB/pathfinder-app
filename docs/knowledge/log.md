@@ -2,6 +2,10 @@
 
 ## 2026-11-24
 
+* **A worker run keeps the pinned model.** `--model` (evals) and `--model-all` (the
+  debugger) combine with `--via-worker`: the pin rides the chat-turn job and every durable
+  call, so a run with durable tools holds every role on one model.
+
 * **A strain missing a word of its entry names that entry.** The organism reader binds the
   one entry that holds every stated word in order ("Trypanosoma brucei TREU927" names
   Trypanosoma brucei brucei TREU927); words two entries hold still go to the card.

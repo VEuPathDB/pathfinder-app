@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.spec import AssistantSpec
 from pydantic_ai.models import Model
 from pydantic_ai.models.test import TestModel
 
@@ -14,6 +15,7 @@ from strategist.ai.agents import compactor
 from strategist.ai.capabilities import security
 from strategist.ai.capabilities.metering import SpendMeter
 from strategist.ai.conversation import title_generator
+from strategist.ai.conversation.request_body import ChatRequestBody
 from strategist.assistants.registry import assistant_role_models
 from strategist.assistants.strategist_spec import build_strategist_spec
 from strategist.devtools import chat, eval_runner, evals, run_models
@@ -320,32 +322,26 @@ def test_a_chat_run_refuses_an_empty_variable_before_the_turn(
     assert not (tmp_path / "turn").exists()
 
 
-@pytest.mark.usefixtures("restored_sites_file")
-def test_a_chat_run_refuses_a_pin_the_worker_would_not_read(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
+async def test_a_worker_turn_carries_the_pinned_model(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv("VEUPATHDB_SITES_CONFIG", _QA)
-    code = _chat(
-        monkeypatch,
-        [
-            "run",
-            "hi",
-            "--site",
-            "orthomcl",
-            "--sites",
-            _QA,
-            "--run-dir",
-            str(tmp_path / "turn"),
-            "--model-all",
-            LUNA,
-            "--via-worker",
-        ],
-    )
+    async def _strategist(
+        conversation_id: UUID, requested_id: str | None = None
+    ) -> AssistantSpec:
+        del conversation_id, requested_id
+        return build_strategist_spec()
 
-    assert code == 2
-    assert "--via-worker" in capsys.readouterr().err
+    monkeypatch.setattr(chat, "resolve_run_assistant", _strategist)
+    args = chat.parse_run_args(
+        ["hi", "--site", "orthomcl", "--run-dir", str(tmp_path), "--via-worker"]
+    )
+    body = ChatRequestBody(conversation_id=args.conversation_id)
+
+    with run_models.pinned_run(LUNA):
+        pinned = await chat.worker_payload(args, body, turn_id=uuid4(), wdk_token=None)
+    unpinned = await chat.worker_payload(args, body, turn_id=uuid4(), wdk_token=None)
+
+    assert (pinned.pinned_model, unpinned.pinned_model) == (LUNA, None)
 
 
 def test_a_pin_and_a_per_role_model_do_not_combine() -> None:
@@ -366,8 +362,11 @@ def _summary() -> EvalRunSummary:
 
 
 @pytest.mark.usefixtures("restored_sites_file")
+@pytest.mark.parametrize("via_worker", [[], ["--via-worker"]])
 def test_an_eval_run_pins_the_model_reads_the_token_and_prints_the_roles(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    via_worker: list[str],
 ) -> None:
     monkeypatch.setenv("PF_QA_TOKEN", _TOKEN)
     received: dict[str, object] = {}
@@ -379,8 +378,19 @@ def test_an_eval_run_pins_the_model_reads_the_token_and_prints_the_roles(
 
     monkeypatch.setattr(evals, "run_corpus", _run_corpus)
 
+    monkeypatch.setenv("VEUPATHDB_SITES_CONFIG", _QA)
+
     code = evals.main(
-        ["run", "--sites", _QA, "--model", LUNA, "--wdk-token-env", "PF_QA_TOKEN"]
+        [
+            "run",
+            "--sites",
+            _QA,
+            "--model",
+            LUNA,
+            "--wdk-token-env",
+            "PF_QA_TOKEN",
+            *via_worker,
+        ]
     )
 
     printed = capsys.readouterr().out.splitlines()
@@ -401,7 +411,6 @@ def test_an_eval_run_pins_the_model_reads_the_token_and_prints_the_roles(
     [
         (["--model", "openai:no-such-model"], "openai:no-such-model"),
         (["--wdk-token-env", "PF_QA_TOKEN"], "$PF_QA_TOKEN"),
-        (["--model", LUNA, "--via-worker"], "--via-worker"),
     ],
 )
 def test_an_eval_run_refuses_before_the_first_case(

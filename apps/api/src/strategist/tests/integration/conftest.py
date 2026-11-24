@@ -25,7 +25,7 @@ from testcontainers.community.postgres import PostgresContainer
 from strategist.assistants.registry import get_assistant_registry
 from strategist.jobs.app import procrastinate_app
 from strategist.jobs.completion import open_completion_turn
-from strategist.jobs.job_context import WdkJobContext
+from strategist.jobs.job_context import TurnJobContext
 from strategist.jobs.runtime import build_worker_context
 from strategist.platform.identity import APPLICATION_ID
 from strategist.tests._support.declared_record_types import (
@@ -116,7 +116,7 @@ def helper_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 @pytest.fixture
 def worker_seams() -> Iterator[None]:
     """Install what ``jobs/worker.py`` installs, so a durable body runs here."""
-    install_durable_job_context(WdkJobContext())
+    install_durable_job_context(TurnJobContext())
     install_worker_context(build_worker_context)
     install_completion_turn(open_completion_turn)
     install_assistant_registry(get_assistant_registry())

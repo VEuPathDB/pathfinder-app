@@ -27,6 +27,7 @@ from strategist.jobs.payloads import ChatTurnPayload
 from strategist.jobs.turn_keys import turn_keys
 from strategist.jobs.turn_metrics import metered_turn
 from strategist.platform.config import get_settings
+from strategist.platform.pinned_model import pin_model
 
 logger = get_logger(__name__)
 
@@ -73,7 +74,7 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
             capture = (
                 capture_llm(parsed.capture_dir) if parsed.capture_dir else nullcontext()
             )
-            with capture:
+            with capture, pin_model(parsed.pinned_model):
                 async with turn_keys(
                     user_id=parsed.user_id, spec=spec, body=body, writer=writer
                 ):

@@ -14,7 +14,7 @@ def pinned_model() -> str | None:
 
 
 @contextmanager
-def pin_model(model_id: str) -> Iterator[None]:
+def pin_model(model_id: str | None) -> Iterator[None]:
     token = _pinned.set(model_id)
     try:
         yield

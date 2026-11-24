@@ -16,7 +16,6 @@ from assistant_core.platform.db import async_session_factory
 from pydantic import BaseModel, ConfigDict, Field
 
 from strategist.devtools import chat
-from strategist.devtools.capture import RunCapture
 from strategist.devtools.chat import (
     DEV_USER_ID,
     MissingCredentialsError,
@@ -25,12 +24,12 @@ from strategist.devtools.chat import (
     _gate_from_checkpoint,
     _optional_wdk_token,
     _wdk_token,
-    _worker_payload,
     parse_respond_args,
     parse_run_args,
     route_framework_logs_to_stderr,
     run_once,
     run_respond,
+    worker_payload,
 )
 from strategist.devtools.gates import user_body
 from strategist.persistence.repositories.user import UserRepository
@@ -418,16 +417,10 @@ async def test_the_worker_payload_names_the_thread_s_assistant(tmp_path: Path) -
             assistant_id=HELPER,
         )
         await session.commit()
-    capture = RunCapture(
-        conversation_id=conversation_id,
-        turn_id=uuid4(),
-        run_dir=args.run_dir,
-        quiet=True,
-    )
+    turn_id = uuid4()
+    body = user_body(_body_ctx(args), message_id=turn_id, text=args.prompt)
 
-    body = user_body(_body_ctx(args), message_id=capture.turn_id, text=args.prompt)
-
-    payload = await _worker_payload(args, capture, body, wdk_token=None)
+    payload = await worker_payload(args, body, turn_id=turn_id, wdk_token=None)
 
     assert payload.assistant_id == HELPER
 

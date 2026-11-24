@@ -31,6 +31,7 @@ class ChatTurnPayload(BaseModel):
     assistant_id: str
     veupathdb_auth_token: str | None = None
     capture_dir: str | None = None
+    pinned_model: str | None = None
 
     @classmethod
     def from_context(
