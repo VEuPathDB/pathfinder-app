@@ -18746,9 +18746,15 @@ components:
         shared:
           title: Shared
           type: integer
+        sharedAtLeast:
+          default: false
+          title: Sharedatleast
+          type: boolean
         jaccard:
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Jaccard
-          type: number
       required:
       - a
       - b
@@ -21574,18 +21580,21 @@ components:
             $ref: '#/components/schemas/PairwiseOverlap'
           title: Overlaps
           type: array
-        truncated:
-          default: false
-          title: Truncated
-          type: boolean
         resultStepId:
           anyOf:
           - type: string
           - type: 'null'
           title: Resultstepid
+        readCap:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          readOnly: true
+          title: Readcap
       required:
       - variants
       - overlaps
+      - readCap
       title: VariantComparison
       type: object
     VariantResult:
@@ -21599,9 +21608,15 @@ components:
         geneCount:
           title: Genecount
           type: integer
+        readToCap:
+          default: false
+          title: Readtocap
+          type: boolean
         uniqueCount:
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Uniquecount
-          type: integer
         sampleUniqueGenes:
           items:
             $ref: '#/components/schemas/UniqueGene'
@@ -21622,12 +21637,17 @@ components:
             type: string
           title: Differsby
           type: object
+        uniqueAtLeast:
+          readOnly: true
+          title: Uniqueatleast
+          type: boolean
       required:
       - label
       - searchName
       - geneCount
       - uniqueCount
       - sampleUniqueGenes
+      - uniqueAtLeast
       title: VariantResult
       type: object
     VerificationDigest:

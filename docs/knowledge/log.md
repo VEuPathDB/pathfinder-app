@@ -2,6 +2,11 @@
 
 ## 2026-11-24
 
+* **A variant comparison states no count a partial read cannot give.** A variant whose
+  result passes `READ_CAP` (50,000) is read to the cap: its shared counts are lower bounds
+  with no Jaccard, its unique count is a lower bound, and every other variant's unique
+  count and genes are not given (`readCap`, `sharedAtLeast`, `uniqueAtLeast`).
+
 * **A worker run keeps the pinned model.** `--model` (evals) and `--model-all` (the
   debugger) combine with `--via-worker`: the pin rides the chat-turn job and every durable
   call, so a run with durable tools holds every role on one model.

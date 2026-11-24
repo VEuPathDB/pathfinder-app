@@ -21,7 +21,7 @@ const CONTROLS: ControlTestResults = {
   negative: { controlsCount: 1, intersectionCount: 0, falsePositiveRate: 0 },
 };
 
-const VARIANTS: VariantComparison = { variants: [], overlaps: [] };
+const VARIANTS: VariantComparison = { variants: [], overlaps: [], readCap: null };
 
 const SCORED: ScoredComparison = {
   objective: "mcc",

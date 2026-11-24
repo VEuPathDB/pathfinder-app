@@ -18,6 +18,7 @@ const COMPARISON: VariantComparison = {
       searchName: "GenesByText",
       geneCount: 1105,
       uniqueCount: 84,
+      uniqueAtLeast: false,
       sampleUniqueGenes: [
         { geneId: "PF3D7_0100100", product: "erythrocyte membrane protein 1, PfEMP1" },
       ],
@@ -27,11 +28,12 @@ const COMPARISON: VariantComparison = {
       searchName: "GenesByText",
       geneCount: 342,
       uniqueCount: 12,
+      uniqueAtLeast: false,
       sampleUniqueGenes: [],
     },
   ],
   overlaps: [{ a: "kinases", b: "phosphatases", shared: 30, jaccard: 0.02 }],
-  truncated: false,
+  readCap: null,
 };
 
 function inThread(ui: ReactElement<{ data: object }>) {
@@ -50,6 +52,7 @@ describe("DataVariantComparison", () => {
           searchName: "GenesByTransmembraneDomains",
           geneCount: 1490,
           uniqueCount: 461,
+          uniqueAtLeast: false,
           sampleUniqueGenes: [],
           resultCount: 227,
         },
@@ -58,11 +61,13 @@ describe("DataVariantComparison", () => {
           searchName: "GenesByTransmembraneDomains",
           geneCount: 1029,
           uniqueCount: 0,
+          uniqueAtLeast: false,
           sampleUniqueGenes: [],
           resultCount: 82,
         },
       ],
       overlaps: [{ a: "Minimum 2", b: "Minimum 3", shared: 1029, jaccard: 0.6906 }],
+      readCap: null,
       resultStepId: "step_intersect",
     };
     inThread(<DataVariantComparison data={counted} />);
@@ -114,11 +119,13 @@ describe("DataVariantComparison", () => {
               searchName: "GenesByText",
               geneCount: 0,
               uniqueCount: 0,
+              uniqueAtLeast: false,
               sampleUniqueGenes: [],
               error: "search timed out",
             },
           ],
           overlaps: [],
+          readCap: null,
         }}
       />,
     );
@@ -128,6 +135,52 @@ describe("DataVariantComparison", () => {
     expect(screen.getByTestId("data-variant-comparison")).toHaveTextContent(
       "failed: search timed out",
     );
+  });
+
+  it("marks a count over a partial read as a lower bound and gives no other", () => {
+    inThread(
+      <DataVariantComparison
+        data={{
+          variants: [
+            {
+              label: "wide",
+              searchName: "GenesByText",
+              geneCount: 60_000,
+              readToCap: true,
+              uniqueCount: 3,
+              uniqueAtLeast: true,
+              sampleUniqueGenes: [],
+            },
+            {
+              label: "narrow",
+              searchName: "GenesByText",
+              geneCount: 3,
+              uniqueCount: null,
+              uniqueAtLeast: false,
+              sampleUniqueGenes: [],
+            },
+          ],
+          overlaps: [
+            { a: "wide", b: "narrow", shared: 1, sharedAtLeast: true, jaccard: null },
+          ],
+          readCap: 50_000,
+        }}
+      />,
+    );
+    const card = screen.getByTestId("data-variant-comparison");
+    expect(
+      Array.from(card.querySelectorAll("tbody tr")).map((tr) =>
+        Array.from(tr.querySelectorAll("td")).map((td) => td.textContent),
+      ),
+    ).toEqual([
+      ["wide", "60,000", "at least 3"],
+      ["narrow", "3", "not counted"],
+    ]);
+    expect(card).toHaveTextContent(
+      'a variant past 50,000 genes is read to its first 50,000, so "at least" marks a lower bound',
+    );
+    expect(card).toHaveTextContent("wide vs narrow:at least 1 shared");
+    expect(card).not.toHaveTextContent("Jaccard");
   });
 
   it("tabulates each variant's genes and the genes only it returned", () => {
@@ -153,6 +206,7 @@ describe("DataVariantComparison", () => {
               searchName: "GenesByText",
               geneCount: 12,
               uniqueCount: 11,
+              uniqueAtLeast: false,
               sampleUniqueGenes: [
                 {
                   geneId: "TcIL3000_0_29570",
@@ -167,10 +221,12 @@ describe("DataVariantComparison", () => {
               searchName: "GenesByText",
               geneCount: 1,
               uniqueCount: 0,
+              uniqueAtLeast: false,
               sampleUniqueGenes: [],
             },
           ],
           overlaps: [],
+          readCap: null,
         }}
       />,
     );
@@ -193,6 +249,7 @@ describe("DataVariantComparison", () => {
               searchName: "GenesByText",
               geneCount: 1,
               uniqueCount: 0,
+              uniqueAtLeast: false,
               sampleUniqueGenes: [],
             },
             {
@@ -200,11 +257,13 @@ describe("DataVariantComparison", () => {
               searchName: "GenesByText",
               geneCount: 2,
               uniqueCount: 1,
+              uniqueAtLeast: false,
               sampleUniqueGenes: [],
               differsBy: { text_fields: '["product", "name", "so_id"]', min_tm: "2" },
             },
           ],
           overlaps: [],
+          readCap: null,
         }}
       />,
     );
