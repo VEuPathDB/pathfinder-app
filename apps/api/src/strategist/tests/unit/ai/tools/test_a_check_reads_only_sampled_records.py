@@ -16,6 +16,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
 from veupathdb_mcp.catalog import ResolveContext
 
+from strategist.ai.capabilities.read_once import ReadOnce
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.graph.turn_records import ControlTestRun
 from strategist.ai.tools.standalone import gene_record
@@ -153,24 +154,19 @@ async def test_an_adopted_control_is_refused(asked: list[str]) -> None:
 _EIGHT = [f"cgd{n}_1000" for n in range(1, 9)]
 
 
-async def test_a_record_this_check_read_is_refused_naming_the_reads(
+async def test_a_record_read_again_for_another_organism_runs_as_one_record(
     asked: list[str],
 ) -> None:
     ctx = agent_run_context()
     ctx.deps.turn_markers.record_sampled_genes(_EIGHT[:2])
     await gene_record.read_sampled_gene_record(ctx, _EIGHT[0])
 
-    with pytest.raises(ToolFailed) as refused:
-        await gene_record.read_sampled_gene_record(ctx, _EIGHT[0])
-
-    assert (asked, refused.value.message) == (
-        [_EIGHT[0]],
-        (
-            f"This check already read the record of {_EIGHT[0]}; its answer is "
-            f"above. The records this check read: {_EIGHT[0]}. Judge the sampled "
-            "genes from those records."
-        ),
+    await gene_record.read_sampled_gene_record(
+        ctx, _EIGHT[0], ortholog_organism="Cryptosporidium hominis TU502"
     )
+
+    held = ctx.deps.turn_markers.records_read[ctx.deps.verification_scope.check_id]
+    assert (asked, held) == ([_EIGHT[0], _EIGHT[0]], [_EIGHT[0]])
 
 
 async def test_a_read_past_the_checks_budget_is_refused_naming_the_alternative(
@@ -241,6 +237,7 @@ async def test_a_re_read_fails_without_spending_a_retry(asked: list[str]) -> Non
                 )
             )
         ],
+        capabilities=[ReadOnce[AgentDeps].of("verification")],
     )
 
     result = await agent.run("judge the sample", deps=deps)

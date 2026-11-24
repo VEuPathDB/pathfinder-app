@@ -26,7 +26,7 @@ carries the answer again, so a model whose context lost the data is never starve
 elision digest itself does not forbid a second read. A read that failed is not held. A
 check's refusals of a record it may not read are `CallRefused` too, and name the sampled id
 a versionless id stands for. This wrapper is the one repeat mechanism: the framing tools'
-own "already read" notices for a search overview and a parameter read are gone.
+own "already read" notices for a search overview and a parameter read are gone, and so is the check's own refusal of a record it read: a check counts a gene once toward its record budget, and the same gene read for another ortholog organism runs.
 
 # A read the site does not answer
 

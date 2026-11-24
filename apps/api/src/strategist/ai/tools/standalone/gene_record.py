@@ -143,21 +143,16 @@ async def read_sampled_gene_record(
     if gene_id not in markers.sampled_gene_ids:
         raise CallRefused(_unsampled_message(gene_id, markers.sampled_gene_ids))
     held = markers.records_read.setdefault(ctx.deps.verification_scope.check_id, [])
-    if gene_id in held:
-        msg = (
-            f"This check already read the record of {gene_id}; its answer is "
-            f"above. The records this check read: {', '.join(held)}. Judge the "
-            "sampled genes from those records."
-        )
-        raise CallRefused(msg)
-    if len(held) >= SAMPLED_GENE_LIMIT:
+    if gene_id not in held and len(held) >= SAMPLED_GENE_LIMIT:
         msg = (
             f"This check read {len(held)} records, the most one check reads: "
             f"{', '.join(held)}. Judge the sampled genes from those records."
         )
         raise CallRefused(msg)
     # The read is held before it runs so a parallel batch keeps the budget.
-    held.append(gene_id)
+    counted = gene_id not in held
+    if counted:
+        held.append(gene_id)
     try:
         found = await read.read_gene_record(
             ctx.deps.site_id,
@@ -166,7 +161,8 @@ async def read_sampled_gene_record(
             about=ctx.deps.resolving(),
         )
     except Exception:
-        held.remove(gene_id)
+        if counted:
+            held.remove(gene_id)
         raise
     markers.record_read(_read_record(found))
     return with_summary(found, found.summary_line(), ctx=ctx)

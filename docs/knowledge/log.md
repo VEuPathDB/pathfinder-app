@@ -2,6 +2,10 @@
 
 ## 2026-11-24
 
+* **A check keeps no repeat rule of its own.** `read_sampled_gene_record` no longer refuses a
+  gene it read with "its answer is above"; `ReadOnce` holds the identical read, and the same
+  gene read for another ortholog organism runs and counts once toward the check's records.
+
 * **A held repeat spends no call cap and is the one loop rule.** `ReadOnce` is a capability of
   the agent, outside the run's repetition guard, so a repeat it holds never reaches the guard's
   per-tool cap; it joins the guard's identical-arguments streak through `check_repeat`, which
