@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from pydantic_ai import Tool
 
 from strategist.ai.lead.lead_agent import build_lead_toolset
-from strategist.ai.tools.toolsets import eda, verification
+from strategist.ai.tools.toolsets import eda, execution, verification
 from strategist.tests.unit.ai.tools.conftest import unwrap_function_toolset
 
 _SET = "6b1d5a52-4f0e-4c3f-9a3c-8e1f6d2b7a10"
@@ -28,6 +28,10 @@ def _lead(name: str) -> Tool[Any]:
 
 def _check(name: str) -> Tool[Any]:
     return unwrap_function_toolset(verification.build_toolset()).tools[name]
+
+
+def _build(name: str) -> Tool[Any]:
+    return unwrap_function_toolset(execution.build_toolset()).tools[name]
 
 
 def _eda(name: str) -> Tool[Any]:
@@ -169,4 +173,13 @@ def test_a_strategist_id_is_a_uuid_and_says_a_wdk_id_is_not_one(
     assert "A WDK strategy or step id is a different id" in declared["description"]
     assert (argument, "Input should be a valid UUID") in [
         (where, said.split(",")[0]) for where, said in refused
+    ]
+
+
+def test_a_batch_holds_one_operation_at_least() -> None:
+    batch = _build("apply_operations")
+
+    assert _property(batch, "operations")["minItems"] == 1
+    assert _refused(batch, {"base_revision": "", "operations": []}) == [
+        ("operations", "List should have at least 1 item after validation, not 0")
     ]

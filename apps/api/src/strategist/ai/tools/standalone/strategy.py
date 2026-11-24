@@ -6,11 +6,12 @@ operation and applies it through the single commit path.
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated, cast
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONArray, JSONObject
+from pydantic import Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
@@ -178,7 +179,7 @@ def _current_revision(graph: StrategyGraph) -> str:
 async def apply_operations(
     ctx: RunContext[AgentDeps],
     base_revision: str,
-    operations: list[OperationPayload],
+    operations: Annotated[list[OperationPayload], Field(min_length=1)],
     graph_id: str | None = None,
 ) -> ToolReturn[JSONObject]:
     """Edit the strategy with a batch of operations, not a whole new tree.
@@ -208,13 +209,6 @@ async def apply_operations(
     graph = get_graph(session, graph_id)
     if graph is None:
         return _no_graph(ctx, graph_id)
-
-    if not operations:
-        msg = (
-            "VALIDATION_ERROR: apply_operations needs at least one operation. "
-            "Pass the edits you want to make, or call get_strategy to look first."
-        )
-        raise ModelRetry(msg)
 
     current = _current_revision(graph)
     if base_revision != current:
