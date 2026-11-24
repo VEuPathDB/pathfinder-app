@@ -2,6 +2,9 @@
 
 ## 2026-11-24
 
+* **The Lead reads how a repeat answers.** Its record rule says a read sent again runs nothing
+  and costs nothing, names the call while its answer is shown and carries it once it is not.
+
 * **A check keeps no repeat rule of its own.** `read_sampled_gene_record` no longer refuses a
   gene it read with "its answer is above"; `ReadOnce` holds the identical read, and the same
   gene read for another ortholog organism runs and counts once toward the check's records.

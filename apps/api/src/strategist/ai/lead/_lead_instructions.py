@@ -388,9 +388,10 @@ LEAD_GENE_RECORD_RULE: Final = (
     "lists, its OrthoMCL group and the site's own expression summary. Its Orthologs table "
     "lists only genomes the gene's own site holds: a genome another site holds has no row "
     "there, and orthology to it is the gene's OrthoMCL group. Call it before you describe any "
-    "of those, and never describe one from a web page: a page is not the record. A record is "
-    "read once per turn: its answer stays above, and the same read again fails and names the "
-    "first."
+    "of those, and never describe one from a web page: a page is not the record. A read sent "
+    "again with the same arguments runs nothing and costs nothing: while its answer is still "
+    "shown, the reply names the call that answered it, and once that answer is no longer shown, "
+    "the reply carries it again."
 )
 
 LEAD_RESEARCH_READS: Final = (
