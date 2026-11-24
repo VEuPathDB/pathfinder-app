@@ -2,6 +2,17 @@
 
 ## 2026-11-24
 
+* **Fail-opens the batch-2 review and the allowlist audit found.** A read-back that does not
+  parse, an analysis stamp, a turn-start site read, a site tree or added steps that do not
+  decode, and a vocabulary under moved parents are each `Unread` with a reason the briefing,
+  the build outcome or the card states, never "nothing moved". A ranking the site did not sort
+  is the root's failure. A name the site refused is said in the rename's answer; a saved mark,
+  a site delete and a card answer that do not land refuse the request. The fail-open gate keys
+  a handler by `path:function:caught:default` and reaches nested, keyword and helper-log
+  shapes; every allowlisted handler was driven by a test or a probe, and 56 of its 105 lines
+  name the test. Only a `StatedSource` binds a stated value (`bind_values`,
+  `criterion_restated`), and a pending plan reaches the Lead only as `rendered`.
+
 * **The gates of cause G.** `scripts/check_fail_open.py` (pre-commit `fail-open-api`, CI
   "Check that no handler fails open") fails an `except` handler in `ai/`, `services/` or
   `domain/` that returns, assigns or passes an empty value, ends in `pass` or `continue`,
