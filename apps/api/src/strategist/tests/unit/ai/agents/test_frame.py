@@ -90,9 +90,7 @@ def test_frame_instructions_state_the_two_species_strings() -> None:
         "have an ortholog in `included_species` and those that must not in "
         "`excluded_species`, each one string of codes or labels separated by "
         "commas (from the sheet; a clade selects all its species; "
-        "`lookup_phyletic_codes(query)` finds a code from a common name); the "
-        "hidden `profile_pattern` is derived from those two parameters, never "
-        "write it"
+        "`lookup_phyletic_codes(query)` finds a code from a common name);"
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 
