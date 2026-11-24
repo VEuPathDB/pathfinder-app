@@ -68,8 +68,9 @@ def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
 
 
 def owes_a_check(deps: LeadDeps) -> bool:
-    """Whether the turn changed the strategy, no check of it was dispatched,
-    and no criterion of the build waits on its analysis."""
+    """Whether the turn built steps, no check of them was dispatched, and no
+    criterion of the build waits on its analysis. A turn that only deleted or
+    cleared steps owes none."""
     if not deps.build_unverified or deps.state.turn_markers.verification_dispatched:
         return False
     return not (turn_builds(deps) and _pending_eda_criterion(deps) is not None)

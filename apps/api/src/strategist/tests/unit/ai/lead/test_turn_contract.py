@@ -71,6 +71,15 @@ class TestTheRuntimeOwesACheck:
     def test_a_turn_that_built_nothing_owes_none(self) -> None:
         assert owes_a_check(reading_deps()) is False
 
+    def test_a_turn_that_only_deleted_steps_owes_none(self) -> None:
+        deps = reading_deps()
+        deps.state.turn_markers.edited = True
+
+        assert (deps.state.turn_markers.changed_strategy, owes_a_check(deps)) == (
+            True,
+            False,
+        )
+
     def test_a_build_that_still_owes_an_eda_criterion_owes_none(self) -> None:
         deps = eda_deps()
         deps.state.turn_markers.built = True

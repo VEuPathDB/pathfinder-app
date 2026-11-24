@@ -10,8 +10,9 @@ status: stable
 # What was decided
 
 **The runtime makes the check the answer skipped.** After the Lead's run ends on a
-`LeadResponse`, the Lead node reads `ai/lead/turn_record.py::owes_a_check`: the turn
-changed the strategy and no check saw it (`LeadDeps.build_unverified`), no check of
+`LeadResponse`, the Lead node reads `ai/lead/turn_record.py::owes_a_check`: a build or
+edit pass of the turn wrote steps and no check saw them (`LeadDeps.build_unverified`;
+a turn that only deleted or cleared steps owes none), no check of
 this turn was dispatched (`TurnMarkers.verification_dispatched`), and no criterion of a
 build waits on its analysis. A reply that ends on a card is a `DeferredToolRequests`,
 so it is never checked. When a check is owed, `ai/graph/_lead_runs.py::the_runtime_check`
