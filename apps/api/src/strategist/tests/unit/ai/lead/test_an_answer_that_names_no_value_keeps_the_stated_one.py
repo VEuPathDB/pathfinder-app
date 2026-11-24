@@ -1,16 +1,12 @@
+"""Free words on a dimension of one value never state a requirement, so the stated
+value stays until a structured pick replaces it."""
+
 from __future__ import annotations
 
 import pytest
 
 from strategist.ai.lead.answer_requirements import answer_requirement
-from strategist.domain.strategy.constraints import (
-    ConstraintKind,
-    DataTypeValue,
-    FoldChangeValue,
-    PercentileValue,
-    RequirementValue,
-    SignificanceValue,
-)
+from strategist.domain.strategy.constraints import ConstraintKind
 
 _SINGLE_VALUED = [
     ConstraintKind.PERCENTILE,
@@ -21,55 +17,32 @@ _SINGLE_VALUED = [
     ConstraintKind.RECORD_TYPE,
     ConstraintKind.COMPARATOR,
 ]
+_WORDS = [
+    "proceed with defaults",
+    "p-value below 1e-5",
+    "above the 90th percentile",
+    "go with option 2",
+    "Plasmodium falciparum 7G8",
+]
 
 
 @pytest.mark.parametrize("dimension", _SINGLE_VALUED)
-def test_words_that_name_no_value_state_no_requirement(
-    dimension: ConstraintKind,
-) -> None:
+@pytest.mark.parametrize("words", _WORDS)
+def test_free_words_state_no_requirement(dimension: ConstraintKind, words: str) -> None:
     stated = answer_requirement(
-        "Which value should replace this setting?",
-        [],
-        "proceed with defaults",
-        dimension,
-        ["Plasmodium falciparum 3D7"],
+        "Which value should replace this?", [], words, dimension
     )
 
     assert [stated] == [None]
 
 
-@pytest.mark.parametrize(
-    ("dimension", "words", "value"),
-    [
-        (
-            ConstraintKind.PERCENTILE,
-            "top 10 percent",
-            PercentileValue(end="top", share=10),
-        ),
-        (
-            ConstraintKind.PERCENTILE,
-            "bottom 25%",
-            PercentileValue(end="bottom", share=25),
-        ),
-        (ConstraintKind.FOLD_CHANGE, "2-fold", FoldChangeValue(cut=2)),
-        (
-            ConstraintKind.FOLD_CHANGE,
-            "log2 fold change of 1.5",
-            FoldChangeValue(cut=1.5, scale="log2"),
-        ),
-        (
-            ConstraintKind.STATISTICAL_THRESHOLD,
-            "p below 0.01",
-            SignificanceValue(at_most=0.01),
-        ),
-        (ConstraintKind.DATA_TYPE, "use RNA-Seq", DataTypeValue(data="rna_seq")),
-        (ConstraintKind.DATA_TYPE, "microarray", DataTypeValue(data="microarray")),
-    ],
-)
-def test_words_that_name_a_value_state_it(
-    dimension: ConstraintKind, words: str, value: RequirementValue
-) -> None:
-    stated = answer_requirement("Which value?", [], words, dimension, [])
+def test_free_words_on_a_dimension_of_many_values_are_a_requirement() -> None:
+    stated = answer_requirement(
+        "What else should the genes have?", [], "a GPI anchor", ConstraintKind.PROPERTY
+    )
 
     assert stated is not None
-    assert (stated.requested_value, stated.value) == (words, value)
+    assert (stated.kind, stated.requested_value) == (
+        ConstraintKind.PROPERTY,
+        "a GPI anchor",
+    )

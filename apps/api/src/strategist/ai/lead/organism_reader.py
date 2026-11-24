@@ -67,12 +67,6 @@ def _entry(
     )
 
 
-def site_entry(words: str, vocabulary: Sequence[str]) -> str | None:
-    """The one organism of the site the words name, or None when they name none."""
-    options = [VocabOption(value=entry, display=entry) for entry in vocabulary]
-    return _entry(words, words, vocabulary, options)
-
-
 async def _offered(
     asked: Sequence[tuple[Constraint, Resolution]],
     options: list[VocabOption],
@@ -126,4 +120,4 @@ async def named_organisms(
     return NamedOrganisms(constraints=named, picks=picks)
 
 
-__all__ = ["NamedOrganisms", "named_organisms", "site_entry"]
+__all__ = ["NamedOrganisms", "named_organisms"]

@@ -2,6 +2,12 @@
 
 ## 2026-11-24
 
+* **Free words never replace a stated value.** The word reader (`answer_values.stated_value`)
+  is deleted. On a dimension of one value a card answer's typed words or note state no
+  requirement and retire none; only a structured pick whose effect replaces the requirement
+  does, and the words reach the Lead and FRAME as the answer. "proceed with defaults" keeps
+  3D7 and "top 5 percent" with no parsing.
+
 * **An unlinked ortholog requirement is met by any step that reaches its organisms.** A transform
   or a phyletic-pattern step whose organisms hold every asked organism meets it, with the stated
   synteny on a transform; the targets of all transforms are no longer pooled, so two ortholog
