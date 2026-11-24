@@ -295,3 +295,21 @@ describe("a strategy whose branches are themselves combines", () => {
     expect(screen.getAllByTestId(/^compact-step-row-/)).toHaveLength(7);
   });
 });
+
+describe("CompactStrategyView of an unreadable strategy", () => {
+  it("names the strategy unreadable instead of building", () => {
+    render(
+      <CompactStrategyView
+        strategy={{
+          ...SIMPLE_STRATEGY,
+          steps: [],
+          strategyUnreadable: "root: one step twice",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("compact-strategy-unreadable").textContent).toBe(
+      "This strategy could not be read: root: one step twice",
+    );
+  });
+});

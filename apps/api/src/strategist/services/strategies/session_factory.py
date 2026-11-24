@@ -15,12 +15,18 @@ from veupathdb.domain.strategy import StrategyAst, flatten_tree
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.step_words import StepWords
 from strategist.domain.strategy.strategy_description import stated_description
+from strategist.domain.unread import Unread
 from strategist.persistence.models import (
     ConversationStrategyView,
     PersistedStrategyGraph,
 )
 from strategist.persistence.repositories import ConversationRepository
-from strategist.platform.errors import StrategyAstCorruptError, StrategyCompilationError
+from strategist.platform.errors import (
+    AppError,
+    ErrorCode,
+    StrategyAstCorruptError,
+    StrategyCompilationError,
+)
 from strategist.services.strategies.sync import build_step_tree_from_graph
 from strategist.services.strategies.sync_state import WDKSyncState
 
@@ -149,3 +155,28 @@ async def stored_strategy_session(
     return build_strategy_session(
         site_id=site_id, strategy_graph=persisted_graph(*found)
     )
+
+
+def thread_strategy_session(
+    site_id: str, conversation: Conversation, strategy: ConversationStrategyView
+) -> StrategySession:
+    """The thread's strategy for a turn, or an empty session that names why the
+    stored plan does not load, so the turn can still read and explain."""
+    try:
+        return build_strategy_session(
+            site_id=site_id, strategy_graph=persisted_graph(conversation, strategy)
+        )
+    except StrategyAstCorruptError as corrupt:
+        unreadable = StrategySession(site_id)
+        unreadable.unreadable = Unread(reason=corrupt.detail or corrupt.title)
+        return unreadable
+
+
+def refuse_a_build_on_an_unreadable_plan(session: StrategySession) -> None:
+    if session.unreadable is not None:
+        raise AppError(
+            code=ErrorCode.STRATEGY_AST_CORRUPT,
+            title="Stored strategy is unreadable",
+            status=409,
+            detail=session.unreadable.reason,
+        )

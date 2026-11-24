@@ -5504,6 +5504,11 @@ components:
           type: string
           title: Strategyrevision
           default: ''
+        strategyUnreadable:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Strategyunreadable
         mode:
           anyOf:
           - $ref: '#/components/schemas/ThreadMode'

@@ -27,7 +27,6 @@ from strategist.persistence.models import ConversationStrategyView
 from strategist.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
-from strategist.platform.errors import StrategyAstCorruptError
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies.result_list import result_list_url
 from strategist.services.strategies.schemas import StepResponse, step_response
@@ -81,6 +80,7 @@ class ConversationResponse(CamelModel):
     parent_conversation_id: UUID | None = Field(default=None)
     parent_message_id: UUID | None = Field(default=None)
     strategy_revision: str = Field(default="")
+    strategy_unreadable: str | None = None
     mode: ThreadMode | None = None
 
 
@@ -163,11 +163,13 @@ def build_conversation_response(
     total_cost_usd: Decimal | None = None,
 ) -> ConversationResponse:
     """Build a detail-view ``ConversationResponse`` from a ``Conversation``."""
+    unreadable: str | None = None
+    payload: StrategyAst | None = None
     match parse_strategy_ast(strategy.strategy_ast):
         case Unread(reason=reason):
-            raise StrategyAstCorruptError(str(conversation.id), reason)
-        case payload:
-            pass
+            unreadable = reason
+        case parsed:
+            payload = parsed
     root_step_id = extract_root_step_id(payload)
     wdk_url = _compute_wdk_url(conversation.site_id, strategy.wdk_strategy_id, payload)
 
@@ -193,7 +195,8 @@ def build_conversation_response(
         total_cost_usd=total_cost_usd if total_cost_usd is not None else Decimal(0),
         parent_conversation_id=conversation.parent_conversation_id,
         parent_message_id=conversation.parent_message_id,
-        strategy_revision=strategy_revision(payload),
+        strategy_revision=strategy_revision_of_raw(strategy.strategy_ast),
+        strategy_unreadable=unreadable,
         mode=mode,
     )
 

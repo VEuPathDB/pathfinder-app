@@ -105,6 +105,9 @@ from strategist.ai.lead.scripted_scope import bind_scripted_scope
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_budget import lead_usage_limits
 from strategist.domain.strategy.questions import OpenQuestion
+from strategist.services.strategies.session_factory import (
+    refuse_a_build_on_an_unreadable_plan,
+)
 
 logger = get_logger(__name__)
 
@@ -288,6 +291,7 @@ async def _run_lead_turn(
     build_agent: TurnAgentFactory[LeadAgent],
 ) -> Command[Literal["finalize_turn"]]:
     writer = get_stream_writer()
+    refuse_a_build_on_an_unreadable_plan(runtime.context.strategy_session)
     state = rebuilt_state(state)
     if state.resumes_parked_call:
         emit_chunk(writer, turn_step_status(READING_THE_THREAD))
