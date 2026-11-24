@@ -24,6 +24,7 @@ from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.record_class_check import step_class_of
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_status import step_status
+from strategist.domain.unread import Unread
 from strategist.services.strategies._tree_write import (
     StrategyRole,
     delete_what_the_tree_dropped,
@@ -300,8 +301,11 @@ class _Commit:
         ]
         await self._sort(root.id, [*reweighed, *moved])
         await delete_what_the_tree_dropped(self.api, self.steps, self.sync_state)
-        live = await read_the_strategy(self.api, self.sync_state)
-        held = held_by_id(live, self.sync_state)
+        match await read_the_strategy(self.api, self.sync_state):
+            case Unread():
+                held = {}
+            case live:
+                held = held_by_id(live, self.sync_state)
         for node in walk(root):
             learn_what_wdk_added(
                 self.steps[node.id], node, held.get(node.id), self.before.get(node.id)

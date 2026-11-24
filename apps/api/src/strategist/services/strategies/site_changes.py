@@ -49,7 +49,9 @@ from veupathdb_mcp.wdk import (
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_settings_text import OWN_LINES
+from strategist.domain.unread import Unread
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from strategist.services.strategies.live_counts import read_the_live_strategy
@@ -65,10 +67,12 @@ logger = get_logger(__name__)
 
 __all__ = [
     "SiteEdits",
+    "decoded_on_the_site",
+    "held_alike",
     "read_the_site_into_the_thread",
     "take_the_sites_edits",
     "take_what_the_site_holds",
-    "values_the_site_holds_otherwise",
+    "wire_of",
 ]
 
 
@@ -219,7 +223,7 @@ async def _take_the_sites_values(
         if step is None:
             continue
         taken = step.kind is not StepKind.COMBINE and await _take_the_parameters(
-            step, wdk_step.search_name, _wire_of(wdk_step), site_id=site_id
+            step, wdk_step.search_name, wire_of(wdk_step), site_id=site_id
         )
         node = nodes.get(wdk_key)
         settled = node is not None and _take_the_settings(step, settings_of(node))
@@ -228,7 +232,7 @@ async def _take_the_sites_values(
     return moved
 
 
-def _wire_of(step: WDKStep) -> WireStep:
+def wire_of(step: WDKStep) -> WireStep:
     return WireStep(
         record_class=step.record_class_name,
         parameters=dict(step.search_config.parameters),
@@ -281,36 +285,31 @@ async def _differing(
         name
         for name, value in step.parameters.items()
         if name in wire.parameters
-        and not _held_alike(name, value, HeldValue(wire=wire.parameters[name]))
+        and not held_alike(name, value, HeldValue(wire=wire.parameters[name]))
     ]
     if not names:
         return {}
-    decoded = await _decoded(step.id, search_name, wire, site_id)
-    return {
-        name: decoded[name]
-        for name in names
-        if name in decoded
-        and not _held_alike(name, step.parameters[name], decoded[name])
-    }
+    match await decoded_on_the_site(step.id, search_name, wire, site_id):
+        case Unread():
+            return {}
+        case decoded:
+            return {
+                name: decoded[name]
+                for name in names
+                if name in decoded
+                and not held_alike(name, step.parameters[name], decoded[name])
+            }
 
 
-def _held_alike(name: str, held: ParamValue, read: ParamValue) -> bool:
+def held_alike(name: str, held: ParamValue, read: ParamValue) -> bool:
     return same_param_value(name, value_kind(held), held, read)
 
 
-async def values_the_site_holds_otherwise(
-    step: StrategyStep, site_step: WDKStep, site_id: str
-) -> dict[str, str]:
-    wire = _wire_of(site_step)
-    differing = await _differing(step, site_step.search_name, wire, site_id)
-    return {name: wire.parameters[name] for name in differing}
-
-
-async def _decoded(
+async def decoded_on_the_site(
     step_id: str, search_name: str, wire: WireStep, site_id: str
-) -> dict[str, ParamValue]:
+) -> dict[str, ParamValue] | Unread:
     """The values of one step's wire values, each held as the site holds it
-    where no kind reads it; empty when the site does not answer."""
+    where no kind reads it."""
     payload = StrategyAst(
         record_type=wire.record_class or "",
         root=StrategyStepNode(id=step_id, search_name=search_name),
@@ -319,9 +318,9 @@ async def _decoded(
         await canonicalize_synced_parameters(
             payload, get_strategy_api(site_id), {step_id: wire}
         )
-    except VEuPathDBError, OSError:
+    except (VEuPathDBError, OSError) as exc:
         logger.warning("The site's values did not decode", step_id=step_id)
-        return {}
+        return Unread(reason=site_words(exc))
     return dict(payload.root.parameters)
 
 

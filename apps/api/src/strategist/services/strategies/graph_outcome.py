@@ -46,6 +46,7 @@ def outcome_for_graph(
         ],
         wdk_strategy_id=sync_state.wdk_strategy_id,
         zero_step_ids=built_counts(graph, sync_state).zero_step_ids,
+        not_read=sync_state.strategy_not_read,
         organism_change=(
             organism_change(
                 rebuild_tree(root_id, graph.steps), sync_state.organism_params

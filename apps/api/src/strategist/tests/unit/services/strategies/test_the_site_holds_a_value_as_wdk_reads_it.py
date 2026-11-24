@@ -7,7 +7,7 @@ from veupathdb.wdk import StrategyAPI, WDKStep
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.domain.strategy.session import StrategyGraph
-from strategist.services.strategies import site_changes
+from strategist.services.strategies import held_values, site_changes
 
 _STEP = "step_snps"
 _ORGANISM = "organismSinglePick"
@@ -65,7 +65,7 @@ def _site(params: dict[str, str]) -> WDKStep:
 async def test_the_same_value_in_another_writing_is_no_outside_change(
     bound: dict[str, ParamValue], held: dict[str, str]
 ) -> None:
-    moved = await site_changes.values_the_site_holds_otherwise(
+    moved = await held_values.values_the_site_holds_otherwise(
         _bound(bound).steps[_STEP], _site(held), "plasmodb"
     )
 

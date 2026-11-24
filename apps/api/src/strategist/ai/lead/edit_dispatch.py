@@ -40,11 +40,8 @@ from strategist.ai.lead.edit_messages import (
     edit_moves_nothing_message,
     edit_operation_refused_message,
     edit_work_order,
-    no_earlier_revision_message,
     no_strategy_to_edit_message,
-    nothing_to_undo_message,
     removal_is_the_cards_message,
-    undo_moves_nothing_message,
     unsupported_edit_message,
 )
 from strategist.ai.lead.edit_refused_values import refused_values_message
@@ -53,6 +50,12 @@ from strategist.ai.lead.intent_gate import tools_the_turn_offers
 from strategist.ai.lead.pre_turn import hydrate_spec_from_the_strategy, stated_spec_of
 from strategist.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.lead.undo_messages import (
+    no_earlier_revision_message,
+    nothing_to_undo_message,
+    undo_moves_nothing_message,
+    unreadable_revision_message,
+)
 from strategist.ai.lead.unsaved_set import result_not_saved
 from strategist.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from strategist.ai.tools.standalone.stream_parts import graph_snapshot_chunk
@@ -81,6 +84,7 @@ from strategist.domain.strategy.spec_to_operations import (
     operations_for,
 )
 from strategist.domain.strategy.step_words import added_searches
+from strategist.domain.unread import Unread
 from strategist.services.eda.export import open_analysis_exports
 from strategist.services.strategies.commit import (
     apply_operations_and_commit,
@@ -214,7 +218,12 @@ async def _undo(*, deps: LeadDeps, base: _EditBase) -> EditDelta:
         )
     stored = None if revision is None else parse_strategy_ast(revision.strategy_ast)
     live = base.graph.to_strategy_ast()
-    if revision is None or stored is None or live is None:
+    match stored:
+        case Unread(reason=reason):
+            raise CallRefused(unreadable_revision_message(reason))
+        case None:
+            raise CallRefused(no_earlier_revision_message())
+    if revision is None or live is None:
         raise CallRefused(no_earlier_revision_message())
     if revision.revision == base.revision:
         raise CallRefused(nothing_to_undo_message())

@@ -2,6 +2,20 @@
 
 ## 2026-11-24
 
+* **VERIFY compares what the push sent, and an unread write is said.** VERIFY's `bound_values`
+  compared the spec's `organism: ["Plasmodium"]` with the 61 leaves the push sent for that
+  countOnlyLeaves parent and failed a correct step. `held_values.values_the_site_holds_otherwise`
+  compares the leaves the push sends (`as_tree_leaves` over the catalog's definition, read only
+  for a multi-pick), returns `Unread` when the definition or the site's values were not read or
+  decode only to their wire text (`unchecked`, `site_unanswered`), and calls a bound name the
+  site holds no value for a difference. The site read's take is unchanged. A recovery whose
+  commit failed names "the strategy was not re-read after the recovery" on its outcome, and a
+  write whose read-back failed names it (`WDKSyncState.strategy_not_read`, `BuildOutcome.not_read`,
+  "- not read back" in the ledger). A stored plan whose tree does not load refuses the thread
+  (`STRATEGY_AST_CORRUPT`), `parse_strategy_ast` returns `Unread` for a tree that does not
+  validate, so an adopted snapshot that does not parse is refused rather than clearing the
+  thread, and a failed strategy write raises `STRATEGY_NOT_SAVED` to the turn.
+
 * **An edit that asks says nothing was applied.** An edit that ended on a question returned
   FRAME's draft as its `summary`, a past-tense account of a plan no push wrote, and the Lead
   told the researcher the kinase step ran on GT1 while the tree kept ME49 and 11 genes.

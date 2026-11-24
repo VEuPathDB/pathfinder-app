@@ -14,9 +14,13 @@ from assistant_core.tasks.job_context import durable_job_context
 from assistant_core.tasks.names import DEFAULT_QUEUE
 from procrastinate.exceptions import AlreadyEnqueued
 from pydantic import BaseModel, ConfigDict, JsonValue
+from veupathdb.domain.strategy import StrategyAst
 from veupathdb.errors import VEuPathDBError
 
-from strategist.domain.strategy.revision import answer_revision, parse_strategy_ast
+from strategist.domain.strategy.revision import (
+    answer_revision_of_raw,
+    parse_strategy_ast,
+)
 from strategist.persistence.repositories import ConversationRepository
 from strategist.services.gene_sets.operations import GeneSetService
 from strategist.services.gene_sets.store import get_gene_set_store
@@ -89,12 +93,16 @@ async def refresh_the_strategy_gene_set(
         return None
     conversation, strategy = found
     if not strategy.gene_set_auto_imported and strategy.gene_set_id is None:
-        stored = parse_strategy_ast(strategy.strategy_ast)
+        match parse_strategy_ast(strategy.strategy_ast):
+            case StrategyAst(name=str() as named) if named:
+                name = named
+            case _:
+                name = "Strategy result"
         return await import_gene_set_for_conversation(
             conversation_id=conversation_id,
             site_id=site_id,
             user_id=conversation.user_id,
-            name=(stored.name if stored else None) or "Strategy result",
+            name=name,
         )
     if (
         not strategy.gene_set_auto_imported
@@ -102,7 +110,7 @@ async def refresh_the_strategy_gene_set(
         or strategy.wdk_strategy_id is None
     ):
         return None
-    revision = answer_revision(parse_strategy_ast(strategy.strategy_ast))
+    revision = answer_revision_of_raw(strategy.strategy_ast)
     held = await get_gene_set_store().get(strategy.gene_set_id)
     if held is None or (held.answer_revision == revision and held.out_of_date is None):
         return held

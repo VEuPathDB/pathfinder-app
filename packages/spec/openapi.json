@@ -22912,6 +22912,7 @@
           "WDK_IDENTITY_MISMATCH",
           "STRATEGY_NOT_FOUND",
           "STRATEGY_AST_CORRUPT",
+          "STRATEGY_NOT_SAVED",
           "INVALID_STRATEGY",
           "STEP_NOT_FOUND",
           "INCOMPATIBLE_STEPS",
@@ -23771,6 +23772,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/OrganismChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notRead": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Unread"
               },
               {
                 "type": "null"

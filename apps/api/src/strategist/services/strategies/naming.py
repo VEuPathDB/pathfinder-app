@@ -18,11 +18,13 @@ from assistant_core.persistence.repositories.conversation import (
 )
 from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.strategy import StrategyAst
 from veupathdb.wdk import get_strategy_api
 
 from strategist.domain.strategy.generated_name import NameSeed, name_seed
 from strategist.domain.strategy.revision import parse_strategy_ast
 from strategist.domain.strategy.session import StrategyGraph
+from strategist.domain.unread import Unread
 from strategist.persistence.models import ConversationStrategyView
 from strategist.persistence.repositories import (
     ConversationRepository,
@@ -146,15 +148,17 @@ async def name_the_thread(
     )
     await threads.update_conversation(conversation_id, written)
     stored = written.name or name
-    ast = parse_strategy_ast(strategy.strategy_ast)
-    if ast is not None and ast.name != stored:
-        await threads.update_conversation(
-            conversation_id,
-            ConversationUpdate(
-                strategy_ast=ast.model_copy(update={"name": stored}),
-                touch_updated_at=False,
-            ),
-        )
+    match parse_strategy_ast(strategy.strategy_ast):
+        case StrategyAst() as ast if ast.name != stored:
+            await threads.update_conversation(
+                conversation_id,
+                ConversationUpdate(
+                    strategy_ast=ast.model_copy(update={"name": stored}),
+                    touch_updated_at=False,
+                ),
+            )
+        case _:
+            pass
     await _rename_the_imported_set(conversation, strategy, previous, stored)
     return NamedThread(
         name=stored,
@@ -270,7 +274,11 @@ async def name_if_unnamed(
     if found is None:
         return TitleWrite(written=False)
     conversation, strategy = found
-    ast = parse_strategy_ast(strategy.strategy_ast)
+    match parse_strategy_ast(strategy.strategy_ast):
+        case Unread():
+            return TitleWrite(written=False)
+        case ast:
+            pass
     if not conversation.name:
         if title is None:
             return TitleWrite(written=False)

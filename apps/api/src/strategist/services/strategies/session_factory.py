@@ -7,7 +7,6 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.persistence.repositories.conversation import (
     DEFAULT_CONVERSATION_NAME,
 )
-from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,9 +23,6 @@ from strategist.persistence.repositories import ConversationRepository
 from strategist.platform.errors import StrategyAstCorruptError, StrategyCompilationError
 from strategist.services.strategies.sync import build_step_tree_from_graph
 from strategist.services.strategies.sync_state import WDKSyncState
-
-logger = get_logger(__name__)
-
 
 _MAX_REASONS = 5
 
@@ -136,11 +132,7 @@ def build_strategy_session(
             graph.note_words(StepWords.of(payload))
             graph.save_history(f"Loaded graph: {name}")
         except (ValueError, TypeError, KeyError) as e:
-            logger.warning(
-                "Failed to load graph plan",
-                error=str(e),
-                graph_id=strategy_graph.id,
-            )
+            raise StrategyAstCorruptError(strategy_graph.id, str(e)) from e
 
     session.sync_state = _restore_wdk_state(strategy_graph, graph)
     session.add_graph(graph)

@@ -17,6 +17,7 @@ from strategist.domain.strategy.generated_name import (
     title_text,
 )
 from strategist.domain.strategy.revision import parse_strategy_ast
+from strategist.domain.unread import Unread
 from strategist.persistence.models import ConversationStrategyView
 from strategist.persistence.repositories import (
     ConversationRepository,
@@ -111,12 +112,13 @@ async def _rename(
             strategy = await threads.get_strategy(conversation_id)
             if strategy.generated_name_seed != held:
                 return None
-            return await name_the_thread(
-                threads,
-                conversation_id,
-                title,
-                generated_over=name_seed(parse_strategy_ast(strategy.strategy_ast)),
-            )
+            match parse_strategy_ast(strategy.strategy_ast):
+                case Unread():
+                    return None
+                case now:
+                    return await name_the_thread(
+                        threads, conversation_id, title, generated_over=name_seed(now)
+                    )
 
 
 async def _text_of_a_new_name(
@@ -128,7 +130,11 @@ async def _text_of_a_new_name(
 
     A name written before any step takes the seed of the steps built after it.
     """
-    now = parse_strategy_ast(strategy.strategy_ast)
+    match parse_strategy_ast(strategy.strategy_ast):
+        case Unread():
+            return ""
+        case now:
+            pass
     if not held:
         if covers := name_seed(now):
             await _mark(conversation.id, held=held, covers=covers)

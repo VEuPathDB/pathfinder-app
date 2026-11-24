@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import delete, desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy import StrategyAst
 
 from strategist.domain.strategy.revision import (
     parse_strategy_ast,
@@ -39,7 +40,11 @@ class StrategyRevisionRepository:
         """Append the strategy's current state. A repeat of the newest row is
         not appended twice."""
         revision = strategy_revision_of_raw(strategy.strategy_ast)
-        ast = parse_strategy_ast(strategy.strategy_ast)
+        match parse_strategy_ast(strategy.strategy_ast):
+            case StrategyAst(name=named):
+                name = named
+            case _:
+                name = None
         latest = await self.latest(conversation_id)
         if (
             latest is not None
@@ -59,7 +64,7 @@ class StrategyRevisionRepository:
             wdk_strategy_id=strategy.wdk_strategy_id,
             wdk_strategy_created_here=strategy.wdk_strategy_created_here,
             is_saved=strategy.is_saved,
-            name=ast.name if ast is not None else None,
+            name=name,
             message_id=message_id,
         )
         self.session.add(row)

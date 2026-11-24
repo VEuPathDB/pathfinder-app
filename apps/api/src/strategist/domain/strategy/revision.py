@@ -16,13 +16,16 @@ from __future__ import annotations
 import hashlib
 import json
 
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 from veupathdb import JSONObject, JSONValue, get_logger
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.domain.strategy import StepSettings, StrategyAst, StrategyStepNode
 
+from strategist.domain.unread import Unread
+
 __all__ = [
     "answer_revision",
+    "answer_revision_of_raw",
     "parse_strategy_ast",
     "strategy_revision",
     "strategy_revision_of_raw",
@@ -33,6 +36,7 @@ __all__ = [
 logger = get_logger(__name__)
 
 _VALUE: TypeAdapter[ParamValue] = TypeAdapter(ParamValue)
+_MAX_REASONS = 5
 
 _INPUT_KEYS: tuple[str, ...] = tuple(
     field.alias or name for name, field in StepSettings.model_fields.items()
@@ -102,20 +106,42 @@ def answer_revision(ast: StrategyAst | None) -> str:
     return strategy_revision(ast.model_copy(update={"detached_roots": []}))
 
 
-def parse_strategy_ast(raw: JSONObject | None) -> StrategyAst | None:
+def parse_strategy_ast(raw: JSONObject | None) -> StrategyAst | Unread | None:
     """Read a persisted AST payload; ``None`` when it holds no tree."""
     if not raw or "root" not in raw:
         return None
     try:
         return StrategyAst.model_validate(raw)
-    except (ValueError, KeyError, TypeError) as exc:
+    except ValidationError as exc:
         logger.warning("Failed to parse plan payload", error=str(exc))
-        return None
+        return Unread(
+            reason="; ".join(
+                f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
+                for error in exc.errors()[:_MAX_REASONS]
+            )
+        )
 
 
 def strategy_revision_of_raw(raw: JSONObject | None) -> str:
     """Fingerprint a persisted AST payload; ``""`` when it holds no tree."""
-    return strategy_revision(parse_strategy_ast(raw))
+    match parse_strategy_ast(raw):
+        case Unread():
+            return _unread_revision(raw)
+        case parsed:
+            return strategy_revision(parsed)
+
+
+def answer_revision_of_raw(raw: JSONObject | None) -> str:
+    match parse_strategy_ast(raw):
+        case Unread():
+            return _unread_revision(raw)
+        case parsed:
+            return answer_revision(parsed)
+
+
+def _unread_revision(raw: JSONObject | None) -> str:
+    canonical = json.dumps(raw, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canonical.encode()).hexdigest()[:_REVISION_LENGTH]
 
 
 _READINGS = {
@@ -148,14 +174,15 @@ def _trimmed(
     A stored AST that no longer validates must still lose its WDK state, or
     a thread that adopts it points at another thread's steps.
     """
-    ast = parse_strategy_ast(raw)
-    if ast is None:
-        return {key: value for key, value in raw.items() if key not in keys}
-    return ast.model_copy(update=dropped).model_dump(
-        by_alias=True,
-        exclude_none=True,
-        mode="json",
-    )
+    match parse_strategy_ast(raw):
+        case StrategyAst() as ast:
+            return ast.model_copy(update=dropped).model_dump(
+                by_alias=True,
+                exclude_none=True,
+                mode="json",
+            )
+        case _:
+            return {key: value for key, value in raw.items() if key not in keys}
 
 
 def without_wdk_readings(raw: JSONObject) -> JSONObject:

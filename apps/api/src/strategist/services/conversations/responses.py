@@ -19,12 +19,15 @@ from strategist.domain.modes import ThreadMode
 from strategist.domain.strategy.revision import (
     parse_strategy_ast,
     strategy_revision,
+    strategy_revision_of_raw,
 )
 from strategist.domain.strategy.step_words import StepWords
+from strategist.domain.unread import Unread
 from strategist.persistence.models import ConversationStrategyView
 from strategist.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
+from strategist.platform.errors import StrategyAstCorruptError
 from strategist.platform.identity import STRATEGIST_ASSISTANT_ID
 from strategist.services.strategies.result_list import result_list_url
 from strategist.services.strategies.schemas import StepResponse, step_response
@@ -148,7 +151,7 @@ def conversation_strategy_revision(strategy: ConversationStrategyView | None) ->
     """Fingerprint the conversation's persisted strategy; ``""`` when absent."""
     if strategy is None:
         return ""
-    return strategy_revision(parse_strategy_ast(strategy.strategy_ast))
+    return strategy_revision_of_raw(strategy.strategy_ast)
 
 
 def build_conversation_response(
@@ -160,7 +163,11 @@ def build_conversation_response(
     total_cost_usd: Decimal | None = None,
 ) -> ConversationResponse:
     """Build a detail-view ``ConversationResponse`` from a ``Conversation``."""
-    payload = parse_strategy_ast(strategy.strategy_ast)
+    match parse_strategy_ast(strategy.strategy_ast):
+        case Unread(reason=reason):
+            raise StrategyAstCorruptError(str(conversation.id), reason)
+        case payload:
+            pass
     root_step_id = extract_root_step_id(payload)
     wdk_url = _compute_wdk_url(conversation.site_id, strategy.wdk_strategy_id, payload)
 
@@ -199,7 +206,12 @@ def build_conversation_summary(
 ) -> ConversationResponse:
     """Build a list-view ``ConversationResponse`` (steps=[]) from a ``Conversation``."""
     effective_site_id = site_id or conversation.site_id
-    payload = parse_strategy_ast(strategy.strategy_ast)
+    payload: StrategyAst | None = None
+    match parse_strategy_ast(strategy.strategy_ast):
+        case StrategyAst() as parsed:
+            payload = parsed
+        case _:
+            pass
     wdk_url = _compute_wdk_url(effective_site_id, strategy.wdk_strategy_id, payload)
 
     return ConversationResponse(

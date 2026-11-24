@@ -17,7 +17,9 @@ from veupathdb.wdk import (
 )
 
 from strategist.domain.strategy.validate import validate_strategy
+from strategist.domain.unread import Unread
 from strategist.platform.errors import StrategyCompilationError
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.organism_params import (
     tree_dataset_organisms,
     tree_organism_parameters,
@@ -182,14 +184,17 @@ async def delete_what_the_tree_dropped(
 
 async def read_the_strategy(
     api: StrategyAPI, sync_state: WDKSyncState
-) -> WDKStrategyDetails | None:
+) -> WDKStrategyDetails | Unread | None:
     if sync_state.wdk_strategy_id is None:
         return None
     try:
         live = await api.get_strategy(sync_state.wdk_strategy_id)
     except (VEuPathDBError, OSError) as exc:
         logger.warning("Strategy count lookup failed", error=str(exc))
-        return None
+        unread = Unread(reason=site_words(exc))
+        sync_state.strategy_not_read = unread
+        return unread
+    sync_state.strategy_not_read = None
     local = {wdk: sid for sid, wdk in sync_state.wdk_step_ids.items()}
     counts: dict[str, int | None] = {}
     sync_state.step_validations = {}

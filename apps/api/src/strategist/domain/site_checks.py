@@ -13,6 +13,7 @@ from strategist.domain.expression_fit import ExpressionFit
 from strategist.domain.strategy.constraints import ConstraintKind, StoredKind
 from strategist.domain.strategy.organism_scope import SelectedOrganisms
 from strategist.domain.tally_facts import TallyFact
+from strategist.domain.unread import Unread
 
 type CheckStatus = Literal["pass", "fail", "unchecked"]
 type UncheckedReason = Literal[
@@ -199,13 +200,23 @@ def _held_sentence(value: HeldValue) -> str:
     )
 
 
-def bound_values_check(compared: int, differing: Sequence[HeldValue]) -> SiteCheck:
+def bound_values_check(
+    compared: int, differing: Sequence[HeldValue], unread: Sequence[Unread] = ()
+) -> SiteCheck:
     if differing:
         return SiteCheck(
             kind="bound_values",
             subject=_STRATEGY,
             status="fail",
             evidence="; ".join(_held_sentence(value) for value in differing),
+        )
+    if unread:
+        return SiteCheck(
+            kind="bound_values",
+            subject=_STRATEGY,
+            status="unchecked",
+            evidence="; ".join(u.reason for u in unread),
+            why_unchecked="site_unanswered",
         )
     if not compared:
         return SiteCheck(
