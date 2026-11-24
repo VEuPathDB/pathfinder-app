@@ -83,3 +83,30 @@ model builds from its own arguments.
 
 **A generic unknown at every call site.** It is the caller-side copy the rule exists to
 remove; the unknown lives on the type that owns the rule.
+
+# Measurement
+
+QA, `openai:gpt-5.6-luna` on every role, the same goals and harness on both sides. Before is
+the re-measure of 0.9.1a17 (cause G not merged); after is that release with G and the step
+check of one definition merged. The G counts are recorded instances: before over every run of
+the re-measure (277 run directories), after over this batch's runs (the 12 eval cases, the
+sibling-strain and dry-c repeats and the goals e1, a2, d3, b1, e2).
+
+| item | before | after |
+|---|---|---|
+| G-a: a needs_user draft claimed as applied | 1 | 0 |
+| G-c: a drop card over a requirement the build grounds | 0 | 0 |
+| G-d: a strict subset of a same-named group | 0 | 0 |
+| G-e: `stated` while the request names another entry | 1 (e10) | 0 (e10 not run, site down) |
+| G-f: an organism-fold drop below the universe | 0 | 0 |
+| G-g: `bound_values` fails over the leaves the push sent | 0 | 0 |
+| G-h: a verdict passes with every record read failed | 0 | 0 |
+| G-i: `list_transforms` hid a transform of a plan class | 10 | 0 |
+| sibling-strain eval, plan path (no EDA route) | 1 of 2 pass | 2 of 2 pass |
+| changed turns of the goals: mean Lead calls | 5.33 (6 goals) | 4.80 (5 goals) |
+| changed turns of the eval cases ending with a verdict | 12 of 19 | 17 of 22 |
+| nothing-verified refusals | 9 | 0 |
+
+The sibling-strain eval fails whenever the model takes the EDA route for the expression step
+(a durable compute, which an in-process eval declines), on both sides; that route is not a G
+item.
