@@ -97,9 +97,10 @@ def _install(monkeypatch: pytest.MonkeyPatch, api: StubAPI, threads: Threads) ->
 
 
 async def _rename(threads: Threads, name: str = _TITLE) -> str | None:
-    return await rename_strategy_everywhere(
+    renamed = await rename_strategy_everywhere(
         threads.conversation.id, name, session_factory=async_session_factory
     )
+    return None if renamed is None else renamed.name
 
 
 class TestARename:

@@ -93,7 +93,6 @@ services/strategies/live_counts.py:the_site_dropped_the_strategy:WDKError:return
 services/strategies/measurements.py:TurnCounts._ask:WDKError:returnNone None is an unread count, stated as not measured
 services/strategies/measurements.py:TurnCounts.reach:(VEuPathDBError,TimeoutError):returnNone None is an unread reach, stated as not measured
 services/strategies/naming.py:_rename_the_imported_set:NotFoundError:return a gene set that is gone has no name to change
-services/strategies/naming.py:put_the_name_on_wdk:Exception:log best effort: WDK keeps its name; the thread's name is written
 services/strategies/organism_params.py:_site_organisms:(VEuPathDBError,OSError):return[] an empty list places no entry, so the checks abstain (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)
 services/strategies/organism_params.py:organism_parameters:(VEuPathDBError,OSError):continue an unread mark leaves the scope unknown and refuses nothing (test_an_unread_mark_leaves_the_scopes_unknown_and_refuses_nothing)
 services/strategies/organism_params.py:organism_taxa:(VEuPathDBError,OSError):continue the unread tree is recorded as unread before continue (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)

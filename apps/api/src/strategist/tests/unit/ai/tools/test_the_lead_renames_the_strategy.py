@@ -15,7 +15,9 @@ from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
 from strategist.ai.tools.standalone import strategy_rename
 from strategist.ai.tools.standalone.strategy_rename import rename_strategy
 from strategist.domain.strategy.session import StrategySession
+from strategist.domain.unread import Unread
 from strategist.services.strategies import live_counts
+from strategist.services.strategies.naming import RenamedStrategy
 from strategist.tests._support.database import no_database
 from strategist.tests._support.run_context import lead_run_context
 from strategist.tests.unit.ai.tools._strategy_edit_stubs import leaf, session_with
@@ -32,13 +34,18 @@ class _Renames:
 
     suffix: str = ""
     found: bool = True
+    refused: Unread | None = None
     calls: list[tuple[UUID, str, DBSessionFactory]] = field(default_factory=list)
 
     async def __call__(
         self, conversation_id: UUID, name: str, *, session_factory: DBSessionFactory
-    ) -> str | None:
+    ) -> RenamedStrategy | None:
         self.calls.append((conversation_id, name, session_factory))
-        return f"{name}{self.suffix}" if self.found else None
+        if not self.found:
+            return None
+        return RenamedStrategy(
+            name=f"{name}{self.suffix}", not_on_the_site=self.refused
+        )
 
 
 def _site(count: int | None) -> StrategyAPI:
@@ -164,3 +171,20 @@ async def test_a_thread_the_store_does_not_hold_is_refused_and_keeps_its_name(
 
     assert session.graph is not None
     assert session.graph.name == "Test"
+
+
+async def test_a_name_the_site_refused_is_said(
+    monkeypatch: pytest.MonkeyPatch, renames: _Renames
+) -> None:
+    monkeypatch.setattr(
+        live_counts, "get_strategy_api", lambda _site_id: _site(_ROOT_COUNT)
+    )
+    renames.refused = Unread(reason="HTTP 503: VEuPathDB service error: down")
+
+    returned = await rename_strategy(lead_run_context(strategy_session=_built()), _NAME)
+
+    assert returned.return_value == (
+        f"Renamed the strategy to {_NAME} here; the strategy on the site keeps its "
+        "old name until the next change (HTTP 503: VEuPathDB service error: down). "
+        f"It returns {_ROOT_COUNT} genes."
+    )

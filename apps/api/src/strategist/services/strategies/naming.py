@@ -36,6 +36,7 @@ from strategist.persistence.repositories.conversation_strategy import (
 from strategist.platform.errors import NotFoundError
 from strategist.services.gene_sets.operations import GeneSetService
 from strategist.services.gene_sets.store import get_gene_set_store
+from strategist.services.site_errors import site_words
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.write_lock import (
     strategy_write_lock,
@@ -216,30 +217,39 @@ async def name_the_thread_as_the_graph(
         graph.name = named.name
 
 
-async def put_the_name_on_wdk(named: NamedThread) -> None:
+async def put_the_name_on_wdk(named: NamedThread) -> Unread | None:
     """Send the thread's name to the WDK strategy it holds; never raises.
 
-    The call is bounded. A name WDK did not take is logged: the read before
+    The call is bounded. A name WDK did not take is reported: the read before
     the next push finds the name WDK holds, and the push sends the thread's.
     """
     if named.wdk_strategy_id is None:
-        return
+        return None
     try:
         async with asyncio.timeout(WDK_RENAME_SECONDS):
             await get_strategy_api(named.site_id).update_strategy(
                 named.wdk_strategy_id, name=named.name
             )
-    except Exception:
+    except Exception as exc:
         logger.exception(
             "WDK did not take the strategy's name",
             wdk_strategy_id=named.wdk_strategy_id,
         )
+        return Unread(reason=site_words(exc))
+    return None
+
+
+@dataclass(frozen=True)
+class RenamedStrategy:
+    name: str
+    not_on_the_site: Unread | None = None
 
 
 async def rename_strategy_everywhere(
     conversation_id: UUID, name: str, *, session_factory: DBSessionFactory
-) -> str | None:
-    """Name the thread and its copies, then WDK; returns the stored name.
+) -> RenamedStrategy | None:
+    """Name the thread and its copies, then WDK; returns the stored name and
+    why WDK did not take it.
 
     The thread's lock covers the local writes only, so WDK never holds it.
     """
@@ -249,8 +259,9 @@ async def rename_strategy_everywhere(
         )
     if named is None:
         return None
-    await put_the_name_on_wdk(named)
-    return named.name
+    return RenamedStrategy(
+        name=named.name, not_on_the_site=await put_the_name_on_wdk(named)
+    )
 
 
 @dataclass(frozen=True)
