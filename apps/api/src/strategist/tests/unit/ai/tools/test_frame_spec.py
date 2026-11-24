@@ -26,7 +26,6 @@ from veupathdb_mcp.catalog import (
     ParamFetcher,
     ResolvedParams,
     ValidatedParams,
-    search_inspection,
     searches,
 )
 
@@ -135,7 +134,6 @@ def serve_definition(
     client.get_search_details = _details
     client.get_search_details_with_params = _details
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
-    monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
     return reads
 
 

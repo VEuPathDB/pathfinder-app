@@ -90,7 +90,6 @@ def _fixture_ctx(
         return fetch_at
 
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
-    monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
 
     async def _under(
         _site_id: str, record_type: str, search_name: str, context: dict[str, str]

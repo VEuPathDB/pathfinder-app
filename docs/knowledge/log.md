@@ -2,6 +2,9 @@
 
 ## 2026-11-24
 
+* **Take veupathdb-mcp 0.9.0b27.** It deletes `read_radio_readings`, `radio_readings` and
+  `RadioReadings`, which nothing read; the binding test no longer names the reader.
+
 * **One step that links two organism requirements passes each.** On a linked step, a
   requirement's organism check allows its own entry and the entries of every other organism
   requirement that step links, so GenesByGoTerm on 3D7 and P01 (150 and 250 records) passes both.
