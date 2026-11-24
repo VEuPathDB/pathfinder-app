@@ -10,7 +10,8 @@
 * **A turn's snapshot is named when it is written.** The turn's assistant message id rides
   every strategy snapshot the turn writes (`writes_named_by`, `THE_TURNS_MESSAGE`), so no
   separate naming step can fail after the reply and leave an undo to skip the turn. An undo
-  returns to the newest snapshot of another turn (`newest_turn_end_unlike(apart_from=...)`).
+  returns to the newest earlier snapshot outside the last change's turn
+  (`newest_turn_end_unlike(apart_from=...)`), a canvas write included.
 
 * **Fail-opens the batch-2 review and the allowlist audit found.** A read-back that does not
   parse, an analysis stamp, a turn-start site read, a site tree or added steps that do not

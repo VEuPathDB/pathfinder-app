@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, desc, select
+from sqlalchemy import delete, desc, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyAst
 
@@ -111,15 +111,19 @@ class StrategyRevisionRepository:
         revision: str,
         apart_from: UUID | None,
     ) -> StrategyRevisionView | None:
-        """The newest snapshot older than ``before_row_id`` that a turn other than
-        ``apart_from``'s wrote and whose tree differs from ``revision``."""
+        """The newest snapshot older than ``before_row_id``, outside the turn of
+        ``apart_from`` when one is named, whose tree differs from ``revision``."""
+        other_turn = (
+            true()
+            if apart_from is None
+            else StrategyRevision.message_id.is_distinct_from(apart_from)
+        )
         row = await self.session.scalar(
             select(StrategyRevision)
             .where(
                 StrategyRevision.conversation_id == conversation_id,
                 StrategyRevision.id < before_row_id,
-                StrategyRevision.message_id.is_not(None),
-                StrategyRevision.message_id.is_distinct_from(apart_from),
+                other_turn,
                 StrategyRevision.revision != revision,
             )
             .order_by(desc(StrategyRevision.id))

@@ -45,8 +45,9 @@ predates the turn's strategy writes and an assistant message row postdates
 them. Every snapshot a turn writes carries the turn's assistant message id in
 the same insert (`writes_named_by` around the turn's graph run), so no snapshot
 of a turn exists unnamed; a write outside a turn, from the canvas, stays
-unnamed. An undo returns to the newest snapshot another turn wrote, so a turn of
-several writes is undone whole.
+unnamed. An undo returns to the newest earlier snapshot outside the last
+change's turn, a canvas write included, so a turn of several writes is undone
+whole and a turn that wrote nothing leaves the target where it was.
 
 **Fork materializes; it no longer duplicates.** A fork resolves the anchor's
 snapshot and pushes that tree to WDK as a strategy of its own through the
