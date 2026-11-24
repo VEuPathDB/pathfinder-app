@@ -163,8 +163,8 @@ class ReadOnce[DepsT: HoldsTurnMarkers](AbstractCapability[DepsT]):
             loop = ctx.deps.tool_repetition_guard.check_repeat(
                 name, args, tool_call_id=call.tool_call_id, run_step=ctx.run_step
             )
-            warned = "" if loop is None else f" {loop.message}"
-            raise _refused(call, f"{said} {again}{warned}")
+            warned = "" if loop is None else f"{loop.message} "
+            raise _refused(call, f"{warned}{said} {again}")
         writes = markers.writes
         result = await handler(args)
         self.answered[key] = _Answer(

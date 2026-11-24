@@ -2,6 +2,9 @@
 
 ## 2026-11-24
 
+* **A held repeat that ends a loop leads with the warning.** The guard's loop words come first
+  in a held repeat's refusal, so the step summary keeps them ahead of an answer carried again.
+
 * **A broader organism never meets a stated entry.** When no step selects a stated organism
   entry and a step selects a node above it, grounding marks the requirement `substituted`
   (blocking), and the organism check reads the result's rows against the requirement's own

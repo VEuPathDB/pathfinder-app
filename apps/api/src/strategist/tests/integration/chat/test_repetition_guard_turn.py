@@ -1,9 +1,5 @@
-"""A Strategist turn that repeats one catalog read is stopped by the guard.
-
-The scripted FRAME arc asks for the same listing on every step. The guard
-refuses the third identical call and ends the sub-agent's pass on the fourth,
-so the turn finishes with a reply instead of spending its whole budget.
-"""
+"""A turn that repeats one catalog read holds each repeat, warns the third and
+ends the pass on the fourth."""
 
 from __future__ import annotations
 
@@ -62,8 +58,7 @@ async def test_the_repeated_catalog_read_is_refused_inside_frame(
         for step in _inner_steps(chunks, _LOOPING_TOOL)
         if REPETITION_MARKER in (step.get("resultSummary") or "")
     ]
-    assert refused
-    assert refused[0]["state"] == "completed"
+    assert [step["state"] for step in refused[:1]] == ["corrected"]
 
 
 @needs_suite_recordings
