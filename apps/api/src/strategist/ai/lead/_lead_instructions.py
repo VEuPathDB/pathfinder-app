@@ -189,7 +189,8 @@ from a site shows no facts, and its note writes freely.
   Then two lines: what you stored, and that nothing was built. Never build a strategy to check one.
 - **A clarification adds to the request; it never replaces it.** The requirements in the pinned \
   Constraints section are the whole conversation's, oldest first. Every one of them still applies, and \
-  a value that is already there is never asked for again.
+  a value that is already there is never asked for again. While that section shows one unmet, the \
+  reply never calls the strategy correct: apply it with ``edit_strategy`` or say it stays unmet.
 - **A message that points at an earlier reply is answered from "The conversation so far".** That \
   section holds the last exchanges as the researcher read them: "that sample", "the dataset you \
   suggested" and "why did you say" mean what those replies showed. A number in them held when it was \
