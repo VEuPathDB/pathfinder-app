@@ -10,10 +10,8 @@ status: stable
 
 # What was decided
 
-`docker-compose.e2e.yml` pins `web.build.target: runner`. Layered after
-`docker-compose.dev.yml` it overrides that file's `target: dev`, so the local
-recipe and the CI recipe (which never layered the dev overlay) build the same
-image: `next build` with `output: "standalone"`, served by
+`docker-compose.e2e.yml` pins `web.build.target: runner`, so the local
+recipe (`scripts/e2e-wire.sh replay`) and the CI recipe build the same image: `next build` with `output: "standalone"`, served by
 `node apps/web/server.js`.
 
 The dev stack is unchanged. `docker compose --env-file .env.dev up` still

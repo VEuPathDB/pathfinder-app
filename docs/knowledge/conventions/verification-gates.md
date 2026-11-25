@@ -46,7 +46,7 @@ workflow artifact, never as a registry tag. `e2e-shard-check` fails when the
 tests `playwright test --list --shard i/N` names over every shard differ from
 the unsharded list, test for test. Each of the `E2E_SHARDS` shard jobs loads
 the images, starts `api web worker` from `docker-compose.yml`,
-`docker-compose.e2e.yml` and `docker-compose.e2e-wire.yml` with `--no-build` (the shard polls the api's readiness,
+`docker-compose.e2e.yml` with `--no-build` (the shard polls the api's readiness,
 the web root and the worker's heartbeat itself, because the runner's compose
 refuses `--wait` on a dependency without a healthcheck), and runs its slice at two
 Playwright workers against one worker container at `WORKER_CONCURRENCY` 8: the
@@ -62,7 +62,9 @@ The stack reaches VEuPathDB only through the wdk-wire proxy, which replays
 ([E2E replays recorded WDK](../decisions/e2e-replays-recorded-wdk.md)). Each test
 signs its own token with the key the proxy made at start, so no shard holds a
 secret, and no trace holds a token that outlives the stack. A local run is
-`scripts/e2e-wire.sh replay`; `node scripts/check-wire-recordings.mjs` holds the
+`yarn test:e2e`, which runs `scripts/e2e-wire.sh replay`, and
+`apps/web/scripts/e2e-start.test.mjs` holds that Playwright refuses to start
+without `wdk-wire` in replay mode; `node scripts/check-wire-recordings.mjs` holds the
 recordings redacted and under 40 MB in pre-commit and in CI. A record run on cedar
 acts as the registered account, so `scripts/e2e-wire.sh record` runs
 `apps/web/scripts/redact-traces.mjs` over its report and test results: a trace

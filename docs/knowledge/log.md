@@ -1,5 +1,15 @@
 # Log
 
+## 2026-11-25
+
+* **No e2e run reaches a live site.** `docker-compose.e2e.yml` now holds the wdk-wire
+  proxy and the fence, so there is no e2e stack that calls QA directly, and its proxy
+  always replays; `docker-compose.e2e-wire.yml` is gone. `yarn test:e2e` runs
+  `scripts/e2e-wire.sh replay`, global setup names the command when no wdk-wire answers,
+  the record overlay needs the directory `scripts/e2e-wire.sh` names, `catalogs` builds
+  through a recording proxy that writes nowhere it keeps, and the EDA subset write in
+  `eda-branching` goes through the proxy (`decisions/e2e-replays-recorded-wdk.md`).
+
 ## 2026-11-24
 
 * **The e2e tier replays recorded WDK.** The wdk-wire proxy (`deploy/wdk-wire/`,

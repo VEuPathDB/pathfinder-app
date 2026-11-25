@@ -159,30 +159,26 @@ From `package.json`:
 - `yarn check:weak-assertions`: assertion strength in tests
 - `yarn check:strict-mode`: bans index-based Playwright locators
 - `yarn test` / `yarn test:coverage` / `yarn test:watch`: Vitest
-- `yarn test:e2e`: Playwright E2E tests
+- `yarn test:e2e`: Playwright E2E tests on recorded WDK (`scripts/e2e-wire.sh replay`)
 - `yarn test:mutation`: Stryker
 
 ### E2E testing
 
-Strategist uses a 3-tier Playwright E2E test architecture:
-
-- **Feature tests** (`e2e/feature/`) - individual feature verification (chat, strategy graph, gene sets, settings). Run in parallel.
-- **Cross-feature tests** (`e2e/cross-feature/`) - multi-feature workflows. Run serially due to WDK rate limits.
-- **Journey tests** (`e2e/journey/`) - full researcher workflows across VEuPathDB databases. Run serially.
-
-**Page Objects** (`e2e/pages/`) encapsulate selectors and interactions. **Fixtures**
+The Playwright suite lives in `e2e/`: feature tests (`e2e/feature/`), researcher
+journeys (`e2e/journey/`) and the UAT flows (`e2e/uat/`). **Page Objects**
+(`e2e/pages/`) encapsulate selectors and interactions. **Fixtures**
 (`e2e/fixtures/`) handle auth, API setup and test data seeding.
 
-All tests use real VEuPathDB APIs. Only the LLM is mocked, via the dedicated test profile.
-
-Start the local E2E stack with that profile. The e2e overlay builds the web container's `runner`
-target, so port 3000 serves the production build: the suite meets no development overlay and no
-per-route compile.
+The suite runs only on recorded WDK answers. Only the LLM is mocked; every
+VEuPathDB call goes through the `wdk-wire` proxy, which answers from the
+recordings in `e2e/wire/` and refuses any request it holds no recording for.
+Global setup refuses to start unless `wdk-wire` answers in replay mode.
 
 ```bash
-docker compose --env-file ../../.env.test \
-  -f ../../docker-compose.yml \
-  -f ../../docker-compose.dev.yml \
-  -f ../../docker-compose.e2e.yml \
-  up -d --build --wait api worker web
+yarn test:e2e        # runs ../../scripts/e2e-wire.sh replay
 ```
+
+The script builds and starts the stack with `docker-compose.e2e.yml`, whose web
+container serves the production build, then runs Playwright. Recording and
+refreshing reach QA and run on cedar, by hand
+(`docs/knowledge/decisions/e2e-replays-recorded-wdk.md`).

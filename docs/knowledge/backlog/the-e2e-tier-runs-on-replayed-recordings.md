@@ -20,7 +20,7 @@ the pre-release login, so the recordings are made on cedar.
 **The work that remains:**
 
 - Release veupathdb-py with `veupathdb.testing.wire` at the tag
-  `docker-compose.e2e-wire.yml` names (`WIRE_VEUPATHDB_PY_REF`).
+  `docker-compose.e2e.yml` names (`WIRE_VEUPATHDB_PY_REF`).
 - On cedar, with `WDK_TEST_EMAIL` and `WDK_TEST_PASSWORD` exported: build the catalog
   snapshots (`scripts/e2e-wire.sh catalogs`), record the whole suite
   (`scripts/e2e-wire.sh record --all`), measure the set against the 40 MB cap, and commit

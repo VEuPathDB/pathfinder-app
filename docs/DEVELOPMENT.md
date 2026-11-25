@@ -61,7 +61,7 @@ yarn check:weak-assertions
 yarn check:strict-mode
 yarn test
 NEXT_PUBLIC_API_URL=http://localhost:8000 yarn build
-yarn test:e2e              # needs the API, the worker and the web app running
+yarn test:e2e              # starts the e2e stack and replays recorded WDK
 ```
 
 ### The libraries

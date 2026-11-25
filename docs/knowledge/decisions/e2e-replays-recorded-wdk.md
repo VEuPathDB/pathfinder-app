@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: E2E replays recorded WDK
-description: The Playwright suite reaches VEuPathDB only through the wdk-wire proxy, which replays committed QA recordings and answers 418 for any request it holds none for; each test signs its own token and is its own Strategist user; recording and the refresh run by hand on cedar. The one exception to "only mock the LLM", for e2e only. A transport inside the clients, a plain HTTP replay server, browser routing and a live tier were rejected.
+description: The Playwright suite reaches VEuPathDB only through the wdk-wire proxy, which replays committed QA recordings and answers 418 for any request it holds none for; no e2e run can reach a live site; each test signs its own token and is its own Strategist user; recording and the refresh run by hand on cedar. The one exception to "only mock the LLM", for e2e only. A transport inside the clients, a plain HTTP replay server, browser routing and a live tier were rejected.
 tags: [testing, e2e, ci, recording, replay]
 generated: { by: claude-code/opus-5.5, at: 2026-11-24T00:00:00Z }
 status: stable
@@ -10,8 +10,8 @@ status: stable
 # What was decided
 
 **The e2e tier replays WDK; the other tiers keep their rules.** Unit and integration tests
-still mock only the LLM. The Playwright suite runs with `docker-compose.e2e-wire.yml`
-layered on the e2e overlay: `api` and `worker` reach every VEuPathDB host through
+still mock only the LLM. The e2e overlay, `docker-compose.e2e.yml`, holds the proxy
+itself: `api` and `worker` reach every VEuPathDB host through
 `HTTPS_PROXY=http://wdk-wire:8080` and trust the proxy's CA through `SSL_CERT_FILE`, with no
 change to production code, and every QA host and `api.openai.com` maps to `127.0.0.1` in
 their `extra_hosts`, so a client that ignored the proxy would fail on a refused
@@ -22,10 +22,20 @@ tag the overlay names; the library's own decision is `a-wire-replays-what-wdk-an
 |---|---|
 | recordings, at most 40 MB, catalogs gzipped | `apps/web/e2e/wire/` (`manifest.json`, `stack.jsonl`, `cassettes/`, `bodies/`, `catalogs/`) |
 | the proxy image | `deploy/wdk-wire/Dockerfile` |
-| replay and record overlays | `docker-compose.e2e-wire.yml`, `docker-compose.e2e-wire-record.yml` |
+| the e2e overlay (replay) and the record overlay | `docker-compose.e2e.yml`, `docker-compose.e2e-wire-record.yml` |
 | the test's token, `begin` and `end` | `apps/web/e2e/fixtures/wire.ts`, `wire-recordings.ts` |
 | redaction and size gate | `scripts/check-wire-recordings.mjs` (pre-commit and CI) |
-| the commands | `scripts/e2e-wire.sh replay`, `catalogs`, `record --test <spec:line>` or `--all`, `refresh` |
+| the commands | `scripts/e2e-wire.sh replay` (`yarn test:e2e`), `catalogs`, `record --test <spec:line>` or `--all`, `refresh` |
+
+**No e2e run reaches a live site.** There is no e2e overlay without the proxy, and its
+`wdk-wire` always replays from a read-only mount. Global setup refuses to start unless
+`wdk-wire` answers its health route on port 8181 in the mode `E2E_WIRE` names, `replay`
+unless `scripts/e2e-wire.sh record` sets it. Only the record overlay runs `wdk-wire` in
+record mode and drops the fence, and it does not interpolate without the `WIRE_DIR`
+the script names, so `record`, `refresh` and `catalogs` are the only commands that reach
+QA. A spec that writes on a site itself (the EDA subset in `eda-branching`) sends the
+request through the proxy as well (`throughTheWire` in `fixtures/wire.ts`), so it is
+recorded and replayed with the test.
 
 **A test names its recordings by its token.** The cassette id is the project, the spec file
 and the title path, slugged, with an eight-character hash. In replay the `_wire` fixture
@@ -44,8 +54,9 @@ error. A miss on `stack` fails the run in global teardown. A site whose snapshot
 load fails global setup.
 
 **Recording and the refresh are by hand, on cedar, against QA.** Nothing schedules them.
-`catalogs` builds the 7 catalog snapshots through the e2e api image; a record run needs
-them first, because a catalog the api builds through the recorder would be recorded.
+`catalogs` builds the 7 catalog snapshots through the e2e api image and a recording
+`wdk-wire` that writes to a directory it then deletes; a record run needs them first,
+because a catalog the api builds during the record run would be recorded.
 `record` (`--test <spec:line>`, or `--all` for the first set) runs the named tests with one worker as the registered account, keeps only the
 tests that passed, replays them as a self-check, then merges them into the tree. `refresh`
 re-sends every recording to QA with the minted ids mapped, rebuilds the 7 catalog snapshots
