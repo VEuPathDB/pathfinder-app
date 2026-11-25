@@ -11,14 +11,14 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping
 from typing import NamedTuple
 
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StepSettings, StrategyAst, StrategyStepNode
 
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 from strategist.domain.strategy.ast_diff import nodes_of
 from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.outside_changes import OutsideChanges, outside_changes
-from strategist.domain.strategy.session import StrategyGraph
+from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_hydration import (
     Analyses,
     Sheets,
@@ -43,13 +43,16 @@ from strategist.services.strategies.sheet_params import (
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
+from strategist.services.strategies.sync_state import ensure_sync_state
 
 __all__ = [
     "analyses_of",
     "live_tree",
+    "take_the_sites_fold",
     "the_changes_written_outside",
     "the_strategy_now_answers_to",
     "the_thread_wrote_the_strategy",
+    "the_write_answers_to",
 ]
 
 
@@ -103,6 +106,7 @@ async def the_changes_written_outside(
     *,
     site_id: str,
     graph: StrategyGraph | None,
+    since: StrategyAst | None,
 ) -> OutsideChanges:
     """Play what was written outside this thread onto every spec the turn holds.
 
@@ -111,7 +115,7 @@ async def the_changes_written_outside(
     """
     domain = state.domain
     live = live_tree(graph)
-    changes = outside_changes(domain.answered_graph, live)
+    changes = outside_changes(since, live)
     reading = await _the_replay_reading(site_id, domain, changes, live)
     # A step the answer states and the plan does not is a drop the plan
     # carries, so the plan keeps it out.
@@ -135,6 +139,57 @@ async def the_changes_written_outside(
     domain.answered_spec = _replayed(domain.answered_spec, changes, live, reading)
     domain.answered_graph = live
     return changes
+
+
+async def the_write_answers_to(
+    state: PipelineState,
+    spec: OperationalSpec | None,
+    session: StrategySession,
+    *,
+    site_id: str,
+) -> None:
+    """Record what a write left the strategy answering to, then take what the
+    write's own read found on the site."""
+    the_strategy_now_answers_to(state, spec, session.get_graph(None))
+    await take_the_sites_fold(state, session, site_id=site_id)
+
+
+async def take_the_sites_fold(
+    state: PipelineState, session: StrategySession, *, site_id: str
+) -> None:
+    """Play onto every spec the values a commit's read took onto the graph from
+    the site, as a change written outside the thread."""
+    sync_state = ensure_sync_state(session)
+    if not sync_state.site_fold:
+        return
+    fold, sync_state.site_fold = sync_state.site_fold, {}
+    graph = session.get_graph(None)
+    live = live_tree(graph)
+    since = None if live is None else _as_it_stood(live, fold)
+    await the_changes_written_outside(state, site_id=site_id, graph=graph, since=since)
+
+
+def _as_it_stood(ast: StrategyAst, fold: Mapping[str, StepSettings]) -> StrategyAst:
+    def node(at: StrategyStepNode) -> StrategyStepNode:
+        held = fold.get(at.id)
+        return at.model_copy(
+            update={
+                **({} if held is None else dict(held)),
+                "primary_input": None
+                if at.primary_input is None
+                else node(at.primary_input),
+                "secondary_input": None
+                if at.secondary_input is None
+                else node(at.secondary_input),
+            }
+        )
+
+    return ast.model_copy(
+        update={
+            "root": node(ast.root),
+            "detached_roots": [node(r) for r in ast.detached_roots],
+        }
+    )
 
 
 def _the_plan_leaves_out(domain: StrategyDomainState) -> frozenset[str]:

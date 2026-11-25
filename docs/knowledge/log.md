@@ -6,7 +6,8 @@
   0.9.0b28. `researcher_search_turn` opens `turn_reads`, so a strategy read, a step report and
   a search context read are sent once until the turn writes; the commit's reconcile read and
   the release of an abandoned mint read fresh. The site client keeps search definitions and
-  record types for fifteen minutes, and `search_definitions_read_once` is gone from the
+  record types for an hour (one store per process, 64 MiB), and
+  `search_definitions_read_once` is gone from the
   request middleware, the job context and the audit job
   (`decisions/a-turn-reads-the-strategy-once-between-writes.md`).
 * **A commit writes only the settings the turn moved.** The planner compares each step with
@@ -17,7 +18,11 @@
   and the import read fresh, and `TurnCounts` keeps no count of its own. The commit takes
   onto the graph every value the site holds that it did not move, with the turn-start fold,
   so a website edit made during the turn is shown, checked and kept; a commit whose read
-  failed restores the graph it started from.
+  failed restores the graph it started from. Every write path plays the values the
+  commit's read took from the site onto the turn's specs (`take_the_sites_fold`), so a
+  later spec build keeps them. A build whose read failed reports every step not built,
+  and one rule (`turn_moved`, on `same_param_value`) names what the turn moved for the
+  fold and the planner.
 
 ## 2026-11-24
 

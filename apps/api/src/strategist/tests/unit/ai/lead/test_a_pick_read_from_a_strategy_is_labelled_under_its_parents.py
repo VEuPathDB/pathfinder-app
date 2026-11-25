@@ -184,7 +184,10 @@ async def test_a_step_the_site_moved_onto_the_domain_search_labels_its_pick(
     )
 
     await the_changes_written_outside(
-        state, site_id="plasmodb", graph=_graph(_domain_step())
+        state,
+        site_id="plasmodb",
+        graph=_graph(_domain_step()),
+        since=state.domain.answered_graph,
     )
 
     assert (
@@ -213,7 +216,10 @@ async def test_a_pick_the_site_edited_is_labelled_under_its_organism(
     )
 
     await the_changes_written_outside(
-        state, site_id="plasmodb", graph=_graph(_domain_step())
+        state,
+        site_id="plasmodb",
+        graph=_graph(_domain_step()),
+        since=state.domain.answered_graph,
     )
 
     assert _label(state.domain.answered_spec) == "KH domain"
@@ -240,6 +246,7 @@ async def test_a_step_the_site_added_is_labelled_under_its_organism(
         state,
         site_id="plasmodb",
         graph=_graph(_joined(_text_step("txt"), _domain_step())),
+        since=state.domain.answered_graph,
     )
 
     assert _label(state.domain.answered_spec) == "KH domain"
@@ -270,7 +277,10 @@ async def test_a_step_with_no_dependent_parameter_reads_no_vocabulary(
     )
 
     await the_changes_written_outside(
-        state, site_id="plasmodb", graph=_graph(_text_step(text="phosphatase"))
+        state,
+        site_id="plasmodb",
+        graph=_graph(_text_step(text="phosphatase")),
+        since=state.domain.answered_graph,
     )
 
     assert reads.contexts == []

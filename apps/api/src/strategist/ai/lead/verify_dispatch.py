@@ -13,7 +13,7 @@ from strategist.ai.graph.state import (
     PhaseDisposition,
     VerificationDigest,
 )
-from strategist.ai.lead.answered_strategy import live_tree
+from strategist.ai.lead.answered_strategy import live_tree, take_the_sites_fold
 from strategist.ai.lead.deltas import VerificationDelta, VerificationStopped
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.dispatch_context import (
@@ -200,6 +200,9 @@ async def run_verification(
     if isinstance(delta, SubAgentApprovalWait):
         return delta
     apply_agent_state(deps, agent_deps)
+    await take_the_sites_fold(
+        deps.state, deps.runtime.strategy_session, site_id=deps.runtime.site_id
+    )
     if delta is None:
         return verification_stopped(deps.last_phase_stop)
     graph = deps.runtime.strategy_session.get_graph(None)

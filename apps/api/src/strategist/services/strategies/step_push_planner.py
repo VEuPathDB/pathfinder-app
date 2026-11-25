@@ -2,6 +2,7 @@ from collections.abc import Container, Mapping
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Discriminator, model_validator
+from veupathdb.domain.parameters import same_param_value, value_kind
 from veupathdb.domain.strategy import (
     StepSettings,
     StrategyAst,
@@ -83,13 +84,31 @@ _RECREATES_A_COMBINE = ("operator", "colocation_params", "wdk_weight", "filters"
 _WRITES_A_SEARCH_CONFIG = ("parameters", "wdk_weight", "filters")
 
 
+def turn_moved(now: StepSettings, was: StepSettings) -> frozenset[str]:
+    names = now.parameters.keys() | was.parameters.keys()
+    params = {
+        name
+        for name in names
+        if name not in now.parameters
+        or name not in was.parameters
+        or not same_param_value(
+            name,
+            value_kind(now.parameters[name]) or value_kind(was.parameters[name]),
+            now.parameters[name],
+            was.parameters[name],
+        )
+    }
+    settings = {name for name in now.changed(was) if name != "parameters"}
+    return frozenset({*settings, *params, *(["parameters"] if params else [])})
+
+
 def moved_by_the_turn(
     stated: StepSettings, held: StepSettings, started: StepSettings | None
 ) -> list[str]:
     moved = stated.changed(held)
     if started is None:
         return moved
-    turned = set(stated.changed(started))
+    turned = turn_moved(stated, started)
     return [name for name in moved if name in turned]
 
 

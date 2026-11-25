@@ -18,7 +18,7 @@ vocabulary that takes `user_id`, `datasetVQ.geneListUserDataset` in EbrcModelCom
 the `datasetSelection` parameter of a step analysis form and no search.
 
 A canvas save, a turn and a job read definitions through the site client, which keeps
-each one for fifteen minutes keyed by login, so they are not affected.
+each one for an hour keyed by login, so they are not affected.
 
 **At each VEuPathDB release:**
 

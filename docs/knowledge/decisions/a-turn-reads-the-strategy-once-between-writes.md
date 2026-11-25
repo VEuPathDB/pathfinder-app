@@ -26,7 +26,10 @@ Every read that decides a write reads fresh (`get_strategy(..., fresh=True)`):
 
 - the commit's `reconcile_sync_state_with_wdk`, so an edit made on the website or in the
   panel (which reaches the api process, not the worker) is taken onto the turn's graph
-  and kept on the site ([one commit path](one-commit-path-writes-a-strategy.md), R1);
+  and kept on the site ([one commit path](one-commit-path-writes-a-strategy.md), R1).
+  Every write path then plays those values onto the turn's specs as a change written
+  outside the thread (`answered_strategy.take_the_sites_fold`, the replay the turn's first
+  read uses), so a later spec build states them and does not write the site's value back;
 - `delete_released_mint`, so a strategy the researcher saved during the turn is not
   deleted;
 - `clone_saved_strategy`, so an insert copies the saved strategy as the site holds it now;
@@ -38,8 +41,8 @@ once. It keeps the site-search answers (`reach`), because the site search is a s
 service the WDK client does not send, so the turn holder cannot hold them.
 
 A durable job, an audit run and an HTTP request open no `turn_reads`, so each of their reads
-is sent. The site client keeps search definitions and record types for fifteen minutes in
-every one of them.
+is sent. One store per process keeps search definitions and record types for an hour, at
+most 64 MiB, in every one of them.
 
 # Rejected
 

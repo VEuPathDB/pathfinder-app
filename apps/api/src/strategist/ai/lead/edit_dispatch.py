@@ -18,7 +18,10 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.errors import ValidationError
 
 from strategist.ai.graph.runtime import AgentDeps
-from strategist.ai.lead.answered_strategy import the_strategy_now_answers_to
+from strategist.ai.lead.answered_strategy import (
+    the_strategy_now_answers_to,
+    the_write_answers_to,
+)
 from strategist.ai.lead.deleted_steps import named_step
 from strategist.ai.lead.deltas import EditDelta
 from strategist.ai.lead.dispatch_context import (
@@ -324,8 +327,8 @@ async def _push_the_edit(
     # exactly as the spec a build leaves behind does.
     deps.state.domain.operational_spec = after
     deps.state.domain.data_marks = await read_data_marks(agent_deps.site_id, [after])
-    the_strategy_now_answers_to(
-        deps.state, after, agent_deps.strategy_session.get_graph(None)
+    await the_write_answers_to(
+        deps.state, after, agent_deps.strategy_session, site_id=agent_deps.site_id
     )
     deps.state.record_build(outcome)
     searches = added_searches(planned, added)

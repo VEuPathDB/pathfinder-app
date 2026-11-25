@@ -14,7 +14,7 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
-from strategist.ai.lead.answered_strategy import the_strategy_now_answers_to
+from strategist.ai.lead.answered_strategy import the_write_answers_to
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.tools.standalone._eda_open import open_analysis
 from strategist.ai.tools.standalone._eda_step_arguments import (
@@ -352,8 +352,11 @@ async def create_eda_step(
         ),
     )
     await _list_the_classes(ctx)
-    the_strategy_now_answers_to(
-        ctx.deps.state, ctx.deps.state.domain.operational_spec, graph
+    await the_write_answers_to(
+        ctx.deps.state,
+        ctx.deps.state.domain.operational_spec,
+        ctx.deps.strategy_session,
+        site_id=ctx.deps.site_id,
     )
     ctx.deps.state.domain.data_marks = await read_data_marks(
         ctx.deps.site_id, [ctx.deps.state.domain.operational_spec]

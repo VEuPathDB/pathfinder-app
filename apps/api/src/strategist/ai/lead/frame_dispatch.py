@@ -7,6 +7,7 @@ from collections.abc import Callable
 from pydantic_ai import RunContext
 
 from strategist.ai.agents.state import AgentToolState
+from strategist.ai.lead.answered_strategy import take_the_sites_fold
 from strategist.ai.lead.deltas import FrameResult
 from strategist.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -279,6 +280,9 @@ async def _run_frame(
     if isinstance(delta, SubAgentApprovalWait):
         return delta
     apply_agent_state(deps, agent_deps)
+    await take_the_sites_fold(
+        deps.state, deps.runtime.strategy_session, site_id=deps.runtime.site_id
+    )
     if delta is None:
         draft = agent_deps.agent_state.operational_spec_draft
         stop = _stop_to_continue(deps, bound_before=bound_before, draft=draft)

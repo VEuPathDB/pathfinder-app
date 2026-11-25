@@ -7,7 +7,10 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
 
 from strategist.ai.lead._delete_rules import DeleteSurface
-from strategist.ai.lead.answered_strategy import the_strategy_now_answers_to
+from strategist.ai.lead.answered_strategy import (
+    the_strategy_now_answers_to,
+    the_write_answers_to,
+)
 from strategist.ai.lead.card_reply import CardReply
 from strategist.ai.lead.deleted_steps import named_step
 from strategist.ai.lead.dispatch_context import inner_context
@@ -194,10 +197,11 @@ async def delete_step(
         domain.retire_what_a_delete_leaves_unanswered(
             [c for c in framed.criteria if c.id not in kept], remaining
         )
-    the_strategy_now_answers_to(
+    await the_write_answers_to(
         ctx.deps.state,
         ctx.deps.state.domain.operational_spec,
-        ctx.deps.runtime.strategy_session.get_graph(None),
+        ctx.deps.runtime.strategy_session,
+        site_id=ctx.deps.runtime.site_id,
     )
     if ctx.deps.state.domain.last_build_outcome is not None:
         ctx.deps.state.record_resync(live_outcome(session))

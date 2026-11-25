@@ -90,6 +90,24 @@ def outcome_of(
         organism_change=change,
         not_read=sync_state.strategy_not_read,
     )
+    if committed.not_read:
+        (unread,) = committed.failures
+        outcome.failed_steps = [
+            StepPushFailure(
+                step_id=node.id, search_name=wdk_search_name(node), error=unread.error
+            )
+            for node in nodes
+        ]
+        outcome.node_results = [
+            NodeResult(
+                node_id=node.id,
+                search_name=wdk_search_name(node),
+                status="failed",
+                error=unread.error,
+            )
+            for node in nodes
+        ]
+        return outcome
     outcome.node_results = node_results(nodes, sync_state, outcome)
     return outcome
 

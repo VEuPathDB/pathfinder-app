@@ -119,7 +119,9 @@ async def test_a_change_on_the_site_ends_the_reading_and_its_stand_in(
 ) -> None:
     state = pipeline_state(domain=_domain())
 
-    await the_changes_written_outside(state, site_id="plasmodb", graph=_graph(live))
+    await the_changes_written_outside(
+        state, site_id="plasmodb", graph=_graph(live), since=state.domain.answered_graph
+    )
 
     spec = state.domain.operational_spec
     assert spec is not None
@@ -137,6 +139,7 @@ async def test_a_change_elsewhere_keeps_the_reading_and_its_stand_in() -> None:
         state,
         site_id="plasmodb",
         graph=_graph(_step(_TEXT, "text_expression", "kinase")),
+        since=state.domain.answered_graph,
     )
 
     assert state.domain.requirements == [_STAND_IN]

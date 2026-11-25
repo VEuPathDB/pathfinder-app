@@ -112,7 +112,10 @@ async def test_a_transform_added_outside_states_the_class_it_returns() -> None:
     )
 
     await the_changes_written_outside(
-        state, site_id="orthomcl", graph=_graph(_proteins(), "sequence")
+        state,
+        site_id="orthomcl",
+        graph=_graph(_proteins(), "sequence"),
+        since=state.domain.answered_graph,
     )
 
     spec = state.domain.operational_spec
@@ -160,7 +163,10 @@ async def test_a_checkpointed_spec_is_classed_by_the_listing_at_turn_entry() -> 
     )
 
     await the_changes_written_outside(
-        state, site_id="orthomcl", graph=_graph(_pattern(), "group")
+        state,
+        site_id="orthomcl",
+        graph=_graph(_pattern(), "group"),
+        since=state.domain.answered_graph,
     )
 
     spec = state.domain.operational_spec

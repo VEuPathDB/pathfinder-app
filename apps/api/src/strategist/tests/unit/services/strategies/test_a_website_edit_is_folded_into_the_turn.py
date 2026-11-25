@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-from veupathdb.domain.parameters import MultiPickValue, StringValue
+from veupathdb.domain.parameters import HeldValue, MultiPickValue, StringValue
 from veupathdb.wdk import turn_reads
 
+from strategist.ai.lead.answered_strategy import (
+    the_strategy_now_answers_to,
+    the_write_answers_to,
+)
+from strategist.ai.lead.pre_turn import stated_spec_of
 from strategist.ai.lead.verify_checks import _bound_values, _judged
 from strategist.domain.strategy.operations import (
     ReplaceStrategyOp,
@@ -10,6 +15,7 @@ from strategist.domain.strategy.operations import (
     UpdateStrategyMetaOp,
 )
 from strategist.domain.strategy.operations.types import GraphOperation
+from strategist.domain.strategy.spec_tree import build_step_tree
 from strategist.services.strategies.commit import (
     CommitResult,
     apply_operations_and_commit,
@@ -17,8 +23,10 @@ from strategist.services.strategies.commit import (
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.live_counts import read_wdk_step_counts
 from strategist.services.strategies.site_counts import read_site_strategy
+from strategist.services.strategies.spec_build import build_strategy_from_spec
 from strategist.services.strategies.sync_state import ensure_sync_state
 from strategist.tests._support.holding_wdk import HoldingWDK
+from strategist.tests.unit.ai.lead.conftest import pipeline_state
 from strategist.tests.unit.services.strategies.test_a_build_turn_reads_once import (
     _SITE,
     _leaf,
@@ -125,4 +133,46 @@ async def test_after_a_failed_read_the_next_edit_keeps_another_website_value(
     assert (held["text_expression"], held["text_search_organism"]) == (
         "rhoptry",
         '["Plasmodium falciparum 3D7"]',
+    )
+
+
+async def test_a_spec_build_after_the_fold_keeps_the_website_value(
+    wdk: HoldingWDK,
+) -> None:
+    deps = _thread()
+    state = pipeline_state(user_prompt="kinases")
+    with turn_reads():
+        await apply_operations_and_commit(
+            deps=deps, ops=[ReplaceStrategyOp(root=_leaf())]
+        )
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        ast = graph.to_strategy_ast()
+        assert ast is not None
+        spec = await stated_spec_of(ast, site_id=_SITE, goal="kinases")
+        await build_strategy_from_spec(deps=deps, root=build_step_tree(spec))
+        state.domain.operational_spec = spec
+        the_strategy_now_answers_to(state, spec, graph)
+        sync = ensure_sync_state(deps.strategy_session)
+        step = sync.wdk_step_ids["step_a"]
+        await read_wdk_step_counts(sync, _SITE)
+        wdk.steps[step]["searchConfig"]["parameters"]["text_expression"] = "rhoptry"
+        await apply_operations_and_commit(deps=deps, ops=[_rename("Kinases")])
+        await the_write_answers_to(state, spec, deps.strategy_session, site_id=_SITE)
+        rebuilt = state.domain.operational_spec
+        assert rebuilt is not None
+        built = len(wdk.writes)
+        await build_strategy_from_spec(deps=deps, root=build_step_tree(rebuilt))
+
+    sent = [
+        w.body["parameters"]["text_expression"]
+        for w in wdk.writes[built:]
+        if w.path.endswith("/search-config")
+    ]
+    assert "kinase" not in sent
+    assert rebuilt.criteria[0].resolved_params["text_expression"].value == HeldValue(
+        wire="rhoptry"
+    )
+    assert wdk.steps[step]["searchConfig"]["parameters"]["text_expression"] == (
+        "rhoptry"
     )

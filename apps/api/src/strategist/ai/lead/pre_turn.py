@@ -312,7 +312,9 @@ async def _answer_what_was_written_outside(
     graph = context.strategy_session.get_graph(None)
     if graph is not None and state.domain.answered_spec is None and graph.steps:
         _initialise_the_answered_facts(state, graph)
-    await the_changes_written_outside(state, site_id=context.site_id, graph=graph)
+    await the_changes_written_outside(
+        state, site_id=context.site_id, graph=graph, since=state.domain.answered_graph
+    )
 
 
 def _initialise_the_answered_facts(state: PipelineState, graph: StrategyGraph) -> None:

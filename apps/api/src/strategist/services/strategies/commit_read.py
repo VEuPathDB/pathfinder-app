@@ -16,6 +16,7 @@ from strategist.services.strategies.site_changes import (
     TheTurnsOwn,
     fold_the_sites_values,
 )
+from strategist.services.strategies.step_push_planner import turn_moved
 from strategist.services.strategies.sync_state import WDKSyncState
 
 
@@ -27,14 +28,7 @@ def the_turns_own(
         was = started.get(step_id)
         if was is None:
             continue
-        now = settings_of(step)
-        params = now.parameters.keys() | was.parameters.keys()
-        names[step_id] = frozenset(
-            [
-                *now.changed(was),
-                *(n for n in params if now.parameters.get(n) != was.parameters.get(n)),
-            ]
-        )
+        names[step_id] = turn_moved(settings_of(step), was)
     return TheTurnsOwn(steps=frozenset(steps.keys() - names.keys()), names=names)
 
 
@@ -59,13 +53,16 @@ async def what_wdk_holds(
         what = f"did not answer the read of the strategy: {exc}"
     else:
         if holds.live is not None:
-            await fold_the_sites_values(
+            before = {sid: settings_of(step) for sid, step in steps.items()}
+            folded = await fold_the_sites_values(
                 steps=steps,
                 sync_state=sync_state,
                 live=holds.live,
                 site_id=site_id,
                 own=the_turns_own(steps, started),
             )
+            for step_id in folded:
+                sync_state.site_fold.setdefault(step_id, before[step_id])
         return holds
     root = steps[root_id]
     site = get_site(site_id).display_name
