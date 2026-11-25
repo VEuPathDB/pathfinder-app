@@ -1,5 +1,4 @@
 from veupathdb.domain.strategy import (
-    StepSettings,
     StrategyStep,
     settings_of,
     wdk_search_name,
@@ -16,12 +15,12 @@ from strategist.services.strategies.site_changes import (
     TheTurnsOwn,
     fold_the_sites_values,
 )
-from strategist.services.strategies.step_push_planner import turn_moved
-from strategist.services.strategies.sync_state import WDKSyncState
+from strategist.services.strategies.step_push_planner import TurnBaseline, turn_moved
+from strategist.services.strategies.sync_state import SiteFold, WDKSyncState
 
 
 def the_turns_own(
-    steps: dict[str, StrategyStep], started: dict[str, StepSettings]
+    steps: dict[str, StrategyStep], started: dict[str, TurnBaseline]
 ) -> TheTurnsOwn:
     names: dict[str, frozenset[str]] = {}
     for step_id, step in steps.items():
@@ -37,7 +36,7 @@ async def what_wdk_holds(
     site_id: str,
     steps: dict[str, StrategyStep],
     root_id: str,
-    started: dict[str, StepSettings],
+    started: dict[str, TurnBaseline],
     sync_state: WDKSyncState,
 ) -> WhatWDKHolds | StepPushFailure:
     """Read what WDK holds before a commit plans, and take onto ``steps`` every
@@ -62,7 +61,11 @@ async def what_wdk_holds(
                 own=the_turns_own(steps, started),
             )
             for step_id in folded:
-                sync_state.site_fold.setdefault(step_id, before[step_id])
+                was = sync_state.site_fold.get(step_id)
+                sync_state.site_fold[step_id] = SiteFold(
+                    before=before[step_id] if was is None else was.before,
+                    after=settings_of(steps[step_id]),
+                )
         return holds
     root = steps[root_id]
     site = get_site(site_id).display_name

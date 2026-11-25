@@ -27,9 +27,11 @@ Every read that decides a write reads fresh (`get_strategy(..., fresh=True)`):
 - the commit's `reconcile_sync_state_with_wdk`, so an edit made on the website or in the
   panel (which reaches the api process, not the worker) is taken onto the turn's graph
   and kept on the site ([one commit path](one-commit-path-writes-a-strategy.md), R1).
-  Every write path then plays those values onto the turn's specs as a change written
-  outside the thread (`answered_strategy.take_the_sites_fold`, the replay the turn's first
-  read uses), so a later spec build states them and does not write the site's value back;
+  The turn keeps what each such fold replaced (`WDKSyncState.site_fold`) for the whole
+  turn, and a later commit that states the replaced value again does not move it, so no
+  commit path writes the site's value back. Once, when the Lead's turn ends, the values
+  the folds took and the turn did not move since are played onto the turn's specs as a
+  change written outside the thread (`answered_strategy.take_the_sites_fold`);
 - `delete_released_mint`, so a strategy the researcher saved during the turn is not
   deleted;
 - `clone_saved_strategy`, so an insert copies the saved strategy as the site holds it now;

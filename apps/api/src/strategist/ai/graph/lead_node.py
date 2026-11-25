@@ -97,6 +97,7 @@ from strategist.ai.graph.turn_status import (
     RECALLING_AND_READING,
     turn_step_status,
 )
+from strategist.ai.lead.answered_strategy import take_the_sites_fold
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.lead_agent import LeadAgent
 from strategist.ai.lead.linked_pages import read_linked_pages
@@ -339,6 +340,11 @@ async def _run_lead_turn(
             message_id=message_id,
         )
 
+    await take_the_sites_fold(
+        deps.state,
+        runtime.context.strategy_session,
+        site_id=runtime.context.site_id,
+    )
     capture.response = final_reply(
         capture, deps.unanswered_stage, change=strategy_change(deps.state)
     )

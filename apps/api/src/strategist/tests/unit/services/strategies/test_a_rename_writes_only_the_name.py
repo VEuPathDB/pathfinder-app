@@ -31,6 +31,7 @@ from strategist.services.strategies.step_push_planner import (
     RecreateAction,
     SkipAction,
     StepPushPlan,
+    TheTurn,
     plan_step_pushes,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -86,7 +87,7 @@ def _plan_of(old: StrategyStepNode, new: StrategyStepNode) -> StepPushPlan:
         new_ast=StrategyAst(record_type="transcript", root=new),
         existing_wdk_ids={_LEAF: _WDK_LEAF},
         held=held_as(StrategyAst(record_type="transcript", root=old)),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
     return entry
 
@@ -124,7 +125,7 @@ class TestThePlanNamesWhatMoved:
             new_ast=_combine(name="A with B"),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
             held=held_as(_combine(name="A and B")),
-            unfinished=frozenset(),
+            turn=TheTurn(),
         )
 
         assert {entry.step_id: entry.action for entry in plan}["step_join"] == (
@@ -138,7 +139,7 @@ class TestThePlanNamesWhatMoved:
             new_ast=_combine(weight=5),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_join": 3},
             held=held_as(_combine()),
-            unfinished=frozenset(),
+            turn=TheTurn(),
         )
 
         by_id = {entry.step_id: entry for entry in plan}
@@ -168,7 +169,7 @@ class TestThePlanNamesWhatMoved:
             new_ast=ortholog(b, 12),
             existing_wdk_ids={"step_a": 1, "step_b": 2, "step_t": 3},
             held=held_as(ortholog(a, 10)),
-            unfinished=frozenset(),
+            turn=TheTurn(),
         )
 
         by_id = {entry.step_id: entry for entry in plan}

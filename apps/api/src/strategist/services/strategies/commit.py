@@ -12,6 +12,7 @@ from strategist.domain.strategy.combine_naming import name_the_combines
 from strategist.domain.strategy.operations import (
     GraphOperation,
     ReplaceSubtreeOp,
+    UpdateStepParamsOp,
 )
 from strategist.domain.strategy.operations.apply import (
     ApplyError,
@@ -286,6 +287,7 @@ async def apply_operations_and_commit(
             old_ast=old_ast,
             wdk_ast=wdk_ast,
             sync_state=sync_state,
+            stated=_stated_by_the_ops(ops),
         )
     except VEuPathDBError, ApplyError:
         # The push raises for a step VEuPathDB already holds, so the batch is
@@ -316,6 +318,17 @@ async def apply_operations_and_commit(
     )
 
 
+def _stated_by_the_ops(ops: Sequence[GraphOperation]) -> dict[str, frozenset[str]]:
+    stated: dict[str, frozenset[str]] = {}
+    for op in ops:
+        match op:
+            case UpdateStepParamsOp(step_id=step_id, parameters=parameters):
+                stated[step_id] = stated.get(step_id, frozenset()) | parameters.keys()
+            case _:
+                pass
+    return stated
+
+
 async def _commit_the_tree(
     *,
     deps: StrategyMutationContext,
@@ -323,6 +336,7 @@ async def _commit_the_tree(
     old_ast: StrategyAst | None,
     wdk_ast: StrategyAst | None,
     sync_state: WDKSyncState,
+    stated: dict[str, frozenset[str]],
 ) -> CommittedTree | None:
     committed = None
     if wdk_ast is None or not graph.steps:
@@ -339,6 +353,7 @@ async def _commit_the_tree(
             target=CommitTarget(
                 name=name_for_the_push(graph, deps.user_prompt),
                 description=strategy_description(graph, wdk_ast.root.id),
+                stated=stated,
             ),
         )
         if committed.record_type is not None:

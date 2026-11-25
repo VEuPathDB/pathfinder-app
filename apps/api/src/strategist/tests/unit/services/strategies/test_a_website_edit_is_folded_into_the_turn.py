@@ -4,8 +4,8 @@ from veupathdb.domain.parameters import HeldValue, MultiPickValue, StringValue
 from veupathdb.wdk import turn_reads
 
 from strategist.ai.lead.answered_strategy import (
+    take_the_sites_fold,
     the_strategy_now_answers_to,
-    the_write_answers_to,
 )
 from strategist.ai.lead.pre_turn import stated_spec_of
 from strategist.ai.lead.verify_checks import _bound_values, _judged
@@ -158,7 +158,7 @@ async def test_a_spec_build_after_the_fold_keeps_the_website_value(
         await read_wdk_step_counts(sync, _SITE)
         wdk.steps[step]["searchConfig"]["parameters"]["text_expression"] = "rhoptry"
         await apply_operations_and_commit(deps=deps, ops=[_rename("Kinases")])
-        await the_write_answers_to(state, spec, deps.strategy_session, site_id=_SITE)
+        await take_the_sites_fold(state, deps.strategy_session, site_id=_SITE)
         rebuilt = state.domain.operational_spec
         assert rebuilt is not None
         built = len(wdk.writes)

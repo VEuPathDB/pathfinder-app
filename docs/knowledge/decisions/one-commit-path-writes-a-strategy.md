@@ -40,7 +40,11 @@ A commit runs in this order:
   plans, the commit takes onto the graph every value and setting the site holds that the
   plan did not move (`commit_read.what_wdk_holds`, with the fold the turn's first read
   uses, `site_changes.fold_the_sites_values`), so a value set on the website during the
-  turn is the graph's, is not written back, and is what the turn shows and checks.
+  turn is the graph's, is not written back, and is what the turn shows and checks. A
+  value equal to one such a fold replaced earlier in the turn is the turn's stale copy and
+  does not move, unless an operation of this commit names it (`UpdateStepParamsOp`), so a
+  deliberate set-back is still written. A parameter only WDK states (a hidden default
+  such as `document_type`) is not kept in the plan: it goes to WDK as WDK holds it.
   A moved value is stated; the rest is context. A value
   the earlier plan stated and this plan no longer states has moved too: the step is written
   without it and WDK takes its default. The weight and the filters are sent only when they

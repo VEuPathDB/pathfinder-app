@@ -4281,7 +4281,7 @@ wheels = [
 [[package]]
 name = "veupathdb-mcp"
 version = "0.9.0b28"
-source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b28#e1e680303c966f6ebcc75fa881dcafc82aac1006" }
+source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.9.0-b28#ea9229e1dfa0fbeb853b4bba228d7cbecc95d36b" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -4319,7 +4319,7 @@ dependencies = [
 [[package]]
 name = "veupathdb-py"
 version = "0.9.0b20"
-source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b20#9e95ddd23bcac0562a1ea9fa82cadd3f0888d418" }
+source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.9.0b20#82c81710fc47d254feaf49b092c98dea65cadf0b" }
 dependencies = [
     { name = "httpx" },
     { name = "json5" },

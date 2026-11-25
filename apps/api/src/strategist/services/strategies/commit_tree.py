@@ -56,6 +56,7 @@ from strategist.services.strategies.record_classes import (
 )
 from strategist.services.strategies.started_plan import (
     started_settings,
+    the_turn,
     unstated,
 )
 from strategist.services.strategies.step_push_planner import (
@@ -64,6 +65,7 @@ from strategist.services.strategies.step_push_planner import (
     RecreateAction,
     SkipAction,
     StepPushPlan,
+    TurnBaseline,
     moved_by_the_turn,
     plan_step_pushes,
 )
@@ -85,6 +87,7 @@ class CommitTarget(CamelModel):
     role: StrategyRole = "thread"
     copies: dict[str, StepSettings] = Field(default_factory=dict)
     datasets: dict[str, list[str]] = Field(default_factory=dict)
+    stated: dict[str, frozenset[str]] = Field(default_factory=dict)
 
 
 class CommittedTree(BaseModel):
@@ -112,7 +115,8 @@ class _Commit:
     steps: dict[str, StrategyStep]
     sync_state: WDKSyncState
     before: dict[str, StepSettings]
-    started: dict[str, StepSettings]
+    started: dict[str, TurnBaseline]
+    site: dict[str, StepSettings]
     pushed: list[str] = field(default_factory=list)
     failures: list[StepPushFailure] = field(default_factory=list)
     drafts: dict[str, str] = field(default_factory=dict)
@@ -153,7 +157,12 @@ class _Commit:
                 self._draft_unless_ready(step)
                 continue
             before = self.before.get(step.id, StepSettings()).parameters
-            context = unstated(step.parameters, before, self.started.get(step.id))
+            context = unstated(
+                step.parameters,
+                before,
+                self.started.get(step.id),
+                self.site.get(step.id, StepSettings()).parameters,
+            )
             try:
                 validated = await validate_parameters(
                     SearchContext(
@@ -173,7 +182,10 @@ class _Commit:
                 self._refused(step, exc)
                 continue
             self.sent[step.id] = {**step.parameters, **context, **validated.params}
-            step.parameters = {**step.parameters, **validated.params}
+            step.parameters = {
+                **step.parameters,
+                **{k: v for k, v in validated.params.items() if k in step.parameters},
+            }
             if validated.record_class:
                 step.record_class = validated.record_class
 
@@ -370,7 +382,8 @@ async def commit_tree(
     if not refused.empty:
         raise PlanDeparturesError(refused)
     api = get_strategy_api(site_id)
-    started = started_settings(old, sync_state.wdk_push_errors)
+    turn = the_turn(sync_state, target.stated)
+    started = started_settings(old, turn)
     match await what_wdk_holds(api, site_id, steps, root_id, started, sync_state):
         case StepPushFailure() as unread:
             return CommittedTree(failures=[unread], not_read=True)
@@ -390,9 +403,9 @@ async def commit_tree(
         new_ast=StrategyAst(record_type="", root=root),
         existing_wdk_ids=sync_state.wdk_step_ids,
         held=before,
-        unfinished=sync_state.wdk_push_errors,
+        turn=turn,
     )
-    run = _Commit(api, site_id, steps, sync_state, before, started)
+    run = _Commit(api, site_id, steps, sync_state, before, started, held)
     if target.role == "thread":
         return await run.everything(plan, root, target)
     try:

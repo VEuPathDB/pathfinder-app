@@ -17,6 +17,7 @@ from strategist.services.strategies.step_push_planner import (
     RecreateAction,
     SkipAction,
     StepPushPlan,
+    TheTurn,
     plan_step_pushes,
 )
 from strategist.tests._support.wdk_write_stubs import held_as
@@ -97,7 +98,7 @@ def test_no_old_ast_creates_all_steps() -> None:
         new_ast=new_ast,
         existing_wdk_ids={},
         held={},
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert plan == [
@@ -133,7 +134,7 @@ def test_unchanged_strategy_skips_everything() -> None:
         new_ast=ast,
         existing_wdk_ids=wdk_ids,
         held=held_as(ast),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert all(p.action == SkipAction() for p in plan)
@@ -156,7 +157,7 @@ def test_single_leaf_param_change_patches_only_that_leaf() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -198,7 +199,7 @@ def test_combine_operator_change_recreates_only_that_combine() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -225,7 +226,7 @@ def test_combine_operator_change_propagates_recreate_upward() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -249,7 +250,7 @@ def test_combine_input_swap_is_recreate() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -274,7 +275,7 @@ def test_step_kind_transition_recreates() -> None:
         new_ast=_ast(new_root),
         existing_wdk_ids=wdk_ids,
         held=held_as(_ast(old_root)),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -296,7 +297,7 @@ def test_added_step_creates_only_that_step() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -333,7 +334,7 @@ def test_display_name_only_change_patches_leaf() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert plan == [
@@ -356,7 +357,7 @@ def test_search_name_change_recreates_the_leaf() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert plan == [
@@ -389,7 +390,7 @@ def test_a_replaced_search_recreates_every_combine_above_it() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}
@@ -411,7 +412,7 @@ def test_combine_metadata_only_change_patches_combine() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p for p in plan}

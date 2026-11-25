@@ -18,9 +18,8 @@ from veupathdb.errors import VEuPathDBError
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.answered_strategy import (
     live_tree,
-    take_the_sites_fold,
+    the_strategy_now_answers_to,
     the_thread_wrote_the_strategy,
-    the_write_answers_to,
 )
 from strategist.ai.lead.build_messages import (
     build_not_ready_message,
@@ -181,9 +180,7 @@ async def build_the_minted(
     graph = agent_deps.strategy_session.get_graph(None)
     # The whole local tree is persisted even when a push fails part way, so
     # the spec is what the strategy answers to either way.
-    await the_write_answers_to(
-        deps.state, spec, agent_deps.strategy_session, site_id=agent_deps.site_id
-    )
+    the_strategy_now_answers_to(deps.state, spec, graph)
     if graph is not None:
         emit_chunk(
             get_stream_writer(),
@@ -260,9 +257,6 @@ async def run_recovery(
     if isinstance(streamed, SubAgentApprovalWait):
         return streamed
     apply_agent_state(deps, agent_deps)
-    await take_the_sites_fold(
-        deps.state, deps.runtime.strategy_session, site_id=deps.runtime.site_id
-    )
     delta = streamed if streamed is not None else RecoveryDelta()
     resynced = await _resync_outcome(agent_deps, outcome)
     # Recovery writes the steps and never the spec, so the spec takes what it

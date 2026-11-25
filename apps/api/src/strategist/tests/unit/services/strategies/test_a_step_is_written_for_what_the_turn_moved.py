@@ -4,6 +4,7 @@ from strategist.services.strategies.step_push_planner import (
     PatchAction,
     RecreateAction,
     SkipAction,
+    TheTurn,
     plan_step_pushes,
 )
 from strategist.tests._support.wdk_write_stubs import held_as
@@ -40,7 +41,7 @@ def test_a_filter_only_change_on_a_leaf_patches_its_search_config() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     by_id = {p.step_id: p.action for p in plan}
@@ -63,7 +64,7 @@ def test_a_filter_change_on_a_combine_recreates_it() -> None:
         new_ast=new,
         existing_wdk_ids=wdk_ids,
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert [p.action for p in plan] == [SkipAction(), SkipAction(), RecreateAction()]
@@ -78,7 +79,7 @@ def test_a_value_restated_in_its_canonical_spelling_is_not_written() -> None:
         new_ast=new,
         existing_wdk_ids={"step_a": 1},
         held=held_as(old),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert [p.action for p in plan] == [SkipAction()]
@@ -93,7 +94,7 @@ def test_a_value_the_turn_did_not_move_is_not_written_back() -> None:
         new_ast=old,
         existing_wdk_ids={"step_a": 1},
         held=held_as(site),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert [p.action for p in plan] == [SkipAction()]
@@ -108,7 +109,7 @@ def test_a_step_whose_last_write_did_not_land_is_written_against_the_site() -> N
         new_ast=old,
         existing_wdk_ids={"step_a": 1},
         held=held_as(site),
-        unfinished=frozenset({"step_a"}),
+        turn=TheTurn(unfinished=frozenset({"step_a"})),
     )
 
     assert [p.action for p in plan] == [PatchAction(search_config=True, name=False)]

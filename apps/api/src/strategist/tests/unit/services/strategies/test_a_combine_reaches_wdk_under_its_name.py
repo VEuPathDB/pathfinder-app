@@ -19,6 +19,7 @@ from strategist.services.strategies.commit import apply_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
 from strategist.services.strategies.step_push_planner import (
     PatchAction,
+    TheTurn,
     plan_step_pushes,
 )
 from strategist.tests._support.wdk_write_stubs import commit_against, held_as
@@ -92,7 +93,7 @@ def test_a_pushed_combine_whose_name_lags_plans_a_name_patch() -> None:
         new_ast=ast("Intersect"),
         existing_wdk_ids=_WDK_IDS,
         held=held_as(ast(None)),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert {entry.step_id: entry.action for entry in plan}["step_join"] == (

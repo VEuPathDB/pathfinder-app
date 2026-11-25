@@ -5,6 +5,7 @@ from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from strategist.services.strategies.step_push_planner import (
     SkipAction,
+    TheTurn,
     plan_step_pushes,
 )
 from strategist.tests._support.wdk_write_stubs import held_as
@@ -29,7 +30,7 @@ def test_a_step_whose_picks_change_only_their_order_is_skipped() -> None:
         new_ast=_signal(_ORGANISMS[::-1]),
         existing_wdk_ids={"signal": 100},
         held=held_as(_signal(_ORGANISMS)),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
 
     assert [entry.action for entry in plan] == [SkipAction()]

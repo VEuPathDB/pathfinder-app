@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping
 from typing import NamedTuple
 
-from veupathdb.domain.strategy import StepSettings, StrategyAst, StrategyStepNode
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, settings_of
 
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
@@ -43,7 +43,7 @@ from strategist.services.strategies.sheet_params import (
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
-from strategist.services.strategies.sync_state import ensure_sync_state
+from strategist.services.strategies.sync_state import SiteFold, ensure_sync_state
 
 __all__ = [
     "analyses_of",
@@ -52,7 +52,6 @@ __all__ = [
     "the_changes_written_outside",
     "the_strategy_now_answers_to",
     "the_thread_wrote_the_strategy",
-    "the_write_answers_to",
 ]
 
 
@@ -141,48 +140,35 @@ async def the_changes_written_outside(
     return changes
 
 
-async def the_write_answers_to(
-    state: PipelineState,
-    spec: OperationalSpec | None,
-    session: StrategySession,
-    *,
-    site_id: str,
-) -> None:
-    """Record what a write left the strategy answering to, then take what the
-    write's own read found on the site."""
-    the_strategy_now_answers_to(state, spec, session.get_graph(None))
-    await take_the_sites_fold(state, session, site_id=site_id)
-
-
 async def take_the_sites_fold(
     state: PipelineState, session: StrategySession, *, site_id: str
 ) -> None:
-    """Play onto every spec the values a commit's read took onto the graph from
-    the site, as a change written outside the thread."""
+    """Play onto every spec the values the turn's commits took onto the graph from
+    the site, as a change written outside the thread. A value the turn moved
+    since is the turn's own and is not played."""
     sync_state = ensure_sync_state(session)
-    if not sync_state.site_fold:
-        return
-    fold, sync_state.site_fold = sync_state.site_fold, {}
     graph = session.get_graph(None)
     live = live_tree(graph)
-    since = None if live is None else _as_it_stood(live, fold)
+    if not sync_state.site_fold or live is None:
+        return
+    since = _as_it_stood(live, sync_state.site_fold)
     await the_changes_written_outside(state, site_id=site_id, graph=graph, since=since)
 
 
-def _as_it_stood(ast: StrategyAst, fold: Mapping[str, StepSettings]) -> StrategyAst:
+def _as_it_stood(ast: StrategyAst, fold: Mapping[str, SiteFold]) -> StrategyAst:
     def node(at: StrategyStepNode) -> StrategyStepNode:
-        held = fold.get(at.id)
-        return at.model_copy(
-            update={
-                **({} if held is None else dict(held)),
-                "primary_input": None
-                if at.primary_input is None
-                else node(at.primary_input),
-                "secondary_input": None
-                if at.secondary_input is None
-                else node(at.secondary_input),
-            }
-        )
+        taken = fold.get(at.id)
+        update: dict[str, object] = {
+            "primary_input": None
+            if at.primary_input is None
+            else node(at.primary_input),
+            "secondary_input": None
+            if at.secondary_input is None
+            else node(at.secondary_input),
+        }
+        if taken is not None:
+            update.update(_what_the_fold_replaced(at, taken))
+        return at.model_copy(update=update)
 
     return ast.model_copy(
         update={
@@ -190,6 +176,27 @@ def _as_it_stood(ast: StrategyAst, fold: Mapping[str, StepSettings]) -> Strategy
             "detached_roots": [node(r) for r in ast.detached_roots],
         }
     )
+
+
+def _what_the_fold_replaced(at: StrategyStepNode, taken: SiteFold) -> dict[str, object]:
+    now = settings_of(at)
+    before = dict(taken.before)
+    update: dict[str, object] = {
+        name: before[name]
+        for name in taken.before.changed(taken.after)
+        if name != "parameters" and name not in now.changed(taken.after)
+    }
+    params = {
+        name: taken.before.parameters[name]
+        for name, value in now.parameters.items()
+        if name in taken.after.parameters
+        and name in taken.before.parameters
+        and value == taken.after.parameters[name]
+        and value != taken.before.parameters[name]
+    }
+    if params:
+        update["parameters"] = {**now.parameters, **params}
+    return update
 
 
 def _the_plan_leaves_out(domain: StrategyDomainState) -> frozenset[str]:

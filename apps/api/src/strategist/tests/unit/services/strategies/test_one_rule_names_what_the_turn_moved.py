@@ -5,7 +5,10 @@ from veupathdb.domain.parameters import HeldValue, NumberValue, ParamValue, Stri
 from veupathdb.domain.strategy import StepKind, StepSettings, StrategyStep
 
 from strategist.services.strategies.commit_read import the_turns_own
-from strategist.services.strategies.step_push_planner import moved_by_the_turn
+from strategist.services.strategies.step_push_planner import (
+    TurnBaseline,
+    moved_by_the_turn,
+)
 
 
 @pytest.mark.parametrize(
@@ -34,7 +37,8 @@ def test_a_value_the_turn_holds_in_another_form_is_not_the_turns(
     )
     stated = StepSettings(search_name="GenesByText", parameters=step.parameters)
 
-    own = the_turns_own({"step_a": step}, {"step_a": was})
+    base = TurnBaseline(started=was)
+    own = the_turns_own({"step_a": step}, {"step_a": base})
 
     assert own.holds("step_a", "text_expression") is False
-    assert moved_by_the_turn(stated, held, was) == []
+    assert moved_by_the_turn(stated, held, base) == []

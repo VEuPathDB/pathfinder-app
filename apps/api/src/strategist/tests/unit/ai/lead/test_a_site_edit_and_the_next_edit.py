@@ -16,6 +16,7 @@ from strategist.services.strategies import commit_tree
 from strategist.services.strategies.step_push_planner import (
     PatchAction,
     SkipAction,
+    TheTurn,
     plan_step_pushes,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -87,7 +88,7 @@ async def _the_writes(
         new_ast=after,
         existing_wdk_ids=site.ids,
         held=held_as(before),
-        unfinished=frozenset(),
+        turn=TheTurn(),
     )
     assert {entry.step_id: entry.action for entry in plan} == {
         SURFACE: SkipAction(),

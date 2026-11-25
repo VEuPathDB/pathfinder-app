@@ -20,7 +20,10 @@
   so a website edit made during the turn is shown, checked and kept; a commit whose read
   failed restores the graph it started from. Every write path plays the values the
   commit's read took from the site onto the turn's specs (`take_the_sites_fold`), so a
-  later spec build keeps them. A build whose read failed reports every step not built,
+  later spec build keeps them; the turn keeps what each fold replaced, a commit that
+  restates it moves nothing, and the specs take the folds once at the end of the Lead's
+  turn. A hidden default the validation adds is not stored in the plan, so a rebuild
+  writes no step and a website value of it stays. A build whose read failed reports every step not built,
   and one rule (`turn_moved`, on `same_param_value`) names what the turn moved for the
   fold and the planner.
 
