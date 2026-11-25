@@ -36,7 +36,7 @@ def unstated(
         **{
             name: value
             for name, value in site.items()
-            if name not in values and name not in kept and started is not None
+            if name not in values and (name not in kept or kept[name] != value)
         },
         **unmoved(values, held),
         **{

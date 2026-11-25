@@ -29,9 +29,11 @@ Every read that decides a write reads fresh (`get_strategy(..., fresh=True)`):
   and kept on the site ([one commit path](one-commit-path-writes-a-strategy.md), R1).
   The turn keeps what each such fold replaced (`WDKSyncState.site_fold`) for the whole
   turn, and a later commit that states the replaced value again does not move it, so no
-  commit path writes the site's value back. Once, when the Lead's turn ends, the values
-  the folds took and the turn did not move since are played onto the turn's specs as a
-  change written outside the thread (`answered_strategy.take_the_sites_fold`);
+  commit path writes the site's value back. Each time the Lead's instructions are
+  rendered (`lead_pins.pinned_spec_as_the_site_holds_it`, before every model request),
+  the values the folds took and the turn did not move since are played onto the turn's
+  specs as a change written outside the thread (`answered_strategy.take_the_sites_fold`),
+  so the Lead never names the turn's stale value;
 - `delete_released_mint`, so a strategy the researcher saved during the turn is not
   deleted;
 - `clone_saved_strategy`, so an insert copies the saved strategy as the site holds it now;

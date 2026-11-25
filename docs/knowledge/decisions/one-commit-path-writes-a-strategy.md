@@ -44,7 +44,11 @@ A commit runs in this order:
   value equal to one such a fold replaced earlier in the turn is the turn's stale copy and
   does not move, unless an operation of this commit names it (`UpdateStepParamsOp`), so a
   deliberate set-back is still written. A parameter only WDK states (a hidden default
-  such as `document_type`) is not kept in the plan: it goes to WDK as WDK holds it.
+  such as `document_type`) is not kept in the plan: it goes to WDK as WDK holds it. A
+  value the earlier plan stated and this plan drops is a move only while WDK still holds
+  what the earlier plan stated; one the site now holds otherwise is the site's and goes
+  as context. A step whose last write was refused sends every value it does not state
+  as WDK holds it.
   A moved value is stated; the rest is context. A value
   the earlier plan stated and this plan no longer states has moved too: the step is written
   without it and WDK takes its default. The weight and the filters are sent only when they

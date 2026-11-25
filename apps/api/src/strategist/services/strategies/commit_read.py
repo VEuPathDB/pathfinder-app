@@ -27,7 +27,7 @@ def the_turns_own(
         was = started.get(step_id)
         if was is None:
             continue
-        names[step_id] = turn_moved(settings_of(step), was)
+        names[step_id] = turn_moved(settings_of(step), was, None)
     return TheTurnsOwn(steps=frozenset(steps.keys() - names.keys()), names=names)
 
 

@@ -142,7 +142,7 @@ async def the_changes_written_outside(
 
 async def take_the_sites_fold(
     state: PipelineState, session: StrategySession, *, site_id: str
-) -> None:
+) -> OutsideChanges:
     """Play onto every spec the values the turn's commits took onto the graph from
     the site, as a change written outside the thread. A value the turn moved
     since is the turn's own and is not played."""
@@ -150,9 +150,11 @@ async def take_the_sites_fold(
     graph = session.get_graph(None)
     live = live_tree(graph)
     if not sync_state.site_fold or live is None:
-        return
+        return OutsideChanges()
     since = _as_it_stood(live, sync_state.site_fold)
-    await the_changes_written_outside(state, site_id=site_id, graph=graph, since=since)
+    return await the_changes_written_outside(
+        state, site_id=site_id, graph=graph, since=since
+    )
 
 
 def _as_it_stood(ast: StrategyAst, fold: Mapping[str, SiteFold]) -> StrategyAst:

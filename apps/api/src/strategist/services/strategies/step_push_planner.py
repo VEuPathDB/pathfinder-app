@@ -124,14 +124,22 @@ def _same(name: str, left: ParamValue, right: ParamValue) -> bool:
     return same_param_value(name, value_kind(left) or value_kind(right), left, right)
 
 
-def turn_moved(now: StepSettings, base: TurnBaseline) -> frozenset[str]:
+def turn_moved(
+    now: StepSettings, base: TurnBaseline, held: StepSettings | None
+) -> frozenset[str]:
     was = base.started.parameters
+    site = None if held is None else held.parameters
     params = {
         name
         for name, value in now.parameters.items()
         if (name not in was or not _same(name, value, was[name]))
         and not base.stale_value(name, value)
-    } | {name for name in was if name not in now.parameters}
+    } | {
+        name
+        for name, value in was.items()
+        if name not in now.parameters
+        and (site is None or (name in site and _same(name, site[name], value)))
+    }
     settings = {
         name
         for name in now.changed(base.started)
@@ -146,7 +154,7 @@ def moved_by_the_turn(
     moved = stated.changed(held)
     if base is None:
         return moved
-    turned = turn_moved(stated, base)
+    turned = turn_moved(stated, base, held)
     return [name for name in moved if name in turned]
 
 
