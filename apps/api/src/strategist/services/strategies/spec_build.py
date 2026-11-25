@@ -289,6 +289,10 @@ async def build_strategy_from_spec(
             deps=deps, graph=graph, sync_result=None
         )
         raise
+    if committed.not_read:
+        restore_graph(graph, old, entry.labels)
+        del graph.history[entry.history :]
+        sync_state.step_counts = entry.counts
     if committed.record_type is not None:
         graph.record_type = committed.record_type
     outcome = outcome_of(

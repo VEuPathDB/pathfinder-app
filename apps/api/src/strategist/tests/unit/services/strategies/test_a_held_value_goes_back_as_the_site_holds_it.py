@@ -270,7 +270,11 @@ async def _site_read(
     wire = WireStep(record_class=None, parameters={"min_weight": site})
 
     await site_changes._take_the_parameters(
-        step, "GenesByMolecularWeight", wire, site_id="plasmodb"
+        step,
+        "GenesByMolecularWeight",
+        wire,
+        site_id="plasmodb",
+        own=site_changes.TheTurnsOwn(),
     )
     return step
 

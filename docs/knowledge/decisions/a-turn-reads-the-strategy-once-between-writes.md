@@ -25,9 +25,8 @@ verification) reads through the client and keeps no copy of its own.
 Every read that decides a write reads fresh (`get_strategy(..., fresh=True)`):
 
 - the commit's `reconcile_sync_state_with_wdk`, so an edit made on the website or in the
-  panel (which reaches the api process, not the worker) is planned against. The commit
-  writes only the settings the turn moved
-  ([one commit path](one-commit-path-writes-a-strategy.md), R1), so that edit stays;
+  panel (which reaches the api process, not the worker) is taken onto the turn's graph
+  and kept on the site ([one commit path](one-commit-path-writes-a-strategy.md), R1);
 - `delete_released_mint`, so a strategy the researcher saved during the turn is not
   deleted;
 - `clone_saved_strategy`, so an insert copies the saved strategy as the site holds it now;

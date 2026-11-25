@@ -31,7 +31,7 @@ class _Answering:
 async def test_a_step_wdk_answers_404_for_is_unmapped() -> None:
     state = WDKSyncState(wdk_step_ids={"step_a": 77})
 
-    held = await reconcile_sync_state_with_wdk(state, _Answering(_GONE))
+    held = (await reconcile_sync_state_with_wdk(state, _Answering(_GONE))).steps
 
     assert (held, state.wdk_step_ids) == ({}, {})
 

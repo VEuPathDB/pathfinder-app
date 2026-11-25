@@ -294,6 +294,9 @@ async def apply_operations_and_commit(
         del graph.history[history:]
         raise
 
+    if committed is not None and committed.not_read:
+        restore_graph(graph, old_ast, entry_labels)
+        del graph.history[history:]
     sync_result = None if committed is None else committed.sync
     await persist_strategy_ast_to_conversation(
         deps=deps,

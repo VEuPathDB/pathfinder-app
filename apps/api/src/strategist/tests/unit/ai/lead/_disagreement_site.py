@@ -18,7 +18,7 @@ from veupathdb.wdk import StrategyAPI, WDKStepTree, WDKStrategyDetails
 from veupathdb_mcp.wdk import WireStep
 
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
-from strategist.services.strategies import live_counts, site_changes
+from strategist.services.strategies import live_counts, site_changes, thread_site_read
 from strategist.services.strategies.sync_state import WDKSyncState
 from strategist.tests.unit.ai.lead._disagreement_thread import DisagreementThread
 
@@ -150,9 +150,9 @@ def install_the_site(thread: DisagreementThread) -> TheSite:
     patch(live_counts, "get_strategy_api", lambda _site_id: site)
     patch(site_changes, "get_strategy_api", lambda _site_id: site)
     patch(site_changes, "canonicalize_synced_parameters", site.decode)
-    patch(site_changes, "strategy_write_lock", _lock)
-    patch(site_changes, "stored_strategy_session", _stored)
-    patch(site_changes, "persist_strategy_ast_to_conversation", _persist)
+    patch(thread_site_read, "strategy_write_lock", _lock)
+    patch(thread_site_read, "stored_strategy_session", _stored)
+    patch(thread_site_read, "persist_strategy_ast_to_conversation", _persist)
     return site
 
 

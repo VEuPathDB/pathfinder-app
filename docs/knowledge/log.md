@@ -14,7 +14,10 @@
   both differ; a step whose last write did not land is compared with WDK alone. A rename no
   longer writes a step back over a value set on the website, and a search-config PUT states
   the weight and the filters only when the turn moved them. The clone of a saved strategy
-  and the import read fresh, and `TurnCounts` keeps no count of its own.
+  and the import read fresh, and `TurnCounts` keeps no count of its own. The commit takes
+  onto the graph every value the site holds that it did not move, with the turn-start fold,
+  so a website edit made during the turn is shown, checked and kept; a commit whose read
+  failed restores the graph it started from.
 
 ## 2026-11-24
 

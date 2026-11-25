@@ -41,8 +41,8 @@ from strategist.services.strategies._wdk_step_calls import (
 from strategist.services.strategies.commit_failures import (
     departures,
     unsorted_failure,
-    what_wdk_holds,
 )
+from strategist.services.strategies.commit_read import what_wdk_holds
 from strategist.services.strategies.reconcile import (
     held_after_the_put,
     held_before_the_commit,
@@ -98,6 +98,7 @@ class CommittedTree(BaseModel):
     record_type: str | None = None
     held: dict[str, StepSettings] = Field(default_factory=dict)
     put: bool = False
+    not_read: bool = False
 
     @property
     def refused(self) -> dict[str, str]:
@@ -369,10 +370,12 @@ async def commit_tree(
     if not refused.empty:
         raise PlanDeparturesError(refused)
     api = get_strategy_api(site_id)
-    held = await what_wdk_holds(api, site_id, steps, root_id, old, sync_state)
-    match held:
-        case StepPushFailure():
-            return CommittedTree(failures=[held])
+    started = started_settings(old, sync_state.wdk_push_errors)
+    match await what_wdk_holds(api, site_id, steps, root_id, started, sync_state):
+        case StepPushFailure() as unread:
+            return CommittedTree(failures=[unread], not_read=True)
+        case holds:
+            held = holds.steps
     await provision_the_datasets(api, steps, target.datasets)
     await fill_record_classes(site_id, steps)
     root = rebuild_tree(root_id, steps)
@@ -389,7 +392,6 @@ async def commit_tree(
         held=before,
         unfinished=sync_state.wdk_push_errors,
     )
-    started = started_settings(old, sync_state.wdk_push_errors)
     run = _Commit(api, site_id, steps, sync_state, before, started)
     if target.role == "thread":
         return await run.everything(plan, root, target)

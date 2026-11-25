@@ -75,7 +75,9 @@ from strategist.services.strategies.sheet_params import (
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
-from strategist.services.strategies.site_changes import read_the_site_into_the_thread
+from strategist.services.strategies.thread_site_read import (
+    read_the_site_into_the_thread,
+)
 
 __all__ = [
     "attach_change_at_arrival",
