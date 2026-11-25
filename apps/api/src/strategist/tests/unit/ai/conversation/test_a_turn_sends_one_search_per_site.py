@@ -81,7 +81,8 @@ async def test_two_searches_of_one_turn_reach_the_site_one_at_a_time(
         async def two_searches(conversation_id: UUID) -> None:
             del conversation_id
             await asyncio.gather(
-                client.post(TEXT_REPORT, json={}), client.post(TEXT_REPORT, json={})
+                client.post(TEXT_REPORT, json={"reportConfig": {"attributes": []}}),
+                client.post(TEXT_REPORT, json={"reportConfig": {}}),
             )
             raise _TurnEndedError
 

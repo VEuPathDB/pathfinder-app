@@ -1,5 +1,15 @@
 # Log
 
+## 2026-11-25
+
+* **A turn reads the strategy once between writes.** veupathdb-py 0.9.0b20 and veupathdb-mcp
+  0.9.0b28. `researcher_search_turn` opens `turn_reads`, so a strategy read, a step report and
+  a search context read are sent once until the turn writes; the commit's reconcile read and
+  the release of an abandoned mint read fresh. The site client keeps search definitions and
+  record types for fifteen minutes, and `search_definitions_read_once` is gone from the
+  request middleware, the job context and the audit job
+  (`decisions/a-turn-reads-the-strategy-once-between-writes.md`).
+
 ## 2026-11-24
 
 * **The e2e tier replays recorded WDK.** The wdk-wire proxy (`deploy/wdk-wire/`,

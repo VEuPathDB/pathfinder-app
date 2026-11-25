@@ -17,8 +17,8 @@ That is correct only while no gene search has such a vocabulary. On 2026-10-19 t
 vocabulary that takes `user_id`, `datasetVQ.geneListUserDataset` in EbrcModelCommon, feeds
 the `datasetSelection` parameter of a step analysis form and no search.
 
-A canvas save, a turn and a job read definitions through the site client inside
-`search_definitions_read_once`, keyed by login, so they are not affected.
+A canvas save, a turn and a job read definitions through the site client, which keeps
+each one for fifteen minutes keyed by login, so they are not affected.
 
 **At each VEuPathDB release:**
 

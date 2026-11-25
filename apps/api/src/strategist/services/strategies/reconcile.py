@@ -37,7 +37,9 @@ logger = get_logger(__name__)
 
 
 class StrategyReads(Protocol):
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails: ...
+    async def get_strategy(
+        self, strategy_id: int, *, fresh: bool
+    ) -> WDKStrategyDetails: ...
     async def find_step(self, step_id: int) -> WDKStep: ...
 
 
@@ -55,7 +57,7 @@ async def reconcile_sync_state_with_wdk(
     live_ids: set[int] = set()
     held: dict[str, StepSettings] = {}
     if sync_state.wdk_strategy_id is not None:
-        detail = await api.get_strategy(sync_state.wdk_strategy_id)
+        detail = await api.get_strategy(sync_state.wdk_strategy_id, fresh=True)
         sync_state.wdk_strategy_name = detail.name
         sync_state.wdk_strategy_description = detail.description
         held = _held_in(detail, sync_state)

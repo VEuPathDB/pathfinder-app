@@ -170,7 +170,7 @@ async def delete_released_mint(release: ReleasableMint | None) -> None:
         return
     api = get_strategy_api(release.site_id)
     try:
-        held = await api.get_strategy(release.wdk_strategy_id)
+        held = await api.get_strategy(release.wdk_strategy_id, fresh=True)
     except RELEASE_FAILURES as exc:
         logger.warning(
             "Abandoned WDK strategy kept: the site did not answer the saved mark",

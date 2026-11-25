@@ -33,9 +33,9 @@ class _Site(StubAPI):
     """A site that records each rename and answers the root's count."""
 
     async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
+        self, strategy_id: int, user_id: str | None = None, *, fresh: bool = False
     ) -> WDKStrategyDetails:
-        del user_id
+        del user_id, fresh
         return WDKStrategyDetails.model_validate(
             {
                 "strategyId": strategy_id,
