@@ -19,6 +19,7 @@ from veupathdb.wdk import (
     SiteSearchResponse,
     WDKSearch,
     phyletic_tree_of,
+    turn_reads,
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
@@ -437,19 +438,20 @@ async def test_a_turn_counts_one_configuration_once_per_site(
     counts = TurnCounts()
     params = _percentile_params("0")
 
-    first = await counts.count(
-        "plasmodb", "transcript", PERCENTILE_SEARCH, params, timeout_seconds=_BUDGET
-    )
-    again = await counts.count(
-        "plasmodb",
-        "transcript",
-        PERCENTILE_SEARCH,
-        dict(reversed(params.items())),
-        timeout_seconds=_BUDGET,
-    )
-    elsewhere = await counts.count(
-        "toxodb", "transcript", PERCENTILE_SEARCH, params, timeout_seconds=_BUDGET
-    )
+    with turn_reads():
+        first = await counts.count(
+            "plasmodb", "transcript", PERCENTILE_SEARCH, params, timeout_seconds=_BUDGET
+        )
+        again = await counts.count(
+            "plasmodb",
+            "transcript",
+            PERCENTILE_SEARCH,
+            dict(reversed(params.items())),
+            timeout_seconds=_BUDGET,
+        )
+        elsewhere = await counts.count(
+            "toxodb", "transcript", PERCENTILE_SEARCH, params, timeout_seconds=_BUDGET
+        )
 
     assert (first, again, elsewhere) == (5318, 5318, 5318)
     assert asked == [PERCENTILE_SEARCH, PERCENTILE_SEARCH]

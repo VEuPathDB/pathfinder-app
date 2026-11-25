@@ -9,6 +9,12 @@
   record types for fifteen minutes, and `search_definitions_read_once` is gone from the
   request middleware, the job context and the audit job
   (`decisions/a-turn-reads-the-strategy-once-between-writes.md`).
+* **A commit writes only the settings the turn moved.** The planner compares each step with
+  the plan the commit started from and with what WDK holds, and writes a setting only when
+  both differ; a step whose last write did not land is compared with WDK alone. A rename no
+  longer writes a step back over a value set on the website, and a search-config PUT states
+  the weight and the filters only when the turn moved them. The clone of a saved strategy
+  and the import read fresh, and `TurnCounts` keeps no count of its own.
 
 ## 2026-11-24
 

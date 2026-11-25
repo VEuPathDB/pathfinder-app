@@ -87,7 +87,7 @@ services/strategies/gene_set_refresh.py:defer_the_gene_set_refresh:AlreadyEnqueu
 services/strategies/live_counts.py:the_site_dropped_the_strategy:(VEuPathDBError,OSError):returnFalse an unanswered read proves nothing gone (test_a_dropped_strategy_owes_no_verdict[unreached])
 services/strategies/live_counts.py:the_site_dropped_the_strategy:(VEuPathDBError,OSError):returnFalse#2 an unanswered listing proves nothing gone (test_a_dropped_strategy_owes_no_verdict[listing_unreached])
 services/strategies/live_counts.py:the_site_dropped_the_strategy:WDKError:returnFalse a refusal other than a 404 proves nothing gone (test_a_dropped_strategy_owes_no_verdict[site_down])
-services/strategies/measurements.py:TurnCounts._ask:WDKError:returnNone an unread count is not cached and is stated as not measured
+services/strategies/measurements.py:TurnCounts.count:WDKError:returnNone an unread count is not cached and is stated as not measured
 services/strategies/measurements.py:TurnCounts.reach:(VEuPathDBError,TimeoutError):returnNone an unread reach is not cached and is stated as not measured
 services/strategies/naming.py:_rename_the_imported_set:NotFoundError:return a gene set that is gone has no name to change
 services/strategies/organism_params.py:_site_organisms:(VEuPathDBError,OSError):return[] an empty list places no entry, so the checks abstain (test_an_unread_tree_and_organism_list_place_no_entry_and_refuse_nothing)

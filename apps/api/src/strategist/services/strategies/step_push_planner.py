@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Container, Mapping
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Discriminator, model_validator
@@ -83,12 +83,25 @@ _RECREATES_A_COMBINE = ("operator", "colocation_params", "wdk_weight", "filters"
 _WRITES_A_SEARCH_CONFIG = ("parameters", "wdk_weight", "filters")
 
 
+def moved_by_the_turn(
+    stated: StepSettings, held: StepSettings, started: StepSettings | None
+) -> list[str]:
+    moved = stated.changed(held)
+    if started is None:
+        return moved
+    turned = set(stated.changed(started))
+    return [name for name in moved if name in turned]
+
+
 def _decide_combine(
-    new_step: StrategyStepNode, old_step: StrategyStepNode, held: StepSettings
+    new_step: StrategyStepNode,
+    old_step: StrategyStepNode,
+    held: StepSettings,
+    started: StepSettings | None,
 ) -> tuple[StepActionT, str]:
     if new_step.input_ids() != old_step.input_ids():
         return RecreateAction(), "combine input topology changed"
-    moved = settings_of(new_step).changed(held)
+    moved = moved_by_the_turn(settings_of(new_step), held, started)
     recreated = [name for name in moved if name in _RECREATES_A_COMBINE]
     if recreated:
         return RecreateAction(), "combine " + " and ".join(recreated) + " changed"
@@ -100,9 +113,12 @@ def _decide_combine(
 
 
 def _decide_leaf_or_transform(
-    new_step: StrategyStepNode, old_step: StrategyStepNode, held: StepSettings
+    new_step: StrategyStepNode,
+    old_step: StrategyStepNode,
+    held: StepSettings,
+    started: StepSettings | None,
 ) -> tuple[StepActionT, str]:
-    moved = settings_of(new_step).changed(held)
+    moved = moved_by_the_turn(settings_of(new_step), held, started)
     if "search_name" in moved:
         return RecreateAction(), "search changed"
     if new_step.primary_input_id != old_step.primary_input_id:
@@ -129,6 +145,7 @@ def _decide_step(
     old_by_id: dict[str, StrategyStepNode],
     existing_wdk_ids: dict[str, int],
     held: Mapping[str, StepSettings],
+    unfinished: Container[str],
 ) -> tuple[StepActionT, str]:
     if step.id not in existing_wdk_ids:
         return CreateAction(), "no wdk id"
@@ -140,9 +157,10 @@ def _decide_step(
     old_kind = old_step.infer_kind()
     if new_kind != old_kind:
         return RecreateAction(), f"step kind changed {old_kind}->{new_kind}"
+    started = None if step.id in unfinished else settings_of(old_step)
     if new_kind == "combine":
-        return _decide_combine(step, old_step, holds)
-    return _decide_leaf_or_transform(step, old_step, holds)
+        return _decide_combine(step, old_step, holds, started)
+    return _decide_leaf_or_transform(step, old_step, holds, started)
 
 
 def plan_step_pushes(
@@ -151,6 +169,7 @@ def plan_step_pushes(
     new_ast: StrategyAst,
     existing_wdk_ids: dict[str, int],
     held: Mapping[str, StepSettings],
+    unfinished: Container[str],
 ) -> list[StepPushPlan]:
     new_steps = walk(new_ast.root)
     old_by_id: dict[str, StrategyStepNode] = (
@@ -158,7 +177,7 @@ def plan_step_pushes(
     )
 
     decisions: dict[str, tuple[StepActionT, str]] = {
-        step.id: _decide_step(step, old_by_id, existing_wdk_ids, held)
+        step.id: _decide_step(step, old_by_id, existing_wdk_ids, held, unfinished)
         for step in new_steps
     }
 

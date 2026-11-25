@@ -11,6 +11,7 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
+from veupathdb.wdk import turn_reads
 
 from strategist.domain.strategy.operational_spec import BoundValue, Measurement
 from strategist.services.strategies import measurements, slow_searches, wdk_counts
@@ -165,54 +166,45 @@ async def test_a_fast_count_marks_nothing(monkeypatch: pytest.MonkeyPatch) -> No
 async def test_one_configuration_asked_twice_at_once_is_sent_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    asked: list[str] = []
-
-    async def _count(
-        _site_id: str,
-        _record_type: str,
-        search_name: str,
-        _params: Mapping[str, ParamValue],
-        *,
-        timeout_seconds: float | None = None,
-    ) -> int | None:
-        del timeout_seconds
-        asked.append(search_name)
-        await asyncio.sleep(0.01)
-        return 5318
-
-    monkeypatch.setattr(measurements, "count_search_answer", _count)
+    asked = serve_counts(monkeypatch, lambda _s, _p: 5318)
     counts = TurnCounts()
 
-    both = await asyncio.gather(
-        *(
-            counts.count(
-                "plasmodb",
-                "transcript",
-                PERCENTILE_SEARCH,
-                _params("0"),
-                timeout_seconds=1.0,
+    with turn_reads():
+        both = await asyncio.gather(
+            *(
+                counts.count(
+                    "plasmodb",
+                    "transcript",
+                    PERCENTILE_SEARCH,
+                    _params("80"),
+                    timeout_seconds=1.0,
+                )
+                for _ in range(2)
             )
-            for _ in range(2)
         )
-    )
 
     assert both == [5318, 5318]
     assert asked == [PERCENTILE_SEARCH]
 
 
-@pytest.mark.asyncio
 async def test_the_binds_own_configuration_is_not_counted_again(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    asked = serve_counts(monkeypatch, lambda _s, _p: 1)
-    counts = TurnCounts()
+    asked = serve_counts(monkeypatch, lambda _s, _p: 5318)
 
-    await _measure(counts, "80")
-    again = await counts.count(
-        "plasmodb", "transcript", PERCENTILE_SEARCH, _params("80"), timeout_seconds=1.0
-    )
+    with turn_reads():
+        bound = await count_bound_criterion(
+            "plasmodb", "transcript", PERCENTILE_SEARCH, _params("80")
+        )
+        again = await TurnCounts().count(
+            "plasmodb",
+            "transcript",
+            PERCENTILE_SEARCH,
+            _params("80"),
+            timeout_seconds=1.0,
+        )
 
-    assert again == recorded_count("report_percentile_min_80")
+    assert (bound, again) == (5318, 5318)
     assert asked == [PERCENTILE_SEARCH]
 
 

@@ -92,6 +92,7 @@ def test_a_pushed_combine_whose_name_lags_plans_a_name_patch() -> None:
         new_ast=ast("Intersect"),
         existing_wdk_ids=_WDK_IDS,
         held=held_as(ast(None)),
+        unfinished=frozenset(),
     )
 
     assert {entry.step_id: entry.action for entry in plan}["step_join"] == (

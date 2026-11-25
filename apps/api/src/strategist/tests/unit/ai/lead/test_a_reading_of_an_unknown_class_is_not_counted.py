@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from veupathdb.domain.parameters import StringValue
 
 from strategist.ai.lead.deltas import FrameResult
@@ -13,6 +14,7 @@ from strategist.domain.strategy.operational_spec import (
 )
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading
+from strategist.tests._support.recorded_counts import serve_counts, wire
 from strategist.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _SEARCH = "GenesByText"
@@ -20,7 +22,8 @@ _PARAM = "text_expression"
 _READINGS = {"kinase": 2104, "protein kinase": 1190}
 
 
-def _deps(record_class: str | None) -> LeadDeps:
+def _deps(monkeypatch: pytest.MonkeyPatch, record_class: str | None) -> LeadDeps:
+    serve_counts(monkeypatch, lambda _search, params: _READINGS[wire(params, _PARAM)])
     deps = lead_deps(pipeline_state(user_prompt="kinases"))
     deps.state.domain.operational_spec = OperationalSpec(
         goal="kinases",
@@ -38,17 +41,6 @@ def _deps(record_class: str | None) -> LeadDeps:
             )
         ],
     )
-    for value, count in _READINGS.items():
-        deps.turn_counts.remember(
-            "plasmodb",
-            "transcript",
-            _SEARCH,
-            {
-                "text_fields": StringValue(value="product"),
-                _PARAM: StringValue(value=value),
-            },
-            count,
-        )
     return deps
 
 
@@ -73,16 +65,20 @@ def _measured(deps: LeadDeps) -> list[Measurement]:
     return spec.criteria[0].measurements
 
 
-async def test_a_reading_is_counted_under_the_class_of_its_criterion() -> None:
-    deps = _deps("transcript")
+async def test_a_reading_is_counted_under_the_class_of_its_criterion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    deps = _deps(monkeypatch, "transcript")
 
     await count_readings(deps, _asked())
 
     assert [(m.reading, m.count) for m in _measured(deps)] == list(_READINGS.items())
 
 
-async def test_a_reading_of_a_criterion_whose_class_is_unknown_is_not_counted() -> None:
-    deps = _deps(None)
+async def test_a_reading_of_a_criterion_whose_class_is_unknown_is_not_counted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    deps = _deps(monkeypatch, None)
 
     await count_readings(deps, _asked())
 

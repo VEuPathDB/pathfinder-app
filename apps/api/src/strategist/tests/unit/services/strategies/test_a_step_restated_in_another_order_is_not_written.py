@@ -29,6 +29,7 @@ def test_a_step_whose_picks_change_only_their_order_is_skipped() -> None:
         new_ast=_signal(_ORGANISMS[::-1]),
         existing_wdk_ids={"signal": 100},
         held=held_as(_signal(_ORGANISMS)),
+        unfinished=frozenset(),
     )
 
     assert [entry.action for entry in plan] == [SkipAction()]

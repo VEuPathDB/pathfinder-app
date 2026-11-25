@@ -49,7 +49,10 @@ from strategist.services.experiment.variant_comparison import (
 )
 from strategist.services.separation.thread_searches import thread_searches
 from strategist.services.strategies import site_changes, stated_sides
-from strategist.services.strategies._wdk_step_calls import _put_search_config
+from strategist.services.strategies._wdk_step_calls import (
+    StepWrite,
+    _put_search_config,
+)
 from strategist.services.strategies.session_factory import build_strategy_session
 from strategist.services.strategies.stated_sides import canonical_batch
 from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -104,9 +107,12 @@ async def _put(monkeypatch: pytest.MonkeyPatch, step: StrategyStep) -> dict[str,
         api,
         WDKSyncState(wdk_step_ids={step.id: 10}),
         step,
-        "transcript",
-        step.parameters,
-        StepSettings(),
+        StepWrite(
+            record_type="transcript",
+            parameters=step.parameters,
+            before=StepSettings(),
+            moved=frozenset({"parameters"}),
+        ),
     )
     return dict(sent[0].parameters)
 

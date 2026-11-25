@@ -71,9 +71,10 @@ async def test_a_resync_after_a_refused_put_rewrites_the_value(
     graph = session.graph
     assert graph is not None
     step_b = sync_state.wdk_step_ids["step_b"]
+    before = graph.to_strategy_ast()
     graph.steps["step_b"].parameters = {"text_expression": StringValue(value="actin")}
     env.wdk.refuses_once = {"search-config put"}
-    await _commit(graph, sync_state, graph.to_strategy_ast())
+    await _commit(graph, sync_state, before)
     lead = lead_deps(pipeline_state(user_prompt="kinases"), strategy_session=session)
 
     await sub_agent_dispatch._resync_outcome(

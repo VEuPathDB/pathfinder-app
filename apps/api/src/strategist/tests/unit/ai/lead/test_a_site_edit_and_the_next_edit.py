@@ -83,7 +83,11 @@ async def _the_writes(
     monkeypatch.setattr(commit_tree, "validate_parameters", accepts_every_value)
     list_every_search_under(monkeypatch, "transcript")
     plan = plan_step_pushes(
-        old_ast=before, new_ast=after, existing_wdk_ids=site.ids, held=held_as(before)
+        old_ast=before,
+        new_ast=after,
+        existing_wdk_ids=site.ids,
+        held=held_as(before),
+        unfinished=frozenset(),
     )
     assert {entry.step_id: entry.action for entry in plan} == {
         SURFACE: SkipAction(),

@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
+import httpx
 import pytest
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import ParamValue, StringValue, to_wire
 from veupathdb.errors import WDKError
-from veupathdb.wdk import DocumentTypeFilter, SiteSearchResponse, WDKAnswer
+from veupathdb.json_types import JSONObject
+from veupathdb.model import CamelModel
+from veupathdb.wdk import (
+    DocumentTypeFilter,
+    SiteSearchResponse,
+    VEuPathDBClient,
+    WDKAnswer,
+    WDKFilterValue,
+    WDKSearchConfig,
+)
 
 from strategist.services.strategies import measurements
 from strategist.tests._support.recorded_columns import recorded_body
@@ -78,29 +88,84 @@ def recorded_site_search(fixture: str) -> SiteSearchResponse:
 CountAt = Callable[[str, Mapping[str, ParamValue]], int | None]
 
 
+class _CountingSite(VEuPathDBClient):
+    def __init__(
+        self,
+        site_id: str,
+        at: CountAt,
+        asked: list[str],
+        budgets: list[float | None] | None,
+    ) -> None:
+        super().__init__(
+            f"https://qa.{site_id}.org/service",
+            site_id=site_id,
+            transport=httpx.MockTransport(self._answer),
+        )
+        self._at = at
+        self._asked = asked
+        self._budgets = budgets
+
+    async def run_search_report(
+        self,
+        record_type: str,
+        search_name: str,
+        search_config: WDKSearchConfig,
+        report_config: JSONObject | None = None,
+        *,
+        view_filters: Sequence[WDKFilterValue] | None = None,
+        budget_seconds: float | None = None,
+    ) -> WDKAnswer:
+        if self._budgets is not None:
+            self._budgets.append(budget_seconds)
+        return await super().run_search_report(
+            record_type,
+            search_name,
+            search_config,
+            report_config,
+            view_filters=view_filters,
+            budget_seconds=budget_seconds,
+        )
+
+    def _answer(self, request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/app"):
+            return httpx.Response(200, text="")
+        search_name = request.url.path.split("/")[-3]
+        sent = _ReportRequest.model_validate_json(request.content)
+        self._asked.append(search_name)
+        try:
+            count = self._at(
+                search_name,
+                {
+                    name: StringValue(value=value)
+                    for name, value in sent.search_config.parameters.items()
+                },
+            )
+        except WDKError as refused:
+            return httpx.Response(refused.status, text=str(refused))
+        meta = {} if count is None else {"totalCount": count}
+        return httpx.Response(200, json={"meta": meta, "records": []})
+
+
+class _ReportRequest(CamelModel):
+    search_config: WDKSearchConfig
+
+
 def serve_counts(
     monkeypatch: pytest.MonkeyPatch,
     at: CountAt,
     budgets: list[float | None] | None = None,
 ) -> list[str]:
-    """Answer each measured count from ``at``, and record the searches asked
-    and, into ``budgets``, the time each read was given."""
+    """Answer each measured count from ``at`` through a site client, and record
+    the searches sent and, into ``budgets``, the time each read was given."""
     asked: list[str] = []
+    sites: dict[str, _CountingSite] = {}
 
-    async def _count(
-        _site_id: str,
-        _record_type: str,
-        search_name: str,
-        params: Mapping[str, ParamValue],
-        *,
-        timeout_seconds: float | None = None,
-    ) -> int | None:
-        asked.append(search_name)
-        if budgets is not None:
-            budgets.append(timeout_seconds)
-        return at(search_name, params)
+    def _site(site_id: str) -> _CountingSite:
+        if site_id not in sites:
+            sites[site_id] = _CountingSite(site_id, at, asked, budgets)
+        return sites[site_id]
 
-    monkeypatch.setattr(measurements, "count_search_answer", _count)
+    monkeypatch.setattr("veupathdb_mcp.wdk.plan_counts.get_wdk_client", _site)
     return asked
 
 

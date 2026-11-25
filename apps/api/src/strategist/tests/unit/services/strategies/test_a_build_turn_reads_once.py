@@ -12,6 +12,7 @@ from veupathdb_mcp.wdk import get_estimated_size_for_site
 from strategist.ai.tools.standalone._sample_page import sample_page
 from strategist.domain.strategy.operations import (
     ReplaceStrategyOp,
+    UpdateStepParamsOp,
     UpdateStrategyMetaOp,
 )
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
@@ -22,6 +23,7 @@ from strategist.services.strategies.abandoned_mint import (
 )
 from strategist.services.strategies.commit import apply_operations_and_commit
 from strategist.services.strategies.context import StrategyMutationContext
+from strategist.services.strategies.insert_saved import clone_saved_strategy
 from strategist.services.strategies.live_counts import read_wdk_step_counts
 from strategist.services.strategies.site_counts import (
     read_site_strategy,
@@ -212,9 +214,9 @@ async def test_a_strategy_saved_on_the_website_during_the_turn_is_not_deleted(
     assert wdk.strategies[minted]["isSaved"] is True
 
 
-async def test_a_step_revised_on_the_website_during_the_turn_is_read_by_the_next_write(
-    wdk: HoldingWDK,
-) -> None:
+async def _revised_on_the_website(
+    wdk: HoldingWDK, edit: UpdateStepParamsOp | UpdateStrategyMetaOp
+) -> int:
     deps = _thread()
     with turn_reads():
         await apply_operations_and_commit(
@@ -224,10 +226,73 @@ async def test_a_step_revised_on_the_website_during_the_turn_is_read_by_the_next
         step = sync.wdk_step_ids["step_a"]
         await read_wdk_step_counts(sync, _SITE)
         wdk.steps[step]["searchConfig"]["parameters"]["text_expression"] = "rhoptry"
-        await apply_operations_and_commit(
-            deps=deps, ops=[UpdateStrategyMetaOp(name="Kinases in P. berghei")]
-        )
+        await apply_operations_and_commit(deps=deps, ops=[edit])
+    return step
+
+
+async def test_a_rename_keeps_a_value_the_researcher_set_on_the_website(
+    wdk: HoldingWDK,
+) -> None:
+    step = await _revised_on_the_website(
+        wdk, UpdateStrategyMetaOp(name="Kinases in P. berghei")
+    )
+
+    assert wdk.written("PUT", f"/steps/{step}/search-config") == []
+    assert wdk.steps[step]["searchConfig"]["parameters"]["text_expression"] == "rhoptry"
+    assert wdk.strategies[wdk.strategy_of(step) or 0]["name"] == "Kinases in P. berghei"
+
+
+async def test_an_edit_of_another_value_keeps_the_researchers_value(
+    wdk: HoldingWDK,
+) -> None:
+    step = await _revised_on_the_website(
+        wdk,
+        UpdateStepParamsOp(
+            step_id="step_a",
+            parameters={
+                "text_search_organism": MultiPickValue(
+                    values=["Plasmodium falciparum 3D7"]
+                )
+            },
+        ),
+    )
 
     (put,) = wdk.written("PUT", f"/steps/{step}/search-config")
-    assert put.body["parameters"]["text_expression"] == "kinase"
-    assert wdk.steps[step]["searchConfig"]["parameters"]["text_expression"] == "kinase"
+    assert put.body["parameters"]["text_expression"] == "rhoptry"
+    assert put.body["parameters"]["text_search_organism"] == (
+        '["Plasmodium falciparum 3D7"]'
+    )
+
+
+async def test_the_turns_own_edit_of_that_value_is_sent(wdk: HoldingWDK) -> None:
+    step = await _revised_on_the_website(
+        wdk,
+        UpdateStepParamsOp(
+            step_id="step_a",
+            parameters={"text_expression": StringValue(value="protease")},
+        ),
+    )
+
+    (put,) = wdk.written("PUT", f"/steps/{step}/search-config")
+    assert put.body["parameters"]["text_expression"] == "protease"
+    assert wdk.steps[step]["searchConfig"]["parameters"]["text_expression"] == (
+        "protease"
+    )
+
+
+async def test_a_saved_strategy_is_cloned_as_the_site_holds_it_now(
+    wdk: HoldingWDK,
+) -> None:
+    deps = _thread()
+    with turn_reads():
+        await apply_operations_and_commit(
+            deps=deps, ops=[ReplaceStrategyOp(root=_leaf())]
+        )
+        sync = ensure_sync_state(deps.strategy_session)
+        saved = sync.wdk_strategy_id
+        assert saved is not None
+        await read_site_strategy(_SITE, saved)
+        wdk.strategies[saved]["name"] = "Renamed on the website"
+        cloned = await clone_saved_strategy(_SITE, saved)
+
+    assert cloned.name == "Renamed on the website"

@@ -114,6 +114,7 @@ def test_a_new_group_name_is_a_name_write() -> None:
         ),
         existing_wdk_ids=dict(_WDK_IDS),
         held=held_as(StrategyAst(record_type="transcript", root=_tree(named=_NAME))),
+        unfinished=frozenset(),
     )
 
     assert {entry.step_id: entry.action for entry in plan}["root"] == PatchAction(

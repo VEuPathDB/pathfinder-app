@@ -33,9 +33,15 @@ A commit runs in this order:
 4. It plans each step against what WDK holds (R1-R4 below), validates every step it
    writes once, writes the steps, puts the tree and reads it back (R5).
 
-- R1. A value that moved against what WDK holds is stated; the rest is context. A value
+- R1. A setting moves when this commit's plan differs from the plan the commit started
+  from (the tree before the batch) and from what WDK holds. A step whose last write did not
+  land (it is in `wdk_push_errors`, which a commit whose read failed fills for every step
+  it moved) is compared with what WDK holds alone. A step with no moved setting is not
+  written, so a value set on the website that the turn did not change stays on the site.
+  A moved value is stated; the rest is context. A value
   the earlier plan stated and this plan no longer states has moved too: the step is written
-  without it and WDK takes its default. Each
+  without it and WDK takes its default. The weight and the filters are sent only when they
+  moved; WDK keeps the step's own otherwise. Each
   written step is validated once, and every refusal is returned together. A context value
   goes to WDK as WDK holds it, and the plan keeps the value it states: what WDK holds
   decides what is sent and is compared, and never replaces a value in the plan.
@@ -57,8 +63,9 @@ departure after the put, the strategy or the steps it made are deleted.
 
 When the turn's read of what changed on the site fails, a canvas edit still commits, and
 the commit's own read of what WDK holds sees a value set on the site that the plan does not
-state. The plan is what the thread states, so the commit writes the plan's value over it.
-This is accepted while that read fails; the turn that reads the site again takes the change.
+state. The commit writes only the settings the edit moved, and every other value goes to
+WDK as WDK holds it, so the site's value stays; the turn that reads the site again takes it
+into the plan.
 
 A step that has no `filters_wdk_added` record (an imported step, or one stored before the
 record existed) takes it from the first read of what WDK holds: every held filter whose name
