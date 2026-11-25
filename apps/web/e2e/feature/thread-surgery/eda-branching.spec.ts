@@ -7,7 +7,6 @@
  * own, so what it opens never reaches its parent.
  */
 
-import type { APIRequestContext } from "@playwright/test";
 import type { SiteResponse } from "@strategist/shared";
 
 import { test, expect } from "../../fixtures/test";
@@ -22,6 +21,7 @@ import {
 } from "../../fixtures/eda";
 import { siteRow } from "../../fixtures/site-reads";
 import { wdkTestToken } from "../../fixtures/wdk-account";
+import { throughTheWire } from "../../fixtures/wire";
 
 const OPEN_TURN = "show me heat shock genes";
 const FILTER_CHIP = "eda-filter-chip-0";
@@ -33,32 +33,36 @@ function echoOf(text: string): RegExp {
 
 /** Write the analysis's subset through the site's own EDA service. */
 async function setSubsetOnTheSite(
-  request: APIRequestContext,
   site: SiteResponse,
   analysisId: string,
   filters: unknown[],
 ): Promise<void> {
-  const headers = { Cookie: `Authorization=${wdkTestToken()}` };
-  const me = await request.get(`${site.baseUrl}/users/current`, { headers });
-  expect(me.status(), "users/current").toBe(200);
-  const { id } = (await me.json()) as { id: number };
-  const origin = new URL(site.baseUrl).origin;
-  const url = `${origin}/eda/users/${String(id)}/analyses/${site.projectId}/${analysisId}`;
-  const read = await request.get(url, { headers });
-  expect(read.status(), "analysis read").toBe(200);
-  const { descriptor } = (await read.json()) as {
-    descriptor: { subset: Record<string, unknown> } & Record<string, unknown>;
-  };
-  const written = await request.patch(url, {
-    headers: { ...headers, "Content-Type": "application/json" },
-    data: {
-      descriptor: {
-        ...descriptor,
-        subset: { ...descriptor.subset, descriptor: filters },
+  const wire = await throughTheWire();
+  try {
+    const headers = { Cookie: `Authorization=${wdkTestToken()}` };
+    const me = await wire.get(`${site.baseUrl}/users/current`, { headers });
+    expect(me.status(), "users/current").toBe(200);
+    const { id } = (await me.json()) as { id: number };
+    const origin = new URL(site.baseUrl).origin;
+    const url = `${origin}/eda/users/${String(id)}/analyses/${site.projectId}/${analysisId}`;
+    const read = await wire.get(url, { headers });
+    expect(read.status(), "analysis read").toBe(200);
+    const { descriptor } = (await read.json()) as {
+      descriptor: { subset: Record<string, unknown> } & Record<string, unknown>;
+    };
+    const written = await wire.patch(url, {
+      headers: { ...headers, "Content-Type": "application/json" },
+      data: {
+        descriptor: {
+          ...descriptor,
+          subset: { ...descriptor.subset, descriptor: filters },
+        },
       },
-    },
-  });
-  expect(written.ok(), `analysis write ${written.status()}`).toBe(true);
+    });
+    expect(written.ok(), `analysis write ${written.status()}`).toBe(true);
+  } finally {
+    await wire.dispose();
+  }
 }
 
 interface AnalysisRead {
@@ -93,7 +97,7 @@ test.describe("Branching a thread with a study open", () => {
     expect(parentBound.analysis?.studyDisplayName).toBe(STUDY_TITLE);
 
     const site = await siteRow(apiClient, SITE_ID);
-    await setSubsetOnTheSite(page.request, site, parentAnalysisId, [FEBRILE_FILTER]);
+    await setSubsetOnTheSite(site, parentAnalysisId, [FEBRILE_FILTER]);
     const reread = await apiClient.get(`api/v1/conversations/${parentId}/eda`);
     expect(((await reread.json()) as AnalysisRead).analysis?.numFilters).toBe(1);
 

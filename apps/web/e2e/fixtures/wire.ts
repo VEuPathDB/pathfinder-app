@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { request } from "@playwright/test";
+import { type APIRequestContext, request } from "@playwright/test";
 
 import { type SigningJwk, type WireManifest, signTestToken } from "./wire-recordings";
 
@@ -48,10 +48,22 @@ async function wire(
 }
 
 export async function wireServes(mode: WireMode): Promise<void> {
-  const health = (await wire("GET", "health")) as { mode: string };
+  const health = (await wire("GET", "health").catch((error: unknown) => {
+    throw new Error(
+      `no wdk-wire answers at ${WIRE_URL}: start the suite with scripts/e2e-wire.sh replay`,
+      { cause: error },
+    );
+  })) as { mode: string };
   if (health.mode !== mode) {
     throw new Error(`wdk-wire runs in ${health.mode} mode, and E2E_WIRE is ${mode}`);
   }
+}
+
+export async function throughTheWire(): Promise<APIRequestContext> {
+  return await request.newContext({
+    proxy: { server: WIRE_URL },
+    ignoreHTTPSErrors: true,
+  });
 }
 
 export async function shareSigningKey(): Promise<void> {

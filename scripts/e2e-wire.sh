@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The e2e suite on recorded WDK answers.
 #   replay [playwright args]       the suite against apps/web/e2e/wire (Mac, CI)
-#   catalogs                       build the catalog snapshots from QA (cedar only)
+#   catalogs                       build the catalog snapshots from QA through wdk-wire (cedar only)
 #   record --test <spec:line> ...  record the named tests against QA (cedar only)
 #   record --all                   record the whole suite (cedar only)
 #   refresh                        re-send every recording to QA (cedar only)
@@ -13,7 +13,7 @@ cd "$ROOT"
 
 ENV_FILE="${E2E_ENV_FILE:-.env.test}"
 WIRE="apps/web/e2e/wire"
-REPLAY_FILES=(-f docker-compose.yml -f docker-compose.e2e.yml -f docker-compose.e2e-wire.yml)
+REPLAY_FILES=(-f docker-compose.yml -f docker-compose.e2e.yml)
 RECORD_FILES=("${REPLAY_FILES[@]}" -f docker-compose.e2e-wire-record.yml)
 SERVICES=(wdk-wire api worker web)
 READY_TRIES=150
@@ -92,14 +92,13 @@ record() {
   scratch="$(mktemp -d)"
   trap 'rm -rf "$staging" "$scratch"' EXIT
 
-  WIRE_DIR="$staging" WIRE_ACCESS=rw \
-    compose "${RECORD_FILES[@]}" up -d --build --force-recreate "${SERVICES[@]}"
+  WIRE_DIR="$staging" compose "${RECORD_FILES[@]}" up -d --build --force-recreate "${SERVICES[@]}"
   wait_for_stack
   suite record ${TESTS[@]+"${TESTS[@]}"} || status=$?
   node apps/web/scripts/redact-traces.mjs apps/web/test-results apps/web/playwright-report
 
   cp -R "$WIRE/." "$scratch/"
-  wire_command -v "$staging:/staging:ro" -v "$scratch:/scratch" \
+  WIRE_DIR="$staging" wire_command -v "$staging:/staging:ro" -v "$scratch:/scratch" \
     python -m veupathdb.testing.wire merge /staging /scratch
 
   start_replay "$scratch"
@@ -111,12 +110,16 @@ record() {
   return "$status"
 }
 
+catalog_stack() {
+  compose -p strategist-catalogs "${RECORD_FILES[@]}" "$@"
+}
+
 build_catalogs() {
-  local project=strategist-catalogs
   local built
   built="$(mktemp -d)"
-  compose -p "$project" -f docker-compose.yml -f docker-compose.e2e.yml \
-    up -d --build db api
+  local -x WIRE_DIR
+  WIRE_DIR="$(mktemp -d)"
+  catalog_stack up -d --build db api
   local loaded=""
   for _ in $(seq 1 "$READY_TRIES"); do
     if curl -fsS http://localhost:8000/api/v1/sites 2>/dev/null \
@@ -127,18 +130,19 @@ build_catalogs() {
     sleep 4
   done
   if [ -z "$loaded" ]; then
-    compose -p "$project" -f docker-compose.yml -f docker-compose.e2e.yml logs --no-color --tail 80 api >&2
-    compose -p "$project" -f docker-compose.yml -f docker-compose.e2e.yml down -v
+    catalog_stack logs --no-color --tail 80 api >&2
+    catalog_stack down -v
+    rm -rf "$built" "$WIRE_DIR"
     echo "QA did not answer every catalog; the old snapshots stay" >&2
     return 1
   fi
-  compose -p "$project" cp api:/app/data/catalogs/. "$built/"
-  compose -p "$project" -f docker-compose.yml -f docker-compose.e2e.yml down -v
+  catalog_stack cp api:/app/data/catalogs/. "$built/"
+  catalog_stack down -v
   mkdir -p "$WIRE/catalogs"
   for snapshot in "$built"/*.json; do
     gzip -n -c "$snapshot" > "$WIRE/catalogs/$(basename "$snapshot").gz"
   done
-  rm -rf "$built"
+  rm -rf "$built" "$WIRE_DIR"
 }
 
 refresh() {
@@ -146,8 +150,8 @@ refresh() {
   local reports status=0
   reports="$(mktemp -d)"
   compose "${REPLAY_FILES[@]}" down
-  compose "${RECORD_FILES[@]}" build wdk-wire
-  WIRE_DIR="$ROOT/$WIRE" WIRE_ACCESS=rw wire_command -v "$reports:/reports" \
+  WIRE_DIR="$ROOT/$WIRE" compose "${RECORD_FILES[@]}" build wdk-wire
+  WIRE_DIR="$ROOT/$WIRE" wire_command -v "$reports:/reports" \
     python -m veupathdb.testing.wire refresh /wire/recordings \
     --sites /wire/sites.yaml --report /reports/refresh-report.md || status=$?
   cp "$reports/refresh-report.md" "$ROOT/refresh-report.md"

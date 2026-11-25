@@ -79,6 +79,13 @@ repos:
         pass_filenames: false
         files: ^apps/web/(scripts/wire-recordings|e2e/fixtures/wire-recordings).*
         stages: [manual]
+      - id: e2e-start-web
+        name: the e2e suite starts only on replay (web)
+        entry: bash -c "cd apps/web && node --test scripts/e2e-start.test.mjs"
+        language: system
+        pass_filenames: false
+        files: ^(apps/web/(package\.json|playwright\.config\.ts|e2e/global-(setup|teardown)\.ts|e2e/fixtures/wire\.ts|scripts/e2e-start\.test\.mjs)|scripts/e2e-wire\.sh)$
+        stages: [manual]
       - id: weak-assertions-web
         name: weak-assertion check (web, and the checker)
         entry: bash -c "cd apps/web && yarn check:weak-assertions && node --test scripts/check-weak-assertions.test.mjs"

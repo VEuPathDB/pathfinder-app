@@ -7,7 +7,7 @@ import { gunzipSync } from "node:zlib";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 export const WIRE_DIR = "apps/web/e2e/wire";
-export const OVERLAY = "docker-compose.e2e-wire.yml";
+export const OVERLAY = "docker-compose.e2e.yml";
 export const TEST_SITES = "e2e-sites.yaml";
 export const CAP_BYTES = 40 * 1024 * 1024;
 export const ALWAYS_FENCED = ["api.openai.com"];

@@ -77,7 +77,7 @@ test("every QA host of e2e-sites.yaml is fenced", () => {
   - "api.openai.com:127.0.0.1"
 `;
   assert.deepEqual(fenceOffences(SITES, overlay), [
-    "docker-compose.e2e-wire.yml fences no qa.toxodb.org",
+    "docker-compose.e2e.yml fences no qa.toxodb.org",
   ]);
   assert.deepEqual(fenceOffences(SITES, `${overlay}  - "qa.toxodb.org:127.0.0.1"\n`), []);
 });

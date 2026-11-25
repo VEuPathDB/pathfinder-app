@@ -466,6 +466,10 @@ jobs:
         working-directory: apps/web
         run: node --test scripts/wire-recordings.test.mjs
 
+      - name: Check the e2e suite starts only on replay
+        working-directory: apps/web
+        run: node --test scripts/e2e-start.test.mjs
+
       # Both ratchets are green on the trunk, so a red line here names a test
       # added without a value assertion or an index-based locator.
       - name: Check test assertion strength
@@ -618,7 +622,7 @@ jobs:
       # The proxy installs veupathdb-py at the tag the overlay names.
       - name: Read the wire library tag
         id: wire
-        run: echo "ref=$(sed -n 's/.*WIRE_VEUPATHDB_PY_REF:-\([^}]*\)}.*/\1/p' docker-compose.e2e-wire.yml)" >> "$GITHUB_OUTPUT"
+        run: echo "ref=$(sed -n 's/.*WIRE_VEUPATHDB_PY_REF:-\([^}]*\)}.*/\1/p' docker-compose.e2e.yml)" >> "$GITHUB_OUTPUT"
 
       - name: Build the wire image
         uses: docker/build-push-action@v6
@@ -693,7 +697,7 @@ jobs:
       matrix:
         shard: ${{ fromJSON(needs.e2e-shard-check.outputs.shards) }}
     env:
-      COMPOSE_FILE: docker-compose.yml:docker-compose.e2e.yml:docker-compose.e2e-wire.yml
+      COMPOSE_FILE: docker-compose.yml:docker-compose.e2e.yml
     steps:
       - uses: actions/checkout@v4
 
