@@ -66,7 +66,10 @@ class _FakeStrategyApi:
     async def list_strategies(self) -> list[_Summary]:
         return [_Summary(_MINTED), _Summary(_REMINTED), _Summary(_ADOPTED)]
 
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
+    async def get_strategy(
+        self, strategy_id: int, *, fresh: bool = False
+    ) -> WDKStrategyDetails:
+        del fresh
         return WDKStrategyDetails(
             strategy_id=strategy_id,
             name="c",

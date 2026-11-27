@@ -17,8 +17,10 @@ class _Answering:
     def __init__(self, refusal: WDKError) -> None:
         self.refusal = refusal
 
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
-        del strategy_id
+    async def get_strategy(
+        self, strategy_id: int, *, fresh: bool
+    ) -> WDKStrategyDetails:
+        del strategy_id, fresh
         raise AssertionError
 
     async def find_step(self, step_id: int) -> NoReturn:
@@ -29,7 +31,7 @@ class _Answering:
 async def test_a_step_wdk_answers_404_for_is_unmapped() -> None:
     state = WDKSyncState(wdk_step_ids={"step_a": 77})
 
-    held = await reconcile_sync_state_with_wdk(state, _Answering(_GONE))
+    held = (await reconcile_sync_state_with_wdk(state, _Answering(_GONE))).steps
 
     assert (held, state.wdk_step_ids) == ({}, {})
 

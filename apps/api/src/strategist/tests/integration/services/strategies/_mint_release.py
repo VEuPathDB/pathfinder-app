@@ -55,7 +55,10 @@ class FakeStrategyApi:
     attempted: list[int] = field(default_factory=list)
     deleted: list[int] = field(default_factory=list)
 
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
+    async def get_strategy(
+        self, strategy_id: int, *, fresh: bool
+    ) -> WDKStrategyDetails:
+        assert fresh
         self.read.append(strategy_id)
         if self.read_refused:
             msg = f"GET /users/1/strategies/{strategy_id}: the site is unavailable"

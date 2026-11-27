@@ -1,4 +1,5 @@
-"""A search-config patch states the step's weight, and 0 when it holds none."""
+"""A search-config patch states the step's weight when the turn moved it, and 0 when it
+holds none."""
 
 from __future__ import annotations
 
@@ -8,7 +9,10 @@ import pytest
 from veupathdb.domain.strategy import StepKind, StepSettings, StrategyStep
 from veupathdb.wdk import StrategyAPI, WDKSearchConfig
 
-from strategist.services.strategies._wdk_step_calls import _put_search_config
+from strategist.services.strategies._wdk_step_calls import (
+    StepWrite,
+    _put_search_config,
+)
 from strategist.services.strategies.sync_state import WDKSyncState
 
 
@@ -22,7 +26,9 @@ def _step(weight: int | None) -> StrategyStep:
 
 
 async def _patch(
-    monkeypatch: pytest.MonkeyPatch, step: StrategyStep
+    monkeypatch: pytest.MonkeyPatch,
+    step: StrategyStep,
+    moved: frozenset[str] = frozenset({"wdk_weight"}),
 ) -> WDKSearchConfig:
     sent: list[WDKSearchConfig] = []
 
@@ -35,9 +41,12 @@ async def _patch(
         api,
         WDKSyncState(wdk_step_ids={"step_a": 7}),
         step,
-        "transcript",
-        step.parameters,
-        StepSettings(),
+        StepWrite(
+            record_type="transcript",
+            parameters=step.parameters,
+            before=StepSettings(),
+            moved=moved,
+        ),
     )
     return sent[0]
 
@@ -63,3 +72,11 @@ async def test_no_weight_clears_the_one_the_step_held(
         0,
         ["parameters", "wdk_weight"],
     )
+
+
+async def test_a_weight_the_turn_did_not_move_is_not_stated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = await _patch(monkeypatch, _step(3), frozenset({"parameters"}))
+
+    assert sorted(config.model_fields_set) == ["parameters"]

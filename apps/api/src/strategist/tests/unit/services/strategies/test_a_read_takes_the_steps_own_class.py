@@ -97,11 +97,12 @@ async def test_a_site_edit_is_decoded_under_the_class_wdk_states_for_the_step(
     assert isinstance(tree, site_changes._SiteTree)
 
     await site_changes._take_the_sites_values(
-        _groups_in_a_gene_strategy("GroupsByPhyleticPattern"),
+        _groups_in_a_gene_strategy("GroupsByPhyleticPattern").steps,
         {_GROUPS_STEP: "step_groups"},
         live,
         tree,
         "orthomcl",
+        site_changes.TheTurnsOwn(),
     )
 
     assert asked == [record_class_name]

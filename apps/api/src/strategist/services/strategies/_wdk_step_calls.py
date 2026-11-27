@@ -227,29 +227,27 @@ async def _put_search_config(
     api: StrategyAPI,
     sync_state: WDKSyncState,
     step: StrategyStep,
-    record_type: str,
-    parameters: Mapping[str, ParamValue],
-    before: StepSettings,
+    write: StepWrite,
 ) -> None:
-    """Write the step's parameters and weight, and its filters when they moved."""
+    """Write the step's parameters, and its weight and filters when the turn moved
+    them."""
     refuse_a_set_operation(step.id, wdk_search_name(step))
-    str_params = wire_map(dict(parameters))
+    str_params = wire_map(dict(write.parameters))
     _refuse_an_empty_eda_analysis(str_params)
     wdk_id = sync_state.wdk_step_ids[step.id]
     stated = settings_of(step)
-    config = WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight or 0)
+    config = WDKSearchConfig(parameters=str_params)
+    if "wdk_weight" in write.moved:
+        config = config.model_copy(update={"wdk_weight": step.wdk_weight or 0})
     found = None
-    if "filters" in stated.changed(before):
+    if "filters" in write.moved:
         found = await api.find_step(wdk_id)
-        config = WDKSearchConfig(
-            parameters=str_params,
-            wdk_weight=step.wdk_weight or 0,
-            filters=_on_the_wire(_held_settings(found).filters_to_put(before, stated)),
-        )
+        filters = _held_settings(found).filters_to_put(write.before, stated)
+        config = config.model_copy(update={"filters": _on_the_wire(filters)})
     await api.update_step_search_config(
         step_id=wdk_id,
         search_config=config,
-        record_type=record_type,
+        record_type=write.record_type,
         search_name=wdk_search_name(step),
         held=found,
     )
@@ -387,6 +385,7 @@ class StepWrite(BaseModel):
     record_type: str
     parameters: dict[str, ParamValue]
     before: StepSettings
+    moved: frozenset[str]
 
 
 async def written_step(
@@ -410,9 +409,7 @@ async def written_step(
         case PatchAction():
             try:
                 if action.search_config:
-                    await _put_search_config(
-                        api, sync_state, step, record_type, parameters, write.before
-                    )
+                    await _put_search_config(api, sync_state, step, write)
                 if action.name:
                     await _patch_name(api, sync_state, step)
             except VEuPathDBError as exc:

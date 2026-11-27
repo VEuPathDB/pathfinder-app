@@ -27,8 +27,10 @@ class _FakeAPI:
     def __init__(self, details: WDKStrategyDetails) -> None:
         self._details = details
 
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails:
-        del strategy_id
+    async def get_strategy(
+        self, strategy_id: int, *, fresh: bool
+    ) -> WDKStrategyDetails:
+        del strategy_id, fresh
         return self._details
 
     async def find_step(self, step_id: int) -> WDKStep:

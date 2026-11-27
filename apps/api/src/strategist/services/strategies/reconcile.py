@@ -5,6 +5,7 @@ from http import HTTPStatus
 from typing import Protocol
 
 from assistant_core.platform.logging import get_logger
+from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import HeldValue
 from veupathdb.domain.strategy import (
     StepFilter,
@@ -37,13 +38,22 @@ logger = get_logger(__name__)
 
 
 class StrategyReads(Protocol):
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails: ...
+    async def get_strategy(
+        self, strategy_id: int, *, fresh: bool
+    ) -> WDKStrategyDetails: ...
     async def find_step(self, step_id: int) -> WDKStep: ...
+
+
+class WhatWDKHolds(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    steps: dict[str, StepSettings] = Field(default_factory=dict)
+    live: WDKStrategyDetails | None = None
 
 
 async def reconcile_sync_state_with_wdk(
     sync_state: WDKSyncState, api: StrategyReads
-) -> dict[str, StepSettings]:
+) -> WhatWDKHolds:
     """Read what WDK holds for every mapped step before a commit plans.
 
     A step WDK no longer holds is unmapped. A step outside the live tree that
@@ -51,11 +61,12 @@ async def reconcile_sync_state_with_wdk(
     raises, so no commit plans against settings it did not read.
     """
     if not sync_state.wdk_step_ids:
-        return {}
+        return WhatWDKHolds()
     live_ids: set[int] = set()
     held: dict[str, StepSettings] = {}
+    detail = None
     if sync_state.wdk_strategy_id is not None:
-        detail = await api.get_strategy(sync_state.wdk_strategy_id)
+        detail = await api.get_strategy(sync_state.wdk_strategy_id, fresh=True)
         sync_state.wdk_strategy_name = detail.name
         sync_state.wdk_strategy_description = detail.description
         held = _held_in(detail, sync_state)
@@ -70,14 +81,14 @@ async def reconcile_sync_state_with_wdk(
         else:
             held[local] = _settings_of_a_step(step)
     if not dropped:
-        return held
+        return WhatWDKHolds(steps=held, live=detail)
     sync_state.wdk_step_ids = {
         local: wdk
         for local, wdk in sync_state.wdk_step_ids.items()
         if local not in dropped
     }
     logger.info("Reconciled sync_state against WDK", dropped=sorted(dropped))
-    return held
+    return WhatWDKHolds(steps=held, live=detail)
 
 
 async def _the_step_wdk_holds(api: StrategyReads, wdk_step_id: int) -> WDKStep | None:

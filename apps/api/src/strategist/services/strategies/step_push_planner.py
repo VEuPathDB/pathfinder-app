@@ -1,7 +1,9 @@
-from collections.abc import Mapping
+from collections.abc import Container, Mapping
+from dataclasses import dataclass, field
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Discriminator, model_validator
+from veupathdb.domain.parameters import ParamValue, same_param_value, value_kind
 from veupathdb.domain.strategy import (
     StepSettings,
     StrategyAst,
@@ -83,12 +85,88 @@ _RECREATES_A_COMBINE = ("operator", "colocation_params", "wdk_weight", "filters"
 _WRITES_A_SEARCH_CONFIG = ("parameters", "wdk_weight", "filters")
 
 
+@dataclass(frozen=True)
+class TurnBaseline:
+    started: StepSettings
+    replaced: StepSettings | None = None
+    explicit: frozenset[str] = frozenset()
+
+    def stale_value(self, name: str, value: ParamValue) -> bool:
+        """Whether ``value`` is the turn's copy of one a site fold replaced."""
+        if self.replaced is None or name in self.explicit:
+            return False
+        held = self.replaced.parameters.get(name)
+        return held is not None and _same(name, value, held)
+
+    def stale_setting(self, name: str, now: StepSettings) -> bool:
+        return self.replaced is not None and name not in self.replaced.changed(now)
+
+
+@dataclass(frozen=True)
+class TheTurn:
+    unfinished: Container[str] = frozenset()
+    replaced: Mapping[str, StepSettings] = field(default_factory=dict)
+    explicit: Mapping[str, frozenset[str]] = field(default_factory=dict)
+
+    def baseline(
+        self, step_id: str, old: StrategyStepNode | None
+    ) -> TurnBaseline | None:
+        if old is None or step_id in self.unfinished:
+            return None
+        return TurnBaseline(
+            started=settings_of(old),
+            replaced=self.replaced.get(step_id),
+            explicit=self.explicit.get(step_id, frozenset()),
+        )
+
+
+def _same(name: str, left: ParamValue, right: ParamValue) -> bool:
+    return same_param_value(name, value_kind(left) or value_kind(right), left, right)
+
+
+def turn_moved(
+    now: StepSettings, base: TurnBaseline, held: StepSettings | None
+) -> frozenset[str]:
+    was = base.started.parameters
+    site = None if held is None else held.parameters
+    params = {
+        name
+        for name, value in now.parameters.items()
+        if (name not in was or not _same(name, value, was[name]))
+        and not base.stale_value(name, value)
+    } | {
+        name
+        for name, value in was.items()
+        if name not in now.parameters
+        and (site is None or (name in site and _same(name, site[name], value)))
+    }
+    settings = {
+        name
+        for name in now.changed(base.started)
+        if name != "parameters" and not base.stale_setting(name, now)
+    }
+    return frozenset({*settings, *params, *(["parameters"] if params else [])})
+
+
+def moved_by_the_turn(
+    stated: StepSettings, held: StepSettings, base: TurnBaseline | None
+) -> list[str]:
+    moved = stated.changed(held)
+    if base is None:
+        return moved
+    turned = turn_moved(stated, base, held)
+    return [name for name in moved if name in turned]
+
+
 def _decide_combine(
-    new_step: StrategyStepNode, old_step: StrategyStepNode, held: StepSettings
+    new_step: StrategyStepNode,
+    old_step: StrategyStepNode,
+    held: StepSettings,
+    started: TurnBaseline | None,
 ) -> tuple[StepActionT, str]:
     if new_step.input_ids() != old_step.input_ids():
         return RecreateAction(), "combine input topology changed"
-    moved = settings_of(new_step).changed(held)
+    moved = moved_by_the_turn(settings_of(new_step), held, started)
     recreated = [name for name in moved if name in _RECREATES_A_COMBINE]
     if recreated:
         return RecreateAction(), "combine " + " and ".join(recreated) + " changed"
@@ -100,9 +178,12 @@ def _decide_combine(
 
 
 def _decide_leaf_or_transform(
-    new_step: StrategyStepNode, old_step: StrategyStepNode, held: StepSettings
+    new_step: StrategyStepNode,
+    old_step: StrategyStepNode,
+    held: StepSettings,
+    started: TurnBaseline | None,
 ) -> tuple[StepActionT, str]:
-    moved = settings_of(new_step).changed(held)
+    moved = moved_by_the_turn(settings_of(new_step), held, started)
     if "search_name" in moved:
         return RecreateAction(), "search changed"
     if new_step.primary_input_id != old_step.primary_input_id:
@@ -129,6 +210,7 @@ def _decide_step(
     old_by_id: dict[str, StrategyStepNode],
     existing_wdk_ids: dict[str, int],
     held: Mapping[str, StepSettings],
+    turn: TheTurn,
 ) -> tuple[StepActionT, str]:
     if step.id not in existing_wdk_ids:
         return CreateAction(), "no wdk id"
@@ -140,9 +222,10 @@ def _decide_step(
     old_kind = old_step.infer_kind()
     if new_kind != old_kind:
         return RecreateAction(), f"step kind changed {old_kind}->{new_kind}"
+    started = turn.baseline(step.id, old_step)
     if new_kind == "combine":
-        return _decide_combine(step, old_step, holds)
-    return _decide_leaf_or_transform(step, old_step, holds)
+        return _decide_combine(step, old_step, holds, started)
+    return _decide_leaf_or_transform(step, old_step, holds, started)
 
 
 def plan_step_pushes(
@@ -151,6 +234,7 @@ def plan_step_pushes(
     new_ast: StrategyAst,
     existing_wdk_ids: dict[str, int],
     held: Mapping[str, StepSettings],
+    turn: TheTurn,
 ) -> list[StepPushPlan]:
     new_steps = walk(new_ast.root)
     old_by_id: dict[str, StrategyStepNode] = (
@@ -158,7 +242,7 @@ def plan_step_pushes(
     )
 
     decisions: dict[str, tuple[StepActionT, str]] = {
-        step.id: _decide_step(step, old_by_id, existing_wdk_ids, held)
+        step.id: _decide_step(step, old_by_id, existing_wdk_ids, held, turn)
         for step in new_steps
     }
 

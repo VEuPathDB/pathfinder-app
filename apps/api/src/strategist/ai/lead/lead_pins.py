@@ -19,6 +19,7 @@ from strategist.ai.lead._delete_rules import (
     roots_by_size,
     steps_outside_the_strategy,
 )
+from strategist.ai.lead.answered_strategy import take_the_sites_fold
 from strategist.ai.lead.derive import derive_ledger
 from strategist.ai.lead.intent import NamedControls
 from strategist.ai.lead.intent_gate import (
@@ -47,6 +48,7 @@ __all__ = [
     "pinned_eda_sheet",
     "pinned_ledger_summary",
     "pinned_operational_spec",
+    "pinned_spec_as_the_site_holds_it",
     "pinned_statistics",
     "pinned_turn_briefing",
     "pinned_user_intent",
@@ -119,6 +121,17 @@ def pinned_ledger_summary(ctx: RunContext[LeadDeps]) -> str:
         phase_stop=ctx.deps.last_phase_stop,
     )
     return ledger.render_summary()
+
+
+async def pinned_spec_as_the_site_holds_it(ctx: RunContext[LeadDeps]) -> str | None:
+    """Renders the operational spec after taking what the turn's commits read
+    from the site."""
+    await take_the_sites_fold(
+        ctx.deps.state,
+        ctx.deps.runtime.strategy_session,
+        site_id=ctx.deps.runtime.site_id,
+    )
+    return pinned_operational_spec(ctx)
 
 
 def pinned_operational_spec(ctx: RunContext[LeadDeps]) -> str | None:

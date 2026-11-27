@@ -79,7 +79,7 @@ async def clone_saved_strategy(
     """
     api = get_strategy_api(site_id)
     try:
-        saved = await api.get_strategy(saved_wdk_strategy_id)
+        saved = await api.get_strategy(saved_wdk_strategy_id, fresh=True)
     except VEuPathDBError as exc:
         raise NotFoundError(
             code=ErrorCode.STRATEGY_NOT_FOUND,

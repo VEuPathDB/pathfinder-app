@@ -24,16 +24,35 @@ A commit runs in this order:
    operator. The group name a combine holds is read from the step WDK holds. A step WDK
    no longer holds is unmapped. A read that fails stops the commit with nothing written, and the
    failure says whether the site did not answer or answered with a strategy that does not
-   parse; the next commit reads again and writes the edit. A clear whose read fails
+   parse. A thread commit or a build whose read failed restores the graph it started
+   from, so the edit is made again rather than held unwritten. A clear whose read fails
    raises, and the graph is restored. What WDK
-   held is not kept between commits; every commit reads it again.
+   held is not kept between commits; every commit reads it again, fresh even inside a
+   turn that holds the strategy (`get_strategy(..., fresh=True)`,
+   [a turn reads the strategy once between writes](a-turn-reads-the-strategy-once-between-writes.md)).
 3. It makes the id-list datasets a gold strategy names and binds the steps to them.
 4. It plans each step against what WDK holds (R1-R4 below), validates every step it
    writes once, writes the steps, puts the tree and reads it back (R5).
 
-- R1. A value that moved against what WDK holds is stated; the rest is context. A value
+- R1. A setting moves when this commit's plan differs from the plan the commit started
+  from (the tree before the batch) and from what WDK holds. A step whose last write WDK
+  refused (it is in `wdk_push_errors`) is compared with what WDK holds alone. Before it
+  plans, the commit takes onto the graph every value and setting the site holds that the
+  plan did not move (`commit_read.what_wdk_holds`, with the fold the turn's first read
+  uses, `site_changes.fold_the_sites_values`), so a value set on the website during the
+  turn is the graph's, is not written back, and is what the turn shows and checks. A
+  value equal to one such a fold replaced earlier in the turn is the turn's stale copy and
+  does not move, unless an operation of this commit names it (`UpdateStepParamsOp`), so a
+  deliberate set-back is still written. A parameter only WDK states (a hidden default
+  such as `document_type`) is not kept in the plan: it goes to WDK as WDK holds it. A
+  value the earlier plan stated and this plan drops is a move only while WDK still holds
+  what the earlier plan stated; one the site now holds otherwise is the site's and goes
+  as context. A step whose last write was refused sends every value it does not state
+  as WDK holds it.
+  A moved value is stated; the rest is context. A value
   the earlier plan stated and this plan no longer states has moved too: the step is written
-  without it and WDK takes its default. Each
+  without it and WDK takes its default. The weight and the filters are sent only when they
+  moved; WDK keeps the step's own otherwise. Each
   written step is validated once, and every refusal is returned together. A context value
   goes to WDK as WDK holds it, and the plan keeps the value it states: what WDK holds
   decides what is sent and is compared, and never replaces a value in the plan.
@@ -54,9 +73,8 @@ A saved or internal strategy is kept whole or not at all: on a refusal, a failed
 departure after the put, the strategy or the steps it made are deleted.
 
 When the turn's read of what changed on the site fails, a canvas edit still commits, and
-the commit's own read of what WDK holds sees a value set on the site that the plan does not
-state. The plan is what the thread states, so the commit writes the plan's value over it.
-This is accepted while that read fails; the turn that reads the site again takes the change.
+the commit's own read takes every value the site holds that the edit did not move onto the
+graph, so the graph and the site agree after it.
 
 A step that has no `filters_wdk_added` record (an imported step, or one stored before the
 record existed) takes it from the first read of what WDK holds: every held filter whose name

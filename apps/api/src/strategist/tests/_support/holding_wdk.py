@@ -4,6 +4,7 @@ import copy
 import json
 import re
 import sys
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -41,6 +42,9 @@ _STEP_CONFIG = re.compile(r"/users/\w+/steps/(\d+)/search-config")
 _STRATEGY = re.compile(r"/users/\w+/strategies/(\d+)")
 _STRATEGY_TREE = re.compile(r"/users/\w+/strategies/(\d+)/step-tree")
 _SEARCH = re.compile(r"/record-types/(\w+)/searches/(\w+)")
+_STEP_REPORT = re.compile(r"/users/\w+/steps/(\d+)/reports/standard")
+_SEARCH_REPORT = re.compile(r"/record-types/\w+/searches/\w+/reports/standard")
+_REFRESH = re.compile(r"/record-types/\w+/searches/\w+/refreshed-dependent-params")
 
 
 @dataclass
@@ -65,6 +69,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
     sizes: dict[int, int | None] = field(default_factory=dict)
     next_id: int = 5000
     next_dataset_id: int = 7000
+    sent: Counter[str] = field(default_factory=Counter)
 
     def written(self, method: str, suffix: str = "") -> list[Write]:
         return [
@@ -74,6 +79,7 @@ class HoldingWDK(httpx.AsyncBaseTransport):
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         path = request.url.path.removeprefix("/service")
         body = json.loads(request.content) if request.content else None
+        self.sent[request_kind(request.method, path)] += 1
         if request.method != "GET":
             self.writes.append(Write(request.method, path, copy.deepcopy(body)))
         refused = self._refusal(request.method, path)
@@ -144,7 +150,21 @@ class HoldingWDK(httpx.AsyncBaseTransport):
         msg = f"HoldingWDK: no GET {path}"
         raise AssertionError(msg)
 
+    def _read(self, path: str) -> Any:
+        if m := _STEP_REPORT.fullmatch(path):
+            return _answer_of(self.sizes.get(int(m[1]), self.answer_size))
+        if _SEARCH_REPORT.fullmatch(path):
+            return _answer_of(self.answer_size)
+        if _REFRESH.fullmatch(path):
+            return []
+        if m := _SEARCH.fullmatch(path):
+            return _search_details(m[2])
+        return None
+
     def _post(self, path: str, body: Any) -> Any:
+        read = self._read(path)
+        if read is not None:
+            return read
         if path.endswith("/datasets"):
             self.next_dataset_id += 1
             return {"id": self.next_dataset_id}
@@ -336,6 +356,14 @@ def _kind_of(method: str, path: str) -> str:
     if method == "POST" and path.endswith("/steps"):
         return "step create"
     return ""
+
+
+def request_kind(method: str, path: str) -> str:
+    return f"{method} {re.sub(r'/\d+', '/N', path)}"
+
+
+def _answer_of(size: int | None) -> dict[str, Any]:
+    return {"meta": {"totalCount": size, "responseCount": 0}, "records": []}
 
 
 def tree_ids(tree: dict[str, Any] | None) -> list[int]:

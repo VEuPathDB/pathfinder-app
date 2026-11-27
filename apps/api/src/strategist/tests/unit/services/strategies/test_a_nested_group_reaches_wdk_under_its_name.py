@@ -16,6 +16,7 @@ from strategist.domain.strategy.step_words import StepWords
 from strategist.services.strategies import spec_build
 from strategist.services.strategies.step_push_planner import (
     PatchAction,
+    TheTurn,
     plan_step_pushes,
 )
 from strategist.services.strategies.sync_state import WDKSyncState
@@ -114,6 +115,7 @@ def test_a_new_group_name_is_a_name_write() -> None:
         ),
         existing_wdk_ids=dict(_WDK_IDS),
         held=held_as(StrategyAst(record_type="transcript", root=_tree(named=_NAME))),
+        turn=TheTurn(),
     )
 
     assert {entry.step_id: entry.action for entry in plan}["root"] == PatchAction(

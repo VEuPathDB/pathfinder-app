@@ -14,7 +14,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from assistant_core.tasks.job_context import CarriedSecret, DurableJobState
 from pydantic import SecretStr
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.wdk import search_definitions_read_once, search_turn
+from veupathdb.wdk import search_turn
 
 from strategist.jobs.auth_context import attach_wdk_auth
 from strategist.platform.pinned_model import pin_model, pinned_model
@@ -51,7 +51,7 @@ class TurnJobContext:
 @asynccontextmanager
 async def _restored(token: str | None, model_id: str | None) -> AsyncIterator[None]:
     async with attach_wdk_auth(token):
-        with pin_model(model_id), search_turn(), search_definitions_read_once():
+        with pin_model(model_id), search_turn():
             yield
 
 

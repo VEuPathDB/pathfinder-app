@@ -90,6 +90,24 @@ def outcome_of(
         organism_change=change,
         not_read=sync_state.strategy_not_read,
     )
+    if committed.not_read:
+        (unread,) = committed.failures
+        outcome.failed_steps = [
+            StepPushFailure(
+                step_id=node.id, search_name=wdk_search_name(node), error=unread.error
+            )
+            for node in nodes
+        ]
+        outcome.node_results = [
+            NodeResult(
+                node_id=node.id,
+                search_name=wdk_search_name(node),
+                status="failed",
+                error=unread.error,
+            )
+            for node in nodes
+        ]
+        return outcome
     outcome.node_results = node_results(nodes, sync_state, outcome)
     return outcome
 
@@ -289,6 +307,10 @@ async def build_strategy_from_spec(
             deps=deps, graph=graph, sync_result=None
         )
         raise
+    if committed.not_read:
+        restore_graph(graph, old, entry.labels)
+        del graph.history[entry.history :]
+        sync_state.step_counts = entry.counts
     if committed.record_type is not None:
         graph.record_type = committed.record_type
     outcome = outcome_of(

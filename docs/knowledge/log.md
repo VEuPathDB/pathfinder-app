@@ -10,6 +10,31 @@
   through a recording proxy that writes nowhere it keeps, and the EDA subset write in
   `eda-branching` goes through the proxy (`decisions/e2e-replays-recorded-wdk.md`).
 
+* **A turn reads the strategy once between writes.** veupathdb-py 0.9.0b20 and veupathdb-mcp
+  0.9.0b28. `researcher_search_turn` opens `turn_reads`, so a strategy read, a step report and
+  a search context read are sent once until the turn writes; the commit's reconcile read and
+  the release of an abandoned mint read fresh. The site client keeps search definitions and
+  record types for an hour (one store per process, 64 MiB), and
+  `search_definitions_read_once` is gone from the
+  request middleware, the job context and the audit job
+  (`decisions/a-turn-reads-the-strategy-once-between-writes.md`).
+* **A commit writes only the settings the turn moved.** The planner compares each step with
+  the plan the commit started from and with what WDK holds, and writes a setting only when
+  both differ; a step whose last write did not land is compared with WDK alone. A rename no
+  longer writes a step back over a value set on the website, and a search-config PUT states
+  the weight and the filters only when the turn moved them. The clone of a saved strategy
+  and the import read fresh, and `TurnCounts` keeps no count of its own. The commit takes
+  onto the graph every value the site holds that it did not move, with the turn-start fold,
+  so a website edit made during the turn is shown, checked and kept; a commit whose read
+  failed restores the graph it started from. Every write path plays the values the
+  commit's read took from the site onto the turn's specs (`take_the_sites_fold`), so a
+  later spec build keeps them; the turn keeps what each fold replaced, a commit that
+  restates it moves nothing, and the specs take the folds each time the Lead's
+  instructions are rendered. A hidden default the validation adds is not stored in the plan, so a rebuild
+  writes no step and a website value of it stays. A build whose read failed reports every step not built,
+  and one rule (`turn_moved`, on `same_param_value`) names what the turn moved for the
+  fold and the planner.
+
 ## 2026-11-24
 
 * **The e2e tier replays recorded WDK.** The wdk-wire proxy (`deploy/wdk-wire/`,

@@ -10,9 +10,7 @@ with its decoded form, never with a spec value.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from uuid import UUID
 
-from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import (
@@ -46,25 +44,16 @@ from veupathdb_mcp.wdk import (
     canonicalize_synced_parameters,
 )
 
-from strategist.domain.strategy.session import StrategyGraph, StrategySession
+from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_settings_text import OWN_LINES
 from strategist.domain.unread import Unread
 from strategist.services.eda.analysis_kinds import read_the_unread_kinds
 from strategist.services.site_errors import site_words
-from strategist.services.strategies.context import StrategyMutationContext
-from strategist.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from strategist.services.strategies.live_counts import (
-    SiteRead,
     read_the_live_strategy,
-    site_read,
 )
-from strategist.services.strategies.persist import (
-    persist_strategy_ast_to_conversation,
-)
-from strategist.services.strategies.session_factory import stored_strategy_session
-from strategist.services.strategies.sync_state import WDKSyncState, ensure_sync_state
-from strategist.services.strategies.write_lock import strategy_write_lock
+from strategist.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
 
@@ -73,7 +62,6 @@ __all__ = [
     "SiteEdits",
     "decoded_on_the_site",
     "held_alike",
-    "read_the_site_into_the_thread",
     "take_the_sites_edits",
     "take_what_the_site_holds",
     "wire_of",
@@ -94,6 +82,18 @@ class SiteEdits(BaseModel):
     @property
     def moved(self) -> bool:
         return bool(self.valued) or self.reshaped
+
+
+class TheTurnsOwn(BaseModel):
+    """The values a commit's plan moved, which the site's values do not replace."""
+
+    model_config = ConfigDict(frozen=True)
+
+    steps: frozenset[str] = frozenset()
+    names: dict[str, frozenset[str]] = Field(default_factory=dict)
+
+    def holds(self, step_id: str, name: str) -> bool:
+        return step_id in self.steps or name in self.names.get(step_id, frozenset())
 
 
 class _SiteTree(BaseModel):
@@ -124,59 +124,6 @@ async def take_the_sites_edits(
             return SiteEdits()
 
 
-async def read_the_site_into_the_thread(
-    *,
-    session: StrategySession,
-    conversation_id: UUID,
-    db_session_factory: DBSessionFactory,
-) -> SiteRead:
-    """Store what the site moved on the thread's strategy, and hand ``session`` it.
-
-    The stored graph is read again under the thread's write lock, so the site's
-    edit lands on the tree the last writer left. A thread with no steps has
-    nothing the site can move, so its read takes no lock. The answer is the
-    site's strategy, and why the site or its tree was not read.
-    """
-    held = session.sync_state
-    if held is None or held.wdk_strategy_id is None or not held.wdk_step_ids:
-        return SiteRead()
-    graph = session.get_graph(None)
-    if graph is None or not graph.steps:
-        return site_read(await read_the_live_strategy(held, session.site_id))
-    async with strategy_write_lock(conversation_id, db_session_factory) as locked:
-        stored = await stored_strategy_session(locked, conversation_id, session.site_id)
-        stored_graph = None if stored is None else stored.get_graph(None)
-        if stored is None or stored_graph is None:
-            return SiteRead()
-        sync_state = ensure_sync_state(stored)
-        match await read_the_live_strategy(sync_state, session.site_id):
-            case WDKStrategyDetails() as live:
-                pass
-            case unread:
-                return site_read(unread)
-        edits = await take_what_the_site_holds(
-            graph=stored_graph,
-            sync_state=sync_state,
-            site_id=session.site_id,
-            live=live,
-        )
-        if not edits.moved:
-            return SiteRead(live=live, not_read=edits.not_read)
-        written = StrategyMutationContext(
-            site_id=session.site_id,
-            strategy_session=stored,
-            conversation_id=conversation_id,
-            locked_session=locked,
-        )
-        await persist_strategy_ast_to_conversation(
-            deps=written, graph=stored_graph, sync_result=None
-        )
-        await defer_the_gene_set_refresh(written)
-    session.graph = stored_graph
-    session.sync_state = sync_state
-    return SiteRead(live=live, not_read=edits.not_read)
-
-
 async def take_what_the_site_holds(
     *,
     graph: StrategyGraph,
@@ -191,7 +138,9 @@ async def take_what_the_site_holds(
             return SiteEdits(not_read=unread)
         case tree:
             pass
-    valued = await _take_the_sites_values(graph, local_of, live, tree, site_id)
+    valued = await _take_the_sites_values(
+        graph.steps, local_of, live, tree, site_id, TheTurnsOwn()
+    )
     match await _take_the_sites_shape(graph, sync_state, local_of, live, tree, site_id):
         case Unread() as unread:
             return SiteEdits(valued=valued, not_read=unread)
@@ -218,30 +167,54 @@ def _the_sites_tree(live: WDKStrategyDetails) -> _SiteTree | Unread:
 
 
 def _held_step(
-    graph: StrategyGraph, local_of: Mapping[int, str], wdk_key: str
+    steps: Mapping[str, StrategyStep], local_of: Mapping[int, str], wdk_key: str
 ) -> StrategyStep | None:
     local = local_of.get(int(wdk_key)) if wdk_key.isdigit() else None
-    return None if local is None else graph.steps.get(local)
+    return None if local is None else steps.get(local)
+
+
+async def fold_the_sites_values(
+    *,
+    steps: Mapping[str, StrategyStep],
+    sync_state: WDKSyncState,
+    live: WDKStrategyDetails,
+    site_id: str,
+    own: TheTurnsOwn,
+) -> list[str]:
+    """Take onto ``steps`` every value ``live`` holds that ``own`` does not name."""
+    match _the_sites_tree(live):
+        case Unread():
+            return []
+        case tree:
+            local_of = {wdk: local for local, wdk in sync_state.wdk_step_ids.items()}
+            return await _take_the_sites_values(
+                steps, local_of, live, tree, site_id, own
+            )
 
 
 async def _take_the_sites_values(
-    graph: StrategyGraph,
+    steps: Mapping[str, StrategyStep],
     local_of: Mapping[int, str],
     live: WDKStrategyDetails,
     tree: _SiteTree,
     site_id: str,
+    own: TheTurnsOwn,
 ) -> list[str]:
     nodes = {node.id: node for node in walk(tree.ast.root)}
     moved: list[str] = []
     for wdk_key, wdk_step in live.steps.items():
-        step = _held_step(graph, local_of, wdk_key)
+        step = _held_step(steps, local_of, wdk_key)
         if step is None:
             continue
         taken = step.kind is not StepKind.COMBINE and await _take_the_parameters(
-            step, wdk_step.search_name, wire_of(wdk_step), site_id=site_id
+            step, wdk_step.search_name, wire_of(wdk_step), site_id=site_id, own=own
         )
         node = nodes.get(wdk_key)
-        settled = node is not None and _take_the_settings(step, settings_of(node))
+        settled = (
+            node is not None
+            and (node.infer_kind() == "combine") == (step.kind is StepKind.COMBINE)
+            and _take_the_settings(step, settings_of(node), own)
+        )
         if taken or settled:
             moved.append(step.id)
     return moved
@@ -254,7 +227,9 @@ def wire_of(step: WDKStep) -> WireStep:
     )
 
 
-def _take_the_settings(step: StrategyStep, site: StepSettings) -> bool:
+def _take_the_settings(
+    step: StrategyStep, site: StepSettings, own: TheTurnsOwn
+) -> bool:
     added = step.filters_wdk_added
     stated = site.model_copy(
         update={
@@ -267,7 +242,9 @@ def _take_the_settings(step: StrategyStep, site: StepSettings) -> bool:
     moved = [
         name
         for name in held.changed(stated)
-        if name in SITE_HELD_SETTINGS and name not in OWN_LINES
+        if name in SITE_HELD_SETTINGS
+        and name not in OWN_LINES
+        and not own.holds(step.id, name)
     ]
     taken = dict(stated)
     for name in moved:
@@ -281,12 +258,13 @@ async def _take_the_parameters(
     wire: WireStep,
     *,
     site_id: str,
+    own: TheTurnsOwn,
 ) -> bool:
     """Take each value the site holds in neither form the step holds it in.
 
     Only names the step holds are read: a name it lacks is one of WDK's own.
     """
-    taken = await _differing(step, search_name, wire, site_id)
+    taken = await _differing(step, search_name, wire, site_id, own)
     if not taken:
         return False
     step.parameters = {**step.parameters, **taken}
@@ -294,12 +272,17 @@ async def _take_the_parameters(
 
 
 async def _differing(
-    step: StrategyStep, search_name: str, wire: WireStep, site_id: str
+    step: StrategyStep,
+    search_name: str,
+    wire: WireStep,
+    site_id: str,
+    own: TheTurnsOwn,
 ) -> dict[str, ParamValue]:
     names = [
         name
         for name, value in step.parameters.items()
         if name in wire.parameters
+        and not own.holds(step.id, name)
         and not held_alike(name, value, HeldValue(wire=wire.parameters[name]))
     ]
     if not names:
@@ -359,7 +342,7 @@ async def _take_the_sites_shape(
     arrivals = {
         node.id: node
         for node in walk(tree.ast.root)
-        if _held_step(graph, local_of, node.id) is None
+        if _held_step(graph.steps, local_of, node.id) is None
     }
     match await _arrivals_decoded(tree, arrivals, site_id):
         case Unread() as unread:
@@ -425,7 +408,7 @@ def _placed(
         if node.secondary_input is None
         else _placed(node.secondary_input, graph, local_of)
     )
-    held = _held_step(graph, local_of, node.id)
+    held = _held_step(graph.steps, local_of, node.id)
     if held is not None:
         own = rebuild_tree(held.id, graph.steps)
         return own.model_copy(

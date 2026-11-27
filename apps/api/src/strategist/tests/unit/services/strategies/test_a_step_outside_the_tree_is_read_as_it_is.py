@@ -16,7 +16,7 @@ async def test_a_combine_outside_the_live_tree_is_read_with_its_operator() -> No
     sync_state = WDKSyncState(wdk_step_ids={"step_join": 7, "step_a": 5, "step_b": 6})
     api.holds(steps, sync_state)
 
-    held = await reconcile_sync_state_with_wdk(sync_state, api)
+    held = (await reconcile_sync_state_with_wdk(sync_state, api)).steps
 
     assert (held["step_join"].operator, held["step_a"].operator) == (
         CombineOp.MINUS,

@@ -99,7 +99,7 @@ PINNED_INSTRUCTIONS = [
     "pinned_user_prompt",
     "pinned_linked_pages",
     "pinned_user_intent",
-    "pinned_operational_spec",
+    "pinned_spec_as_the_site_holds_it",
     "pinned_eda_sheet",
     "pinned_ledger_summary",
     "pinned_statistics",

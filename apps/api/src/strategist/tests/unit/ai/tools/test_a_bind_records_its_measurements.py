@@ -7,7 +7,7 @@ from __future__ import annotations
 import pytest
 from pydantic import JsonValue
 from veupathdb.domain.parameters import FilterValue, SinglePickValue, StringMembers
-from veupathdb.wdk import WDKParameter
+from veupathdb.wdk import WDKParameter, turn_reads
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from strategist.ai.agents.state import AgentToolState
@@ -217,9 +217,10 @@ async def test_a_second_bind_of_the_same_values_reads_the_turns_counts(
     asked = _serve(monkeypatch, recorded_count("report_percentile_min_80"))
     state = AgentToolState()
 
-    await _bound(state)
-    first = len(asked)
-    await _bound(state)
+    with turn_reads():
+        await _bound(state)
+        first = len(asked)
+        await _bound(state)
 
     assert (first, len(asked)) == (4, 4)
 

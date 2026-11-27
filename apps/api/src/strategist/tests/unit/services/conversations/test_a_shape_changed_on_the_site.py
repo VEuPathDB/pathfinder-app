@@ -186,7 +186,7 @@ class TestWhatTheSiteDoesNotSettle:
         assert wired(repo) == {EXPORT: [], TAXON: [], JOIN: [EXPORT, TAXON]}
         assert repo.value(EXPORT, SCORE) == NumberValue(value=12)
 
-    async def test_a_site_that_does_not_answer_gets_the_plans_values_back(
+    async def test_a_rename_after_a_failed_site_read_takes_the_sites_values(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         repo = install_the_site(monkeypatch, the_site())
@@ -200,12 +200,9 @@ class TestWhatTheSiteDoesNotSettle:
 
         assert [
             c.name for c in repo.site.calls if c.name.startswith("update_step")
-        ] == [
-            "update_step_search_config",
-            "update_step_properties",
-        ]
-        assert repo.value(EXPORT, SCORE) == NumberValue(value=10)
+        ] == ["update_step_properties"]
+        assert repo.value(EXPORT, SCORE) == NumberValue(value=12)
         assert (
             repo.site.wdk.steps[WDK[EXPORT]]["searchConfig"]["parameters"][SCORE]
-            == "10"
+            == "12"
         )

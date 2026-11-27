@@ -14,7 +14,7 @@ from veupathdb.domain.strategy import (
     walk,
     wdk_search_name,
 )
-from veupathdb.errors import DataParsingError, ValidationError, VEuPathDBError
+from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.model import CamelModel
 from veupathdb.wdk import StrategyAPI, get_site, get_strategy_api
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
@@ -22,9 +22,7 @@ from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 from strategist.domain.strategy.build_outcome import StepPushFailure
 from strategist.domain.strategy.operations.apply import PlanDeparturesError
 from strategist.domain.strategy.record_class_check import step_class_of
-from strategist.domain.strategy.site_held_settings import SITE_HELD_SETTINGS
 from strategist.domain.strategy.step_status import step_status
-from strategist.services.site_errors import site_words
 from strategist.services.strategies._tree_write import (
     StrategyRole,
     delete_what_the_tree_dropped,
@@ -40,6 +38,11 @@ from strategist.services.strategies._wdk_step_calls import (
     finished_step,
     written_step,
 )
+from strategist.services.strategies.commit_failures import (
+    departures,
+    unsorted_failure,
+)
+from strategist.services.strategies.commit_read import what_wdk_holds
 from strategist.services.strategies.reconcile import (
     held_after_the_put,
     held_before_the_commit,
@@ -51,13 +54,19 @@ from strategist.services.strategies.record_classes import (
     unclassed_step_failure,
     what_the_site_cannot_run,
 )
-from strategist.services.strategies.stated_sides import unmoved
+from strategist.services.strategies.started_plan import (
+    started_settings,
+    the_turn,
+    unstated,
+)
 from strategist.services.strategies.step_push_planner import (
     CreateAction,
     PatchAction,
     RecreateAction,
     SkipAction,
     StepPushPlan,
+    TurnBaseline,
+    moved_by_the_turn,
     plan_step_pushes,
 )
 from strategist.services.strategies.step_search import names_a_wdk_question
@@ -78,6 +87,7 @@ class CommitTarget(CamelModel):
     role: StrategyRole = "thread"
     copies: dict[str, StepSettings] = Field(default_factory=dict)
     datasets: dict[str, list[str]] = Field(default_factory=dict)
+    stated: dict[str, frozenset[str]] = Field(default_factory=dict)
 
 
 class CommittedTree(BaseModel):
@@ -91,6 +101,7 @@ class CommittedTree(BaseModel):
     record_type: str | None = None
     held: dict[str, StepSettings] = Field(default_factory=dict)
     put: bool = False
+    not_read: bool = False
 
     @property
     def refused(self) -> dict[str, str]:
@@ -104,6 +115,8 @@ class _Commit:
     steps: dict[str, StrategyStep]
     sync_state: WDKSyncState
     before: dict[str, StepSettings]
+    started: dict[str, TurnBaseline]
+    site: dict[str, StepSettings]
     pushed: list[str] = field(default_factory=list)
     failures: list[StepPushFailure] = field(default_factory=list)
     drafts: dict[str, str] = field(default_factory=dict)
@@ -144,7 +157,12 @@ class _Commit:
                 self._draft_unless_ready(step)
                 continue
             before = self.before.get(step.id, StepSettings()).parameters
-            context = unmoved(step.parameters, before)
+            context = unstated(
+                step.parameters,
+                before,
+                self.started.get(step.id),
+                self.site.get(step.id, StepSettings()).parameters,
+            )
             try:
                 validated = await validate_parameters(
                     SearchContext(
@@ -164,7 +182,10 @@ class _Commit:
                 self._refused(step, exc)
                 continue
             self.sent[step.id] = {**step.parameters, **context, **validated.params}
-            step.parameters = {**step.parameters, **validated.params}
+            step.parameters = {
+                **step.parameters,
+                **{k: v for k, v in validated.params.items() if k in step.parameters},
+            }
             if validated.record_class:
                 step.record_class = validated.record_class
 
@@ -250,6 +271,7 @@ class _Commit:
         if record_type is None:
             self._fail(unclassed_step_failure(step.id, wdk_search_name(step)))
             return
+        before = self.before.get(step.id, StepSettings())
         failure, replaced = await written_step(
             self.api,
             self.sync_state,
@@ -258,7 +280,12 @@ class _Commit:
             StepWrite(
                 record_type=record_type,
                 parameters=self.sent.get(step.id, step.parameters),
-                before=self.before.get(step.id, StepSettings()),
+                before=before,
+                moved=frozenset(
+                    moved_by_the_turn(
+                        settings_of(step), before, self.started.get(step.id)
+                    )
+                ),
             ),
         )
         if replaced is not None:
@@ -320,38 +347,21 @@ class _Commit:
         try:
             await _sort_a_ranking(self.api, self.sync_state, self.steps, root_id, moved)
         except VEuPathDBError as exc:
-            site = get_site(self.site_id).display_name
-            self._fail(
-                StepPushFailure(
-                    step_id=root_id,
-                    search_name=wdk_search_name(self.steps[root_id]),
-                    error=(
-                        f"{site} did not sort the ranked result by score, so it "
-                        f"is not ranked: {site_words(exc)}"
-                    ),
-                )
-            )
+            self._fail(unsorted_failure(self.site_id, self.steps[root_id], exc))
 
     def _departed(self, node: StrategyStepNode, holds: StepSettings | None) -> None:
         if holds is None:
             return
-        stated = settings_of(node)
-        found, wanted = dict(holds), dict(stated)
-        site = get_site(self.site_id).display_name
-        for name in holds.departures_from(
+        step = self.steps[node.id]
+        for failure in departures(
+            self.site_id,
+            node,
+            step,
+            holds,
             self.before.get(node.id, StepSettings()),
-            stated,
-            wdk_added=self.steps[node.id].filters_wdk_added or [],
+            step.filters_wdk_added or [],
         ):
-            if name not in SITE_HELD_SETTINGS:
-                continue
-            self._fail(
-                StepPushFailure(
-                    step_id=node.id,
-                    search_name=wdk_search_name(self.steps[node.id]),
-                    error=f"{site} holds {name} {found[name]} for this step, not {wanted[name]}",
-                )
-            )
+            self._fail(failure)
 
 
 async def commit_tree(
@@ -372,19 +382,13 @@ async def commit_tree(
     if not refused.empty:
         raise PlanDeparturesError(refused)
     api = get_strategy_api(site_id)
-    try:
-        held = await reconcile_sync_state_with_wdk(sync_state, api)
-    except DataParsingError as exc:
-        return _unread(
-            site_id,
-            steps[root_id],
-            f"answered the read of the strategy with a strategy that does not "
-            f"parse: {exc}",
-        )
-    except (VEuPathDBError, OSError) as exc:
-        return _unread(
-            site_id, steps[root_id], f"did not answer the read of the strategy: {exc}"
-        )
+    turn = the_turn(sync_state, target.stated)
+    started = started_settings(old, turn)
+    match await what_wdk_holds(api, site_id, steps, root_id, started, sync_state):
+        case StepPushFailure() as unread:
+            return CommittedTree(failures=[unread], not_read=True)
+        case holds:
+            held = holds.steps
     await provision_the_datasets(api, steps, target.datasets)
     await fill_record_classes(site_id, steps)
     root = rebuild_tree(root_id, steps)
@@ -399,8 +403,9 @@ async def commit_tree(
         new_ast=StrategyAst(record_type="", root=root),
         existing_wdk_ids=sync_state.wdk_step_ids,
         held=before,
+        turn=turn,
     )
-    run = _Commit(api, site_id, steps, sync_state, before)
+    run = _Commit(api, site_id, steps, sync_state, before, started, held)
     if target.role == "thread":
         return await run.everything(plan, root, target)
     try:
@@ -413,16 +418,6 @@ async def commit_tree(
     elif target.role == "saved":
         await run.api.set_saved(committed.sync.wdk_strategy_id, is_saved=True)
     return committed
-
-
-def _unread(site_id: str, root: StrategyStep, what: str) -> CommittedTree:
-    site = get_site(site_id).display_name
-    failure = StepPushFailure(
-        step_id=root.id,
-        search_name=wdk_search_name(root),
-        error=f"{site} {what}",
-    )
-    return CommittedTree(failures=[failure])
 
 
 async def drop_the_tree(

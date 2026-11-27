@@ -16,7 +16,6 @@ from veupathdb.domain.parameters import (
     StringValue,
     from_wire,
     to_wire,
-    wire_map,
 )
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import SiteSearchResponse, get_site_router
@@ -52,34 +51,10 @@ _SLOW_SEARCH = "the site counts this search too slowly to count its other readin
 
 @dataclass
 class TurnCounts:
-    """The counts and the site-search answers one turn read.
+    """The site-search answers one turn read. A count is read through the site
+    client, whose turn holder sends each report once."""
 
-    A count that did not arrive is not held, so a later reading asks again.
-    """
-
-    counts: dict[CountKey, int] = field(default_factory=dict)
     reaches: dict[ReachKey, SiteSearchResponse] = field(default_factory=dict)
-    pending: dict[CountKey, asyncio.Task[int | None]] = field(default_factory=dict)
-
-    @staticmethod
-    def _key(
-        site_id: str,
-        record_type: str,
-        search_name: str,
-        params: Mapping[str, ParamValue],
-    ) -> CountKey:
-        config = json.dumps(wire_map(dict(params)), sort_keys=True)
-        return (site_id, record_type, search_name, config)
-
-    def remember(
-        self,
-        site_id: str,
-        record_type: str,
-        search_name: str,
-        params: Mapping[str, ParamValue],
-        count: int,
-    ) -> None:
-        self.counts[self._key(site_id, record_type, search_name, params)] = count
 
     async def count(
         self,
@@ -92,25 +67,8 @@ class TurnCounts:
     ) -> int | None:
         """The records one configuration of the search answers, None when the
         service did not answer it."""
-        key = self._key(site_id, record_type, search_name, params)
-        if key in self.counts:
-            return self.counts[key]
-        if key not in self.pending:
-            self.pending[key] = asyncio.create_task(
-                self._ask(key, params, timeout_seconds=timeout_seconds)
-            )
-        return await self.pending[key]
-
-    async def _ask(
-        self,
-        key: CountKey,
-        params: Mapping[str, ParamValue],
-        *,
-        timeout_seconds: float,
-    ) -> int | None:
-        site_id, record_type, search_name, _ = key
         try:
-            counted = await timed(
+            return await timed(
                 site_id,
                 search_name,
                 count_search_answer(
@@ -124,11 +82,6 @@ class TurnCounts:
         except WDKError as exc:
             logger.warning("Count did not answer", site_id=site_id, error=str(exc))
             return None
-        finally:
-            self.pending.pop(key, None)
-        if counted is not None:
-            self.counts[key] = counted
-        return counted
 
     async def reach(
         self,
@@ -426,13 +379,6 @@ async def measure_binding(
         ]
     if counts_slowly(binding.site_id, binding.search_name):
         return [*worded, *(_not_measurable(name, _SLOW_SEARCH) for name in measured)]
-    counts.remember(
-        binding.site_id,
-        binding.record_type,
-        binding.search_name,
-        binding.params,
-        binding.count,
-    )
     reads = _Reads(counts, binding, binding.count)
     quoted = {
         name: text

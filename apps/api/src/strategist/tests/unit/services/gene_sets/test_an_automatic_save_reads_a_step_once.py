@@ -104,9 +104,9 @@ class _Site(StrategyAPI):
         }
 
     async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
+        self, strategy_id: int, user_id: str | None = None, *, fresh: bool = False
     ) -> WDKStrategyDetails:
-        del user_id
+        del user_id, fresh
         return WDKStrategyDetails.model_validate(
             {
                 "strategyId": strategy_id,

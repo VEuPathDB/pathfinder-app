@@ -144,9 +144,9 @@ def _on_the_site() -> WDKStrategyDetails:
 
 class _Site:
     async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
+        self, strategy_id: int, user_id: str | None = None, *, fresh: bool = False
     ) -> WDKStrategyDetails:
-        del strategy_id, user_id
+        del strategy_id, user_id, fresh
         return _on_the_site()
 
 

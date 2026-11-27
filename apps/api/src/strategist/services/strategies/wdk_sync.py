@@ -83,7 +83,7 @@ async def fetch_and_convert(
     WDK stores no Strategist metadata, so each EDA step's analysis kind is read
     from the site's catalog here.
     """
-    wdk_strategy = await api.get_strategy(wdk_id)
+    wdk_strategy = await api.get_strategy(wdk_id, fresh=True)
 
     payload, wire_by_step_id = build_snapshot_from_wdk(wdk_strategy)
 

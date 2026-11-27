@@ -99,7 +99,9 @@ async def test_a_search_moved_outside_takes_the_pairs_of_its_new_search() -> Non
     graph.steps = flatten_tree(_step(_INTERPRO))
     graph.recompute_roots()
 
-    await the_changes_written_outside(state, site_id="plasmodb", graph=graph)
+    await the_changes_written_outside(
+        state, site_id="plasmodb", graph=graph, since=state.domain.answered_graph
+    )
 
     spec = state.domain.operational_spec
     assert spec is not None

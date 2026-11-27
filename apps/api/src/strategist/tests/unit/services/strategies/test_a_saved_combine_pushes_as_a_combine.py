@@ -313,9 +313,11 @@ class TestASetOperationIsNeverPushedAsASearch:
     async def test_the_patch_refuses_it_by_name(
         self, api: RecordingAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        step = self._orphaned_combine()
-        before = step.model_copy(
+        before = self._orphaned_combine().model_copy(
             update={"parameters": {"bq_operator": StringValue(value="UNION")}}
+        )
+        step = before.model_copy(
+            update={"parameters": {"bq_operator": StringValue(value="INTERSECT")}}
         )
 
         committed, _ = await commit_against(

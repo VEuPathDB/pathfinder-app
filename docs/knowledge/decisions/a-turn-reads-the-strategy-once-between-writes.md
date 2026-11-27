@@ -1,0 +1,57 @@
+---
+type: Decision
+title: A turn reads the strategy once between writes
+description: A researcher's turn opens veupathdb-py's turn_reads, so the site client sends a strategy read and a step report once until the turn writes or reads fresh, and a search context read and a search count once for the turn; every read that decides a write reads fresh, and TurnCounts keeps only the site-search answers the client cannot hold. A timed strategy cache, a copy kept by each caller and a holder on the session were rejected.
+tags: [wdk, load, strategy, turn]
+generated: { by: claude-code/opus-5.5, at: 2026-11-25T00:00:00Z }
+status: stable
+---
+
+# Decided
+
+`services/search_waits.py::researcher_search_turn` opens `turn_reads()` beside the turn's
+search line. Inside it the site client is the one owner of the turn's copy
+(veupathdb-py `decisions/a-turn-reads-once-and-a-definition-is-kept-for-a-time.md`):
+
+- a strategy read and a step's standard report are sent once, and a write to the account
+  forgets them, so the next read is what the write made;
+- a search's context read, its refreshed parameters and its report are sent once for each
+  set of values;
+- an account read waits while a write on the same site and login is in flight.
+
+Every other caller (live counts, site counts, the step size, the gene set reads, the
+verification) reads through the client and keeps no copy of its own.
+
+Every read that decides a write reads fresh (`get_strategy(..., fresh=True)`):
+
+- the commit's `reconcile_sync_state_with_wdk`, so an edit made on the website or in the
+  panel (which reaches the api process, not the worker) is taken onto the turn's graph
+  and kept on the site ([one commit path](one-commit-path-writes-a-strategy.md), R1).
+  The turn keeps what each such fold replaced (`WDKSyncState.site_fold`) for the whole
+  turn, and a later commit that states the replaced value again does not move it, so no
+  commit path writes the site's value back. Each time the Lead's instructions are
+  rendered (`lead_pins.pinned_spec_as_the_site_holds_it`, before every model request),
+  the values the folds took and the turn did not move since are played onto the turn's
+  specs as a change written outside the thread (`answered_strategy.take_the_sites_fold`),
+  so the Lead never names the turn's stale value;
+- `delete_released_mint`, so a strategy the researcher saved during the turn is not
+  deleted;
+- `clone_saved_strategy`, so an insert copies the saved strategy as the site holds it now;
+- `fetch_and_convert`, so an import stores the strategy as the site holds it now.
+
+`TurnCounts` (`services/strategies/measurements.py`) keeps no count: a reading's count is
+read through `count_search_answer`, and the client's turn holder sends each configuration
+once. It keeps the site-search answers (`reach`), because the site search is a separate
+service the WDK client does not send, so the turn holder cannot hold them.
+
+A durable job, an audit run and an HTTP request open no `turn_reads`, so each of their reads
+is sent. One store per process keeps search definitions and record types for an hour, at
+most 64 MiB, in every one of them.
+
+# Rejected
+
+- **A timed strategy cache.** An edit on the website changes the strategy at any moment.
+- **A copy kept by each caller.** About ten callers read the strategy; each would need its
+  own rule for when a write makes its copy stale.
+- **A holder on the strategy session.** The tool server's reads and the client's own
+  read-back after `update_strategy` do not pass through the session.

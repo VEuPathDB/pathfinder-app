@@ -13,8 +13,8 @@ from veupathdb.wdk import (
     SearchRequest,
     get_site,
     runs_an_expensive_search,
-    search_definitions_read_once,
     search_turn,
+    turn_reads,
 )
 from veupathdb_mcp.search_line import told_while_waiting
 
@@ -56,7 +56,7 @@ class TurnStatusWaits:
 def researcher_search_turn(writer: ChatWriter) -> Iterator[None]:
     with (
         search_turn(),
-        search_definitions_read_once(),
+        turn_reads(),
         told_while_waiting(TurnStatusWaits(writer)),
     ):
         yield

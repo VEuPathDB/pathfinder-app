@@ -11,14 +11,14 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping
 from typing import NamedTuple
 
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, settings_of
 
 from strategist.ai.graph.state import PipelineState, StrategyDomainState
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
 from strategist.domain.strategy.ast_diff import nodes_of
 from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.outside_changes import OutsideChanges, outside_changes
-from strategist.domain.strategy.session import StrategyGraph
+from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.domain.strategy.spec_hydration import (
     Analyses,
     Sheets,
@@ -43,10 +43,12 @@ from strategist.services.strategies.sheet_params import (
     sheet_params_for_searches,
     sheets_under_their_parents,
 )
+from strategist.services.strategies.sync_state import SiteFold, ensure_sync_state
 
 __all__ = [
     "analyses_of",
     "live_tree",
+    "take_the_sites_fold",
     "the_changes_written_outside",
     "the_strategy_now_answers_to",
     "the_thread_wrote_the_strategy",
@@ -103,6 +105,7 @@ async def the_changes_written_outside(
     *,
     site_id: str,
     graph: StrategyGraph | None,
+    since: StrategyAst | None,
 ) -> OutsideChanges:
     """Play what was written outside this thread onto every spec the turn holds.
 
@@ -111,7 +114,7 @@ async def the_changes_written_outside(
     """
     domain = state.domain
     live = live_tree(graph)
-    changes = outside_changes(domain.answered_graph, live)
+    changes = outside_changes(since, live)
     reading = await _the_replay_reading(site_id, domain, changes, live)
     # A step the answer states and the plan does not is a drop the plan
     # carries, so the plan keeps it out.
@@ -135,6 +138,67 @@ async def the_changes_written_outside(
     domain.answered_spec = _replayed(domain.answered_spec, changes, live, reading)
     domain.answered_graph = live
     return changes
+
+
+async def take_the_sites_fold(
+    state: PipelineState, session: StrategySession, *, site_id: str
+) -> OutsideChanges:
+    """Play onto every spec the values the turn's commits took onto the graph from
+    the site, as a change written outside the thread. A value the turn moved
+    since is the turn's own and is not played."""
+    sync_state = ensure_sync_state(session)
+    graph = session.get_graph(None)
+    live = live_tree(graph)
+    if not sync_state.site_fold or live is None:
+        return OutsideChanges()
+    since = _as_it_stood(live, sync_state.site_fold)
+    return await the_changes_written_outside(
+        state, site_id=site_id, graph=graph, since=since
+    )
+
+
+def _as_it_stood(ast: StrategyAst, fold: Mapping[str, SiteFold]) -> StrategyAst:
+    def node(at: StrategyStepNode) -> StrategyStepNode:
+        taken = fold.get(at.id)
+        update: dict[str, object] = {
+            "primary_input": None
+            if at.primary_input is None
+            else node(at.primary_input),
+            "secondary_input": None
+            if at.secondary_input is None
+            else node(at.secondary_input),
+        }
+        if taken is not None:
+            update.update(_what_the_fold_replaced(at, taken))
+        return at.model_copy(update=update)
+
+    return ast.model_copy(
+        update={
+            "root": node(ast.root),
+            "detached_roots": [node(r) for r in ast.detached_roots],
+        }
+    )
+
+
+def _what_the_fold_replaced(at: StrategyStepNode, taken: SiteFold) -> dict[str, object]:
+    now = settings_of(at)
+    before = dict(taken.before)
+    update: dict[str, object] = {
+        name: before[name]
+        for name in taken.before.changed(taken.after)
+        if name != "parameters" and name not in now.changed(taken.after)
+    }
+    params = {
+        name: taken.before.parameters[name]
+        for name, value in now.parameters.items()
+        if name in taken.after.parameters
+        and name in taken.before.parameters
+        and value == taken.after.parameters[name]
+        and value != taken.before.parameters[name]
+    }
+    if params:
+        update["parameters"] = {**now.parameters, **params}
+    return update
 
 
 def _the_plan_leaves_out(domain: StrategyDomainState) -> frozenset[str]:
