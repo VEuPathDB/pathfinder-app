@@ -2,7 +2,6 @@ import type { ConversationResponse, GeneSet } from "@strategist/shared";
 import type { PurgeUserDataResponse } from "@strategist/shared/generated/types/PurgeUserDataResponse";
 
 import { test, expect } from "../fixtures/test";
-import { WHOLE_ACCOUNT_TAG } from "../fixtures/account-lock";
 import { prompt } from "../fixtures/arcs";
 import {
   type ApiClient,
@@ -30,84 +29,74 @@ async function allGeneSets(apiClient: ApiClient): Promise<GeneSet[]> {
   return listBody(await apiClient.get("api/v1/gene-sets"), "gene sets");
 }
 
-test.describe(
-  "User data purge across sites",
-  { tag: ["@named-site", WHOLE_ACCOUNT_TAG] },
-  () => {
-    test("purge ALL data deletes across all sites", async ({ chatPage, apiClient }) => {
-      await chatPage.startOn("plasmodb");
-      await chatPage.send("plasmodb data");
-      await chatPage.expectAssistantMessage(/\[mock\]/);
+test.describe("User data purge across sites", { tag: "@named-site" }, () => {
+  test("purge ALL data deletes across all sites", async ({ chatPage, apiClient }) => {
+    await chatPage.startOn("plasmodb");
+    await chatPage.send("plasmodb data");
+    await chatPage.expectAssistantMessage(/\[mock\]/);
 
-      await chatPage.startOn("toxodb");
-      await chatPage.send("toxodb data");
-      await chatPage.expectAssistantMessage(/\[mock\]/);
+    await chatPage.startOn("toxodb");
+    await chatPage.send("toxodb data");
+    await chatPage.expectAssistantMessage(/\[mock\]/);
 
-      // weak-ok(nonempty): a thread on each site is the behavior; the purge below removes both.
-      expect((await listConversations(apiClient, "plasmodb")).length).toBeGreaterThan(
-        0,
-      );
-      // weak-ok(nonempty): a thread on each site is the behavior; the purge below removes both.
-      expect((await listConversations(apiClient, "toxodb")).length).toBeGreaterThan(0);
+    // weak-ok(nonempty): a thread on each site is the behavior; the purge below removes both.
+    expect((await listConversations(apiClient, "plasmodb")).length).toBeGreaterThan(0);
+    // weak-ok(nonempty): a thread on each site is the behavior; the purge below removes both.
+    expect((await listConversations(apiClient, "toxodb")).length).toBeGreaterThan(0);
 
-      const purgeResp = await apiClient.delete("api/v1/user/data");
-      expect(purgeResp.ok()).toBe(true);
-      const result = (await purgeResp.json()) as PurgeUserDataResponse;
-      expect(result.ok).toBe(true);
-      expect(result.deleted.strategies).toBeGreaterThanOrEqual(2);
+    const purgeResp = await apiClient.delete("api/v1/user/data");
+    expect(purgeResp.ok()).toBe(true);
+    const result = (await purgeResp.json()) as PurgeUserDataResponse;
+    expect(result.ok).toBe(true);
+    expect(result.deleted.strategies).toBeGreaterThanOrEqual(2);
 
-      expect(await listConversations(apiClient, "plasmodb")).toHaveLength(0);
-      expect(await listConversations(apiClient, "toxodb")).toHaveLength(0);
-    });
-  },
-);
+    expect(await listConversations(apiClient, "plasmodb")).toHaveLength(0);
+    expect(await listConversations(apiClient, "toxodb")).toHaveLength(0);
+  });
+});
 
-test.describe(
-  "User data purge after a build",
-  { tag: ["@turn", WHOLE_ACCOUNT_TAG] },
-  () => {
-    test("purge deletes built strategies with a wdkStrategyId and gene sets", async ({
-      chatPage,
-      apiClient,
-      page,
-      siteId,
-    }) => {
-      await chatPage.startOn(siteId);
-      await chatPage.sendAndSettle(
-        prompt(
-          "single",
-          `Find ${siteOrganism(siteId)} genes whose proteins have a predicted signal peptide.`,
-        ),
-      );
-      const strategyId = chatPage.lastStrategyId ?? "";
-      await expectBuild(page, apiClient, strategyId, siteId, LAYOUTS.single);
-      await chatPage.sendAndSettle(
-        prompt(
-          "save-gene-set",
-          "Save the genes of this strategy as a gene set named purge check.",
-        ),
-      );
-      await expect(
-        page.getByTestId("data-gene-set").filter({ hasText: "purge check" }),
-      ).toBeVisible({ timeout: 60_000 });
+test.describe("User data purge after a build", { tag: "@turn" }, () => {
+  test("purge deletes built strategies with a wdkStrategyId and gene sets", async ({
+    chatPage,
+    apiClient,
+    page,
+    siteId,
+  }) => {
+    await chatPage.startOn(siteId);
+    await chatPage.sendAndSettle(
+      prompt(
+        "single",
+        `Find ${siteOrganism(siteId)} genes whose proteins have a predicted signal peptide.`,
+      ),
+    );
+    const strategyId = chatPage.lastStrategyId ?? "";
+    await expectBuild(page, apiClient, strategyId, siteId, LAYOUTS.single);
+    await chatPage.sendAndSettle(
+      prompt(
+        "save-gene-set",
+        "Save the genes of this strategy as a gene set named purge check.",
+      ),
+    );
+    await expect(
+      page.getByTestId("data-gene-set").filter({ hasText: "purge check" }),
+    ).toBeVisible({ timeout: 60_000 });
 
-      const stratResp = await apiClient.get(`api/v1/conversations/${strategyId}`);
-      const strategy = (await stratResp.json()) as ConversationResponse;
-      expect(strategy.wdkStrategyId ?? 0).toBeGreaterThan(0);
-      // weak-ok(nonempty): a saved gene set is the behavior; the purge below removes it.
-      expect((await allGeneSets(apiClient)).length).toBeGreaterThan(0);
+    const stratResp = await apiClient.get(`api/v1/conversations/${strategyId}`);
+    const strategy = (await stratResp.json()) as ConversationResponse;
+    expect(strategy.wdkStrategyId ?? 0).toBeGreaterThan(0);
+    // weak-ok(nonempty): a saved gene set is the behavior; the purge below removes it.
+    expect((await allGeneSets(apiClient)).length).toBeGreaterThan(0);
 
-      const purgeResp = await apiClient.delete("api/v1/user/data?deleteWdk=true");
-      expect(purgeResp.ok()).toBe(true);
-      const result = (await purgeResp.json()) as PurgeUserDataResponse;
-      expect(result.ok).toBe(true);
-      expect(result.deleted.strategies).toBeGreaterThan(0);
-      expect(result.deleted.geneSets).toBeGreaterThan(0);
+    const purgeResp = await apiClient.delete("api/v1/user/data?deleteWdk=true");
+    expect(purgeResp.ok()).toBe(true);
+    const result = (await purgeResp.json()) as PurgeUserDataResponse;
+    expect(result.ok).toBe(true);
+    expect(result.deleted.strategies).toBeGreaterThan(0);
+    expect(result.deleted.geneSets).toBeGreaterThan(0);
 
-      const afterStrat = await apiClient.get(`api/v1/conversations/${strategyId}`);
-      expect(afterStrat.status()).toBe(404);
-      expect(await allGeneSets(apiClient)).toHaveLength(0);
-      expect(await allConversations(apiClient)).toHaveLength(0);
-    });
-  },
-);
+    const afterStrat = await apiClient.get(`api/v1/conversations/${strategyId}`);
+    expect(afterStrat.status()).toBe(404);
+    expect(await allGeneSets(apiClient)).toHaveLength(0);
+    expect(await allConversations(apiClient)).toHaveLength(0);
+  });
+});

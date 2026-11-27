@@ -1,6 +1,25 @@
 # Log
 
+## 2026-11-25
+
+* **No e2e run reaches a live site.** `docker-compose.e2e.yml` now holds the wdk-wire
+  proxy and the fence, so there is no e2e stack that calls QA directly, and its proxy
+  always replays; `docker-compose.e2e-wire.yml` is gone. `yarn test:e2e` runs
+  `scripts/e2e-wire.sh replay`, global setup names the command when no wdk-wire answers,
+  the record overlay needs the directory `scripts/e2e-wire.sh` names, `catalogs` builds
+  through a recording proxy that writes nowhere it keeps, and the EDA subset write in
+  `eda-branching` goes through the proxy (`decisions/e2e-replays-recorded-wdk.md`).
+
 ## 2026-11-24
+
+* **The e2e tier replays recorded WDK.** The wdk-wire proxy (`deploy/wdk-wire/`,
+  `docker-compose.e2e-wire.yml`) answers the stack from `apps/web/e2e/wire/` and refuses
+  any request it holds no recording for with a 418; each test signs its own ES512 token
+  and is its own Strategist user; `scripts/e2e-wire.sh` replays, records and refreshes;
+  `scripts/check-wire-recordings.mjs` holds the tree redacted and under 40 MB. The account
+  lock and the `@whole-account` tag are gone, a local run takes 4 workers, and CI runs 4
+  shards with no secret, still behind `E2E_ENABLED` until the first recordings land
+  (`decisions/e2e-replays-recorded-wdk.md`).
 
 * **Five rules that had copies have one home.** A thread with no study open
   (`_eda_open.open_analysis`) and a dataset the catalog lacks (`_eda_open.dataset_study`); a

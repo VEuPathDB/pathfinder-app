@@ -241,14 +241,20 @@ NEXT_PUBLIC_API_URL=http://api:8000
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/strategist
 DEFAULT_PROVIDER=anthropic
 DEFAULT_TIER=balanced
+OPENAI_API_KEY=sk-e2e-not-a-key
 EOF
 printf 'API_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env.test
-docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.e2e.yml up -d --build --wait api worker web
+printf 'SEARXNG_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env.test
+scripts/e2e-wire.sh replay
 ```
 
-This profile builds `api`, `web` and `worker` only. The `wdk-mcp` image builds
-from [ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp) at the release its
-compose build context names.
+This profile builds `api`, `web`, `worker` and the `wdk-wire` proxy, starts them
+with `docker-compose.e2e.yml`, and runs the Playwright suite. The e2e overlay
+sends every VEuPathDB call through `wdk-wire`, which answers from the
+recordings in `apps/web/e2e/wire/` and refuses any request it holds no
+recording for, so no e2e run reaches a live site. Only
+`scripts/e2e-wire.sh record`, `refresh` and `catalogs` reach QA, on cedar, by
+hand ([decision](docs/knowledge/decisions/e2e-replays-recorded-wdk.md)).
 
 This is the only Docker profile that enables `STRATEGIST_CHAT_PROVIDER=mock`.
 The e2e overlay builds the web container's `runner` target, so port 3000 serves
@@ -362,7 +368,7 @@ yarn typecheck                       # tsc --noEmit
 yarn lint                            # eslint
 yarn check:boundaries                # Feature isolation
 yarn test                            # Unit tests
-yarn test:e2e                        # E2E tests
+yarn test:e2e                        # E2E tests on recorded WDK
 ```
 
 Pre-commit hooks enforce all of the above automatically - install with:

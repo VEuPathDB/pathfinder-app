@@ -2,9 +2,16 @@ import { expect, request } from "@playwright/test";
 import type { APIRequestContext } from "@playwright/test";
 
 import { BASE_PATH } from "../src/lib/basePath";
-import { resetAccountLock } from "./fixtures/account-lock";
 import { clearUserData, continuePastDataNotice } from "./fixtures/api-client";
-import { siteLoginToken, wdkTestToken } from "./fixtures/wdk-account";
+import { accountToken, siteLoginToken } from "./fixtures/wdk-account";
+import {
+  type WireMode,
+  readManifest,
+  shareSigningKey,
+  wireMode,
+  wireServes,
+} from "./fixtures/wire";
+import { stalenessLines } from "./fixtures/wire-recordings";
 
 /**
  * One request per route pattern the suite enters. The production server loads
@@ -41,10 +48,14 @@ const CATALOG_BUDGET_MS = 120_000;
 /**
  * Wait for every site's catalog, without depending on any of them. The api is
  * healthy once one catalog is loaded, so a spec can otherwise open a site whose
- * catalog is still building and read its 503. A site that stays degraded is
- * reported and the suite runs anyway: its own specs fail, the rest do not.
+ * catalog is still building and read its 503. In replay every catalog comes
+ * from a committed snapshot, so a degraded site fails the run; in record it is
+ * reported and the suite runs anyway.
  */
-async function waitForSiteCatalogs(api: APIRequestContext): Promise<void> {
+async function waitForSiteCatalogs(
+  api: APIRequestContext,
+  mode: WireMode,
+): Promise<void> {
   const deadline = Date.now() + CATALOG_BUDGET_MS;
   let degraded: string[] = [];
   while (Date.now() < deadline) {
@@ -58,13 +69,19 @@ async function waitForSiteCatalogs(api: APIRequestContext): Promise<void> {
     }
     await new Promise((resolve) => setTimeout(resolve, 5_000));
   }
+  if (mode === "replay") {
+    throw new Error(
+      `Sites with no loaded catalog: ${degraded.join(", ")}. Their snapshots in ` +
+        "e2e/wire/catalogs did not load; a refresh rebuilds them.",
+    );
+  }
   console.warn(`Sites with no loaded catalog: ${degraded.join(", ")}`);
 }
 
 const LOGIN_SITE = "plasmodb";
 
 /**
- * Every worker acts as one registered VEuPathDB account through the
+ * A record run acts as one registered VEuPathDB account through the
  * `Authorization` cookie. A shell that exports `WDK_TEST_TOKEN` supplies it
  * directly; a shell that exports the account's email and password instead
  * signs in once here at the site's own login, as the website does, and that
@@ -92,10 +109,10 @@ async function mintWdkTestToken(api: APIRequestContext): Promise<void> {
   process.env["WDK_TEST_TOKEN"] = await siteLoginToken(site.baseUrl, email, password);
 }
 
-/** Every test deletes what it made, so the account starts the run empty once. */
+/** Every test deletes what it made, so a record run starts the account empty once. */
 async function clearTheAccount(origin: string): Promise<void> {
   const account = await request.newContext({
-    extraHTTPHeaders: { cookie: `Authorization=${wdkTestToken()}` },
+    extraHTTPHeaders: { cookie: `Authorization=${accountToken()}` },
   });
   try {
     const appRoot = `${origin}${BASE_PATH}`;
@@ -113,12 +130,20 @@ export default async function warmRoutes(): Promise<void> {
   const origin = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
   const baseURL = `${origin}${BASE_PATH}/`;
   const api = await request.newContext({ baseURL });
+  const mode = wireMode();
   try {
+    await wireServes(mode);
     await waitForServer(api);
-    await mintWdkTestToken(api);
-    await waitForSiteCatalogs(api);
-    resetAccountLock();
-    await clearTheAccount(origin);
+    await waitForSiteCatalogs(api, mode);
+    if (mode === "replay") {
+      await shareSigningKey();
+      process.stdout.write(
+        `${stalenessLines(readManifest(), new Date()).join("\n")}\n`,
+      );
+    } else {
+      await mintWdkTestToken(api);
+      await clearTheAccount(origin);
+    }
     for (const route of ROUTES) {
       await api.get(route, { timeout: COLD_RENDER_BUDGET_MS });
     }

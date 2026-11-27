@@ -40,12 +40,12 @@ coverage thresholds and the integration tier run only in CI. Jenkins builds
 and publishes `:latest` on every push to `main` without waiting for CI, and its
 web image runs `next build`, so a build that fails stops the image either way.
 
-The full-stack tier builds once and runs in shards. `e2e-build` builds the api
-and web images on the Actions layer cache and hands them to the shards as one
+The full-stack tier builds once and runs in shards. `e2e-build` builds the api,
+web and wdk-wire images on the Actions layer cache and hands them to the shards as one
 workflow artifact, never as a registry tag. `e2e-shard-check` fails when the
 tests `playwright test --list --shard i/N` names over every shard differ from
 the unsharded list, test for test. Each of the `E2E_SHARDS` shard jobs loads
-the images, starts `api web worker` from `docker-compose.yml` and
+the images, starts `api web worker` from `docker-compose.yml`,
 `docker-compose.e2e.yml` with `--no-build` (the shard polls the api's readiness,
 the web root and the worker's heartbeat itself, because the runner's compose
 refuses `--wait` on a dependency without a healthcheck), and runs its slice at two
@@ -57,25 +57,18 @@ reports into one HTML report and fails when a shard failed. CI sets
 The stack reads `e2e-sites.yaml`: the portal and six component sites copied
 from the QA sites file `deploy/sites/qa.yml`, never a production host
 ([tests run against the QA sites](../decisions/tests-run-against-the-qa-sites.md)).
-The suite acts as the registered account named by `WDK_TEST_EMAIL` and
-`WDK_TEST_PASSWORD` (the CI secrets): global setup signs in once at the site's
-own login, as the website does, and every spec carries that token as the
-website's `Authorization` cookie. A local run maps the dev credentials onto
-those names in its own shell (`WDK_TEST_EMAIL=$WDK_DEV_EMAIL`, and the same for
-the password) or exports `WDK_TEST_TOKEN` itself; without either the suite stops
-in its worker fixture.
-
-A retried test's trace records every request header and every typed value, so
-it holds the registered account's VEuPathDB token. The token cannot be revoked: it is an ES512 JWT from
-the VEuPathDB OAuth server that lives three years, the server has no revoke
-endpoint, and WDK's `/logout` only swaps the caller's cookie for a guest one, so
-the old token still answers `/users/current` as the account. The shard job
-therefore runs `apps/web/scripts/redact-traces.mjs` over `blob-report/` before
-the upload, and the upload runs only when that step passed. The script blanks
-every JWT and the account's email and password (raw, JSON-escaped to three
-levels, URL-encoded) in every text entry of every zip, nested trace zips
-included; the merged HTML report is built from the redacted blobs. Screenshots
-and videos are not rewritten.
+The stack reaches VEuPathDB only through the wdk-wire proxy, which replays
+`apps/web/e2e/wire/` and answers 418 for any request it holds no recording for
+([E2E replays recorded WDK](../decisions/e2e-replays-recorded-wdk.md)). Each test
+signs its own token with the key the proxy made at start, so no shard holds a
+secret, and no trace holds a token that outlives the stack. A local run is
+`yarn test:e2e`, which runs `scripts/e2e-wire.sh replay`, and
+`apps/web/scripts/e2e-start.test.mjs` holds that Playwright refuses to start
+without `wdk-wire` in replay mode; `node scripts/check-wire-recordings.mjs` holds the
+recordings redacted and under 40 MB in pre-commit and in CI. A record run on cedar
+acts as the registered account, so `scripts/e2e-wire.sh record` runs
+`apps/web/scripts/redact-traces.mjs` over its report and test results: a trace
+holds the account's token, which cannot be revoked.
 
 # Backend (`apps/api`)
 

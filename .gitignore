@@ -127,3 +127,6 @@ apps/api/wdk-live-summary.json
 apps/api/wdk-hidden-defaults.json
 # Site catalog cache written at runtime
 apps/api/data/catalogs/
+
+# The drift report a WDK refresh writes; it goes into the commit or PR, not the tree.
+refresh-report.md

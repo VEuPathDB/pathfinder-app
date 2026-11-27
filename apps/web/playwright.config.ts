@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 import type { SiteOption } from "./e2e/fixtures/test";
+import { readManifest, wireMode } from "./e2e/fixtures/wire";
+import { stalenessLines } from "./e2e/fixtures/wire-recordings";
 import { BASE_PATH } from "./src/lib/basePath";
 
 const isCI = Boolean(process.env["CI"]);
@@ -16,49 +18,34 @@ const TURN_TAG = /@turn\b/;
 /** A test whose subject is a named site; it runs once, whatever `E2E_SITES` holds. */
 const NAMED_SITE_TAG = /@named-site\b/;
 
+/** Workers per mode: a record run is serial, a CI shard runs two, a local run four. */
+const WORKERS = wireMode() === "record" ? 1 : isCI ? 2 : 4;
+
 /**
  * Playwright E2E test configuration.
  *
- * ## Running locally
+ * ## Replay (every run on the Mac and in CI)
  *
- * 1. Start Docker services with the test overlays. The e2e overlay builds the
- *    web container's `runner` target, so port 3000 serves the production
- *    build: no dev overlay portal over the controls a spec clicks, and no
- *    per-route compile to grow the server's heap.
+ * The stack reaches VEuPathDB only through the wdk-wire proxy, which answers
+ * from the recordings in `e2e/wire/` and refuses any request it holds no
+ * recording for with a 418 (docs/knowledge/decisions/e2e-replays-recorded-wdk.md).
+ * Each test signs its own token with the key wdk-wire made at start, so each
+ * test is its own Strategist user, and no VEuPathDB account is needed:
  *
- *      docker compose --env-file .env.test \
- *        -f docker-compose.yml \
- *        -f docker-compose.dev.yml \
- *        -f docker-compose.e2e.yml \
- *        up -d --build --wait api worker web
+ *      scripts/e2e-wire.sh replay
  *
- * 2. Export the registered VEuPathDB account and run the tests. Either the
- *    token itself, or the email and password, which global setup signs in
- *    with once and exports as the token:
+ * A test fails when the app sent a request the recording does not hold, or
+ * did not send a write the recording holds.
  *
- *      export WDK_TEST_TOKEN=...   # from .env.dev; never printed or committed
- *      yarn test:e2e
+ * ## Record and refresh (cedar only, by hand)
  *
- *    `E2E_SITES=plasmodb,vectorbase yarn test:e2e` runs every `@turn` test once
- *    per site; the UI-only and `@named-site` tests run once either way.
+ * `scripts/e2e-wire.sh record --test <spec:line>` records the named tests
+ * against QA with one worker, as the registered account (`WDK_TEST_EMAIL` and
+ * `WDK_TEST_PASSWORD` in the shell). `scripts/e2e-wire.sh refresh` re-sends
+ * every recording to QA and writes a drift report.
  *
- * ## CI
- *
- * The GitHub Actions workflow starts both servers, sets PLAYWRIGHT_BASE_URL,
- * and passes the WDK_TEST_EMAIL and WDK_TEST_PASSWORD repository secrets.
- *
- * ## Authentication
- *
- * VEuPathDB refuses guest service calls, so every worker acts as the registered
- * account: `e2e/fixtures/test.ts` puts `WDK_TEST_TOKEN` in the `Authorization`
- * cookie of the per-worker storage state (`e2e/.auth/worker-{N}.json`), which is
- * the token the API forwards to WDK. The website login names the account's own
- * Strategist user ahead of the `/dev/login` cookie, so parallel workers share
- * one user. A test deletes only what it created (`e2e/fixtures/owned-data.ts`),
- * and a test tagged `@whole-account` runs while no other test holds the account
- * (`e2e/fixtures/account-lock.ts`). The postcondition client in
- * `e2e/fixtures/api-client.ts` copies the whole browser cookie jar, so it
- * carries both cookies too.
+ * `E2E_SITES=plasmodb,vectorbase` runs every `@turn` test once per site; the
+ * UI-only and `@named-site` tests run once either way.
  */
 export default defineConfig<SiteOption>({
   testDir: "./e2e",
@@ -66,12 +53,14 @@ export default defineConfig<SiteOption>({
   // pattern once so the first spec to enter one does not pay the cold render
   // inside its own budget.
   globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
+  metadata: { wdkReplay: stalenessLines(readManifest(), new Date()).join("\n") },
   timeout: 180_000,
   expect: { timeout: 15_000 },
   retries: isCI ? 1 : 0,
   forbidOnly: isCI,
   fullyParallel: true,
-  workers: 2,
+  workers: WORKERS,
 
   reporter: isCI
     ? [["github"], ["html", { open: "never" }]]
@@ -117,7 +106,5 @@ export default defineConfig<SiteOption>({
     },
   ],
 
-  // No webServer: both local and CI drive containers the recipe above starts.
-  // Port 3000 serves the production build of the `runner` target, and the API
-  // on port 8000 runs with STRATEGIST_CHAT_PROVIDER=mock from the e2e overlay.
+  // No webServer: both local and CI drive containers scripts/e2e-wire.sh starts.
 });

@@ -19,9 +19,9 @@ run (`workflow_dispatch`). A hand-started run is also the run that refreshes the
 API test durations: it adds `--store-durations` to each test group and uploads the merged
 `.test_durations` as the `test-durations` artifact.
 
-**A live test path stays off until it reads QA and is recorded.** The e2e tier stays
-behind the repository variable `E2E_ENABLED` until it runs on replayed WDK recordings
-(`docs/superpowers/specs/2026-11-23-e2e-replays-recorded-wdk.md`).
+**A live test path stays off until it reads QA and is recorded.** The e2e tier runs on
+replayed WDK recordings ([E2E replays recorded WDK](e2e-replays-recorded-wdk.md)) and stays
+behind the repository variable `E2E_ENABLED` until the first recordings are committed.
 `node scripts/check-test-sites.mjs` refuses a workflow that runs a live lane: the
 `live_wdk` marker, a served `veupathdb_mcp`, or the fixtures recorder.
 
