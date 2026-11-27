@@ -184,7 +184,7 @@ async def test_a_small_result_is_counted_by_gene_from_its_records_alone(
         status="fail",
         evidence=(
             f"2 of the {_GENES} records of step {_EXPORTED} ('Text') hold organisms "
-            f"the strategy does not select: {_PF_IT} (2)"
+            f"no requirement names: {_PF_IT} (2)"
         ),
         requirement=_ORGANISM.id,
     )

@@ -21,7 +21,7 @@ from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
 from strategist.domain.refusal import Check, RefusalKey
 from strategist.domain.strategy.card_answers import option_refusal
-from strategist.domain.strategy.expression_handles import held_expressions, is_handle
+from strategist.domain.strategy.expression_handles import is_handle, unheld_sentence
 from strategist.domain.strategy.question_options import SetValues
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.services.strategies.sheet_params import (
@@ -41,8 +41,7 @@ def unheld_handles(question: SlotQuestion, held: dict[str, str]) -> list[str]:
 def hold_an_option_to_a_held_expression(
     ctx: RunContext[AgentDeps], output: FrameResult
 ) -> list[HeldAnswer]:
-    state = ctx.deps.agent_state
-    held_names = held_expressions(state.built_expressions, state.operational_spec_draft)
+    held_names = ctx.deps.agent_state.held_expressions()
     return [
         held(
             RefusalKey(
@@ -51,9 +50,8 @@ def hold_an_option_to_a_held_expression(
                 parameter=question.param_name,
             ),
             (
-                f"{question.criterion_id}.{question.param_name} offers {names}, and "
-                "no expression of this conversation is held under that handle, so "
-                "the card would bind nothing. Offer a handle "
+                f"{unheld_sentence(f'{question.criterion_id}.{question.param_name}', names)} "
+                "The card would bind nothing. Offer a handle "
                 "build_phyletic_expression returned, or build the reading first."
             ),
             *_dropped(question, names),
@@ -86,9 +84,7 @@ def _refusals(
         criterion.search_name, question.param_name
     ):
         return []
-    unheld = set(
-        unheld_handles(question, held_expressions(state.built_expressions, spec))
-    )
+    unheld = set(unheld_handles(question, state.held_expressions()))
     return [
         why
         for wire in question.wires_offered(criterion)

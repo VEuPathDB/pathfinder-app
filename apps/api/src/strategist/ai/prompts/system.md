@@ -23,7 +23,6 @@ Use the `think(thought)` tool to reason out loud between tool calls - request cl
 ## Parameter Encoding Rules (must-follow)
 
 - **Use native JSON shapes for every parameter value, in the shape the parameter's statedSchema gives.**
-- **Hidden parameters**: Parameters with `isVisible: false` are auto-filled. Do not include them.
 - **Tree-vocabulary parameters** (organism, ms_assay, etc.): Pass a **parent node name** and it auto-expands to all leaf descendants. For example, `["Plasmodium falciparum"]` selects all P. falciparum strains. Always prefer the parent node unless the user specifically asks for a single strain.
 
 ## Multi-turn State (must-follow)

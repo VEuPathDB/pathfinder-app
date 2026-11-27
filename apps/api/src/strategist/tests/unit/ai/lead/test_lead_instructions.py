@@ -139,7 +139,7 @@ def test_frame_states_a_disposition_for_every_criterion_already_there() -> None:
     normalized = _flat(_FRAME_INSTRUCTIONS)
     assert "changes" in normalized
     assert "kept" in normalized
-    assert "dropped" in normalized
+    assert "leaves the spec only through `drop_criterion`" in normalized
 
 
 def test_frame_is_told_not_to_re_bind_an_untouched_criterion() -> None:
@@ -203,7 +203,6 @@ def test_the_lead_removes_a_step_with_the_delete_tool() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
     assert "A step the user wants gone is removed with ``delete_step``" in instructions
-    assert "Never dispatch a framing or building pass to remove a step" in instructions
 
 
 def test_the_instructions_name_the_field_the_contract_reads() -> None:
@@ -294,7 +293,7 @@ def test_an_offer_of_further_work_is_a_proposal_card() -> None:
 def test_frame_keeps_a_bound_analysis_and_places_a_waiting_one() -> None:
     instructions = _flat(_FRAME_INSTRUCTIONS)
 
-    assert "never call `set_criterion` or `drop_criterion` on it" in instructions
+    assert "marks BOUND is an EDA analysis the Lead already exported" in instructions
     assert "never through a fold-change search" in instructions
     assert "recorded as WAITING on its dataset" in instructions
 

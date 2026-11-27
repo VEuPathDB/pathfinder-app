@@ -17,7 +17,6 @@ from strategist.domain.strategy.constraints import (
     ConstraintSource,
     ConstraintStatus,
     GroundedConstraint,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -129,7 +128,7 @@ async def test_an_intersect_build_names_its_operator() -> None:
         None,
         True,
     )
-    assert is_blocking(grounded) is False
+    assert grounded.blocks is False
 
 
 async def test_a_union_build_reports_its_operator_and_blocks_nothing() -> None:
@@ -138,7 +137,7 @@ async def test_a_union_build_reports_its_operator_and_blocks_nothing() -> None:
     assert (
         grounded.status,
         "meet at UNION" in grounded.note,
-        is_blocking(grounded),
+        grounded.blocks,
     ) == (
         ConstraintStatus.GROUNDED,
         True,

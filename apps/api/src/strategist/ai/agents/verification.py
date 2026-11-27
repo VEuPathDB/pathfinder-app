@@ -31,6 +31,7 @@ from strategist.ai.agents.strategy_instructions import (
 from strategist.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from strategist.ai.agents.verification_digest import hold_the_digest_to_the_evidence
 from strategist.ai.agents.vocabulary import with_vocabulary
+from strategist.ai.capabilities.read_once import ReadOnce
 from strategist.ai.capabilities.resilience import ToolResilience
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.graph.runtime import AgentDeps, turn_tool_sources
@@ -105,7 +106,7 @@ filed it; the runtime refuses any other once.
 GO, pathway and word enrichment are analyses the site runs on a step, from its \
 result page; the evidence card links it. They are not checks you run.
 
-Do NOT modify the strategy. Do NOT explore the catalog or create plans.
+Do NOT explore the catalog or create plans.
 
 ## Output - the VerificationDelta contract
 
@@ -193,6 +194,7 @@ def build_verification_agent() -> VerificationAgent:
         toolsets=toolsets,
         capabilities=agent_capabilities(
             [
+                ReadOnce[AgentDeps].of("verification"),
                 SiteReadFailures[AgentDeps](),
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
                 AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),

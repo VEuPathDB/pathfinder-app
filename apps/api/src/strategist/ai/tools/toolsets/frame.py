@@ -4,7 +4,6 @@ from pydantic_ai.tools import RunContext, Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
-from strategist.ai.agents.tool_vocabulary import RECORD_READS
 from strategist.ai.fact_sources import warm_fact_schemas
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.tools.standalone._catalog_elsewhere import (
@@ -45,7 +44,6 @@ from strategist.ai.tools.toolsets._dynamic import (
     EnumOverrides,
     ValidatingEnumToolset,
 )
-from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.refusals import KeyedRefusalToolset
 
@@ -99,14 +97,11 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
         ],
     )
     return KeyedRefusalToolset(
-        wrapped=ReadOnceToolset(
-            wrapped=RefusalMemoryToolset(
-                wrapped=ValidatingEnumToolset(
-                    wrapped=base,
-                    build_overrides=_frame_enum_overrides,
-                    explain=another_sites_entry,
-                )
-            ),
-            reads=RECORD_READS,
+        wrapped=RefusalMemoryToolset(
+            wrapped=ValidatingEnumToolset(
+                wrapped=base,
+                build_overrides=_frame_enum_overrides,
+                explain=another_sites_entry,
+            )
         )
     )

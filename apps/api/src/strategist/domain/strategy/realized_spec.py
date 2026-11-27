@@ -3,9 +3,10 @@ that states a cut is still to run."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 from pydantic import Field
+from veupathdb.domain.parameters import PhyleticTree
 from veupathdb.model import CamelModel
 
 from strategist.domain.strategy.analysis_binding import AnalysisBinding
@@ -29,6 +30,8 @@ class RealizedSpec(CamelModel):
     structure: SpecStructure | None = None
     criteria: list[Criterion] = Field(default_factory=list)
     marks: DataMarks = Field(default_factory=DataMarks)
+    # The phyletic tree of each phylogenetic-profile search, read by the caller.
+    trees: Mapping[str, PhyleticTree] = Field(default_factory=dict)
 
     @property
     def realizes_nothing(self) -> bool:

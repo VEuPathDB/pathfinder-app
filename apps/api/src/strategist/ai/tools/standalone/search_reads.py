@@ -88,12 +88,13 @@ async def _refuse_an_unlisted_search(
 
 def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantSpec) -> None:
     """Refuses a text term of several words sent unquoted when
-    this turn's message asks for the phrase."""
+    a message of the request asks for the phrase."""
+    messages = ctx.deps.state.researcher_messages()
     for name, value in search.parameters.items():
         match value:
             case StringValue(value=text):
                 refusal = unquoted_phrase_refusal(
-                    name, search.search_name, text, [ctx.deps.state.user_prompt]
+                    name, search.search_name, text, messages
                 )
                 if refusal is not None:
                     key = RefusalKey(

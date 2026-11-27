@@ -12,7 +12,7 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.eda import EdaClient, EdaPermissionEntry, EdaStudyDetail
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_analysis
+from strategist.ai.tools.standalone import _eda_open, eda_analysis
 from strategist.ai.tools.standalone._eda_models import EdaAnalysisOpened
 from strategist.services.eda import authoring, binding, catalog, study_site
 from strategist.services.eda.catalog import UnknownEdaDatasetError
@@ -70,7 +70,7 @@ async def _fake_user_id(_site_id: str) -> str:
 
 
 def _serve_study(monkeypatch: pytest.MonkeyPatch, resolver: object) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", resolver)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", resolver)
     monkeypatch.setattr(binding, "get_study_detail_for_dataset", resolver)
 
 
@@ -214,7 +214,7 @@ async def test_opening_an_analysis_on_an_unknown_dataset_creates_nothing(
         opened.append("opened")
         return "A"
 
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", raises)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", raises)
     monkeypatch.setattr(binding, "open_analysis", open_it)
     monkeypatch.setattr(binding, "bind_conversation_analysis", _noop_bind)
     with pytest.raises(ModelRetry) as excinfo:

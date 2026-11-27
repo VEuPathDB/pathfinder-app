@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
 from assistant_core.capabilities.refused_calls import CallRefused, MarkRefusedCalls
+from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from pydantic_ai import Agent, RunContext, ToolFailed
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.messages import (
@@ -19,13 +21,23 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
+from strategist.ai.agents.tool_vocabulary import build_tool_repetition_guard
+from strategist.ai.capabilities.read_once import ReadOnce
 from strategist.ai.capabilities.site_reads import failed_read
+from strategist.ai.graph.turn_records import TurnMarkers
 from strategist.ai.lead.lead_agent import build_lead_agent
-from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.platform.refusals import agent_capabilities
 
 
-def read_gene_record(ctx: RunContext[None], gene_id: str) -> str:
+@dataclass
+class _Deps:
+    turn_markers: TurnMarkers = field(default_factory=TurnMarkers)
+    tool_repetition_guard: ToolRepetitionGuard = field(
+        default_factory=build_tool_repetition_guard
+    )
+
+
+def read_gene_record(ctx: RunContext[_Deps], gene_id: str) -> str:
     del ctx
     return f"{gene_id}: Polyphosphatase"
 
@@ -54,18 +66,17 @@ def test_the_lead_marks_the_calls_it_refuses() -> None:
 
 
 async def test_a_read_sent_again_is_refused_and_reads_as_corrected() -> None:
-    toolset = ReadOnceToolset(
-        wrapped=FunctionToolset([read_gene_record]),
-        reads=frozenset({"read_gene_record"}),
-    )
-    agent: Agent[None, str] = Agent(
+    agent: Agent[_Deps, str] = Agent(
         FunctionModel(_twice),
-        deps_type=type(None),
-        toolsets=[toolset],
-        capabilities=[MarkRefusedCalls[None]()],
+        deps_type=_Deps,
+        toolsets=[FunctionToolset([read_gene_record])],
+        capabilities=[
+            ReadOnce[_Deps](reads=frozenset({"read_gene_record"})),
+            MarkRefusedCalls[_Deps](),
+        ],
     )
 
-    result = await agent.run("read g1 twice")
+    result = await agent.run("read g1 twice", deps=_Deps())
 
     repeat = [
         part
@@ -80,8 +91,8 @@ async def test_a_read_sent_again_is_refused_and_reads_as_corrected() -> None:
         {
             "toolCallId": "call_1",
             "summary": (
-                "read_gene_record already answered these arguments in this run, in "
-                'call call_0 ({"gene_id": "g1"}). Read that answer;'
+                'read_gene_record answered these arguments in call call_0 ({"gene_id": '
+                '"g1"}), and nothing has changed since, so it did'
             ),
             "status": "corrected",
         }

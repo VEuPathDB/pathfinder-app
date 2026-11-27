@@ -16,6 +16,7 @@ from veupathdb_mcp import ToolErrorPayload
 
 from strategist.ai.lead.answered_strategy import the_strategy_now_answers_to
 from strategist.ai.lead.sub_agent_tools import LeadDeps
+from strategist.ai.tools.standalone._eda_open import open_analysis
 from strategist.ai.tools.standalone._eda_step_arguments import (
     ExportPlacement,
     VolcanoCut,
@@ -46,7 +47,6 @@ from strategist.ai.tools.standalone._validation_helpers import (
     get_graph,
     validation_model_retry,
 )
-from strategist.ai.tools.standalone.eda_analysis import bound_analysis
 from strategist.ai.tools.standalone.strategy_refusals import (
     departures_refused,
     operation_refused_message,
@@ -292,13 +292,7 @@ async def create_eda_step(
         placement: Where the step goes; unset adds it as a new root.
         volcano: The volcano cut to export; unset exports the subset.
     """
-    binding = await bound_analysis(ctx)
-    if binding is None:
-        msg = (
-            "No study is open on this conversation. Call open_eda_analysis on "
-            "the dataset you want, filter it with set_eda_filters, then export it."
-        )
-        raise ModelRetry(msg)
+    binding = await open_analysis(ctx)
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
     thresholds, plan, rescaled = await the_cut(

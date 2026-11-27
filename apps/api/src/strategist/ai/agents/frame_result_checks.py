@@ -24,7 +24,7 @@ from strategist.domain.strategy.requirement_reports import (
     RequirementProblem,
     RequirementReport,
     numbered_requirements,
-    unknown_requirement_ids,
+    unlisted_numbers_sentence,
 )
 from strategist.domain.strategy.structure_bindings import unbound_in_structure
 from strategist.services.gene_sets.homes import site_kind
@@ -49,19 +49,13 @@ def hold_the_reports_to_the_requirement_list(
     ctx: RunContext[AgentDeps], output: FrameResult
 ) -> list[HeldAnswer]:
     held_list = ctx.deps.agent_state.stated_requirements
-    unknown = unknown_requirement_ids(output.requirement_problems, held_list)
-    holds = ", ".join(numbered_requirements(held_list)) or "none"
     return [
         held(
             RefusalKey(
                 check=Check.THE_REPORTS_TO_THE_REQUIREMENT_LIST, criterion=number
             ),
-            (
-                f"requirement_problems names {number}, and the list holds {holds}. "
-                "A report names a requirement by its number in 'Requirements the "
-                "researcher stated'. Use one of those numbers, or leave the entry "
-                "out and say it in notes."
-            ),
+            f"{unlisted} Use one of those numbers, or leave the entry out and "
+            "say it in notes.",
             *_dropped_with_gap(
                 report,
                 "report_dropped",
@@ -70,7 +64,12 @@ def hold_the_reports_to_the_requirement_list(
             ),
         )
         for report in output.requirement_problems
-        if (number := report.requirement) in unknown
+        if (
+            unlisted := unlisted_numbers_sentence(
+                "requirement_problems", [number := report.requirement], held_list
+            )
+        )
+        is not None
     ]
 
 

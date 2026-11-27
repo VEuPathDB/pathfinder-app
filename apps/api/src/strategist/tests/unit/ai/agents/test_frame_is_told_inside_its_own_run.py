@@ -91,9 +91,9 @@ async def test_a_number_the_list_lacks_is_corrected_before_the_caller_reads_it()
     ]
     [sent_back] = told
     assert sent_back == (
-        "requirement_problems names R4, and the list holds R1. A report names "
-        "a requirement by its number in 'Requirements the researcher stated'. Use "
-        "one of those numbers, or leave the entry out and say it in notes."
+        "requirement_problems names ['R4'], which 'Requirements the researcher "
+        "stated' does not hold. It holds R1. Use one of those numbers, or leave "
+        "the entry out and say it in notes."
     )
 
 
@@ -270,8 +270,8 @@ async def test_a_question_keyed_with_no_requirement_stated_reaches_the_caller(
     )
 
     assert [t.split(",")[0] for t in told] == [
-        "requirement_problems names R2",
-        "requirement_problems names R2",
+        "requirement_problems names ['R2']",
+        "requirement_problems names ['R2']",
     ]
     assert output.requirement_problems == []
     assert output.gaps == [

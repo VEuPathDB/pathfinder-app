@@ -18,7 +18,7 @@ from veupathdb.eda import (
 
 from strategist.ai.lead.intent_gate import unmet_preconditions
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_analysis
+from strategist.ai.tools.standalone import _eda_open, eda_analysis
 from strategist.ai.tools.standalone._eda_models import EdaFiltersResult
 from strategist.domain.eda_parts import EdaAnalysisState, EdaFilterSheetEntry
 from strategist.domain.eda_thread import ConversationAnalysisView, OpenEdaAnalysis
@@ -112,10 +112,6 @@ async def _bound(_ctx: object) -> ConversationAnalysisView:
     )
 
 
-async def _unbound(_ctx: object) -> ConversationAnalysisView | None:
-    return None
-
-
 def _species_filter(value: str) -> EdaStringSetFilter:
     return EdaStringSetFilter(
         entity_id=PHENOTYPE_ENTITY, variable_id=SPECIES_VARIABLE, string_set=[value]
@@ -191,9 +187,9 @@ async def _apply_rejects(
 async def test_a_first_call_with_no_filters_returns_the_sheet(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     result = returned(answer, EdaFiltersResult)
     assert result.sheet_pinned is True
@@ -207,9 +203,9 @@ async def test_a_first_call_with_no_filters_returns_the_sheet(
 async def test_the_sheet_names_the_exact_filter_type_per_variable(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     species = next(e for e in _pinned(lead_ctx) if e.variable_id == SPECIES_VARIABLE)
     assert species.filter_type == "stringSet"
@@ -227,10 +223,10 @@ async def test_a_date_example_carries_the_time_part_the_service_requires(
 ) -> None:
     """A bare YYYY-MM-DD bound is a server error, so the example never shows one."""
     monkeypatch.setattr(
-        eda_analysis, "get_study_detail_for_dataset", _date_and_number_study
+        _eda_open, "get_study_detail_for_dataset", _date_and_number_study
     )
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     collected = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_collected")
     assert collected.filter_type == "dateRange"
@@ -251,9 +247,9 @@ async def test_a_longitude_variable_is_not_a_number_variable(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """A longitude takes left and right, so a numberRange on it selects wrongly."""
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _longitude_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", _longitude_study)
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     longitude = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_lon")
     assert longitude.filter_type == "longitudeRange"
@@ -273,8 +269,8 @@ async def test_a_longitude_variable_is_not_a_number_variable(
 async def test_a_second_call_applies_the_filters_and_emits_the_state(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "apply_filters", _apply_ok)
     answer = await eda_analysis.set_eda_filters(
         lead_ctx,
@@ -295,8 +291,8 @@ async def test_an_out_of_vocabulary_value_raises_a_model_retry_with_the_options(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """The service would answer 200 with count 0, so the retry is the only signal."""
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "apply_filters", _apply_rejects)
     with pytest.raises(ModelRetry) as excinfo:
         await eda_analysis.set_eda_filters(
@@ -310,24 +306,11 @@ async def test_an_out_of_vocabulary_value_raises_a_model_retry_with_the_options(
     assert "do not request the sheet again" in message
 
 
-async def test_calling_with_no_open_analysis_raises_a_model_retry_naming_the_tool(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _unbound)
-    with pytest.raises(ModelRetry) as excinfo:
-        await eda_analysis.set_eda_filters(
-            lead_ctx,
-            dataset_id=PHENOTYPE_DATASET,
-            filters=[_species_filter("P. berghei")],
-        )
-    assert "open_eda_analysis" in str(excinfo.value)
-
-
 async def test_a_dataset_other_than_the_open_one_raises_a_model_retry(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """One conversation edits one analysis, so the argument must name it."""
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     with pytest.raises(ModelRetry) as excinfo:
         await eda_analysis.set_eda_filters(
             lead_ctx,
@@ -341,8 +324,8 @@ async def test_an_empty_filter_list_clears_the_subset(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """An analysis with no filters is legal and means the whole study."""
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "apply_filters", _apply_cleared)
     answer = await eda_analysis.set_eda_filters(
         lead_ctx, dataset_id=PHENOTYPE_DATASET, filters=[]
@@ -357,7 +340,7 @@ async def test_a_filter_change_forgets_the_count_the_thread_took(
 ) -> None:
     """The export waits for a count of the subset it exports, not of the last one."""
     monkeypatch.setattr(eda_analysis, "apply_filters", _apply_ok)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     lead_ctx.deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
         dataset_id=PHENOTYPE_DATASET,
         analysis_id=ANALYSIS_ID,

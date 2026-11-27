@@ -213,10 +213,6 @@ async def bound(_ctx: object) -> ConversationAnalysisView:
     return binding_of(phenotype_subset())
 
 
-async def unbound(_ctx: object) -> ConversationAnalysisView | None:
-    return None
-
-
 async def read_detail(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
     assert analysis_id == ANALYSIS_ID
     return phenotype_subset()
@@ -235,7 +231,7 @@ def wire_analysis(
         assert analysis_id == detail.analysis_id
         return detail
 
-    monkeypatch.setattr(module, "bound_analysis", bound_to)
+    monkeypatch.setattr(module, "open_analysis", bound_to)
     monkeypatch.setattr(module, "read_analysis", read)
     wire_export_reads(monkeypatch)
 

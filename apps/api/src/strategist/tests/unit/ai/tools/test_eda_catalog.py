@@ -11,7 +11,7 @@ from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 from veupathdb.wdk.vdi.client import VdiServiceError
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_catalog
+from strategist.ai.tools.standalone import _eda_open, eda_catalog
 from strategist.ai.tools.standalone._eda_models import (
     EdaStudyDescription,
     EdaStudySearchResult,
@@ -96,7 +96,7 @@ async def _hidden_everywhere_study(
 
 
 def _serve_study(monkeypatch: pytest.MonkeyPatch, resolver: StudyResolver) -> None:
-    monkeypatch.setattr(eda_catalog, "get_study_detail_for_dataset", resolver)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", resolver)
 
 
 async def test_search_eda_studies_returns_cards_the_model_can_act_on(

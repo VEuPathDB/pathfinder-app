@@ -380,19 +380,21 @@ class GroundedConstraint(CamelModel):
         return self.lifecycle.state in ("withdrawn", "replaced")
 
     @property
+    def blocks(self) -> bool:
+        """Whether the steps' values show that no step meets a hard requirement
+        the researcher stated."""
+        return (
+            self.constraint.source is ConstraintSource.USER_EXPLICIT
+            and self.constraint.hard
+            and self.status in _UNMET
+        )
+
+    @property
     def answered_by_a_parameter(self) -> bool:
         return self.status is ConstraintStatus.GROUNDED and bool(self.realized_param)
 
 
 _UNMET = {ConstraintStatus.UNGROUNDABLE, ConstraintStatus.SUBSTITUTED}
-
-
-def is_blocking(grounded: GroundedConstraint) -> bool:
-    return (
-        grounded.constraint.source is ConstraintSource.USER_EXPLICIT
-        and grounded.constraint.hard
-        and grounded.status in _UNMET
-    )
 
 
 def provisional_constraints(constraints: list[Constraint]) -> list[GroundedConstraint]:

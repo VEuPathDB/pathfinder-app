@@ -24,9 +24,6 @@ from strategist.ai.agents.held_answer import (
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.ai.lead.deltas import FrameResult, PassGap
 from strategist.domain.refusal import Check, RefusalKey
-from strategist.domain.strategy.expression_handles import (
-    held_expressions,
-)
 from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.questions import SlotQuestion
 from strategist.domain.strategy.readings import Reading, reading_problems
@@ -131,9 +128,7 @@ async def _spelled(
     readings: list[Reading] = []
     refusals: list[str] = []
     state = ctx.deps.agent_state
-    expressions = held_expressions(
-        state.built_expressions, state.operational_spec_draft
-    )
+    expressions = state.held_expressions()
     for reading in question.readings:
         try:
             spelled = await site_spelling(
@@ -261,7 +256,7 @@ async def hold_the_readings_to_the_site(
     ctx: RunContext[AgentDeps], output: FrameResult
 ) -> tuple[Changed, list[HeldAnswer]]:
     state = ctx.deps.agent_state
-    held_names = held_expressions(state.built_expressions, state.operational_spec_draft)
+    held_names = state.held_expressions()
     checked = [
         (
             q,

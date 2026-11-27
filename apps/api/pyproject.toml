@@ -56,9 +56,9 @@ constraint-dependencies = [
     "soupsieve>=4.0.0",  # PYSEC-2026-3071, PYSEC-2026-3072, GHSA-mmhr-3c5m-f64f, GHSA-6655-6qjp-jx7x
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.9.0b5" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.9.0b7" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.9.0b18" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.9.0-b25" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.9.0-b27" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.9.0b3" }
 
 [build-system]
@@ -618,7 +618,6 @@ ignore_imports = [
     "strategist.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.search_inspection",
     "strategist.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.searches",
     "strategist.tests.unit.ai.tools.test_catalog_discovery_options -> veupathdb_mcp.catalog.search_inspection",
-    "strategist.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.search_inspection",
     "strategist.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.searches",
     "strategist.tests.unit.ai.tools.test_frame_spec_defaults -> veupathdb_mcp.catalog.searches",
     "strategist.tests.unit.ai.tools.test_frame_spec_params -> veupathdb_mcp.catalog.param_discovery",

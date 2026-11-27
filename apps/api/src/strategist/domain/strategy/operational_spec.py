@@ -315,6 +315,10 @@ class Criterion(CamelModel):
     weight: Weight = None
 
     @property
+    def node_kind(self) -> Literal["leaf", "transform"]:
+        return "transform" if self.role == "transform" else "leaf"
+
+    @property
     def unread_text(self) -> str:
         group = self.genome_group
         return self.text if group is None else group.unstated_in(self.text)

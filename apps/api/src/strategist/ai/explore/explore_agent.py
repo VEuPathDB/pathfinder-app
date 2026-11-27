@@ -12,6 +12,7 @@ from pydantic_ai.toolsets import AbstractToolset, AgentToolset, FunctionToolset
 from strategist.ai.agents._instructions import pinned_run_budget, pinned_user_memories
 from strategist.ai.agents.research_reads import research_reads, research_served
 from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
+from strategist.ai.capabilities.read_once import ReadOnce
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.explore._explore_instructions import (
     EXPLORE_GENE_RECORD_RULE,
@@ -177,6 +178,7 @@ def build_explore_agent() -> ExploreAgent:
         toolsets=toolsets,
         capabilities=agent_capabilities(
             [
+                ReadOnce[LeadDeps].of("explore"),
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],

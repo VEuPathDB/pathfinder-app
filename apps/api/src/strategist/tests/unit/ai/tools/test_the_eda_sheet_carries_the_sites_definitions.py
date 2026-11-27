@@ -8,7 +8,7 @@ from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
 from strategist.ai.lead.lead_pins import pinned_eda_sheet
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_analysis
+from strategist.ai.tools.standalone import _eda_open, eda_analysis
 from strategist.domain.eda_thread import ConversationAnalysisView
 from strategist.tests._support.eda_doubles import (
     ANALYSIS_ID,
@@ -61,8 +61,8 @@ async def _bound(_ctx: object) -> ConversationAnalysisView:
 async def test_a_sheet_entry_carries_the_definition_the_site_gives_its_variable(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _ranked_study)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", _ranked_study)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     sheet = lead_ctx.deps.state.domain.open_eda_sheet
@@ -84,8 +84,8 @@ async def _essential_definition(_site: str, study_id: str) -> str:
 async def test_the_sheet_carries_the_studys_description(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _ranked_study)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", _ranked_study)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "study_description", _essential_definition)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     sheet = lead_ctx.deps.state.domain.open_eda_sheet
@@ -100,8 +100,8 @@ async def test_the_sheet_carries_the_studys_description(
 async def test_a_study_with_no_description_pins_no_description_line(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _ranked_study)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", _ranked_study)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
     await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
 

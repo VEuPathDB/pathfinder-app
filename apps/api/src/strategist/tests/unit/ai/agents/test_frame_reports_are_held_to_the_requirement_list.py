@@ -75,10 +75,9 @@ def test_a_number_the_list_lacks_is_sent_back_with_the_numbers_it_holds() -> Non
 
     assert said(held) == [
         (
-            "requirement_problems names R5, and the list holds R1, R2. A report "
-            "names a requirement by its number in 'Requirements the researcher "
-            "stated'. Use one of those numbers, or leave the entry out and say it "
-            "in notes."
+            "requirement_problems names ['R5'], which 'Requirements the researcher "
+            "stated' does not hold. It holds R1, R2. Use one of those numbers, or "
+            "leave the entry out and say it in notes."
         )
     ]
     assert let_through(held, result) == _result("R2").with_gap(

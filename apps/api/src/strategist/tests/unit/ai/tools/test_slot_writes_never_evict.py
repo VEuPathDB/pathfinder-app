@@ -71,7 +71,7 @@ def _eda_ctx(
     root: StrategyStepNode,
     spec: OperationalSpec | None,
 ) -> RunContext[LeadDeps]:
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
+    monkeypatch.setattr(eda_step, "open_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
     wire_gene_count(monkeypatch)
     run_ctx = lead_run_context(

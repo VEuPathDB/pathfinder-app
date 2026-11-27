@@ -20,7 +20,7 @@ from strategist.ai.agents.unserved import UnservedSearch
 from strategist.domain.refusal import RefusalLedger
 from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.constraints import Constraint
-from strategist.domain.strategy.expression_handles import BuiltPattern
+from strategist.domain.strategy.expression_handles import BuiltPattern, held_expressions
 from strategist.domain.strategy.genome_group_steps import (
     criterion_keeping_its_reading,
 )
@@ -187,7 +187,6 @@ class AgentToolState:
     discovered_searches: dict[str, SearchOverview] = field(default_factory=dict)
     # Every catalog answer of this pass, oldest first.
     catalog_reads: list[CatalogRead] = field(default_factory=list)
-    read_param_options: set[str] = field(default_factory=set)
     # The entries the lookups of each (search, parameter) matched this pass.
     looked_up: dict[tuple[str, str], LookupRecord] = field(default_factory=dict)
     operational_spec_draft: OperationalSpec = field(default_factory=OperationalSpec)
@@ -244,6 +243,9 @@ class AgentToolState:
 
     def record_read(self, search_name: str, infos: Iterable[ParameterInfo]) -> None:
         self.infos_read_this_pass[search_name] = list(infos)
+
+    def held_expressions(self) -> dict[str, str]:
+        return held_expressions(self.built_expressions, self.operational_spec_draft)
 
     def sets_the_site(self, search_name: str, param: str) -> bool:
         """Whether a sheet read this pass names the parameter as set by the site."""
@@ -414,24 +416,6 @@ class AgentToolState:
                 merged.update(criterion.param_values)
         return merged
 
-    @staticmethod
-    def param_read_key(
-        search_name: str,
-        parameter_id: str,
-        *,
-        context_values: dict[str, ParamValue] | None = None,
-        terms: Sequence[str] = (),
-    ) -> str:
-        """Stable key for one parameter-options read. Context-sensitive so a
-        dependent param re-read under a different parent value is a new read,
-        not a dedup hit."""
-        ctx = ""
-        if context_values:
-            ctx = ";".join(
-                f"{k}={v.model_dump_json()}" for k, v in sorted(context_values.items())
-            )
-        return f"{search_name}|{parameter_id}|{ctx}|{';'.join(terms)}"
-
     def record_lookup(
         self,
         search_name: str,
@@ -443,12 +427,6 @@ class AgentToolState:
         key = (search_name, parameter_id)
         held = self.looked_up.get(key, LookupRecord())
         self.looked_up[key] = held.merged(lookup, options)
-
-    def mark_param_read(self, key: str) -> None:
-        self.read_param_options.add(key)
-
-    def was_param_read(self, key: str) -> bool:
-        return key in self.read_param_options
 
     def register_search(self, name: str, overview: SearchOverview) -> None:
         self.discovered_searches[name] = overview

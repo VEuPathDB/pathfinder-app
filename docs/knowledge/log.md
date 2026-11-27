@@ -2,6 +2,173 @@
 
 ## 2026-11-24
 
+* **Five rules that had copies have one home.** A thread with no study open
+  (`_eda_open.open_analysis`) and a dataset the catalog lacks (`_eda_open.dataset_study`); a
+  requirement number the list lacks (`requirement_reports.unlisted_numbers_sentence`); an
+  expression handle no expression stands for (`expression_handles.unheld_sentence`, read
+  through `AgentToolState.held_expressions`); a search that runs on an input step
+  (`record_classes.takes_an_input_step`) and the node a criterion takes
+  (`Criterion.node_kind`). A read-only count reads a phrase every message of the request
+  asks for, as FRAME does. A test per rule holds its sentence or attribute to one module.
+
+* **Prompt lines the code enforces are gone.** Fifteen lines or clauses of the FRAME,
+  Lead, BUILD, VERIFY, Explore and base instructions restated a refusal the code makes or a
+  tool the agent does not hold; each owner's test still runs.
+
+* **Take veupathdb-mcp 0.9.0b27.** It deletes `read_radio_readings`, `radio_readings` and
+  `RadioReadings`, which nothing read; the binding test no longer names the reader.
+
+* **One step that links two organism requirements passes each.** On a linked step, a
+  requirement's organism check allows its own entry and the entries of every other organism
+  requirement that step links, so GenesByGoTerm on 3D7 and P01 (150 and 250 records) passes both.
+
+* **A profile's genomes are derived when grounding needs them, never stored.**
+  `Criterion.phyletic_genomes` is gone (and from the spec). Grounding decodes a phylogenetic
+  profile step's own `included_species` codes through the search's phyletic tree, which the
+  build and the edit read with `profile_trees`; an adopted offer's pattern step is judged like a
+  FRAME bind, and one whose tree was not read leaves the ortholog requirement not verified.
+
+* **A phylogenetic profile meets an ortholog requirement through its included species.** When
+  it binds, a step's `included_species` codes are decoded through the search's own phyletic tree
+  (`phyletic_tree_for_search`, the library's reader) into `Criterion.phyletic_genomes`; an unlinked
+  ortholog requirement is met when those genomes hold every organism it asks. The step's organism
+  parameter, which names the seed's organism, no longer counts.
+
+* **A typed organism the organism reader resolves is a named replacement.** On the organism
+  dimension a card answer's words replace the stated organism when the organism reader
+  (`organism_reader.site_entry`, the gate's own matcher) resolves them to exactly one site entry;
+  words it resolves to none or several replace nothing. "Plasmodium falciparum 7G8" replaces
+  3D7; "Plasmodium falciparum" and "proceed with defaults" keep it.
+
+* **A card question on a criterion answers only that criterion's requirements of its dimension.**
+  `recommended_drops` resolves a criterion id to the requirements it links whose kind is the
+  question's dimension, so a percentile question on a step that also links the organism may
+  recommend a cutoff; the ortholog question on the x5 transform is still refused.
+
+* **Free words never replace a stated value.** The word reader (`answer_values.stated_value`)
+  is deleted. On a dimension of one value a card answer's typed words or note state no
+  requirement and retire none; only a structured pick whose effect replaces the requirement
+  does, and the words reach the Lead and FRAME as the answer. "proceed with defaults" keeps
+  3D7 and "top 5 percent" with no parsing.
+
+* **An unlinked ortholog requirement is met by any step that reaches its organisms.** A transform
+  or a phyletic-pattern step whose organisms hold every asked organism meets it, with the stated
+  synteny on a transform; the targets of all transforms are no longer pooled, so two ortholog
+  steps each meet their own requirement.
+
+* **An organism requirement is judged on its own branch.** The verdict reads the step that links
+  it alone against the entry; an unlinked one needs records of the entry in the result and
+  every record of an organism some requirement names (`OrganismAsked`), so a UNION of two asked
+  strains and a strain with its orthologs in another species pass.
+
+* **A held repeat that ends a loop leads with the warning.** The guard's loop words come first
+  in a held repeat's refusal, so the step summary keeps them ahead of an answer carried again.
+
+* **A broader organism never meets a stated entry.** When no step selects a stated organism
+  entry and a step selects a node above it, grounding marks the requirement `substituted`
+  (blocking), and the organism check reads the result's rows against the requirement's own
+  entry: the n4 species binding for a 3D7 requirement fails with "165 of the 174 records ...
+  hold organisms the requirement does not name". The decision
+  `an-organism-requirement-holds-a-site-entry.md` is reopened on that evidence.
+
+* **The newest message's operator wins only above the floor.** A newest reading below
+  `decisions_operator_min_confidence` no longer stands over a confident reading of the thread,
+  so the card is asked; a confident one (dry-c's "flip the last combine ... to a UNION" read
+  as union above the floor) still asks nothing.
+
+* **An answer that names no value keeps the stated value, on every dimension of one value.** A
+  card answer on a percentile, fold change, significance, data type, organism, record type or
+  comparator dimension becomes a requirement only when its words name a value of that kind
+  (`answer_values.stated_value`: a share, a cut, a bound, RNA-Seq or microarray; a site entry for
+  an organism). "proceed with defaults" therefore replaces no stated "top 5 percent", as it no
+  longer replaced 3D7.
+
+* **A card recommends no option whose pick retires or replaces a stated requirement.**
+  `CardQuestion.recommended_drops` refuses a recommended drop option, and a recommended option
+  other than the keep option on a question that replaces the requirement (`replaces`), names it,
+  or names a criterion that answers it. A question that changes no requirement may recommend.
+
+* **A requirement blocks only when the steps' values show it unmet.** The no-step block and the
+  reply contract read one predicate, `GroundedConstraint.blocks` (a hard requirement the
+  researcher stated, grounded `substituted` or `ungroundable`); `is_blocking` and
+  `met_by_no_step` are gone. A missing link no longer blocks: an ortholog requirement no
+  criterion links is judged by every transform's target organisms and `isSyntenic`, so an
+  adopted separation offer that states the signal peptide builds and answers, and the x5
+  transform with `isSyntenic=no` is still refused.
+
+* **The Lead reads how a repeat answers.** Its record rule says a read sent again runs nothing
+  and costs nothing, names the call while its answer is shown and carries it once it is not.
+
+* **A check keeps no repeat rule of its own.** `read_sampled_gene_record` no longer refuses a
+  gene it read with "its answer is above"; `ReadOnce` holds the identical read, and the same
+  gene read for another ortholog organism runs and counts once toward the check's records.
+
+* **A held repeat spends no call cap and is the one loop rule.** `ReadOnce` is a capability of
+  the agent, outside the run's repetition guard, so a repeat it holds never reaches the guard's
+  per-tool cap; it joins the guard's identical-arguments streak through `check_repeat`, which
+  warns on the third identical call and stops the run on a later repeat.
+
+* **Take assistant-core 0.9.0b7.** `ToolRepetitionGuard.check_repeat` counts a repeat the host
+  holds in the guard's identical-arguments streak without spending a call cap.
+
+* **A held repeat judges elision by the next request.** `ReadOnce` runs the elision and the
+  compaction over the history that holds the current response's calls, which is what the next
+  request shows, so a repeat whose first answer that request digests carries the answer again
+  instead of pointing at a digest.
+
+* **A held read is released by any write of the turn.** The repeat rule moved from a toolset
+  wrapper to `ReadOnce`, a capability of every agent of the turn, which sees calls of every
+  toolset. A call outside the reads, by any agent, counts one write on `TurnMarkers.writes`,
+  and a read is held only while that count is unchanged; an EDA export from another toolset no
+  longer leaves the pre-export strategy read held.
+
+* **A stated requirement no step meets blocks the build and the answer.**
+  `requirement_coverage.requirements_no_step_meets` refuses a build and an edit, as
+  `Problems` keyed `unmet_requirement`, while a hard requirement the researcher stated is
+  ungroundable or stated by no step, and `is_blocking` counts it, so a reply that ends the
+  turn complete over it is refused and must say "The requirement '<words>' is not met by any
+  step." A dropped requirement has left the ledger and blocks nothing. The transform that
+  answered no requirement while it bound `isSyntenic=no` against the stated syntenic
+  orthologs is now refused before it is written.
+
+* **A card offers dropping a stated requirement and never recommends it.** `consult_can_ask`
+  refuses a card whose recommended option is the "Drop <requirement>" option of a hard
+  requirement the researcher stated, or any recommended option but "Keep <requirement>" on a
+  question about that requirement (`CardQuestion.recommended_drops`). The drop is offered by
+  that label, which binds the withdrawal, so a picked drop leaves the ledger. A Lead card that
+  recommended "Use all orthologs in Toxoplasma gondii ME49" over the stated syntenic
+  orthologs is refused.
+
+* **A repeated read runs once while nothing changes, and is never starved.** `ReadOnceToolset`
+  wraps the Lead, Explore, a framing pass, a build pass and a check, and holds every read of
+  `READ_ONLY_TOOLS` with its answer until a call outside the reads runs (record reads, and a
+  check's strategy reads, for the run). A repeat with the same arguments runs nothing and is
+  not counted in the call budget; it names the earlier call while the model still sees that
+  answer, and carries the answer again once the history elided it. In the 76-call Explore turn
+  that stopped at the 80-call budget, all 14 repeats were of elided results, and so were the
+  overviews before each of the five `parameter_id "x"` reads that listed a search's
+  parameters. The framing tools' own "already read" notices for an overview and a parameter
+  read are gone.
+
+* **Take veupathdb-mcp 0.9.0b26 and assistant-core 0.9.0b6.** `read_radio_readings` marks a
+  reading the site never narrows with `not_narrowed` and raises the site's refusal when the
+  narrowing read failed, as `read_parameter_options` does. An elided tool result no longer
+  says "do not fetch again", and `is_elided` tells a digest from a whole result.
+
+* **An answer that names no organism keeps the stated one.** A card answer on the organism
+  dimension becomes a requirement only when its words name one organism of the site
+  (`organism_reader.site_entry`), and then it holds that entry as its value. Words that name
+  none, such as "proceed with defaults", record no requirement, so the researcher's hard
+  "Plasmodium falciparum 3D7" stays the organism requirement instead of being replaced by
+  the words and then bound as the species node. The words still reach the Lead as the
+  answer.
+
+* **The operator the current message states is the one read.** The operator reader keeps the
+  newest message's reading whenever that message names an operator for the combine, at any
+  confidence: below the floor it is `unsure` and asks nothing. The thread's older words are
+  read only when the newest message names no operator, so "flip the last combine to a UNION"
+  is never asked back as "Your words read as ... both ...".
+
 * **Nothing unknown becomes a default.** The decision
   `decisions/nothing-unknown-becomes-a-default.md` records cause G's rules G1-G5 (a typed
   `Unread` on a service read, an absence only over a catalog read, `stated` only through

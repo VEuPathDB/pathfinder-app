@@ -33,7 +33,7 @@ async def test_a_mistyped_entity_is_refused_with_the_entities_the_study_declares
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """A mistyped entity id is a refusal the model can correct, never a crash."""
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "read_analysis", read_analysis_detail)
     monkeypatch.setattr(authoring, "get_study_detail_for_dataset", phenotype_study)
     _entry, study = await phenotype_study("plasmodb", PHENOTYPE_DATASET)

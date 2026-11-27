@@ -11,7 +11,6 @@ from strategist.domain.strategy.constraints import (
     GroundedConstraint,
     SignificanceValue,
     Statistic,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import (
     Criterion,
@@ -86,7 +85,7 @@ def test_an_analysis_that_does_not_link_it_is_not_verified() -> None:
         ConstraintStatus.NOT_VERIFIED,
         "no_value_to_compare",
     )
-    assert not is_blocking(grounded)
+    assert not grounded.blocks
 
 
 def _asked(statistic: Statistic) -> Constraint:

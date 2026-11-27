@@ -23,7 +23,6 @@ from strategist.ai.lead.lead_consult import consult_user
 from strategist.ai.lead.recorded_cards import card_questions
 from strategist.ai.lead.sub_agent_tools import LeadDeps
 from strategist.ai.lead.turn_facts import turn_facts
-from strategist.domain.caveats import check_gaps
 from strategist.domain.requirement_checks import grounded_check
 from strategist.domain.strategy.constraints import (
     ConstraintKind,
@@ -41,7 +40,6 @@ from strategist.domain.strategy.questions import (
     SlotQuestion,
     with_withdrawals,
 )
-from strategist.domain.turn_facts import RetiredFact
 from strategist.tests._support.run_context import run_context_for
 from strategist.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -156,12 +154,12 @@ def _leads_card(prompt: str, *labels: str) -> CardQuestion:
     )
 
 
-_LOOK = "Look for a different Leishmania major expression study"
-_USE = "Use the available Leishmania major study"
+_LOOK = "Look for a Leishmania major microarray study"
+_USE = "Use the available Leishmania major RNA-Seq study"
 
 
-async def test_a_later_answer_on_the_same_dimension_replaces_the_earlier() -> None:
-    """Each answer is the researcher's own words on a question in words."""
+async def test_free_words_on_a_dimension_of_one_value_record_no_requirement() -> None:
+    """Typed words reach the Lead as the answer; only a structured pick replaces a value."""
     deps = _deps()
     await _answer(
         deps,
@@ -176,14 +174,7 @@ async def test_a_later_answer_on_the_same_dimension_replaces_the_earlier() -> No
     )
 
     domain = deps.state.domain
-    assert [(c.kind, c.requested_value) for c in domain.requirements] == [
-        (ConstraintKind.DATA_TYPE, _USE)
-    ]
-    assert turn_facts(deps).retired == [
-        RetiredFact(requirement=_LOOK, state="replaced", replaced_by=_USE)
-    ]
-    retired = [r.constraint for r in domain.retired_requirements]
-    assert check_gaps(words=[], unstated=retired, retired={c.id for c in retired}) == []
+    assert (domain.requirements, domain.retired_requirements) == ([], [])
 
 
 def test_answering_questions_retires_no_requirement() -> None:

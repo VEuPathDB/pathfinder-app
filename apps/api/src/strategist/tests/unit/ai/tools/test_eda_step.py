@@ -33,7 +33,6 @@ from strategist.tests._support.eda_step_doubles import (
     pushing_commit,
     recording_commit,
     sample_filter,
-    unbound,
     wire_analysis,
     wire_gene_count,
 )
@@ -249,17 +248,6 @@ async def test_a_compute_export_with_no_computation_names_the_compute_tool(
         )
 
     assert "run_eda_compute" in str(excinfo.value)
-
-
-async def test_a_step_with_no_open_analysis_raises_a_model_retry(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    monkeypatch.setattr(eda_step, "bound_analysis", unbound)
-
-    with pytest.raises(ModelRetry) as excinfo:
-        await eda_step.create_eda_step(lead_ctx)
-
-    assert "open_eda_analysis" in str(excinfo.value)
 
 
 async def test_a_session_with_no_graph_fails_loudly(

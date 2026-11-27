@@ -13,12 +13,11 @@ from strategist.ai.tools.standalone._eda_models import (
     EdaStudyDescription,
     EdaStudySearchResult,
 )
+from strategist.ai.tools.standalone._eda_open import dataset_study
 from strategist.domain.unread import Unread
 from strategist.services.eda.catalog import (
     StudyCard,
     StudySearch,
-    UnknownEdaDatasetError,
-    get_study_detail_for_dataset,
     search_studies,
 )
 from strategist.services.eda.description import (
@@ -193,13 +192,7 @@ async def describe_eda_study(
         dataset_id: The dataset id from search_eda_studies.
         entity_id: The entity whose variables to read.
     """
-    try:
-        entry, study = await get_study_detail_for_dataset(
-            ctx.deps.runtime.site_id, dataset_id
-        )
-    except UnknownEdaDatasetError as exc:
-        msg = f"{exc.guidance} Call search_eda_studies to find a real dataset id."
-        raise ModelRetry(msg) from exc
+    entry, study = await dataset_study(ctx.deps.runtime.site_id, dataset_id)
     try:
         described = describe_study(
             permission_facts(entry),

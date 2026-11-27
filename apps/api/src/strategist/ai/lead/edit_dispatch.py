@@ -65,6 +65,7 @@ from strategist.domain.strategy.operational_spec import OperationalSpec
 from strategist.domain.strategy.operations import UpdateStrategyMetaOp
 from strategist.domain.strategy.operations.apply import ApplyError, PlanDeparturesError
 from strategist.domain.strategy.orthology import organism_move_refusal
+from strategist.domain.strategy.requirement_coverage import requirements_no_step_meets
 from strategist.domain.strategy.revision import parse_strategy_ast, strategy_revision
 from strategist.domain.strategy.session import StrategyGraph
 from strategist.domain.strategy.spec_diff import (
@@ -90,6 +91,7 @@ from strategist.services.strategies.commit import (
     apply_operations_and_commit,
 )
 from strategist.services.strategies.data_marks import read_data_marks
+from strategist.services.strategies.genome_group_names import profile_trees
 from strategist.services.strategies.graph_outcome import live_outcome
 from strategist.services.strategies.revision_ops import previous_revision
 
@@ -196,6 +198,12 @@ async def run_edit(
     )
     if moved is not None:
         refuse_and_restore(deps, moved)
+    trees = await profile_trees(after, site_id=deps.state.site_id)
+    unmet = requirements_no_step_meets(
+        deps.state.domain.requirements, after, trees=trees
+    )
+    if not unmet.empty:
+        refuse_problems_and_restore(deps, unmet)
     pushed = await _push_the_edit(
         deps=deps,
         after=after,

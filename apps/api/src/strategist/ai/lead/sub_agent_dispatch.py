@@ -58,6 +58,7 @@ from strategist.domain.strategy.orthology import (
     organism_change,
     round_trip_refusal,
 )
+from strategist.domain.strategy.requirement_coverage import requirements_no_step_meets
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import (
     StrategyGraph,
@@ -77,12 +78,14 @@ from strategist.domain.strategy.step_words import added_searches, step_words
 from strategist.domain.strategy.strategy_description import strategy_description
 from strategist.domain.strategy.types import SyncStateProtocol
 from strategist.domain.unread import Unread
+from strategist.platform.refusals import refuse_problems
 from strategist.services.site_errors import site_words
 from strategist.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
 from strategist.services.strategies.commit_tree import CommitTarget, commit_tree
 from strategist.services.strategies.data_marks import read_data_marks
+from strategist.services.strategies.genome_group_names import profile_trees
 from strategist.services.strategies.naming import name_for_the_push
 from strategist.services.strategies.spec_build import (
     build_strategy_from_spec,
@@ -142,6 +145,10 @@ async def build_the_spec(deps: LeadDeps, *, call_id: str) -> ExecuteDelta:
     if asked:
         raise ModelRetry(organism_unnamed_message([pick.quote for _, pick in asked]))
     minted = minted_spec(domain.operational_spec)
+    trees = await profile_trees(minted.spec, site_id=deps.state.site_id)
+    refuse_problems(
+        requirements_no_step_meets(domain.requirements, minted.spec, trees=trees)
+    )
     return await build_the_minted(deps, minted, call_id=call_id)
 
 

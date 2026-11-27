@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from pydantic_ai import ToolFailed
@@ -18,19 +18,22 @@ from strategist.ai.tools.standalone.results import (
     READ_DEADLINE_SECONDS,
     read_step_columns,
 )
+from strategist.domain.organism_checks import (
+    CountedOrganisms,
+    OrganismAsked,
+    OrganismCount,
+    UnreadOrganisms,
+    organism_check,
+)
 from strategist.domain.requirement_checks import grounded_check, record_type_check
 from strategist.domain.site_checks import (
-    CountedOrganisms,
     HeldValue,
     JoinedCounts,
-    OrganismCount,
     SiteCheck,
     SiteStep,
-    UnreadOrganisms,
     bound_values_check,
     combine_counts_check,
     expression_fit_checks,
-    organism_check,
     result_count_check,
     tally_checks,
     unanswered_checks,
@@ -38,10 +41,14 @@ from strategist.domain.site_checks import (
     validity_check,
 )
 from strategist.domain.strategy.constraints import (
+    Constraint,
     ConstraintKind,
     ConstraintSource,
     GroundedConstraint,
+    OrganismValue,
+    OrthologValue,
 )
+from strategist.domain.strategy.operational_spec import Criterion
 from strategist.domain.strategy.organism_scope import (
     SelectedOrganisms,
     dataset_organisms_of,
@@ -239,6 +246,52 @@ async def _paged_organisms(
     return CountedOrganisms(step=root.named, total=paged.total, rows=rows)
 
 
+def _organisms_named(requirements: Iterable[Constraint]) -> frozenset[str]:
+    """Every organism a requirement names: an organism's entry, an ortholog's targets."""
+    found: set[str] = set()
+    for c in requirements:
+        match c.value:
+            case OrganismValue(organism=organism):
+                found.add(organism)
+            case OrthologValue(organisms=organisms):
+                found.update(organisms)
+            case _:
+                pass
+    return frozenset(found)
+
+
+async def _asked_organism_check(
+    judged: _Judged,
+    criteria: Sequence[Criterion],
+    c: Constraint,
+    selected: SelectedOrganisms,
+    counted: CountedOrganisms | UnreadOrganisms | None,
+    requirements: Sequence[Constraint],
+) -> SiteCheck:
+    """The requirement against the records of the step that links it, else
+    against the result."""
+    linking = next(
+        (
+            (k, found)
+            for k in criteria
+            if k.links(c.id) and (found := judged.steps.get(k.id)) is not None
+        ),
+        None,
+    )
+    if linking is None:
+        read, allowed = counted, _organisms_named(requirements)
+    else:
+        k, step = linking
+        read = await _counted_organisms(judged, step)
+        allowed = _organisms_named(r for r in requirements if k.links(r.id))
+    asked = OrganismAsked(
+        entry=c.organism or c.requested_value,
+        named=allowed,
+        linked=linking is not None,
+    )
+    return organism_check(c.requested_value, c.id, selected, read, asked=asked)
+
+
 async def _organism_checks(
     deps: LeadDeps, judged: _Judged, asked: list[GroundedConstraint]
 ) -> list[SiteCheck]:
@@ -268,8 +321,15 @@ async def _organism_checks(
         )
         carried = carried or names
         checks.append(
-            organism_check(c.requested_value, c.id, selected, counted)
-            if names
+            await _asked_organism_check(
+                judged,
+                spec.criteria,
+                c,
+                selected,
+                counted,
+                deps.state.domain.requirements,
+            )
+            if names and selected is not None and c.organism is not None
             else SiteCheck(
                 kind=ConstraintKind.ORGANISM,
                 subject=c.requested_value,

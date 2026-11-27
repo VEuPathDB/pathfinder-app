@@ -112,7 +112,7 @@ async def export(
         return CommitResult(description="exported")
 
     patch = thread.monkeypatch.setattr
-    patch(eda_step, "bound_analysis", _bound)
+    patch(eda_step, "open_analysis", _bound)
     patch(eda_step, "read_analysis", _read)
     patch(eda_step, "apply_operations_and_commit", _commit)
     wire_export_reads(thread.monkeypatch)

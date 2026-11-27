@@ -25,7 +25,6 @@ from veupathdb_mcp.catalog import (
 )
 
 from strategist.ai.tools.standalone import catalog_discovery
-from strategist.ai.tools.standalone.catalog_discovery import AlreadyReadNotice
 from strategist.tests.unit.ai.tools.conftest import (
     agent_run_context,
     patch_search_details,
@@ -135,34 +134,16 @@ def overview_client(monkeypatch: pytest.MonkeyPatch) -> _OverviewClient:
 
 
 class TestTheSearchOverviewRead:
-    async def test_the_first_read_registers_the_second_is_a_notice(
+    async def test_a_read_registers_the_search(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         client = overview_client(monkeypatch)
         monkeypatch.setattr(search_inspection, "format_search_overview", go_overview)
         ctx = agent_run_context()
 
-        first = (
-            await catalog_discovery.get_search_overview(
-                ctx, search_name="GenesByGoTerm"
-            )
-        ).return_value
-        assert not isinstance(first, AlreadyReadNotice)
-        assert ctx.deps.agent_state.get_overview("GenesByGoTerm") is not None
-        assert client.reads == ["GenesByGoTerm"]
+        await catalog_discovery.get_search_overview(ctx, search_name="GenesByGoTerm")
 
-        second = (
-            await catalog_discovery.get_search_overview(
-                ctx, search_name="GenesByGoTerm"
-            )
-        ).return_value
-        assert isinstance(second, AlreadyReadNotice)
-        assert second.search_name == "GenesByGoTerm"
-        assert second.message == (
-            "You already inspected 'GenesByGoTerm'; this is that read. A criterion "
-            "that already runs it re-binds with no other read; a new criterion "
-            "binds it from a catalog search answer that names it."
-        )
+        assert ctx.deps.agent_state.get_overview("GenesByGoTerm") is not None
         assert client.reads == ["GenesByGoTerm"]
 
     async def test_the_sheet_is_ranked_on_the_goal(
@@ -326,30 +307,7 @@ class TestTheParameterRead:
         assert "taxon" in result.message
         assert "go_term" in result.message
 
-    async def test_a_second_identical_read_returns_an_already_read_notice(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        patch_search_details(monkeypatch, parameters=_params(["go_term", "taxon"]))
-        info = _pin_formatter(monkeypatch)
-        ctx = agent_run_context()
-
-        first = (
-            await catalog_discovery.get_parameter_options(
-                ctx, search_name="GenesByGoTerm", parameter_id="go_term"
-            )
-        ).return_value
-        assert first == info
-
-        second = (
-            await catalog_discovery.get_parameter_options(
-                ctx, search_name="GenesByGoTerm", parameter_id="go_term"
-            )
-        ).return_value
-        assert isinstance(second, AlreadyReadNotice)
-        assert second.search_name == "GenesByGoTerm"
-        assert second.parameter_id == "go_term"
-
-    async def test_a_failed_read_is_not_marked_so_a_retry_works(
+    async def test_a_wrong_name_then_the_right_one_reads_the_options(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         patch_search_details(monkeypatch, parameters=_params(["go_term", "taxon"]))

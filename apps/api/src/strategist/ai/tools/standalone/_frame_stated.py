@@ -27,6 +27,7 @@ from strategist.domain.strategy.organism_phrases import stated_organisms
 from strategist.domain.strategy.text_expression import unquoted_phrase_refusal
 from strategist.domain.strategy.words import words_of
 from strategist.services.strategies.parameter_rules import parameter_class
+from strategist.services.strategies.record_classes import takes_an_input_step
 
 # A binomial is a genus and a species epithet; a word after them names a strain.
 _BINOMIAL_WORDS = 2
@@ -192,7 +193,7 @@ def word_problems(
     out is named for that organism alone.
     """
     carried_to = state.carried_to(call.criterion_id)
-    transform = bool(definition.allowed_primary_input_record_class_names)
+    transform = takes_an_input_step(definition)
     found: list[Problem] = []
     for info in infos:
         said: list[tuple[str, str | None]] = []

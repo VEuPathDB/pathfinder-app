@@ -32,7 +32,9 @@ runs over the draft, never inside FRAME's own tool loop (`ai/lead/frame_dispatch
 - The newest message is read first, alone (`operator_reader._newest_first`). When
   it states an operator at or above the floor, that reading stands and the history
   is not read; otherwise the question is asked again over every message, oldest
-  first. A message that changes a combine therefore overrides the words that built
+  first. A newest reading below the floor cannot tell an instruction ("flip the
+  last combine to a UNION") from a question ("what would a union give?"), so it
+  does not suppress the card the history's reading asks. A message that changes a combine therefore overrides the words that built
   it, and the order is enforced by code, not by asking the model which message won.
 - The answer is typed on the spec as an `OperatorReading` keyed by the combine's
   criteria and the operator FRAME built: `agrees`, `disagrees` (an other operator

@@ -3,6 +3,7 @@ from __future__ import annotations
 from veupathdb.domain.parameters import PhyleticTree
 from veupathdb_mcp.catalog import phyletic_tree_for_search, read_search_definition
 
+from strategist.domain.strategy.genome_group import INCLUDED_SPECIES
 from strategist.domain.strategy.genome_set_names import (
     searches_with_unnamed_genomes,
     spec_with_named_genomes,
@@ -22,6 +23,21 @@ async def _trees(
     return trees
 
 
+async def profile_trees(
+    spec: OperationalSpec, *, site_id: str
+) -> dict[str, PhyleticTree]:
+    """The phyletic tree of each phylogenetic-profile search the spec binds."""
+    searches = {
+        c.search_name
+        for c in spec.criteria
+        if c.search_name and INCLUDED_SPECIES in c.resolved_params
+    }
+    if not searches:
+        return {}
+    read = await _trees(site_id, searches)
+    return {name: tree for name, tree in read.items() if tree is not None}
+
+
 async def spec_with_its_genomes_named(
     spec: OperationalSpec | None, *, site_id: str
 ) -> OperationalSpec | None:
@@ -31,4 +47,4 @@ async def spec_with_its_genomes_named(
     return spec_with_named_genomes(spec, await _trees(site_id, searches))
 
 
-__all__ = ["spec_with_its_genomes_named"]
+__all__ = ["profile_trees", "spec_with_its_genomes_named"]

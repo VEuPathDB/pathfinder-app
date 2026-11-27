@@ -20,7 +20,8 @@ from strategist.ai.agents._instructions import (
     pinned_user_memories,
 )
 from strategist.ai.agents.research_reads import research_reads, research_served
-from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS, RECORD_READS
+from strategist.ai.agents.tool_vocabulary import READ_ONLY_TOOLS
+from strategist.ai.capabilities.read_once import ReadOnce
 from strategist.ai.capabilities.site_reads import SiteReadFailures
 from strategist.ai.graph.runtime import one_toolset
 from strategist.ai.lead._lead_instructions import (
@@ -106,7 +107,6 @@ from strategist.ai.tools.standalone.step_tally import (
 from strategist.ai.tools.standalone.strategy_rename import rename_strategy
 from strategist.ai.tools.standalone.variant_comparison import compare_search_variants
 from strategist.ai.tools.toolsets import eda
-from strategist.ai.tools.toolsets._read_once import ReadOnceToolset
 from strategist.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from strategist.platform.model_catalog import DEFAULT_MODEL_ID
 from strategist.platform.refusals import KeyedRefusalToolset, agent_capabilities
@@ -195,10 +195,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
         ],
     )
     return KeyedRefusalToolset(
-        wrapped=ReadOnceToolset(
-            wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS),
-            reads=RECORD_READS,
-        )
+        wrapped=RefusalMemoryToolset(wrapped=base, reads=READ_ONLY_TOOLS)
     )
 
 
@@ -229,6 +226,7 @@ def build_lead_agent() -> LeadAgent:
         toolsets=toolsets,
         capabilities=agent_capabilities(
             [
+                ReadOnce[LeadDeps].of("lead"),
                 AllowedTools[LeadDeps](rules=[withhold_by_turn_state]),
                 stable,
                 HandleDeferredToolCalls[LeadDeps](handler=hold_the_contract_on_a_card),

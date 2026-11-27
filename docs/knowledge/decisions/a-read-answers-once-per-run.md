@@ -1,21 +1,32 @@
 ---
 type: Decision
 title: A read answers once per run
-description: A toolset wrapper holds the call that answered each listed read for one run, and the same read again fails without running and names that call; the Lead and a framing pass list record reads and a check also lists its strategy reads. A read the site breaks off is one failed call that names the site's status, is not held, and never ends the turn.
+description: A capability on every agent of a turn holds the answer of each read until any write of the turn, and the same read again runs nothing, costs no tool call of the budget, and names the call that answered it while the model still sees that answer or carries the answer again once the history elided it; every agent holds every read. A read the site breaks off is one failed call that names the site's status, is not held, and never ends the turn.
 tags: [lead, verification, tools, cost]
 status: stable
 ---
 
 # The choice
 
-`ai/tools/toolsets/_read_once.py::ReadOnceToolset` wraps the Lead's own toolset, the
-framing pass's toolset and the check's toolset. For each tool it lists, a completed call is held by its arguments for the
-run (`for_run` gives each run a fresh record); the same call again fails with
-`ToolFailed`, names the call that answered it and spends no retry. A read that failed is
-not held. The lists live beside the guard vocabulary (`ai/agents/tool_vocabulary.py`):
-`RECORD_READS` for the Lead and a framing pass, whose edits change what a strategy read returns, and
-`CHECK_READS` for a check, which writes no step. A check's refusals of a record it may not
-read are `ToolFailed` too, and name the sampled id a versionless id stands for.
+`ai/capabilities/read_once.py::ReadOnce` is a capability of every agent of a turn: the
+Lead, Explore, a framing pass, a build pass and a check (`ReadOnce.of(role)`). It sees every
+call of its agent, whatever toolset holds the tool, and holds every tool of
+`READ_ONLY_TOOLS`. A completed call is held by its arguments with its answer and the turn's
+write count (`for_run` gives each run a fresh record). Each call outside the reads, by any
+agent of the turn, counts one write on `TurnMarkers.writes`, so an EDA export, a sub-agent's
+build or a note releases every held read but the `lasting` ones, whose answer no call of the
+run changes: `RECORD_READS` for the Lead, Explore and the passes that write, and
+`CHECK_READS` for a check, which writes no step. A read taken while a write of the same batch
+ran is held under the count it started with, so it runs again after that write. The same read again fails as a refused call before the run's repetition guard counts it, so it spends no call cap; it joins the guard's identical-arguments streak (`ToolRepetitionGuard.check_repeat`), which warns on the third identical call and stops the run on the next request's repeat, the one loop rule of a turn. It runs nothing,
+spends no retry, and is not counted in the run's `tool_calls_limit` (pydantic-ai counts a
+call only when it succeeds). When the history the next request shows (the elision and the compaction run over the history that holds this response's calls) still holds the first answer whole,
+the refusal names that call; when the runtime's elision digested it
+(`assistant_core.conversation.history.is_elided`) or compaction folded it, the refusal
+carries the answer again, so a model whose context lost the data is never starved. The
+elision digest itself does not forbid a second read. A read that failed is not held. A
+check's refusals of a record it may not read are `CallRefused` too, and name the sampled id
+a versionless id stands for. This wrapper is the one repeat mechanism: the framing tools'
+own "already read" notices for a search overview and a parameter read are gone, and so is the check's own refusal of a record it read: a check counts a gene once toward its record budget, and the same gene read for another ortholog organism runs.
 
 # A read the site does not answer
 
@@ -46,7 +57,7 @@ corrective retry.
 A read with a
 deadline raises the same failure itself through `read_in_time`: `get_sample_records` and
 the check's column read at 20 s, `read_step_ids` at 20 s for a limited read and 60 s for a
-whole listing. Because the failure is raised, `ReadOnceToolset` holds nothing for it and the
+whole listing. Because the failure is raised, `ReadOnce` holds nothing for it and the
 same read may run again. An identity refusal (401, 403) is no outage: it propagates to the
 turn's error path, which asks the researcher to sign in. A write the site broke off
 propagates too. `read_step_ids` with a limit reads through `results.sample_page`, so it
@@ -64,7 +75,16 @@ stopped it (595,548 tokens, no list), and the next turn read them 37 times. The 
 repetition guard counts consecutive identical calls only, so a cycle of five ids never
 tripped it. A check re-read samples and the strategy at steps 23/36, 32/38 and 17/37.
 
+An Explore turn read 76 times and stopped at the 80-call budget: 14 calls repeated an
+earlier call's arguments, each returned the whole payload again, and every one of the 14
+repeated a result the history had elided under "do not fetch again". The re-read was the
+model recovering data it had lost from its context, so an answer that only named the
+earlier call would have starved it.
+
 # What was rejected
+
+**A short "you read this" answer for every repeat.** Each of the measured repeats was of an
+elided result; the model had no copy of the answer to read.
 
 **A per-turn record on `TurnMarkers`.** A resumed run holds the earlier answer in its
 history as well, and the loop is a property of one run's context.

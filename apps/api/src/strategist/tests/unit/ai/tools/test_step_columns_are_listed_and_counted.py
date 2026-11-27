@@ -233,9 +233,7 @@ async def test_a_step_the_strategy_does_not_hold_is_not_listed(
 def test_the_lead_lists_and_counts_a_steps_columns() -> None:
     keyed = build_lead_toolset()
     assert isinstance(keyed, KeyedRefusalToolset)
-    read_once = keyed.wrapped
-    assert isinstance(read_once, WrapperToolset)
-    refusal_memory = read_once.wrapped
+    refusal_memory = keyed.wrapped
     assert isinstance(refusal_memory, WrapperToolset)
     base = refusal_memory.wrapped
     assert isinstance(base, FunctionToolset)

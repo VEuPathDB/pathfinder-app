@@ -417,23 +417,6 @@ class TestSeveralPhrasingsReachTheRead:
             "query"
         ]["anyOf"]
 
-    async def test_the_same_phrasings_read_twice_are_one_read(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        read = AsyncMock(return_value=_param_info(name="domain_typeahead"))
-        monkeypatch.setattr(catalog_discovery, "read_parameter_options", read)
-        ctx = agent_run_context()
-
-        for _ in range(2):
-            await catalog_discovery.get_parameter_options(
-                ctx,
-                search_name="GenesByInterproDomain",
-                parameter_id="domain_typeahead",
-                query=["RNA binding", "KH"],
-            )
-
-        assert read.await_count == 1
-
 
 class TestTheInvestigationsOrganismsReachTheRead:
     """The tree is capped, so the read is told which organisms matter."""

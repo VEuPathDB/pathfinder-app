@@ -261,9 +261,7 @@ def test_every_writer_of_bound_values_is_named() -> None:
 
 
 def test_the_mcp_binders_are_derived_from_its_source() -> None:
-    assert {"read_stated_parameters", "read_stated_context", "read_radio_readings"} <= (
-        binders()
-    )
+    assert {"read_stated_parameters", "read_stated_context"} <= binders()
 
 
 def test_only_the_reader_modules_reach_a_binder() -> None:
@@ -318,11 +316,11 @@ def test_a_new_tool_in_a_mapped_module_is_found(tmp_path: Path) -> None:
 def test_an_mcp_wrapper_that_binds_is_found(tmp_path: Path) -> None:
     root = _tree(
         tmp_path,
-        {"ai/radio.py": "from veupathdb_mcp.catalog import read_radio_readings\n"},
+        {"ai/context.py": "from veupathdb_mcp.catalog import read_stated_context\n"},
     )
 
     assert escapes(root, frozenset({_STATED})) == [
-        "ai/radio.py: veupathdb_mcp.catalog.read_radio_readings"
+        "ai/context.py: veupathdb_mcp.catalog.read_stated_context"
     ]
 
 

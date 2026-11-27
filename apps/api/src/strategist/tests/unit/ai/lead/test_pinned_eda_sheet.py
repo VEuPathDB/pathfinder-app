@@ -23,7 +23,7 @@ from strategist.ai.graph import state
 from strategist.ai.lead import lead_pins
 from strategist.ai.lead.lead_pins import pinned_eda_sheet
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_analysis
+from strategist.ai.tools.standalone import _eda_open, eda_analysis
 from strategist.ai.tools.standalone._eda_models import (
     EdaAnalysisOpened,
     EdaFiltersResult,
@@ -104,9 +104,9 @@ async def _applied(
 
 
 def serve_phenotype_study(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
 
 
 def _pair(tool: str, call_id: str, content: object) -> list[ModelMessage]:
@@ -259,7 +259,7 @@ class TestAnOpenFilterSheetStaysReadable:
             )
 
         await _open_the_sheet(lead_ctx)
-        monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _other_study)
+        monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", _other_study)
         monkeypatch.setattr(eda_analysis, "bind_analysis", _bind)
         opened = await eda_analysis.open_eda_analysis(
             lead_ctx, dataset_id=OTHER_DATASET, purpose="the other study"

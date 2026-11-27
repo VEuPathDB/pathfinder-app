@@ -10,9 +10,10 @@ from assistant_core.graph.turn_state import UserQuestionAnswer
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb_mcp.catalog import ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo, list_organisms
 
 from strategist.ai.graph.state import PipelineState
+from strategist.ai.lead.answer_requirements import answer_requirement
 from strategist.ai.lead.answers_text import answers_text
 from strategist.ai.lead.card_question import CardQuestion
 from strategist.ai.lead.card_reply import CardReply
@@ -20,17 +21,16 @@ from strategist.ai.lead.card_sheets import card_sheets, picks_on_unread_sheets
 from strategist.ai.lead.readings import picks_their_criteria_refuse, refused_picks
 from strategist.ai.lead.recorded_cards import answered_on_the_card, the_card_asked
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.domain.clipped import clipped_text
 from strategist.domain.strategy.card_answers import (
     option_refusal,
     spec_bound_by_card,
     spec_with_reading,
 )
 from strategist.domain.strategy.constraints import (
+    MANY_VALUED_KINDS,
     STRATEGY_SCOPES,
     Constraint,
     ConstraintKind,
-    ConstraintSource,
 )
 from strategist.domain.strategy.genome_group_steps import spec_read_on_genomes
 from strategist.domain.strategy.operator_reading import with_operator
@@ -53,9 +53,11 @@ from strategist.domain.strategy.questions import (
     requirement_choices,
 )
 from strategist.domain.strategy.readings import ReadingChooser, ReadValues
-from strategist.domain.strategy.requirement_reports import numbered_requirements
+from strategist.domain.strategy.requirement_reports import (
+    numbered_requirements,
+    unlisted_numbers_sentence,
+)
 
-_LABEL_LIMIT = 120
 _NO_STAND_INS: Mapping[str, Sequence[str]] = MappingProxyType({})
 
 
@@ -68,12 +70,9 @@ def card_stand_ins(
 ) -> dict[str, list[str]]:
     numbered = numbered_requirements(requirements)
     named = [n for q in questions for n in q.replaces]
-    unknown = [n for n in named if n not in numbered]
-    if unknown:
-        msg = (
-            f"replaces names {unknown}, which the requirement list does not hold. "
-            f"The list holds {', '.join(numbered) or 'none'}; name only those."
-        )
+    unlisted = unlisted_numbers_sentence("replaces", named, requirements)
+    if unlisted is not None:
+        msg = f"{unlisted} Name only those."
         raise ModelRetry(msg)
     scopes = [n for n in named if numbered[n].kind in STRATEGY_SCOPES]
     if scopes:
@@ -91,29 +90,23 @@ async def consult_can_ask(
     ctx: RunContext[LeadDeps], questions: list[CardQuestion], *, reply: CardReply
 ) -> None:
     del reply
+    domain = ctx.deps.state.domain
+    spec = domain.operational_spec
+    links = {
+        c.id: [link.requirement for link in c.answers]
+        for c in ([] if spec is None else spec.criteria)
+    }
+    drops = [
+        why
+        for q in questions
+        for why in q.recommended_drops(domain.requirements, links)
+    ]
+    if drops:
+        raise ModelRetry(" ".join(drops))
     cards = ctx.deps.state.turn_markers.card_stand_ins
     call = ctx.tool_call_id or ""
     if call not in cards:
         cards[call] = card_stand_ins(questions, ctx.deps.state.domain.requirements)
-
-
-def _answer_requirement(
-    prompt: str, labels: list[str], note: str, dimension: ConstraintKind
-) -> Constraint | None:
-    """The words an answer states as a requirement on the question's
-    dimension, or None when it states none."""
-    stated = "; ".join(labels) if labels else note
-    if not stated:
-        return None
-    return Constraint(
-        kind=dimension,
-        requested_value=stated,
-        # A question carries the label. An unlabelled one falls back to the
-        # answer, because a requirement is always named.
-        label=clipped_text(prompt or stated, _LABEL_LIMIT),
-        source=ConstraintSource.USER_EXPLICIT,
-        hard=True,
-    )
 
 
 def _name_the_organism(
@@ -200,12 +193,15 @@ def apply_option_bindings(
     *,
     sheets: Mapping[str, Sequence[ParameterInfo]],
     replaced: Mapping[str, Sequence[str]] = _NO_STAND_INS,
+    organisms: Sequence[str] = (),
 ) -> None:
     """Apply what each picked option binds, with no model in between.
 
     A value binds, an operator rewires its combine and a withdrawal retires;
     typed words, a picked reading a framing pass named and the note, never
-    another offered label, become a requirement on the dimension ``asked`` names. That requirement replaces
+    another offered label, become a requirement on the dimension ``asked``
+    names on a dimension of many values, and on the organism dimension words
+    that name one of ``organisms``. That requirement replaces
     each one ``replaced`` holds under the question's prompt. Every picked label
     is kept as a card pick, which states a cut an EDA export rests on, and a
     picked tail is held as a rule that each later study's own edge meets.
@@ -238,12 +234,19 @@ def apply_option_bindings(
             if question is not None
             else dimensions.get(answer.prompt, ConstraintKind.UNTYPED)
         )
-        stated = _answer_requirement(answer.prompt, words, answer.note, dimension)
+        stated = answer_requirement(
+            answer.prompt, words, answer.note, dimension, organisms
+        )
         if stated is not None:
             [held] = domain.record_requirements([stated])
             gone = set(replaced.get(answer.prompt, ())) - {held.id}
             domain.withdraw(
-                (c for c in domain.requirements if c.id in gone), stand_in=held
+                (
+                    c
+                    for c in domain.requirements
+                    if c.id in gone and c.kind in MANY_VALUED_KINDS
+                ),
+                stand_in=held,
             )
     domain.operational_spec = domain.follow_readings(entry, domain.operational_spec)
 
@@ -306,6 +309,17 @@ def _asked(questions: Sequence[CardQuestion]) -> list[OpenQuestion]:
     ]
 
 
+async def _organisms_asked(
+    state: PipelineState, shown: Sequence[CardQuestion]
+) -> list[str]:
+    dimensions = {q.dimension for q in shown} | {
+        q.dimension for q in state.domain.open_questions
+    }
+    if ConstraintKind.ORGANISM not in dimensions:
+        return []
+    return await list_organisms(state.site_id)
+
+
 async def consult_user(
     ctx: RunContext[LeadDeps],
     questions: list[CardQuestion],
@@ -322,7 +336,10 @@ async def consult_user(
     which binds a value. A question of your own may offer options; a picked
     one that binds no recorded value comes back as the researcher's words,
     as an answer in the free-text note does. 'Drop <requirement>' and 'Keep
-    <requirement>' bind a requirement the conversation holds, and a reading a
+    <requirement>' bind a requirement the conversation holds; a card offers
+    'Drop <requirement>' for a requirement the researcher stated and never
+    recommends it or any other option of a question about that requirement
+    but 'Keep <requirement>'. A reading a
     framing pass named, offered as written, states that reading. A question
     that asks for a stand-in names in ``replaces`` the numbers of the ledger's
     requirements the stand-in takes the place of.
@@ -392,6 +409,7 @@ async def consult_user(
             shown,
             sheets=sheets,
             replaced=state.turn_markers.card_stand_ins.get(ctx.tool_call_id or "", {}),
+            organisms=await _organisms_asked(state, shown),
         )
         state.domain.answer_open_questions(answered, on_card=True)
         state.domain.record_answered(_asked(shown))

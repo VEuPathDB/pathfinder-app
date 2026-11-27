@@ -113,7 +113,7 @@ def _thread(
     )
     ctx.deps.state.domain.operational_spec = spec
     install_stub_api(monkeypatch)
-    monkeypatch.setattr(eda_step, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_step, "open_analysis", _bound)
     monkeypatch.setattr(eda_step, "read_analysis", _read)
     monkeypatch.setattr(eda_step, "the_cut", _the_whole_subset)
     return ctx

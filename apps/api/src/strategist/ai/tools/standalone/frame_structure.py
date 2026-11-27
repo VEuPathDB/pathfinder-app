@@ -207,20 +207,21 @@ def _refuse_a_node_the_role_contradicts(
         criterion = by_id.get(criterion_id)
         if criterion is None:
             continue
-        if kind == "transform" and criterion.role != "transform":
+        if kind == criterion.node_kind:
+            continue
+        if criterion.node_kind == "leaf":
             msg = (
                 f"{criterion.id} is bound to {criterion.search_name}, which takes no "
                 f"input step, so it cannot be a transform node. Make it a leaf, or "
                 f"bind the criterion to a search that takes an input step."
             )
-            raise ModelRetry(msg)
-        if kind == "leaf" and criterion.role == "transform":
+        else:
             msg = (
                 f"{criterion.id} is bound to {criterion.search_name}, which runs on a "
                 f"previous step, so it cannot be a leaf. Wire it as a transform node "
                 f"over the subtree it maps."
             )
-            raise ModelRetry(msg)
+        raise ModelRetry(msg)
 
 
 async def set_structure(

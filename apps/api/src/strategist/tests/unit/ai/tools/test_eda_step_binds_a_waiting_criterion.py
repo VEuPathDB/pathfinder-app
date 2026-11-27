@@ -55,7 +55,7 @@ def _ctx(session: StrategySession) -> RunContext[LeadDeps]:
 
 def _wire(monkeypatch: pytest.MonkeyPatch) -> None:
     install_stub_api(monkeypatch)
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
+    monkeypatch.setattr(eda_step, "open_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
     wire_gene_count(monkeypatch)
 

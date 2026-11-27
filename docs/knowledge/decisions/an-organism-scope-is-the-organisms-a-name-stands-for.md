@@ -24,7 +24,7 @@ entry the search was given.
 
 **VERIFY's organism check compares a record's organism with those organisms.**
 `ai/lead/verify_checks.py::_organism_checks` reads `organism_taxa` for the
-marked searches of the spec and hands `domain/site_checks.py::organism_check` a
+marked searches of the spec and hands `domain/organism_checks.py::organism_check` a
 `SelectedOrganisms`. A record organism is selected when its words equal the
 words of one organism of the scope, so a clade admits every organism under it
 and a strain does not admit a sibling strain whose name it begins. A requirement
@@ -111,7 +111,7 @@ check against the union passes, and it needs the site's tree for every entry.
 # Anchors
 
 `domain/strategy/organism_scope.py::SelectedOrganisms`,
-`domain/site_checks.py::organism_check`,
+`domain/organism_checks.py::organism_check`,
 `ai/lead/verify_checks.py::_organism_checks`,
 `domain/strategy/validate.py::cross_organism_refusal`,
 `domain/strategy/organism_remedy.py`,

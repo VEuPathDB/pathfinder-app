@@ -9,7 +9,10 @@ from veupathdb_mcp.catalog import ParameterInfo
 from strategist.ai.agents.state import AgentToolState
 from strategist.domain.refusal import Check, Problem, Problems, RefusalKey
 from strategist.domain.strategy.operational_spec import RequirementLink
-from strategist.domain.strategy.requirement_reports import numbered_requirements
+from strategist.domain.strategy.requirement_reports import (
+    numbered_requirements,
+    unlisted_numbers_sentence,
+)
 
 
 class AnsweredRequirement(CamelModel):
@@ -60,7 +63,9 @@ def linked_requirements(
         )
         return held, Problems()
     numbered = numbered_requirements(state.stated_requirements)
-    unknown = [a.requirement for a in answers if a.requirement not in numbered]
+    unlisted = unlisted_numbers_sentence(
+        "answers", [a.requirement for a in answers], state.stated_requirements
+    )
     links = [
         RequirementLink(
             requirement=numbered[a.requirement].id,
@@ -70,13 +75,12 @@ def linked_requirements(
         for a in answers
         if a.requirement in numbered
     ]
-    if not unknown:
+    if unlisted is None:
         return links, Problems()
     return links, Problems.one(
         RefusalKey(check=Check.REQUIREMENTS),
-        f"answers names {unknown}, which the requirement list does not hold. "
-        f"The list holds {', '.join(numbered) or 'none'}; name only those, or "
-        f"pass an empty list when the criterion answers none of them.",
+        f"{unlisted} Name only those, or pass an empty list when the criterion "
+        "answers none of them.",
     )
 
 

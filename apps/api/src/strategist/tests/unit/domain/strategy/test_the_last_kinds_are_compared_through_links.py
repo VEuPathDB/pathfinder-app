@@ -17,7 +17,6 @@ from strategist.domain.strategy.constraints import (
     RequirementValue,
     TextValue,
     UntypedValue,
-    is_blocking,
 )
 from strategist.domain.strategy.operational_spec import (
     BoundValue,
@@ -114,7 +113,7 @@ def test_an_unlinked_count_is_not_verified_and_never_blocks() -> None:
         "no_value_to_compare",
     )
     assert (check.status, check.why_unchecked) == ("unchecked", "no_value_to_compare")
-    assert not is_blocking(grounded)
+    assert not grounded.blocks
 
 
 def _transform(held: Constraint, *targets: str) -> Criterion:
@@ -161,12 +160,12 @@ def test_a_transform_to_another_organism_fails_the_ortholog() -> None:
     )
 
 
-def test_an_ortholog_no_criterion_links_is_not_verified() -> None:
+def test_an_ortholog_no_criterion_links_is_judged_by_the_transform_values() -> None:
     grounded = _grounded(_orthologs(_PV), _transform(_count(">=", 1), _PV))
 
-    assert (grounded.status, grounded.unverified) == (
-        ConstraintStatus.NOT_VERIFIED,
-        "no_step_states_it",
+    assert (grounded.status, grounded.realized_value) == (
+        ConstraintStatus.GROUNDED,
+        _PV,
     )
 
 
@@ -274,7 +273,7 @@ def test_a_requirement_with_no_typed_value_is_not_verified(
         "unchecked",
         "untyped",
     )
-    assert not is_blocking(grounded)
+    assert not grounded.blocks
 
 
 def test_a_not_verified_grounding_names_why() -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from pydantic import ConfigDict, JsonValue
 from veupathdb.domain.parameters import (
@@ -124,6 +124,14 @@ def held_expressions(
     }
 
 
+def unheld_sentence(argument: str, handles: Sequence[str]) -> str:
+    return (
+        f"{argument} names {', '.join(handles)}, and no expression of this "
+        "conversation is held under that handle: neither build_phyletic_expression "
+        "nor a bound criterion wrote it."
+    )
+
+
 def held_readings(built: Mapping[str, BuiltPattern]) -> dict[str, str]:
     return {handle: held.reading for handle, held in built.items()}
 
@@ -166,4 +174,5 @@ __all__ = [
     "stated_text",
     "stated_value",
     "stated_values",
+    "unheld_sentence",
 ]

@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from veupathdb.domain.parameters import (
     MultiPickValue,
-    ParamValue,
     PhrasingMatch,
     SinglePickValue,
     VocabLookup,
@@ -73,27 +72,6 @@ def test_a_search_overview_carries_no_selection_verdict() -> None:
     assert absent.isdisjoint(SearchOverview.model_fields)
     assert not hasattr(AgentToolState, "decided_search_names")
     assert not hasattr(AgentToolState, "selected_search_names")
-
-
-def test_param_read_key_is_stable_and_context_sensitive() -> None:
-    k1 = AgentToolState.param_read_key("S", "p")
-    k2 = AgentToolState.param_read_key("S", "p")
-    assert k1 == k2
-    ctx_a: dict[str, ParamValue] = {"parent": SinglePickValue(value="a")}
-    ctx_b: dict[str, ParamValue] = {"parent": SinglePickValue(value="b")}
-    assert AgentToolState.param_read_key("S", "p", context_values=ctx_a) != k1
-    assert AgentToolState.param_read_key(
-        "S", "p", context_values=ctx_a
-    ) != AgentToolState.param_read_key("S", "p", context_values=ctx_b)
-    assert AgentToolState.param_read_key("S", "p", terms=("x",)) != k1
-
-
-def test_mark_and_was_param_read() -> None:
-    s = AgentToolState()
-    key = AgentToolState.param_read_key("S", "p")
-    assert s.was_param_read(key) is False
-    s.mark_param_read(key)
-    assert s.was_param_read(key) is True
 
 
 def _derisi_criterion() -> Criterion:

@@ -74,3 +74,13 @@ async def test_a_membership_check_of_an_unquoted_phrase_is_refused() -> None:
         )
 
     assert refused.value.message == _REFUSAL
+
+
+async def test_a_phrase_an_earlier_message_asked_for_is_refused_unquoted() -> None:
+    ctx = lead_run_context(site_id="giardiadb", user_prompt="Count those now.")
+    ctx.deps.state.domain.original_request = _ASKS
+
+    with pytest.raises(ModelRetry) as refused:
+        await count_search(ctx, _phrase_search("cysteine-rich protein"))
+
+    assert refused.value.message == _REFUSAL

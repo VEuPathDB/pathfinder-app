@@ -18,7 +18,7 @@ from veupathdb.eda import (
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from strategist.ai.lead.sub_agent_tools import LeadDeps
-from strategist.ai.tools.standalone import eda_analysis, eda_catalog
+from strategist.ai.tools.standalone import _eda_open, eda_analysis, eda_catalog
 from strategist.ai.tools.standalone._eda_models import (
     EdaFiltersResult,
     EdaStudySearchResult,
@@ -113,9 +113,9 @@ def stubbed_services(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(eda_catalog, "search_studies", _studies)
     monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _phenotype_study)
+    monkeypatch.setattr(_eda_open, "get_study_detail_for_dataset", _phenotype_study)
     monkeypatch.setattr(eda_analysis, "study_description", no_description)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    monkeypatch.setattr(eda_analysis, "open_analysis", _bound)
 
 
 async def test_search_eda_studies_stays_under_its_ceiling(

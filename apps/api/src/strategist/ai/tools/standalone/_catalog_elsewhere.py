@@ -18,6 +18,7 @@ from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 
 from strategist.ai.graph.runtime import AgentDeps
 from strategist.domain.unread import Unread
+from strategist.services.strategies.record_classes import input_classes
 
 logger = get_logger(__name__)
 
@@ -160,8 +161,7 @@ def reach_sentence(
 async def _orthology_route(site_id: str, organism: str) -> str:
     """The sentence for the site's gene transform that names an organism."""
     for listed in await catalog.get_raw_searches(site_id, _GENES):
-        inputs = listed.allowed_primary_input_record_class_names or []
-        if _GENES in inputs and _ORGANISM in listed.param_names:
+        if _GENES in input_classes(listed) and _ORGANISM in listed.param_names:
             definition = await catalog.read_search_definition(
                 site_id, _GENES, listed.url_segment
             )
