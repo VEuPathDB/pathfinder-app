@@ -23,6 +23,7 @@ from strategist.ai.lead.answered_strategy import (
 )
 from strategist.ai.lead.build_messages import (
     build_not_ready_message,
+    build_waits_on_the_card_message,
     build_would_replace_the_strategy,
     organism_unnamed_message,
     round_trip_not_kept_message,
@@ -141,6 +142,8 @@ def minted_spec(spec: OperationalSpec | None) -> MintedSpec:
 async def build_the_spec(deps: LeadDeps, *, call_id: str) -> ExecuteDelta:
     """Mint the thread's spec into steps and push them, with no model in between."""
     domain = deps.state.domain
+    if domain.open_questions:
+        raise ModelRetry(build_waits_on_the_card_message(domain.open_questions))
     asked = asked_organisms(domain.requirements, domain.organism_picks)
     if asked:
         raise ModelRetry(organism_unnamed_message([pick.quote for _, pick in asked]))

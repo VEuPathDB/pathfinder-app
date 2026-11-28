@@ -67,7 +67,7 @@ def render_frame_full(section: FrameSection) -> str:
         f"- records: {counted_noun(spec.record_type)}s",
         f"- organism_scope: {spec.organism_scope or 'any'}",
         f"- title: {spec.title}",
-        f"- ready_to_build: {spec.ready_to_build}",
+        f"- ready_to_build: {section.ready_to_build}",
         "",
         f"### Criteria ({len(spec.criteria)})",
     ]

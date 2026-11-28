@@ -26,7 +26,7 @@ from strategist.domain.strategy.operational_spec import (
     OperationalSpec,
     StructureNode,
 )
-from strategist.domain.strategy.questions import OpenQuestion
+from strategist.domain.strategy.questions import OpenQuestion, plan_ready_to_build
 from strategist.domain.strategy.reading_choices import reading_choice_lines
 from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.domain.strategy.spec_diff import SpecDiff, diff_specs
@@ -174,7 +174,7 @@ class FrameSection(CamelModel):
 
     @computed
     def ready_to_build(self) -> bool:
-        return self.spec.ready_to_build if self.spec else False
+        return plan_ready_to_build(self.spec, self.open_questions)
 
     @computed
     def needs_user(self) -> bool:

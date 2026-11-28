@@ -17,7 +17,7 @@ from strategist.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
-from strategist.domain.strategy.operational_spec import Criterion
+from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
 from strategist.domain.strategy.option_labels import (
     count_at,
     option_label,
@@ -441,3 +441,10 @@ def standing_recommendations(
     replaced = {c.kind for c in stated}
     offered = (q.recommendation() for q in questions)
     return [c for c in offered if c is not None and c.kind not in replaced]
+
+
+def plan_ready_to_build(
+    spec: OperationalSpec | None, open_questions: Sequence[OpenQuestion]
+) -> bool:
+    """Whether the plan is ready and the card holds no question it waits on."""
+    return spec is not None and spec.ready_to_build and not open_questions

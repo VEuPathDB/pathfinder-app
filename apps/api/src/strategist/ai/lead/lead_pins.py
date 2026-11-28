@@ -144,7 +144,7 @@ def pinned_operational_spec(ctx: RunContext[LeadDeps]) -> str | None:
     lines = [
         "## Operational Spec",
         f"- goal: {spec.interpreted_goal or spec.goal}",
-        f"- ready_to_build: {spec.ready_to_build}",
+        f"- ready_to_build: {ctx.deps.state.domain.ready_to_build}",
     ]
     for c in spec.criteria:
         slots = [s.param_name for s in c.open_params]

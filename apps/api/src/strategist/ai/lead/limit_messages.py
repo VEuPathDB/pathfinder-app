@@ -48,8 +48,8 @@ def unmet_requirement_message(requirements: tuple[str, ...]) -> str:
     return (
         f"The researcher stated {stated}, and the strategy does not answer {it}, "
         "so the turn is not complete and no result is presented as the answer. "
-        f"Set nextState to await_user and say in the reply: {plainly} When a "
-        f"search can state {it}, apply {it} with edit_strategy first."
+        f"When a search can state {it}, apply {it} with edit_strategy first. "
+        f"Otherwise set nextState to await_user and say in the reply: {plainly}"
     )
 
 

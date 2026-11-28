@@ -47,6 +47,7 @@ from strategist.domain.strategy.computed_groups import HeldComparison
 from strategist.domain.strategy.data_marks import DataMarks
 from strategist.domain.strategy.expression_handles import BuiltPattern
 from strategist.domain.strategy.operational_spec import Criterion, OperationalSpec
+from strategist.domain.strategy.questions import plan_ready_to_build
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.site_set_reads import SiteSetReads
 from strategist.domain.strategy.staleness import StaleBuild
@@ -285,6 +286,10 @@ class StrategyDomainState(ThreadRequirements):
         self.set_the_request_aside()
         if not keep_control_sets:
             self.control_sets = []
+
+    @property
+    def ready_to_build(self) -> bool:
+        return plan_ready_to_build(self.operational_spec, self.open_questions)
 
     def withdraw_the_pending_plan(self) -> None:
         """Return the plan to the spec the strategy answers to, and drop its questions."""

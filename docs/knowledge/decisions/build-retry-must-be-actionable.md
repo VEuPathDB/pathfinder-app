@@ -33,6 +33,12 @@ A `ModelRetry` says "you can fix this yourself and try again". That is true when
 - **unbound criteria** - names them and sends the model back to FRAME to bind;
 - **criterion-level open params** - names them and says to ask.
 
+A spec can be ready while the thread's card still asks a question, for example a drop
+offer for a requirement no search states. `plan_ready_to_build` (`domain/strategy/questions.py`)
+is ready only when the spec is ready and the thread holds no open question; the Lead's
+spec pin, the ledger and `build_strategy` all read it, and `build_strategy` refuses with
+the unanswered questions and says to call `consult_user` with the card first.
+
 The guard still raises `ModelRetry`; only the wording varies. That keeps the existing control flow while removing the instruction that caused the loop.
 
 # The invariant every tool refusal holds

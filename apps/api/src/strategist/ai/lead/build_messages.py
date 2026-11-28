@@ -7,9 +7,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from strategist.domain.strategy.operational_spec import OperationalSpec
+from strategist.domain.strategy.questions import OpenQuestion
 
 __all__ = [
     "build_not_ready_message",
+    "build_waits_on_the_card_message",
     "build_would_replace_the_strategy",
     "round_trip_not_kept_message",
     "structure_does_not_convert_message",
@@ -116,4 +118,14 @@ def build_not_ready_message(spec: OperationalSpec | None) -> str:
     return (
         f"These criteria still need user-supplied parameters: "
         f"{', '.join(open_params)}. Ask the user for them, then build."
+    )
+
+
+def build_waits_on_the_card_message(questions: Sequence[OpenQuestion]) -> str:
+    """Why a plan whose card still asks a question is not built."""
+    asked = "; ".join(q.question for q in questions)
+    return (
+        f"The plan waits on {len(questions)} question(s) the researcher has not "
+        f"answered: {asked}. Call consult_user with the cardQuestions of the "
+        f"last frame_problem result, then build once the researcher answers."
     )

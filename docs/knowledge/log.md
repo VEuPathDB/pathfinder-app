@@ -2,6 +2,12 @@
 
 ## 2026-11-28
 
+* **A build waits on the card.** A plan is ready to build only when the thread holds no
+  open question, so a drop offer FRAME leaves on the card is asked before the build and
+  never built past (`decisions/build-retry-must-be-actionable.md`).
+* **An unmet requirement's refusal ends on the words the reply says.** The instruction to
+  apply it with `edit_strategy` comes first, so a reply that copies the quoted words
+  carries no tool name.
 * **An undo withdraws the change the researcher was shown last.** Over a plan that waits
   on a card's answer, an undo puts the plan back to the spec the strategy answers to and
   pushes nothing, instead of reverting the change committed before it
