@@ -2,13 +2,16 @@
 # to QA and writes the recordings, so neither it nor the stack is fenced, the
 # recordings directory the caller names is writable, and the account's real
 # token is verified by the real OAuth server. Only scripts/e2e-wire.sh record,
-# refresh and catalogs layer it, on cedar, by hand.
+# refresh and catalogs layer it, by hand. Outside the VEuPathDB network,
+# WIRE_UPSTREAM names an HTTP proxy inside it, and wdk-wire reaches QA through it.
 
 services:
   wdk-wire:
     environment:
       WIRE_MODE: record
       WIRE_OAUTH_URL: ""
+      WIRE_UPSTREAM: ${WIRE_UPSTREAM:-}
+      HTTPS_PROXY: ${WIRE_UPSTREAM:-}
     volumes:
       - ${WIRE_DIR:?the record overlay runs only through scripts/e2e-wire.sh}:/wire/recordings:rw
     extra_hosts: !reset []

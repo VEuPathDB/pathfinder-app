@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: E2E replays recorded WDK
-description: The Playwright suite reaches VEuPathDB only through the wdk-wire proxy, which replays committed QA recordings and answers 418 for any request it holds none for; no e2e run can reach a live site; each test signs its own token and is its own Strategist user; recording and the refresh run by hand on cedar. The one exception to "only mock the LLM", for e2e only. A transport inside the clients, a plain HTTP replay server, browser routing and a live tier were rejected.
+description: The Playwright suite reaches VEuPathDB only through the wdk-wire proxy, which replays committed QA recordings and answers 418 for any request it holds none for; no e2e run can reach a live site; each test signs its own token and is its own Strategist user; recording and the refresh run by hand against QA, from inside the VEuPathDB network or through an HTTP proxy inside it. The one exception to "only mock the LLM", for e2e only. A transport inside the clients, a plain HTTP replay server, browser routing and a live tier were rejected.
 tags: [testing, e2e, ci, recording, replay]
 generated: { by: claude-code/opus-5.5, at: 2026-11-24T00:00:00Z }
 status: stable
@@ -53,7 +53,11 @@ fails the test with them and names the record command, even when the page absorb
 error. A miss on `stack` fails the run in global teardown. A site whose snapshot did not
 load fails global setup.
 
-**Recording and the refresh are by hand, on cedar, against QA.** Nothing schedules them.
+**Recording and the refresh are by hand, against QA.** Nothing schedules them. From outside
+the VEuPathDB network QA answers every service call with a 307 to the pre-release login, so a
+host outside it sets `WIRE_UPSTREAM` to an HTTP proxy on a machine inside it (cedar, through an
+ssh tunnel) and exports `WDK_TEST_TOKEN`, because the suite's own sign-in is sent from the
+host; `wdk-wire` and the refresh reach QA through that proxy.
 `catalogs` builds the 7 catalog snapshots through the e2e api image and a recording
 `wdk-wire` that writes to a directory it then deletes; a record run needs them first,
 because a catalog the api builds during the record run would be recorded.

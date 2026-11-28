@@ -1,5 +1,12 @@
 # Log
 
+## 2026-11-28
+
+* **A recording reaches QA through a proxy inside the network.** `WIRE_UPSTREAM` names an
+  HTTP proxy inside the VEuPathDB network; the record overlay hands it to `wdk-wire`
+  (veupathdb-py 0.9.0b21, `serve --upstream`) and to the refresh, so `catalogs`, `record`
+  and `refresh` run from a host outside it (`decisions/e2e-replays-recorded-wdk.md`).
+
 ## 2026-11-25
 
 * **No e2e run reaches a live site.** `docker-compose.e2e.yml` now holds the wdk-wire

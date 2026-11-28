@@ -63,7 +63,7 @@ services:
     build:
       context: ./deploy/wdk-wire
       args:
-        VEUPATHDB_PY_REF: ${WIRE_VEUPATHDB_PY_REF:-v0.9.0b20}
+        VEUPATHDB_PY_REF: ${WIRE_VEUPATHDB_PY_REF:-v0.9.0b21}
     environment:
       WIRE_MODE: replay
       WIRE_OAUTH_URL: https://auth.wire.test

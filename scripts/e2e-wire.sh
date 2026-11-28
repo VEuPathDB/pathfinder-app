@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # The e2e suite on recorded WDK answers.
 #   replay [playwright args]       the suite against apps/web/e2e/wire (Mac, CI)
-#   catalogs                       build the catalog snapshots from QA through wdk-wire (cedar only)
-#   record --test <spec:line> ...  record the named tests against QA (cedar only)
-#   record --all                   record the whole suite (cedar only)
-#   refresh                        re-send every recording to QA (cedar only)
+#   catalogs                       build the catalog snapshots from QA through wdk-wire
+#   record --test <spec:line> ...  record the named tests against QA
+#   record --all                   record the whole suite
+#   refresh                        re-send every recording to QA
 # record and refresh read WDK_TEST_EMAIL and WDK_TEST_PASSWORD from the shell.
+# catalogs, record and refresh reach QA from inside the VEuPathDB network, or
+# through the HTTP proxy WIRE_UPSTREAM names, as the wdk-wire container sees it.
+# Outside the network, a record run also takes WDK_TEST_TOKEN from the shell.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

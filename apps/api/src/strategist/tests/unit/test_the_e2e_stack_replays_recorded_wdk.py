@@ -59,3 +59,18 @@ def test_the_record_overlay_writes_only_where_its_caller_names() -> None:
     assert wire["volumes"] == [
         "${WIRE_DIR:?the record overlay runs only through scripts/e2e-wire.sh}:/wire/recordings:rw"
     ]
+
+
+def test_the_record_overlay_reaches_qa_through_the_callers_upstream() -> None:
+    wire = _services(_RECORD)["wdk-wire"]
+
+    assert (
+        wire["environment"]["WIRE_UPSTREAM"],
+        wire["environment"]["HTTPS_PROXY"],
+    ) == ("${WIRE_UPSTREAM:-}", "${WIRE_UPSTREAM:-}")
+
+
+def test_a_replaying_wdk_wire_names_no_upstream() -> None:
+    wire = _services(_E2E)["wdk-wire"]
+
+    assert {"WIRE_UPSTREAM", "HTTPS_PROXY"}.isdisjoint(wire["environment"])
