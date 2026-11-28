@@ -33,6 +33,7 @@ from strategist.domain.strategy.operations import (
     ReplaceSubtreeOp,
     UpdateCombineOperatorOp,
 )
+from strategist.domain.strategy.questions import OpenQuestion
 from strategist.domain.strategy.revision import strategy_revision
 from strategist.domain.strategy.session import StrategyGraph, StrategySession
 from strategist.persistence.models import StrategyRevisionView
@@ -53,7 +54,9 @@ def _leaf(step_id: str, search_name: str, value: str) -> dict[str, Any]:
     }
 
 
-def _tree(root_operator: CombineOp) -> StrategyAst:
+def _tree(
+    root_operator: CombineOp, expression: str = "GenesByRNASeqEvidence"
+) -> StrategyAst:
     """``root_operator(expression, INTERSECT(signal peptide, TM))``."""
     return StrategyAst.model_validate(
         {
@@ -62,7 +65,7 @@ def _tree(root_operator: CombineOp) -> StrategyAst:
             "root": {
                 "id": "root",
                 "operator": root_operator.value,
-                "primaryInput": _leaf("expression", "GenesByRNASeqEvidence", "3D7"),
+                "primaryInput": _leaf("expression", expression, "3D7"),
                 "secondaryInput": {
                     "id": "inner",
                     "operator": "INTERSECT",
@@ -111,10 +114,12 @@ class _Undo:
         *,
         stored: StrategyAst | None,
         intent: UserIntent,
+        live: CombineOp = CombineOp.UNION,
     ) -> None:
         self.framed = False
+        self.committed = False
         self.ops: list[GraphOperation] = []
-        session = _session(CombineOp.UNION)
+        session = _session(live)
         state = pipeline_state(user_prompt=_UNDO, domain=StrategyDomainState())
         state.user_message_id = uuid4()
         self.deps: LeadDeps = lead_deps(state, intent=intent, strategy_session=session)
@@ -129,6 +134,7 @@ class _Undo:
             return FrameResult(disposition="spec_ready", notes="reframed")
 
         async def _commit(*, ops: list[GraphOperation], **_kwargs: Any) -> CommitResult:
+            self.committed = True
             self.ops = ops
             graph = session.graph
             assert graph is not None
@@ -149,6 +155,25 @@ class _Undo:
         monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _p: None)
         monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _no_sheets)
         monkeypatch.setattr(pre_turn, "organism_parameters", _no_marks)
+
+    async def plan_a_union_the_card_holds(self) -> None:
+        """The plan states UNION at the root; the strategy still holds INTERSECT."""
+        await pre_turn.hydrate_spec_from_the_strategy(
+            self.deps.state, self.deps.runtime
+        )
+        domain = self.deps.state.domain
+        held = domain.operational_spec
+        assert held is not None
+        assert held.structure is not None
+        root = held.structure.root.model_copy(update={"operator": CombineOp.UNION})
+        domain.operational_spec = held.model_copy(
+            update={"structure": held.structure.model_copy(update={"root": root})}
+        )
+        domain.open_questions = [
+            OpenQuestion(
+                question="Which should it find?", dimension=ConstraintKind.UNTYPED
+            )
+        ]
 
     async def run(self) -> EditDelta:
         result = await run_edit(deps=self.deps, parent_tool_call_id="t1", reason=_UNDO)
@@ -325,3 +350,63 @@ async def test_an_undo_restores_a_previous_weight(
     [op] = undo.ops
     assert isinstance(op, ReplaceSubtreeOp)
     assert (op.step_id, op.subtree.wdk_weight) == ("expression", 10)
+
+
+async def test_an_undo_over_a_plan_the_strategy_does_not_hold_withdraws_the_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The newest change is the plan the card holds, so the strategy keeps its revision."""
+    undo = _Undo(
+        monkeypatch,
+        stored=_tree(CombineOp.INTERSECT, expression="GenesBySporozoiteExpression"),
+        intent=_undo_intent(),
+        live=CombineOp.INTERSECT,
+    )
+    await undo.plan_a_union_the_card_holds()
+
+    delta = await undo.run()
+
+    domain = undo.deps.state.domain
+    graph = undo.deps.runtime.strategy_session.graph
+    assert graph is not None
+    assert (undo.committed, undo.framed, delta.undo, delta.operations_applied) == (
+        False,
+        False,
+        "pending_plan",
+        0,
+    )
+    assert domain.operational_spec == domain.answered_spec
+    assert domain.open_questions == []
+    assert graph.steps["root"].operator is CombineOp.INTERSECT
+    assert graph.steps["expression"].search_name == "GenesByRNASeqEvidence"
+
+
+async def test_an_undo_over_a_held_plan_says_the_strategy_kept_its_revision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    undo = _Undo(
+        monkeypatch,
+        stored=_tree(CombineOp.INTERSECT, expression="GenesBySporozoiteExpression"),
+        intent=_undo_intent(),
+        live=CombineOp.INTERSECT,
+    )
+    await undo.plan_a_union_the_card_holds()
+
+    delta = await undo.run()
+
+    assert delta.summary == (
+        "The change that waited on an answer is withdrawn; the strategy is unchanged."
+    )
+
+
+async def test_an_undo_of_a_pushed_change_says_the_strategy_went_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    undo = _Undo(monkeypatch, stored=_tree(CombineOp.INTERSECT), intent=_undo_intent())
+
+    delta = await undo.run()
+
+    assert (delta.undo, delta.summary) == (
+        "revision",
+        "The strategy is back to the revision before the last change.",
+    )

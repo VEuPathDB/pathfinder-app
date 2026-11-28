@@ -259,7 +259,7 @@ def test_a_refused_edit_names_its_refusal() -> None:
 
 
 def test_an_undo_names_the_revision_it_went_back_to() -> None:
-    delta = EditDelta(diff=SpecDiff(), operations_applied=1, undone=True)
+    delta = EditDelta(diff=SpecDiff(), operations_applied=1, undo="revision")
     assert _card("edit_strategy", delta) == (
         "The strategy is back to the revision before the last change."
     )

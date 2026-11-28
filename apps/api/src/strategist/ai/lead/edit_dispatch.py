@@ -132,9 +132,9 @@ async def run_edit(
         revision=strategy_revision(graph.to_strategy_ast()),
         call_id=parent_tool_call_id,
     )
-    if resume is None and deps.intent is not None and deps.intent.asks_only_to_undo():
-        return await _undo(deps=deps, base=base)
     answered, pending = the_edit_the_strategy_owes(deps.state, found)
+    if resume is None and deps.intent is not None and deps.intent.asks_only_to_undo():
+        return await _undo(deps=deps, base=base, pending=pending)
     frame = await run_frame(
         deps=deps,
         parent_tool_call_id=parent_tool_call_id,
@@ -214,12 +214,16 @@ async def run_edit(
     return pushed.model_copy(update={"reported": frame.reported, "gaps": frame.gaps})
 
 
-async def _undo(*, deps: LeadDeps, base: _EditBase) -> EditDelta:
-    """Return the strategy to the revision before its last change.
+async def _undo(*, deps: LeadDeps, base: _EditBase, pending: SpecDiff) -> EditDelta:
+    """Withdraw the plan the strategy does not hold, or else return the strategy
+    to the revision before its last change.
 
     Both trees are stated the same way, so the diff holds only what the last
     change moved.
     """
+    if pending.touched_count():
+        deps.state.domain.withdraw_the_pending_plan()
+        return EditDelta(diff=SpecDiff(), undo="pending_plan")
     async with deps.runtime.db_session_factory() as session:
         revision = await previous_revision(
             session, conversation_id=deps.state.conversation_id
@@ -336,7 +340,7 @@ async def _push_the_edit(
     refusal = wdk_refused_the_edit(commit)
     return EditDelta(
         diff=diff,
-        undone=undo and refusal is None,
+        undo="revision" if undo and refusal is None else "none",
         description=commit.description if refusal is None else refusal.message,
         operations_applied=len(ops),
         added_step_ids=added,
@@ -407,8 +411,10 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     It re-frames only the criteria the request names, pushes the difference as
     step edits, and leaves every other step's WDK id and values untouched.
     ``build_strategy`` replaces a strategy wholesale and is not the tool for an
-    edit. A request to undo the last change is an edit too: it returns the
-    strategy to the revision before that change and frames nothing.
+    edit. A request to undo the last change is an edit too, and frames nothing:
+    over a plan that waits on an answer it withdraws that plan and pushes
+    nothing; otherwise it returns the strategy to the revision before the last
+    change. ``undo`` says which.
 
     ``reason`` is what the request changes, in one sentence.
 

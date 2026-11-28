@@ -55,7 +55,12 @@ that turns the strategy the turn started from into the one the request asks for.
   pass: `run_edit` reads the newest snapshot a turn ended on with another tree
   (`services/strategies/revision_ops.py::previous_revision`), states it and the
   live tree through one hydration, and pushes their diff like any edit, and a
-  strategy already at that revision fails the call as nothing to undo.
+  strategy already at that revision fails the call as nothing to undo. The newest
+  change is the one the researcher was shown last: when the plan states a change the
+  strategy does not hold (a plan waiting on a card's answer, the difference
+  `the_edit_the_strategy_owes` reads), the undo withdraws that plan
+  (`StrategyDomainState.withdraw_the_pending_plan`), drops its questions and pushes
+  nothing, and `EditDelta.undo` says which of the two it did.
 - `build_strategy` refuses a thread whose graph has steps.
 
 The operations are planned against a working copy of the graph and applied to it

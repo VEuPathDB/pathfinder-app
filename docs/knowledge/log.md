@@ -2,6 +2,10 @@
 
 ## 2026-11-28
 
+* **An undo withdraws the change the researcher was shown last.** Over a plan that waits
+  on a card's answer, an undo puts the plan back to the spec the strategy answers to and
+  pushes nothing, instead of reverting the change committed before it
+  (`decisions/an-edit-is-a-delta-not-a-rebuild.md`).
 * **A recording reaches QA through a proxy inside the network.** `WIRE_UPSTREAM` names an
   HTTP proxy inside the VEuPathDB network; the record overlay hands it to `wdk-wire`
   (veupathdb-py 0.9.0b21, `serve --upstream`) and to the refresh, so `catalogs`, `record`

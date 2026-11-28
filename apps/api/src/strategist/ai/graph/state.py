@@ -286,6 +286,15 @@ class StrategyDomainState(ThreadRequirements):
         if not keep_control_sets:
             self.control_sets = []
 
+    def withdraw_the_pending_plan(self) -> None:
+        """Return the plan to the spec the strategy answers to, and drop its questions."""
+        self.operational_spec = (
+            None
+            if self.answered_spec is None
+            else self.answered_spec.model_copy(deep=True)
+        )
+        self.open_questions = []
+
     def take_a_new_request(self, *, strategy_has_steps: bool) -> None:
         """Drop the questions asked about the request a new one sets aside.
 

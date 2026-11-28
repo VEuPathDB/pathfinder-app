@@ -41,7 +41,13 @@ _ADDED_SEARCHES = (
 
 _NO_READINGS: Mapping[str, str] = MappingProxyType({})
 _NOTHING_APPLIED = "Nothing was applied: the strategy is unchanged."
-_UNDONE = "The strategy is back to the revision before the last change."
+_UNDONE = {
+    "none": "",
+    "revision": "The strategy is back to the revision before the last change.",
+    "pending_plan": (
+        "The change that waited on an answer is withdrawn; the strategy is unchanged."
+    ),
+}
 _MOVED_NOTHING = "an edit that applied nothing carries no operation and no diff"
 
 PassGapKind = Literal[
@@ -237,7 +243,7 @@ class EditDelta(CamelModel):
     disposition: Literal["applied", "needs_user", "unbound"] = "applied"
     refusal: str = ""
     route: str = ""
-    undone: bool = False
+    undo: Literal["none", "revision", "pending_plan"] = "none"
     pending_plan: PendingPlan | None = None
     open_questions: list[OpenQuestion] = Field(default_factory=list)
     # The open questions as the question card asks them, option by option.
@@ -286,7 +292,7 @@ class EditDelta(CamelModel):
     def summary(self) -> str:
         if self.disposition != "applied":
             return _NOTHING_APPLIED
-        return _UNDONE if self.undone else ""
+        return _UNDONE[self.undo]
 
 
 class RecoveryDelta(CamelModel):
